@@ -66,5 +66,3 @@ console.log(info.members[0].size); // The size of 'model' is 64 bytes
 console.log(info.members[0].type.name); // The type of 'model' is mat4x4
 console.log(info.members[0].type.format.name); // The format of 'model' is f32 (mat4x4<f32>).
 ```
-
-<script>
