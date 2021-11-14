@@ -864,7 +864,7 @@ export class Parser {
         const name = this._consume(Token.ident, "identity expected.");
         this._consume(Token.equal, "Expected '=' for type alias.");
         const alias = this._type_decl();
-        return new AST("type_alias", { name: name._lexeme, alias });
+        return new AST("alias", { name: name._lexeme, alias });
     }
 
     _type_decl() {
@@ -876,8 +876,6 @@ export class Parser {
         // vec2 less_than type_decl greater_than
         // vec3 less_than type_decl greater_than
         // vec4 less_than type_decl greater_than
-        // pointer less_than storage_class comma type_decl (comma access_mode)? greater_than
-        // array_type_decl
         // mat2x2 less_than type_decl greater_than
         // mat2x3 less_than type_decl greater_than
         // mat2x4 less_than type_decl greater_than
@@ -888,6 +886,8 @@ export class Parser {
         // mat4x3 less_than type_decl greater_than
         // mat4x4 less_than type_decl greater_than
         // atomic less_than type_decl greater_than
+        // pointer less_than storage_class comma type_decl (comma access_mode)? greater_than
+        // array_type_decl
         // texture_sampler_types
 
         if (this._check([Token.ident, Keyword.bool, Keyword.float32, Keyword.int32, Keyword.uint32])) {
@@ -896,16 +896,16 @@ export class Parser {
         }
         
         if (this._check(Token.template_types)) {
-            let type = this._advance();
+            let type = this._advance()._lexeme;
             this._consume(Token.less_than, "Expected '<' for type.");
             const format = this._type_decl();
             this._consume(Token.greater_than, "Expected '>' for type.");
-            return new AST("type", { name: type._lexeme, format });
+            return new AST(type, { name: type, format });
         }
 
         // pointer less_than storage_class comma type_decl (comma access_mode)? greater_than
         if (this._match(Keyword.pointer)) {
-            let pointer = this._previous();
+            let pointer = this._previous()._lexeme;
             this._consume(Token.less_than, "Expected '<' for pointer.");
             const storage = this._consume(Token.storage_class, "Expected storage_class for pointer");
             this._consume(Token.comma, "Expected ',' for pointer.");
@@ -914,7 +914,7 @@ export class Parser {
             if (this._match(Token.comma))
                 access = this._consume(Token.access_mode, "Expected access_mode for pointer")._lexeme;
             this._consume(Token.greater_than, "Expected '>' for pointer.");
-            return new AST("type", { name: pointer._lexeme, storage: storage._lexeme, decl, access });
+            return new AST("pointer", { name: pointer, storage: storage._lexeme, decl, access });
         }
 
         // texture_sampler_types
@@ -935,7 +935,7 @@ export class Parser {
                 count = this._consume(Token.element_count_expression, "Expected element_count for array.")._lexeme;
             this._consume(Token.greater_than, "Expected '>' for array.");
 
-            return new AST("type", { name: array._lexeme, attributes: attrs, format, count });
+            return new AST("array", { name: array._lexeme, attributes: attrs, format, count });
         }
 
         return null;
@@ -976,6 +976,7 @@ export class Parser {
     }
 
     _attribute_list() {
+        // attr_left (attribute comma)* attribute attr_right
         if (!this._match(Token.attr_left))
             return null;
 

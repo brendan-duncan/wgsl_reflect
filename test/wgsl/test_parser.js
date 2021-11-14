@@ -27,7 +27,7 @@ group("Parser", function() {
     test("type", function(test) {
         const t = parser.parse("type foo = i32;");
         test.validateObject(t, [{
-            _type: "type_alias",
+            _type: "alias",
             name: "foo",
             alias: { name: "i32" }
         }]);
@@ -36,7 +36,7 @@ group("Parser", function() {
     test("type foo = vec3<f32>;", function(test) {
         const t = parser.parse("type foo = vec3<f32>;");
         test.validateObject(t, [{
-            _type: "type_alias",
+            _type: "alias",
             name: "foo",
             alias: {
                 name: "vec3",
@@ -50,7 +50,7 @@ group("Parser", function() {
     test("type foo = array<f32, 5>;", function(test) {
         const t = parser.parse("type foo = array<f32, 5>;");
         test.validateObject(t, [{
-            _type: "type_alias",
+            _type: "alias",
             name: "foo",
             alias: {
                 name: "array",
