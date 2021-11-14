@@ -55,7 +55,7 @@ console.log(reflect.structs.length); // 4
 console.log(reflect.blocks.length); // 2
 console.log(reflect.uniforms.length); // 2
 
-const info = reflect.getUniformBufferInfo(uniforms[1]);
+const info = reflect.getUniformBufferInfo(reflect.uniforms[1]);
 console.log(info.size); // size of the uniform buffer in bytes: 108
 console.log(info.group); // binding group: 0
 console.log(info.binding); // binding index: 1
