@@ -156,9 +156,26 @@ group("Parser", function() {
         test.equals(t.length, 1);
     });
 
+    // let 
+    test("let x : i32 = 42;", function(test) {
+        const t = parser.parse("let x : i32 = 42;");
+        test.validateObject(t, [{
+            _type: "let",
+            name: "x"
+        }]);
+    });
+
     // function
+    test("fn test() { let x : i32 = 42; }", function(test) {
+        const t = parser.parse("fn test() { let x : i32 = 42; }");
+        test.equals(t.length, 1);
+    });
+
     test("[[stage(vertex)]] fn vert_main() -> [[builtin(position)]] vec4<f32> {}", function(test) {
         const t = parser.parse("[[stage(vertex)]] fn vert_main() -> [[builtin(position)]] vec4<f32> {}");
         test.equals(t.length, 1);
     });
+
+    
+
 });

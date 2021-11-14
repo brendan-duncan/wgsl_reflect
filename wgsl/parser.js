@@ -176,7 +176,7 @@ export class Parser {
                 const type = this._type_decl();
                 type.attributes = typeAttrs;
 
-                args.push(new AST("arg", { name, type }));
+                args.push(new AST("arg", { name, attributes: argAttrs, type }));
             } while (this._match(Token.comma));
         }
 
@@ -226,12 +226,6 @@ export class Parser {
         // Ignore any stand-alone semicolons
         while (this._match(Token.semicolon) && !this._isAtEnd());
 
-        if (this._check(Keyword.return)) {
-            const _return = this._return_statement();
-            this._consume(Token.semicolon, "Expected ';' after statement.");
-            return _return;
-        }
-
         if (this._check(Keyword.if))
             return this._if_statement();
 
@@ -244,28 +238,26 @@ export class Parser {
         if (this._check(Keyword.for))
             return this._for_statement();
 
-        if (this._check([Token.var, Token.let]))
-            return this._variable_statement();
-
         if (this._check(Token.brace_left))
             return this._compound_statement();
 
-        if (this._match(Keyword.discard)) {
-            this._consume(Token.semicolon, "Expected ';' after discard.");
-            return new AST("discard");
-        }
+        let result = null;
+        if (this._check(Keyword.return))
+            result = this._return_statement();
+        else if (this._check([Keyword.var, Keyword.let]))
+            result = this._variable_statement();
+        else if (this._match(Keyword.discard))
+            result = new AST("discard");
+        else if (this._match(Keyword.break))
+            result = new AST("break");
+        else if (this._match(Keyword.continue))
+            result = new AST("continue");
+        else 
+            result = this._func_call_statement() || this._assignment_statement();
 
-        if (this._match(Keyword.break)) {
-            this._consume(Token.semicolon, "Expected ';' after break.");
-            return new AST("break");
-        }
+        this._consume(Token.semicolon, "Expected ';' after statement.");
 
-        if (this._match(Keyword.continue)) {
-            this._consume(Token.semicolon, "Expected ';' after continue.");
-            return new AST("continue");
-        }
-
-        return this._func_call_statement() || this._assignment_statement();
+        return result;
     }
 
     _for_statement() {
@@ -305,7 +297,6 @@ export class Parser {
         // let (ident variable_ident_decl) equal short_circuit_or_expression
         if (this._check(Keyword.var)) {
             const _var = this._variable_decl();
-
             let value = null;
             if (this._match(Token.equal))
                 value = this._short_circuit_or_expression();
@@ -314,18 +305,15 @@ export class Parser {
         }
 
         if (this._match(Keyword.let)) {
-            const name = this._consume(Token.ident, "Expected name for let.");
+            const name = this._consume(Token.ident, "Expected name for let.")._lexeme;
             let type = null;
-            if (Token._match(Token.colon)) {
+            if (this._match(Token.colon)) {
                 const typeAttrs = this._attribute_list();
                 type = this._type_decl();
                 type.attributes = typeAttrs;
             }
-
-            Token._consume(Token.equal, "Expected '=' for let.");
-
+            this._consume(Token.equal, "Expected '=' for let.");
             const value = this._short_circuit_or_expression();
-
             return new AST("let", { name, type, value });
         }
 
@@ -695,7 +683,7 @@ export class Parser {
     _primary_expression() {
         // ident argument_expression_list?
         if (this._match(Token.ident)) {
-            const name = this._previous();
+            const name = this._previous()._lexeme;
             if (this._check(Token.paren_left)) {
                 const args = this._argument_expression_list();
                 return new AST("call_expr", { name, args });
@@ -705,7 +693,7 @@ export class Parser {
 
         // const_literal
         if (this._match(Token.const_literal)) {
-            return new AST("literal_expr", { value: this._previous() });
+            return new AST("literal_expr", { value: this._previous()._lexeme });
         }
 
         // paren_expression
