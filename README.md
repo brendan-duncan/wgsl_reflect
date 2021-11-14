@@ -5,7 +5,7 @@ A WebGPU Shading Language parser and reflection library for Javascript.
 ## Example
 
 ```javascript
-import { WgslReflect } from "./wgsl/wgsl_reflect.js";
+import { WgslReflect } from "./wgsl_reflect.js";
 
 const shader = `
 [[block]] struct ViewUniforms {
