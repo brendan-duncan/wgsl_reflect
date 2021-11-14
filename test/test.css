@@ -1,0 +1,48 @@
+.test_title {
+    font-size: 24pt;
+    color: blue;
+}
+
+.test_group {
+    font-size: 24pt;
+    margin-top: 30px;
+}
+
+.test_fail {
+    color: red;
+    font-size: 12pt;
+    margin-left: 40px;
+}
+
+.test_pass {
+    color: green;
+    font-size: 12pt;
+    margin-left: 40px;
+}
+
+.test_status_pass {
+    color: green;
+    font-size: 15pt;
+    margin-left: 20px;
+    font-weight: 300;
+}
+
+.test_status_fail {
+    color: red;
+    font-weight: 300;
+    font-size: 15pt;
+    margin-left: 20px;
+}
+
+.test_log {
+    background-color: #ccc;
+    margin-left: 40px;
+    width: 100%;
+}
+
+.test_log_space {
+    margin: 0;
+    padding: 0;
+    display: inline-block;
+    width: 10px;
+}
