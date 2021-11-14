@@ -372,7 +372,7 @@ export class Parser {
 
         this._consume(Token.brace_right, "Expected '}' for loop.");
 
-        return new AST("loop", { statements, continuing })
+        return new AST("loop", { statements, continuing });
     }
 
     _switch_statement() {
@@ -836,9 +836,9 @@ export class Parser {
         let storage = null;
         let access = null;
         if (this._match(Token.less_than)) {
-            storage = this._consume(Token.storage_class, "Expected storage_class.");
+            storage = this._consume(Token.storage_class, "Expected storage_class.")._lexeme;
             if (this._match(Token.comma))
-                access = this._consume(Token.access_mode, "Expected access_mode.");
+                access = this._consume(Token.access_mode, "Expected access_mode.")._lexeme;
             this._consume(Token.greater_than, "Expected '>'.");
         }
 
@@ -965,9 +965,9 @@ export class Parser {
         if (this._match(Token.storage_texture_type)) {
             const sampler = this._previous();
             this._consume(Token.less_than, "Expected '<' for sampler type.");
-            const format = this._consume(Token.texel_format, "Invalid texel format.");
+            const format = this._consume(Token.texel_format, "Invalid texel format.")._lexeme;
             this._consume(Token.comma, "Expected ',' after texel format.");
-            const access = this._consume(Token.access_mode, "Expected access mode for storage texture type.");
+            const access = this._consume(Token.access_mode, "Expected access mode for storage texture type.")._lexeme;
             this._consume(Token.greater_than, "Expected '>' for sampler type.");
             return new AST("sampler", { name: sampler._lexeme, format, access });
         }

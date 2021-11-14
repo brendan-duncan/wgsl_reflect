@@ -1,5 +1,5 @@
 import { test, group } from "../test.js";
-import { Parser } from "../../wgsl/parser.js";
+import { Parser } from "../../wgsl/wgsl_parser.js";
 
 group("Parser", function() {
     const parser = new Parser();
@@ -175,7 +175,4 @@ group("Parser", function() {
         const t = parser.parse("[[stage(vertex)]] fn vert_main() -> [[builtin(position)]] vec4<f32> {}");
         test.equals(t.length, 1);
     });
-
-    
-
 });
