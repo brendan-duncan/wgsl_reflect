@@ -14,7 +14,7 @@ Token.EOF = { name: "EOF", type: "token", rule: -1 };
 
 export let Keyword = {};
 
-export class Scanner {
+export class WgslScanner {
     constructor(source) {
         this._source = source || "";
         this._tokens = [];

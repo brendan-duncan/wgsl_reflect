@@ -1,8 +1,8 @@
 import { test, group } from "../test.js";
-import { Parser } from "../../wgsl/wgsl_parser.js";
+import { WgslParser } from "../../wgsl/wgsl_parser.js";
 
 group("Parser", function() {
-    const parser = new Parser();
+    const parser = new WgslParser();
 
     test("empty", function(test) {
         test.equals(parser.parse().length, 0);

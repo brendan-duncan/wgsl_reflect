@@ -1,5 +1,5 @@
 import { test, group } from "../test.js";
-import { Parser } from "../../wgsl/parser.js";
+import { WgslParser } from "../../wgsl/wgsl_parser.js";
 
 group("struct", function() {
     const shader = `
@@ -64,7 +64,7 @@ group("struct", function() {
   }`;
 
     test("type_constructor", function(test) {
-        const parser = new Parser();
+        const parser = new WgslParser();
         const t = parser.parse(shader);
         test.true(t.length > 0);
     });

@@ -1,4 +1,4 @@
-import { Scanner, Token, Keyword } from "./scanner.js";
+import { WgslScanner, Token, Keyword } from "./wgsl_scanner.js";
 
 export class AST {
     constructor(type, options) {
@@ -11,7 +11,7 @@ export class AST {
     }
 }
 
-export class Parser {
+export class WgslParser {
     constructor() {
         this._tokens = [];
         this._current = 0;
@@ -33,7 +33,7 @@ export class Parser {
     _initialize(tokensOrCode) {
         if (tokensOrCode) {
             if (typeof(tokensOrCode) == "string") {
-                const scanner = new Scanner(tokensOrCode);
+                const scanner = new WgslScanner(tokensOrCode);
                 this._tokens = scanner.scanTokens();
             } else {
                 this._tokens = tokensOrCode;
