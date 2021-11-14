@@ -1,0 +1,94 @@
+<html>
+    <body>
+        <h1>Shader</h1>
+        <textarea id="shader" style="width: 100%; height: 300px;"></textarea>
+        <button id="parse" style="margin-top: 10px; width: 100px; background-color: #afa;">COMPILE</button>
+        <h1>Reflection Info</h1>
+        <div id="shader_info" style="width: 100%; background-color: #eee; padding: 10px; border: 1px solid #888;"></div>
+
+        <script type="module">
+            import * as wgsl from "./wgsl_reflect.js";
+
+            const shader = `
+[[block]] struct ViewUniforms {
+    viewProjection: mat4x4<f32>;
+};
+
+[[block]] struct ModelUniforms {
+    model: mat4x4<f32>;
+    color: vec4<f32>;
+    intensity: f32;
+};
+
+[[binding(0), group(0)]] var<uniform> viewUniforms: ViewUniforms;
+[[binding(1), group(0)]] var<uniform> modelUniforms: ModelUniforms;
+[[binding(2), group(0)]] var u_sampler: sampler;
+[[binding(3), group(0)]] var u_texture: texture_2d<f32>;
+
+struct VertexInput {
+    [[location(0)]] a_position: vec3<f32>;
+    [[location(1)]] a_normal: vec3<f32>;
+    [[location(2)]] a_color: vec4<f32>;
+    [[location(3)]] a_uv: vec2<f32>;
+};
+
+struct VertexOutput {
+    [[builtin(position)]] Position: vec4<f32>;
+    [[location(0)]] v_position: vec4<f32>;
+    [[location(1)]] v_normal: vec3<f32>;
+    [[location(2)]] v_color: vec4<f32>;
+    [[location(3)]] v_uv: vec2<f32>;
+};
+
+[[stage(vertex)]]
+fn main(input: VertexInput) -> VertexOutput {
+    var output: VertexOutput;
+    output.Position = viewUniforms.viewProjection * modelUniforms.model * vec4<f32>(input.a_position, 1.0);
+    output.v_position = output.Position;
+    output.v_normal = input.a_normal;
+    output.v_color = input.a_color * modelUniforms.color * modelUniforms.intensity;
+    output.v_uv = input.a_uv;
+    return output;
+}`;
+
+            const shadercode = document.getElementById("shader");
+            shadercode.value = shader;
+            
+            const shaderInfo = document.getElementById("shader_info");
+
+            function parse() {
+                let info = "";
+                const reflect = new wgsl.WgslReflect(shadercode.value);
+
+                info += `<b>Number of Structs</b>: ${reflect.structs.length}<p>`;
+                info += "<ul>"
+                for (let s of reflect.structs) {
+                    info += `<li>${s.name}</li>`
+                }
+                info += "</ul>";
+
+                info += `<b>Number of Blocks</b>: ${reflect.blocks.length}<p>`;
+                info += "<ul>"
+                for (let s of reflect.blocks) {
+                    info += `<li>${s.name}</li>`
+                }
+                info += "</ul>";
+
+                info += `<b>Number of Uniforms</b>: ${reflect.uniforms.length}<p>`;
+                info += "<ul>"
+                for (let s of reflect.uniforms) {
+                    info += `<li><b>Name:</b> ${s.name} <b>Type:</b>${s.type.name}</li>`
+                }
+                info += "</ul>";
+
+                shaderInfo.innerHTML = info;
+            }
+            parse();
+
+            const parseButton = document.getElementById("parse");
+            parseButton.addEventListener("click", function() {
+                parse();
+            });
+        </script>
+    </body>
+</html>

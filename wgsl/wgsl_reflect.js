@@ -86,7 +86,7 @@ export class WgslReflect {
         let lastSize = 0;
         let lastOffset = 0;
         let structAlign = 0;
-        let buffer = { type: 'uniform', size: 0, uniforms: [], group, binding };
+        let buffer = { type: 'uniform', size: 0, members: [], group, binding };
 
         for (let mi = 0, ml = struct.members.length; mi < ml; ++mi) {
             let member = struct.members[mi];
@@ -105,7 +105,7 @@ export class WgslReflect {
             structAlign += align;
 
             let u = { name, offset, size, type, member };
-            buffer.uniforms.push(u);
+            buffer.members.push(u);
         }
 
         buffer.size = this._roundUp(structAlign, lastOffset + lastSize);

@@ -64,9 +64,9 @@ fn main(input: VertexInput) -> VertexOutput {
         test.equals(buffer.size, 108);
         test.equals(buffer.group.value, "0");
         test.equals(buffer.binding.value, "1");
-        test.equals(buffer.uniforms.length, 3);
-        test.equals(buffer.uniforms[0].name, "model");
-        test.equals(buffer.uniforms[1].name, "color");
-        test.equals(buffer.uniforms[2].name, "intensity");
+        test.equals(buffer.members.length, 3);
+        test.equals(buffer.members[0].name, "model");
+        test.equals(buffer.members[1].name, "color");
+        test.equals(buffer.members[2].name, "intensity");
     });
 });

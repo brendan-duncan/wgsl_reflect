@@ -1,10 +1,3 @@
-import { Scanner, Token, Keyword } from "./wgsl/scanner.js";
-import { AST, Parser } from "./wgsl/parser.js";
-
-export const wgsl_reflect = {
-    Scanner,
-    Token,
-    Keyword,
-    AST,
-    Parser,
-};
+export * from "./wgsl/wgsl_scanner.js";
+export * from "./wgsl/wgsl_parser.js";
+export * from "./wgsl/wgsl_reflect.js";
