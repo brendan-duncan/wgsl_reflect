@@ -168,7 +168,7 @@ export class WgslParser {
             do {
                 const argAttrs = this._attribute_list();
 
-                const name = this._consume(Token.ident, "Expected argument name.")._lexeme;
+                const name = this._consume(Token.ident, "Expected argument name.").toString();
 
                 this._consume(Token.colon, "Expected ':' for argument type.");
                 
@@ -305,7 +305,7 @@ export class WgslParser {
         }
 
         if (this._match(Keyword.let)) {
-            const name = this._consume(Token.ident, "Expected name for let.")._lexeme;
+            const name = this._consume(Token.ident, "Expected name for let.").toString();
             let type = null;
             if (this._match(Token.colon)) {
                 const typeAttrs = this._attribute_list();
@@ -421,9 +421,9 @@ export class WgslParser {
 
     _case_selectors() {
         // const_literal (comma const_literal)* comma?
-        const selectors = [this._consume(Token.const_literal, "Expected constant literal")._lexeme];
+        const selectors = [this._consume(Token.const_literal, "Expected constant literal").toString()];
         while (this._match(Token.comma)) {
-            selectors.push(this._consume(Token.const_literal, "Expected constant literal")._lexeme);
+            selectors.push(this._consume(Token.const_literal, "Expected constant literal").toString());
         }
         return selectors;
     }
@@ -491,7 +491,7 @@ export class WgslParser {
         let expr = this._short_circuit_and_expr();
         while (this._match(Token.or_or)) {
             expr = new AST("compareOp", {
-                operator: this._previous()._lexeme,
+                operator: this._previous().toString(),
                 left: expr,
                 right: this._short_circuit_and_expr()
             });
@@ -505,7 +505,7 @@ export class WgslParser {
         let expr = this._inclusive_or_expression();
         while (this._match(Token.and_and)) {
             expr = new AST("compareOp", {
-                operator: this._previous()._lexeme,
+                operator: this._previous().toString(),
                 left: expr,
                 right: this._inclusive_or_expression()
             });
@@ -519,7 +519,7 @@ export class WgslParser {
         let expr = this._exclusive_or_expression();
         while (this._match(Token.or)) {
             expr = new AST("binaryOp", {
-                operator: this._previous()._lexeme,
+                operator: this._previous().toString(),
                 left: expr,
                 right: this._exclusive_or_expression()
             });
@@ -533,7 +533,7 @@ export class WgslParser {
         let expr = this._and_expression();
         while (this._match(Token.xor)) {
             expr = new AST("binaryOp", {
-                operator: this._previous()._lexeme,
+                operator: this._previous().toString(),
                 left: expr,
                 right: this._and_expression()
             });
@@ -547,7 +547,7 @@ export class WgslParser {
         let expr = this._equality_expression();
         while (this._match(Token.and)) {
             expr = new AST("binaryOp", {
-                operator: this._previous()._lexeme,
+                operator: this._previous().toString(),
                 left: expr,
                 right: this._equality_expression()
             });
@@ -562,7 +562,7 @@ export class WgslParser {
         const expr = this._relational_expression();
         if (this._match([Token.equal_equal, Token.not_equal])) {
             return new AST("compareOp", {
-                operator: this._previous()._lexeme,
+                operator: this._previous().toString(),
                 left: expr,
                 right: this._relational_expression()
             });
@@ -580,7 +580,7 @@ export class WgslParser {
         while (this._match([Token.less_than, Token.greater_than, Token.less_than_equal,
                             Token.greater_than_equal])) {
             expr = new AST("compareOp", {
-                operator: this._previous()._lexeme,
+                operator: this._previous().toString(),
                 left: expr,
                 right: this._shift_expression()
             });
@@ -595,7 +595,7 @@ export class WgslParser {
         let expr = this._additive_expression();
         while (this._match([Token.shift_left, Token.shift_right])) {
             expr = new AST("binaryOp", {
-                operator: this._previous()._lexeme,
+                operator: this._previous().toString(),
                 left: expr,
                 right: this._additive_expression()
             });
@@ -610,7 +610,7 @@ export class WgslParser {
         let expr = this._multiplicative_expression();
         while (this._match([Token.plus, Token.minus])) {
             expr = new AST("binaryOp", {
-                operator: this._previous()._lexeme,
+                operator: this._previous().toString(),
                 left: expr,
                 right: this._multiplicative_expression()
             });
@@ -626,7 +626,7 @@ export class WgslParser {
         let expr = this._unary_expression();
         while (this._match([Token.star, Token.forward_slash, Token.modulo])) {
             expr = new AST("binaryOp", {
-                operator: this._previous()._lexeme,
+                operator: this._previous().toString(),
                 left: expr,
                 right: this._unary_expression()
             });
@@ -643,7 +643,7 @@ export class WgslParser {
         // and unary_expression
         if (this._match([Token.minus, Token.bang, Token.tilde, Token.star, Token.and])) {
             return new AST("unaryOp", {
-                operator: this._previous()._lexeme, right: this._unary_expression() });
+                operator: this._previous().toString(), right: this._unary_expression() });
         }
         return this._singular_expression();
     }
@@ -683,7 +683,7 @@ export class WgslParser {
     _primary_expression() {
         // ident argument_expression_list?
         if (this._match(Token.ident)) {
-            const name = this._previous()._lexeme;
+            const name = this._previous().toString();
             if (this._check(Token.paren_left)) {
                 const args = this._argument_expression_list();
                 return new AST("call_expr", { name, args });
@@ -693,7 +693,7 @@ export class WgslParser {
 
         // const_literal
         if (this._match(Token.const_literal)) {
-            return new AST("literal_expr", { value: this._previous()._lexeme });
+            return new AST("literal_expr", { value: this._previous().toString() });
         }
 
         // paren_expression
@@ -746,7 +746,7 @@ export class WgslParser {
         if (!this._match(Keyword.struct))
             return null;
 
-        const name = this._consume(Token.ident, "Expected name for struct.")._lexeme;
+        const name = this._consume(Token.ident, "Expected name for struct.").toString();
 
         this._consume(Token.brace_left, "Expected '{' for struct body.");
         const members = [];
@@ -754,7 +754,7 @@ export class WgslParser {
             // struct_member: attribute_list* variable_ident_decl semicolon
             const memberAttrs = this._attribute_list();
 
-            const memberName = this._consume(Token.ident, "Expected variable name.")._lexeme;
+            const memberName = this._consume(Token.ident, "Expected variable name.").toString();
             //member.attributes = attrs;
 
             this._consume(Token.colon, "Expected ':' for struct member type.");
@@ -801,14 +801,14 @@ export class WgslParser {
         if (this._match(Token.equal)) {
             value = this._const_expression();
         }
-        return new AST("let", { name: name._lexeme, type, value });
+        return new AST("let", { name: name.toString(), type, value });
     }
 
     _const_expression() {
         // type_decl paren_left ((const_expression comma)* const_expression comma?)? paren_right
         // const_literal
         if (this._match(Token.const_literal))
-            return this._previous()._lexeme;
+            return this._previous().toString();
         
         const type = this._type_decl();
 
@@ -836,9 +836,9 @@ export class WgslParser {
         let storage = null;
         let access = null;
         if (this._match(Token.less_than)) {
-            storage = this._consume(Token.storage_class, "Expected storage_class.")._lexeme;
+            storage = this._consume(Token.storage_class, "Expected storage_class.").toString();
             if (this._match(Token.comma))
-                access = this._consume(Token.access_mode, "Expected access_mode.")._lexeme;
+                access = this._consume(Token.access_mode, "Expected access_mode.").toString();
             this._consume(Token.greater_than, "Expected '>'.");
         }
 
@@ -850,13 +850,13 @@ export class WgslParser {
             type.attributes = attrs;
         }
 
-        return new AST("var", { name: name._lexeme, type, storage, access });
+        return new AST("var", { name: name.toString(), type, storage, access });
     }
 
     _enable_directive() {
         // enable ident semicolon
         const name = this._consume(Token.ident, "identity expected.");
-        return new AST("enable", { name: name._lexeme });
+        return new AST("enable", { name: name.toString() });
     }
 
     _type_alias() {
@@ -864,7 +864,7 @@ export class WgslParser {
         const name = this._consume(Token.ident, "identity expected.");
         this._consume(Token.equal, "Expected '=' for type alias.");
         const alias = this._type_decl();
-        return new AST("alias", { name: name._lexeme, alias });
+        return new AST("alias", { name: name.toString(), alias });
     }
 
     _type_decl() {
@@ -892,11 +892,11 @@ export class WgslParser {
 
         if (this._check([Token.ident, Keyword.bool, Keyword.float32, Keyword.int32, Keyword.uint32])) {
             const type = this._advance();
-            return new AST("type", { name: type._lexeme });
+            return new AST("type", { name: type.toString() });
         }
         
         if (this._check(Token.template_types)) {
-            let type = this._advance()._lexeme;
+            let type = this._advance().toString();
             this._consume(Token.less_than, "Expected '<' for type.");
             const format = this._type_decl();
             this._consume(Token.greater_than, "Expected '>' for type.");
@@ -905,16 +905,16 @@ export class WgslParser {
 
         // pointer less_than storage_class comma type_decl (comma access_mode)? greater_than
         if (this._match(Keyword.pointer)) {
-            let pointer = this._previous()._lexeme;
+            let pointer = this._previous().toString();
             this._consume(Token.less_than, "Expected '<' for pointer.");
             const storage = this._consume(Token.storage_class, "Expected storage_class for pointer");
             this._consume(Token.comma, "Expected ',' for pointer.");
             const decl = this._type_decl();
             let access = null;
             if (this._match(Token.comma))
-                access = this._consume(Token.access_mode, "Expected access_mode for pointer")._lexeme;
+                access = this._consume(Token.access_mode, "Expected access_mode for pointer").toString();
             this._consume(Token.greater_than, "Expected '>' for pointer.");
-            return new AST("pointer", { name: pointer, storage: storage._lexeme, decl, access });
+            return new AST("pointer", { name: pointer, storage: storage.toString(), decl, access });
         }
 
         // texture_sampler_types
@@ -932,10 +932,10 @@ export class WgslParser {
             const format = this._type_decl();
             let count = null;
             if (this._match(Token.comma))
-                count = this._consume(Token.element_count_expression, "Expected element_count for array.")._lexeme;
+                count = this._consume(Token.element_count_expression, "Expected element_count for array.").toString();
             this._consume(Token.greater_than, "Expected '>' for array.");
 
-            return new AST("array", { name: array._lexeme, attributes: attrs, format, count });
+            return new AST("array", { name: array.toString(), attributes: attrs, format, count });
         }
 
         return null;
@@ -944,11 +944,11 @@ export class WgslParser {
     _texture_sampler_types() {
         // sampler_type
         if (this._match(Token.sampler_type))
-            return new AST("sampler", { name: this._previous()._lexeme });
+            return new AST("sampler", { name: this._previous().toString() });
 
         // depth_texture_type
         if (this._match(Token.depth_texture_type))
-            return new AST("sampler", { name: this._previous()._lexeme });
+            return new AST("sampler", { name: this._previous().toString() });
 
         // sampled_texture_type less_than type_decl greater_than
         // multisampled_texture_type less_than type_decl greater_than
@@ -958,18 +958,18 @@ export class WgslParser {
             this._consume(Token.less_than, "Expected '<' for sampler type.");
             const format = this._type_decl();
             this._consume(Token.greater_than, "Expected '>' for sampler type.");
-            return new AST("sampler", { name: sampler._lexeme, format });
+            return new AST("sampler", { name: sampler.toString(), format });
         }
 
         // storage_texture_type less_than texel_format comma access_mode greater_than
         if (this._match(Token.storage_texture_type)) {
             const sampler = this._previous();
             this._consume(Token.less_than, "Expected '<' for sampler type.");
-            const format = this._consume(Token.texel_format, "Invalid texel format.")._lexeme;
+            const format = this._consume(Token.texel_format, "Invalid texel format.").toString();
             this._consume(Token.comma, "Expected ',' after texel format.");
-            const access = this._consume(Token.access_mode, "Expected access mode for storage texture type.")._lexeme;
+            const access = this._consume(Token.access_mode, "Expected access mode for storage texture type.").toString();
             this._consume(Token.greater_than, "Expected '>' for sampler type.");
-            return new AST("sampler", { name: sampler._lexeme, format, access });
+            return new AST("sampler", { name: sampler.toString(), format, access });
         }
 
         return null;
@@ -984,10 +984,10 @@ export class WgslParser {
         if (!this._check(Token.attr_right)) {
             do {
                 const name = this._consume(Token.attribute_name, "Expected attribute name");
-                const attr = new AST("attribute", { name: name._lexeme });
+                const attr = new AST("attribute", { name: name.toString() });
                 if (this._match(Token.paren_left)) {
                     // literal_or_ident
-                    attr.value = this._consume(Token.literal_or_ident)._lexeme;
+                    attr.value = this._consume(Token.literal_or_ident).toString();
                     this._consume(Token.paren_right, "Expected ')'");
                 }
                 attributes.push(attr);

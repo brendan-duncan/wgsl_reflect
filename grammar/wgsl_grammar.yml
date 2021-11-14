@@ -1,3 +1,5 @@
+# This is derived from the WebGPU Shading Language spec draft (https://www.w3.org/TR/WGSL/),
+# and is being used as reference.
 parser:
   translation_unit:
     global_decl_or_directive*
