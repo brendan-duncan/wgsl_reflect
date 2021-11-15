@@ -16,6 +16,20 @@ group("Scanner", function() {
         test.equals(tokens[0]._type, Token.EOF);
     });
 
+    test("newline", function(test) {
+        const scanner = new WgslScanner("\n");
+        const tokens = scanner.scanTokens();
+        test.equals(tokens.length, 1);
+        test.equals(tokens[0]._type, Token.EOF);
+    });
+
+    test("comment", function(test) {
+        const scanner = new WgslScanner("\n// this is a comment\n");
+        const tokens = scanner.scanTokens();
+        test.equals(tokens.length, 1);
+        test.equals(tokens[0]._type, Token.EOF);
+    });
+
     test("identifier", function(test) {
         const scanner = new WgslScanner("abc123");
         const tokens = scanner.scanTokens();

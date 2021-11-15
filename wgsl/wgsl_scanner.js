@@ -6,7 +6,7 @@ export class Token {
     }
 
     toString() {
-        return `${this._lexeme}`;
+        return this._lexeme;
     }
 }
 
@@ -37,41 +37,35 @@ export class WgslScanner {
     scanToken() {
         // Find the longest consecutive set of characters that match a rule.
         let lexeme = this._advance();
+
+        // Skip line-feed, adding to the line counter.
+        if (lexeme == "\n") {
+            this._line++;
+            return true;
+        }
+
+        // Skip whitespace
+        if (this._isWhitespace(lexeme)) {
+            return true;
+        }
+
+        // If it's a // comment, skip everything until the next line-feed
+        if (lexeme == "/") {
+            if (this._peekAhead() == "/") {
+                while (lexeme != "\n") {
+                    if (this._isAtEnd())
+                        return true;
+                    lexeme = this._advance();
+                }
+                // skip the linefeed
+                this._line++;
+                return true;
+            }
+        }
+
         let matchToken = null;
 
         for (;;) {
-            // Skip whitespace
-            if (this._isWhitespace(lexeme)) {
-                lexeme = this._advance();
-                this._start++;
-                continue;
-            }
-
-            // Skip line-feed, adding to the line counter.
-            if (lexeme == "\n") {
-                this._line++;
-                lexeme = this._advance();
-                this._start++;
-                continue;
-            }
-
-            // If it's a // comment, skip everything until the next line-feed
-            if (lexeme == "/") {
-                if (this._peekAhead() == "/") {
-                    while (lexeme != "\n") {
-                        lexeme = this._advance();
-                        this._start++;
-                        if (this._isAtEnd()) {
-                            return true;
-                        }
-                    }
-                    // skip the linefeed
-                    lexeme = this._advance();
-                    this._line++;
-                    continue;
-                }
-            }
-
             let matchedToken = this._findToken(lexeme);
 
             // The exception to "longest lexeme" rule is '>>'. In the case of 1>>2, it's a shift_right.

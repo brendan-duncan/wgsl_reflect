@@ -187,7 +187,19 @@ export class WgslReflect {
     }
 
     getTypeInfo(type) {
-        return WgslReflect.TypeInfo[type.name];
+        let info = WgslReflect.TypeInfo[type.name];
+        if (info)
+            return info;
+        
+        if (type.name == "array") {
+            //
+        }
+
+        if (type.name == "struct") {
+            //
+        }
+
+        return null;
     }
 
     _roundUp(k, n) {
@@ -195,22 +207,52 @@ export class WgslReflect {
     }
 }
 
+
+// Type                 AlignOf(T)          Sizeof(T)
+// i32, u32, or f32     4                   4
+// atomic<T>            4                   4
+// vec2<T>              8                   8
+// vec3<T>              16                  12
+// vec4<T>              16                  16
+// mat2x2<f32>          8                   16
+// mat3x2<f32>          8                   24
+// mat4x2<f32>          8                   32
+// mat2x3<f32>          16                  32
+// mat3x3<f32>          16                  48
+// mat4x3<f32>          16                  64
+// mat2x4<f32>          16                  32
+// mat3x4<f32>          16                  48
+// mat4x4<f32>          16                  64
+// array<E, N>          AlignOf(E)          N * roundUp(AlignOf(E), SizeOf(E))
+// array<E>             AlignOf(E)          N * roundUp(AlignOf(E), SizeOf(E))  (N determined at runtime)
+//
+// [[stride(Q)]] 
+// array<E, N>          AlignOf(E)          N * Q
+//
+// [[stride(Q)]]
+// array<E>             AlignOf(E)          Nruntime * Q
+//
+// struct S     AlignOf:    max(AlignOfMember(S, M1), ... , AlignOfMember(S, MN))
+//              SizeOf:     roundUp(AlignOf(S), OffsetOfMember(S, L) + SizeOfMember(S, L))
+//                          Where L is the last member of the structure
+
 WgslReflect.TypeInfo = {
     "i32": { align: 4, size: 4 },
     "u32": { align: 4, size: 4 },
     "f32": { align: 4, size: 4 },
-    "vec2": { align: 8, size: 4 * 2 },
-    "vec3": { align: 16, size: 4 * 3 },
-    "vec4": { align: 16, size: 4 * 4 },
-    "mat2x2": { align: 8, size: 4 * 2 * 2 },
-    "mat3x2": { align: 8, size: 4 * 3 * 2 },
-    "mat4x2": { align: 8, size: 4 * 4 * 2 },
-    "mat2x3": { align: 16, size: 4 * 2 * 3 },
-    "mat3x3": { align: 16, size: 4 * 3 * 3 },
-    "mat4x3": { align: 16, size: 4 * 4 * 3 },
-    "mat2x4": { align: 16, size: 4 * 2 * 4 },
-    "mat3x4": { align: 16, size: 4 * 3 * 4 },
-    "mat4x4": { align: 16, size: 4 * 4 * 4 },
+    "atomic": { align: 4, size: 4 },
+    "vec2": { align: 8, size: 8 },
+    "vec3": { align: 16, size: 12 },
+    "vec4": { align: 16, size: 16 },
+    "mat2x2": { align: 8, size: 16 },
+    "mat3x2": { align: 8, size: 24 },
+    "mat4x2": { align: 8, size: 32 },
+    "mat2x3": { align: 16, size: 32 },
+    "mat3x3": { align: 16, size: 48 },
+    "mat4x3": { align: 16, size: 64 },
+    "mat2x4": { align: 16, size: 32 },
+    "mat3x4": { align: 16, size: 48 },
+    "mat4x4": { align: 16, size: 64 },
 };
 
 WgslReflect.TextureTypes = Token.any_texture_type.map((t) => { return t.name; });
