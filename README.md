@@ -65,4 +65,24 @@ console.log(info.members[0].offset); // The offset of 'model' in the uniform buf
 console.log(info.members[0].size); // The size of 'model' is 64 bytes
 console.log(info.members[0].type.name); // The type of 'model' is mat4x4
 console.log(info.members[0].type.format.name); // The format of 'model' is f32 (mat4x4<f32>).
+
+const groups = reflect.getBindGroups();
+console.log(groups.length); // 1
+console.log(groups[0].length); // 4
+console.log(groups[0][0].type); // "buffer"
+
+console.log(groups[0][1].type); // "buffer"
+console.log(groups[0][1].resource.size); // 108 (bytes)
+console.log(groups[0][1].resource.members.length); // 3 members in ModelUniforms
+console.log(groups[0][1].resource.members[0].name); // model
+console.log(groups[0][1].resource.members[0].offset); // The offset of 'model' in the uniform buffer is 0
+console.log(groups[0][1].resource.members[0].size); // The size of 'model' is 64 bytes
+console.log(groups[0][1].resource.members[0].type.name); // The type of 'model' is mat4x4
+console.log(groups[0][1].resource.members[0].type.format.name); // The format of 'model' is f32 (mat4x4<f32>).
+
+console.log(groups[0][2].type); // "sampler"
+
+console.log(groups[0][3].type); // "texture"
+console.log(groups[0][3].resource.type.name); // "texture_2d"
+console.log(groups[0][3].resource.type.format.name); // "f32"
 ```
