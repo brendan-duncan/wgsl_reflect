@@ -142,7 +142,7 @@ export class WgslScanner {
         }
 
         // We got to the end of the input stream. Then the token we've ready so far is it.
-        if (matchToken == null)
+        if (matchToken === null)
             return false;
 
         this._addToken(matchToken);
@@ -515,6 +515,13 @@ function _InitTokens() {
         Keyword.texture_depth_multisampled_2d
     ];
 
+    Token.any_texture_type = [
+        ...Token.sampled_texture_type,
+        ...Token.multisampled_texture_type,
+        ...Token.storage_texture_type,
+        ...Token.depth_texture_type
+    ];
+
     Token.texel_format = [
         Keyword.r8unorm,
         Keyword.r8snorm,
@@ -589,7 +596,11 @@ function _InitTokens() {
         Keyword.mat4x2,
         Keyword.mat4x3,
         Keyword.mat4x4,
-        Keyword.atomic
+        Keyword.atomic,
+
+        Keyword.bitcast,
+
+        ...Token.any_texture_type,
     ];
 
     // The grammar calls out 'block', but attribute grammar is defined to use a 'ident'.

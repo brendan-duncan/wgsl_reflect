@@ -1,4 +1,5 @@
 import { AST, WgslParser } from "./wgsl_parser.js";
+import { Token } from "./wgsl_scanner.js";
 
 export class WgslReflect {
     constructor(code) {
@@ -13,6 +14,8 @@ export class WgslReflect {
         this.structs = [];
         this.blocks = [];
         this.uniforms = [];
+        this.textures = [];
+        this.samplers = [];
 
         for (var node of this.ast) {
             if (node._type == "struct") {
@@ -21,9 +24,43 @@ export class WgslReflect {
                     this.blocks.push(node);
                 }
             }
-            if (this.isUniformVar(node))
+
+            if (this.isUniformVar(node)) {
+                const group = this.getAttribute(node, "group");
+                node.group = group && group.value ? parseInt(group.value) : 0;
+                const binding = this.getAttribute(node, "binding");
+                node.binding = binding && binding.value ? parseInt(binding.value) : 0;
                 this.uniforms.push(node);
+            }
+
+            if (this.isTextureVar(node)) {
+                const group = this.getAttribute(node, "group");
+                node.group = group && group.value ? parseInt(group.value) : 0;
+                const binding = this.getAttribute(node, "binding");
+                node.binding = binding && binding.value ? parseInt(binding.value) : 0;
+                this.textures.push(node);
+            }
+
+            if (this.isSamplerVar(node)) {
+                const group = this.getAttribute(node, "group");
+                node.group = group && group.value ? parseInt(group.value) : 0;
+                const binding = this.getAttribute(node, "binding");
+                node.binding = binding && binding.value ? parseInt(binding.value) : 0;
+                this.samplers.push(node);
+            }
         }
+    }
+
+    isTextureVar(node) {
+        return node._type == "var" && WgslReflect.TextureTypes.indexOf(node.type.name) != -1;
+    }
+
+    isSamplerVar(node) {
+        return node._type == "var" && WgslReflect.SamplerTypes.indexOf(node.type.name) != -1;
+    }
+
+    isUniformVar(node) {
+        return node && node._type == "var" && node.storage == "uniform";
     }
 
     getStruct(name) {
@@ -69,8 +106,38 @@ export class WgslReflect {
         return null;
     }
 
-    isUniformVar(node) {
-        return node && node._type == "var" && node.storage == "uniform";
+    getBindGroups() {
+        const groups = [];
+
+        function _makeRoom(group, binding) {
+            if (group >= groups.length)
+                groups.length = group + 1;
+            if (groups[group] === undefined)
+                groups[group] = [];
+
+            if (binding >= groups[group].length)
+                groups[group].length = binding + 1;
+        }
+
+        for (const u of this.uniforms) {
+            _makeRoom(u.group, u.binding);
+            const group = groups[u.group];
+            group[u.binding] = { type: 'buffer', resource: this.getUniformBufferInfo(u) };
+        }
+
+        for (const t of this.textures) {
+            _makeRoom(t.group, t.binding);
+            const group = groups[t.group];
+            group[t.binding] = { type: 'texture', resource: t };
+        }
+
+        for (const t of this.samplers) {
+            _makeRoom(t.group, t.binding);
+            const group = groups[t.group];
+            group[t.binding] = { type: 'sampler', resource: t };
+        }
+
+        return groups;
     }
 
     getUniformBufferInfo(node) {
@@ -86,7 +153,7 @@ export class WgslReflect {
         let lastSize = 0;
         let lastOffset = 0;
         let structAlign = 0;
-        let buffer = { type: 'uniform', size: 0, members: [], group, binding };
+        let buffer = { name: node.name, type: 'uniform', size: 0, members: [], group, binding };
 
         for (let mi = 0, ml = struct.members.length; mi < ml; ++mi) {
             let member = struct.members[mi];
@@ -120,25 +187,7 @@ export class WgslReflect {
     }
 
     getTypeInfo(type) {
-        const typeInfo = {
-            "i32": { align: 4, size: 4 },
-            "u32": { align: 4, size: 4 },
-            "f32": { align: 4, size: 4 },
-            "vec2": { align: 8, size: 4 * 2 },
-            "vec3": { align: 16, size: 4 * 3 },
-            "vec4": { align: 16, size: 4 * 4 },
-            "mat2x2": { align: 8, size: 4 * 2 * 2 },
-            "mat3x2": { align: 8, size: 4 * 3 * 2 },
-            "mat4x2": { align: 8, size: 4 * 4 * 2 },
-            "mat2x3": { align: 16, size: 4 * 2 * 3 },
-            "mat3x3": { align: 16, size: 4 * 3 * 3 },
-            "mat4x3": { align: 16, size: 4 * 4 * 3 },
-            "mat2x4": { align: 16, size: 4 * 2 * 4 },
-            "mat3x4": { align: 16, size: 4 * 3 * 4 },
-            "mat4x4": { align: 16, size: 4 * 4 * 4 },
-        };
-
-        return typeInfo[type.name];
+        return WgslReflect.TypeInfo[type.name];
     }
 
     _roundUp(k, n) {
@@ -146,4 +195,23 @@ export class WgslReflect {
     }
 }
 
+WgslReflect.TypeInfo = {
+    "i32": { align: 4, size: 4 },
+    "u32": { align: 4, size: 4 },
+    "f32": { align: 4, size: 4 },
+    "vec2": { align: 8, size: 4 * 2 },
+    "vec3": { align: 16, size: 4 * 3 },
+    "vec4": { align: 16, size: 4 * 4 },
+    "mat2x2": { align: 8, size: 4 * 2 * 2 },
+    "mat3x2": { align: 8, size: 4 * 3 * 2 },
+    "mat4x2": { align: 8, size: 4 * 4 * 2 },
+    "mat2x3": { align: 16, size: 4 * 2 * 3 },
+    "mat3x3": { align: 16, size: 4 * 3 * 3 },
+    "mat4x3": { align: 16, size: 4 * 4 * 3 },
+    "mat2x4": { align: 16, size: 4 * 2 * 4 },
+    "mat3x4": { align: 16, size: 4 * 3 * 4 },
+    "mat4x4": { align: 16, size: 4 * 4 * 4 },
+};
 
+WgslReflect.TextureTypes = Token.any_texture_type.map((t) => { return t.name; });
+WgslReflect.SamplerTypes = Token.sampler_type.map((t) => { return t.name; });

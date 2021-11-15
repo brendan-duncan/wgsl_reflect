@@ -56,7 +56,24 @@ fn main(input: VertexInput) -> VertexOutput {
         test.equals(reflect.uniforms[0].type.name, "ViewUniforms");
         test.notNull(reflect.getBlock(reflect.uniforms[0].type));
     });
-       
+
+    test("textures", function(test) {
+        test.equals(reflect.textures.length, 1);
+        test.equals(reflect.textures[0].name, "u_texture");
+        test.equals(reflect.textures[0].type.name, "texture_2d");
+        test.equals(reflect.textures[0].type.format.name, "f32");
+        test.equals(reflect.textures[0].group, 0);
+        test.equals(reflect.textures[0].binding, 3);
+    });
+
+    test("samplers", function(test) {
+        test.equals(reflect.samplers.length, 1);
+        test.equals(reflect.samplers[0].name, "u_sampler");
+        test.equals(reflect.samplers[0].type.name, "sampler");
+        test.equals(reflect.samplers[0].group, 0);
+        test.equals(reflect.samplers[0].binding, 2);
+    });
+
     test("uniformBufferInfo", function(test) {
         const buffer = reflect.getUniformBufferInfo(reflect.uniforms[1]);
         test.notNull(buffer);
@@ -68,5 +85,17 @@ fn main(input: VertexInput) -> VertexOutput {
         test.equals(buffer.members[0].name, "model");
         test.equals(buffer.members[1].name, "color");
         test.equals(buffer.members[2].name, "intensity");
+    });
+
+    test("getBindingGroups", function(test) {
+        const groups = reflect.getBindGroups();
+        test.equals(groups.length, 1);
+        test.equals(groups[0].length, 4);
+        test.equals(groups[0][0].type, "buffer");
+        test.equals(groups[0][1].type, "buffer");
+        test.equals(groups[0][2].type, "sampler");
+        test.equals(groups[0][3].type, "texture");
+        test.equals(groups[0][3].resource.type.name, "texture_2d");
+        test.equals(groups[0][3].resource.type.format.name, "f32");
     });
 });
