@@ -1,4 +1,4 @@
-# WebGPU Shading Lanuguage (WGSL) Reflection Library
+# WebGPU Shading Lanuguage Reflection Library
 
 A WebGPU Shading Language parser and reflection library for Javascript.
 
