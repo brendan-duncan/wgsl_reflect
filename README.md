@@ -3,6 +3,7 @@
 A WebGPU Shading Language parser and reflection library for Javascript.
 
 ## Example 1
+### Calculate the member information for a uniform buffer block.
 
 ```javascript
 import { WgslReflect } from "./wgsl_reflect.js";
@@ -56,6 +57,7 @@ console.log(info.members[4].size); // 32, the size of 'e' in the buffer
 ```
 
 ## Example 2
+### Calculate the bind group information in the shader.
 
 ```javascript
 import { WgslReflect } from "./wgsl_reflect.js";
