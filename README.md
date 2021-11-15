@@ -110,7 +110,7 @@ console.log(reflect.uniforms.length); // 2
 
 const groups = reflect.getBindGroups();
 console.log(groups.length); // 1
-console.log(groups[0].length); // 4
+console.log(groups[0].length); // 4, bindings in group(0)
 console.log(groups[0][0].type); // "buffer"
 
 console.log(groups[0][1].type); // "buffer"
