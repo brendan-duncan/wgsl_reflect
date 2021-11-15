@@ -111,15 +111,14 @@ console.log(reflect.uniforms.length); // 2
 const groups = reflect.getBindGroups();
 console.log(groups.length); // 1
 console.log(groups[0].length); // 4, bindings in group(0)
-console.log(groups[0][0].type); // "buffer"
 
-console.log(groups[0][1].type); // "buffer"
+console.log(groups[0][1].type); // "buffer", the type of resource at group(0) binding(0)
 console.log(groups[0][1].resource.size); // 108, the size of the uniform buffer.
-console.log(groups[0][1].resource.members.length); // 3, members in ModelUniforms
-console.log(groups[0][1].resource.members[0].name); // "model"
-console.log(groups[0][1].resource.members[0].offset); // 0, the offset of 'model' in the uniform buffer
-console.log(groups[0][1].resource.members[0].size); // 64, the size of 'model'
-console.log(groups[0][1].resource.members[0].type.name); // "mat4x4", the type of 'model'
+console.log(groups[0][1].resource.members.length); // 3, members in ModelUniforms.
+console.log(groups[0][1].resource.members[0].name); // "model", the name of the first member in the uniform buffer.
+console.log(groups[0][1].resource.members[0].offset); // 0, the offset of 'model' in the uniform buffer.
+console.log(groups[0][1].resource.members[0].size); // 64, the size of 'model'.
+console.log(groups[0][1].resource.members[0].type.name); // "mat4x4", the type of 'model'.
 console.log(groups[0][1].resource.members[0].type.format.name); // "f32", the format of the mat4x4.
 
 console.log(groups[0][2].type); // "sampler"
