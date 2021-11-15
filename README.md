@@ -1,4 +1,4 @@
-# WebGPU Shading Lanuguage Reflection Library
+# WebGPU Shading Language Reflection Library
 
 A WebGPU Shading Language parser and reflection library for Javascript.
 
