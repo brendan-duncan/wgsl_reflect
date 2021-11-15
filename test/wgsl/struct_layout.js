@@ -28,10 +28,28 @@ struct A {                                     //             align(8)  size(32)
 [[group(0), binding(0)]]
 var<uniform> uniform_buffer: B;`;
 
-    test("member offset/size", function(test) {
-        const reflect = new WgslReflect(shader);
+    let reflect = null;
+
+    test("reflect", function(test) {
+        reflect = new WgslReflect(shader);
         test.equals(reflect.uniforms.length, 1);
-        const buffer = reflect.getUniformBufferInfo(reflect.uniforms[0]);
-        console.log(buffer);
+        test.equals(reflect.structs.length, 2);
+    });
+
+    test("getMemberInfo(A)", function(test) {
+        const info = reflect.getTypeInfo(reflect.structs[0]);
+        test.equals(info.align, 8);
+        test.equals(info.size, 32);
+    });
+
+    test("getMemberInfo(B)", function(test) {
+        const info = reflect.getTypeInfo(reflect.structs[1]);
+        test.equals(info.align, 16);
+        test.equals(info.size, 208);
+    });
+
+    test("member offset/size", function(test) {
+        const info = reflect.getUniformBufferInfo(reflect.uniforms[0]);
+        test.equals(info.size, 208);
     });
 });

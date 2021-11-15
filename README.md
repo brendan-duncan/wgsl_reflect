@@ -2,7 +2,60 @@
 
 A WebGPU Shading Language parser and reflection library for Javascript.
 
-## Example
+## Example 1
+
+```javascript
+import { WgslReflect } from "./wgsl_reflect.js";
+
+// WgslReflect can calculate the size and offset for members of a uniform buffer block.
+
+const shader = `
+struct A {                                     //             align(8)  size(32)
+    u: f32;                                    // offset(0)   align(4)  size(4)
+    v: f32;                                    // offset(4)   align(4)  size(4)
+    w: vec2<f32>;                              // offset(8)   align(8)  size(8)
+    [[size(16)]] x: f32;                       // offset(16)  align(4)  size(16)
+};
+
+[[block]] struct B {                           //             align(16) size(208)
+    a: vec2<f32>;                              // offset(0)   align(8)  size(8)
+    // -- implicit member alignment padding -- // offset(8)             size(8)
+    b: vec3<f32>;                              // offset(16)  align(16) size(12)
+    c: f32;                                    // offset(28)  align(4)  size(4)
+    d: f32;                                    // offset(32)  align(4)  size(4)
+    // -- implicit member alignment padding -- // offset(36)            size(12)
+    [[align(16)]] e: A;                        // offset(48)  align(16) size(32)
+    f: vec3<f32>;                              // offset(80)  align(16) size(12)
+    // -- implicit member alignment padding -- // offset(92)            size(4)
+    g: [[stride(32)]] array<A, 3>;             // offset(96)  align(8)  size(96)
+    h: i32;                                    // offset(192) align(4)  size(4)
+    // -- implicit struct size padding --      // offset(196)           size(12)
+};
+
+[[group(0), binding(0)]]
+var<uniform> uniform_buffer: B;`;
+
+const reflect = new WgslReflect(shader);
+
+// Get the buffer info for the uniform var 'uniform_buffer'.
+const info = reflect.getUniformBufferInfo(reflect.uniforms[0]);
+
+console.log(info.size); // 208, the size of the uniform buffer in bytes
+console.log(info.group); // 0
+console.log(info.binding); // 0
+console.log(info.members.length); // 7, members in B
+console.log(info.members[0].name); // "a"
+console.log(info.members[0].offset); // 0, the offset of 'a' in the buffer
+console.log(info.members[0].size); // 8, the size of 'a' in bytes
+console.log(info.members[0].type.name); // "vec2", the type of 'a'
+console.log(info.members[0].type.format.name); // "f32", the format of the vec2.
+
+console.log(info.members[4].name); // "e"
+console.log(info.members[4].offset); // 48, the offset of 'e' in the buffer
+console.log(info.members[4].size); // 32, the size of 'e' in the buffer
+```
+
+## Example 2
 
 ```javascript
 import { WgslReflect } from "./wgsl_reflect.js";

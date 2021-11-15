@@ -153,13 +153,13 @@ export class WgslReflect {
         let lastSize = 0;
         let lastOffset = 0;
         let structAlign = 0;
-        let buffer = { name: node.name, type: 'uniform', size: 0, members: [], group, binding };
+        let buffer = { name: node.name, type: 'uniform', align: 0, size: 0, members: [], group, binding };
 
         for (let mi = 0, ml = struct.members.length; mi < ml; ++mi) {
             let member = struct.members[mi];
             let name = member.name;
 
-            let info = this.getTypeInfo(member.type);
+            let info = this.getTypeInfo(member);
             if (!info)
                 continue;
 
@@ -169,34 +169,105 @@ export class WgslReflect {
             offset = this._roundUp(align, offset + lastSize);
             lastSize = size;
             lastOffset = offset;
-            structAlign += align;
+            structAlign = Math.max(structAlign, align);
 
             let u = { name, offset, size, type, member };
             buffer.members.push(u);
         }
 
         buffer.size = this._roundUp(structAlign, lastOffset + lastSize);
+        buffer.align = structAlign;
+
         return buffer;
     }
 
-    getTypeSize(type) {
-        const info = this.getTypeInfo(type);
-        if (!type)
-            return 0;
-        return info.size;
-    }
-
     getTypeInfo(type) {
+        let explicitSize = 0;
+        const sizeAttr = this.getAttribute(type, "size");
+        if (sizeAttr)
+            explicitSize = parseInt(sizeAttr.value);
+
+        let explicitAlign = 0;
+        const alignAttr = this.getAttribute(type, "align");
+        if (alignAttr)
+            explicitAlign = parseInt(alignAttr.value);
+
+        if (type._type == "member")
+            type = type.type;
+
         let info = WgslReflect.TypeInfo[type.name];
-        if (info)
-            return info;
+        if (info) {
+            return {
+                align: Math.max(explicitAlign, info.align),
+                size: Math.max(explicitSize, info.size)
+            };
+        }
         
         if (type.name == "array") {
+            let align = 8;
+            let size = 8;
+            // Type                 AlignOf(T)          Sizeof(T)
+            // array<E, N>          AlignOf(E)          N * roundUp(AlignOf(E), SizeOf(E))
+            // array<E>             AlignOf(E)          N * roundUp(AlignOf(E), SizeOf(E))  (N determined at runtime)
             //
+            // [[stride(Q)]] 
+            // array<E, N>          AlignOf(E)          N * Q
+            //
+            // [[stride(Q)]]
+            // array<E>             AlignOf(E)          Nruntime * Q
+            //const E = type.format.name;
+            const E = this.getTypeInfo(type.format);
+            if (E) {
+                size = E.size;
+                align = E.align;
+            }
+
+            const N = parseInt(type.count || 1);
+
+            const stride = this.getAttribute(type, "stride");
+            if (stride) {
+                size = N * parseInt(stride.value);
+            } else {
+                size = N * this._roundUp(align, size);
+            }
+
+            if (explicitSize)
+                size = explicitSize;
+
+            return {
+                align: Math.max(explicitAlign, align),
+                size: Math.max(explicitSize, size)
+            };
         }
 
-        if (type.name == "struct") {
-            //
+        if (type._type == "type") {
+            const struct = this.getStruct(type.name);
+            if (struct)
+                type = struct;
+        }
+
+        if (type._type == "struct") {
+            let align = 0;
+            let size = 0;
+            // struct S     AlignOf:    max(AlignOfMember(S, M1), ... , AlignOfMember(S, MN))
+            //              SizeOf:     roundUp(AlignOf(S), OffsetOfMember(S, L) + SizeOfMember(S, L))
+            //                          Where L is the last member of the structure
+            let offset = 0;
+            let lastSize = 0;
+            let lastOffset = 0;
+            for (const m of type.members) {
+                const mi = this.getTypeInfo(m);
+                align = Math.max(mi.align, align);
+                offset = this._roundUp(mi.align, offset + lastSize);
+                lastSize = mi.size;
+                lastOffset = offset;
+            }
+            size = this._roundUp(align, lastOffset + lastSize);
+
+            return {
+                align: Math.max(explicitAlign, align),
+                size: Math.max(explicitSize, size)
+            };
         }
 
         return null;
@@ -223,19 +294,6 @@ export class WgslReflect {
 // mat2x4<f32>          16                  32
 // mat3x4<f32>          16                  48
 // mat4x4<f32>          16                  64
-// array<E, N>          AlignOf(E)          N * roundUp(AlignOf(E), SizeOf(E))
-// array<E>             AlignOf(E)          N * roundUp(AlignOf(E), SizeOf(E))  (N determined at runtime)
-//
-// [[stride(Q)]] 
-// array<E, N>          AlignOf(E)          N * Q
-//
-// [[stride(Q)]]
-// array<E>             AlignOf(E)          Nruntime * Q
-//
-// struct S     AlignOf:    max(AlignOfMember(S, M1), ... , AlignOfMember(S, MN))
-//              SizeOf:     roundUp(AlignOf(S), OffsetOfMember(S, L) + SizeOfMember(S, L))
-//                          Where L is the last member of the structure
-
 WgslReflect.TypeInfo = {
     "i32": { align: 4, size: 4 },
     "u32": { align: 4, size: 4 },

@@ -77,14 +77,14 @@ fn main(input: VertexInput) -> VertexOutput {
     test("uniformBufferInfo", function(test) {
         const buffer = reflect.getUniformBufferInfo(reflect.uniforms[1]);
         test.notNull(buffer);
-        test.equals(buffer.type, "uniform");
-        test.equals(buffer.size, 108);
-        test.equals(buffer.group.value, "0");
-        test.equals(buffer.binding.value, "1");
-        test.equals(buffer.members.length, 3);
-        test.equals(buffer.members[0].name, "model");
-        test.equals(buffer.members[1].name, "color");
-        test.equals(buffer.members[2].name, "intensity");
+        test.equals(buffer.type, "uniform", "buffer.type");
+        test.equals(buffer.size, 96, "buffer.size");
+        test.equals(buffer.group.value, "0", "buffer.group.value");
+        test.equals(buffer.binding.value, "1", "buffer.binding.value");
+        test.equals(buffer.members.length, 3, "buffer.members.length");
+        test.equals(buffer.members[0].name, "model", "buffer.members[0].name");
+        test.equals(buffer.members[1].name, "color", "buffer.members[1].name");
+        test.equals(buffer.members[2].name, "intensity", "buffer.members[1].name");
     });
 
     test("getBindingGroups", function(test) {
