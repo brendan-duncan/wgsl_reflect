@@ -108,17 +108,6 @@ console.log(reflect.structs.length); // 4
 console.log(reflect.blocks.length); // 2
 console.log(reflect.uniforms.length); // 2
 
-const info = reflect.getUniformBufferInfo(reflect.uniforms[1]);
-console.log(info.size); // 188, the size of the uniform buffer in bytes
-console.log(info.group); // 0
-console.log(info.binding); // 1
-console.log(info.members.length); // 3, members in ModelUniforms
-console.log(info.members[0].name); // "model"
-console.log(info.members[0].offset); // 0, the offset of 'model' in the uniform buffer
-console.log(info.members[0].size); // 64, the size of 'model' in bytes
-console.log(info.members[0].type.name); // "mat4x4", the type of 'model'
-console.log(info.members[0].type.format.name); // "f32", the format of the mat4x4.
-
 const groups = reflect.getBindGroups();
 console.log(groups.length); // 1
 console.log(groups[0].length); // 4
