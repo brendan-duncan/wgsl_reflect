@@ -10,6 +10,7 @@ The *wgsl_reflect.module.js* file is a self-contained roll-up of the project tha
 
 ```javascript
 import * as wgsl from "./wgsl_reflect.module.js";
+const reflect = new wgsl.WgslReflect(shader_code);
 ```
 
 ## Examples
