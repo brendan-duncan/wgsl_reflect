@@ -6,7 +6,7 @@ A WebGPU Shading Language parser and reflection library for Javascript.
 
 ## Usage
 
-The *wgsl_reflect.module.js* file is a self-contained roll-up of the project that can be included in your project and imported with:
+The *wgsl_reflect.module.js* file is a self-contained roll-up of the library that can be included in your project and imported with:
 
 ```javascript
 import { WgslReflect } from "./wgsl_reflect.module.js";
