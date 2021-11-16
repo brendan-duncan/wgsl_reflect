@@ -1,5 +1,5 @@
 import { test, group } from "../test.js";
-import { WgslReflect } from "../../wgsl/wgsl_reflect.js";
+import { WgslReflect } from "../../src/wgsl_reflect.js";
 
 group("uniform", function() {
     const shader = `

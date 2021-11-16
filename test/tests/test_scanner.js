@@ -1,5 +1,5 @@
 import { test, group } from "../test.js";
-import { WgslScanner, Token, Keyword } from "../../wgsl/wgsl_scanner.js";
+import { WgslScanner, Token, Keyword } from "../../src/wgsl_scanner.js";
 
 group("Scanner", function() {
     test("default", function(test) {

@@ -1,11 +1,11 @@
 /* eslint-disable no-unused-vars */
 import * as test from "./test.js";
 
-import * as scanner from "./wgsl/test_scanner.js";
-import * as parser from "./wgsl/test_parser.js";
-import * as struct from "./wgsl/struct.js";
-import * as reflect from "./wgsl/test_reflect.js";
-import * as struct_layout from "./wgsl/struct_layout.js";
+import * as scanner from "./tests/test_scanner.js";
+import * as parser from "./tests/test_parser.js";
+import * as struct from "./tests/struct.js";
+import * as reflect from "./tests/test_reflect.js";
+import * as struct_layout from "./tests/struct_layout.js";
 
 function displayResults() {
     document.body.appendChild(document.createElement("p"));
