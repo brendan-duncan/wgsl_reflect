@@ -1,3 +1,6 @@
+/**
+ * @author Brendan Duncan / https://github.com/brendan-duncan
+ */
 import { AST, WgslParser } from "./wgsl_parser.js";
 import { Token } from "./wgsl_scanner.js";
 

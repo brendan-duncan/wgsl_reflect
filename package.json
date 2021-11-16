@@ -1,0 +1,48 @@
+{
+  "name": "wgsl_reflect",
+  "version": "0.1.0",
+  "description": "WGSL Parser and Reflection library",
+  "module": "build/wgsl_reflect.module.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brendan-duncan/wgsl_reflect"
+  },
+  "sideEffects": false,
+  "files": [
+    "build/wgsl_reflect.module.js",
+    "LICENSE.md",
+    "package.json",
+    "README.md",
+    "wgsl"
+  ],
+  "directories": {
+      "test": "test"
+  },
+  "scripts": {
+    "build": "rollup -c rollup.config.js"
+  },
+  "keywords": [
+    "wgsl_reflect",
+    "webgpu",
+    "wgsl",
+    "javascript",
+    "html5"
+  ],
+  "author": "Brendan Duncan",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/brendan-duncan/wgsl_reflect/issues"
+  },
+  "homepage": "https://github.com/brendan-duncan/wgsl_reflect",
+  "devDependencies": {
+    "rollup": "^2.60.0"
+  },
+  "jspm": {
+      "files": [
+          "package.json",
+          "LICENSE.md",
+          "README.md",
+          "build/wgsl_reflect.module.js"
+      ]
+  }
+}

@@ -1,3 +1,7 @@
+/**
+ * @author Brendan Duncan / https://github.com/brendan-duncan
+ */
+
 export class Token {
     constructor(type, lexeme, line) {
         this._type = type;
