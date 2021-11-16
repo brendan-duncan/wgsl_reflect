@@ -88,6 +88,8 @@ console.log(groups[0][3].resource.type.name); // "texture_2d"
 console.log(groups[0][3].resource.type.format.name); // "f32"
 ```
 
+---
+
 Calculate the member information for a uniform buffer block:
 
 ```javascript
