@@ -42,7 +42,14 @@ fn main(input: VertexInput) -> VertexOutput {
     output.v_color = input.a_color * modelUniforms.color * modelUniforms.intensity;
     output.v_uv = input.a_uv;
     return output;
-}`;
+}
+
+[[stage(fragment)]]
+fn frag_main() {}
+
+[[stage(compute)]]
+fn compute_main() {}
+`;
 
     const reflect = new WgslReflect(shader);
 
@@ -97,5 +104,18 @@ fn main(input: VertexInput) -> VertexOutput {
         test.equals(groups[0][3].type, "texture");
         test.equals(groups[0][3].resource.type.name, "texture_2d");
         test.equals(groups[0][3].resource.type.format.name, "f32");
+    });
+
+    test("function", function(test) {
+        test.equals(reflect.functions.length, 3);
+        test.equals(reflect.functions[0].name, "main");
+        test.equals(reflect.functions[1].name, "frag_main");
+        test.equals(reflect.functions[2].name, "compute_main");
+    });
+
+    test("entry", function(test) {
+        test.notNull(reflect.entry.vertex);
+        test.notNull(reflect.entry.fragment);
+        test.notNull(reflect.entry.compute);
     });
 });

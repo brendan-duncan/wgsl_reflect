@@ -164,8 +164,10 @@ export class WgslParser {
         if (!this._match(Keyword.fn))
             return null;
 
-        const name = this._consume(Token.ident, "Expected function name.");
+        const name = this._consume(Token.ident, "Expected function name.").toString();
+
         this._consume(Token.paren_left, "Expected '(' for function arguments.");
+
         const args = [];
         if (!this._check(Token.paren_right)) {
             do {

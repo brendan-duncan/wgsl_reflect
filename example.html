@@ -60,6 +60,14 @@ fn main(input: VertexInput) -> VertexOutput {
                 let info = "";
                 const reflect = new wgsl.WgslReflect(shadercode.value);
 
+                info += "<b>Entry Points</b>";
+                info += "<ul>";
+                for (let s in reflect.entry) {
+                    let e = reflect.entry[s];
+                    info += `<li>${s} : ${e.name}</li>`;
+                }
+                info += "</ul>";
+
                 info += `<b>Number of Structs</b>: ${reflect.structs.length}<p>`;
                 info += "<ul>"
                 for (let s of reflect.structs) {

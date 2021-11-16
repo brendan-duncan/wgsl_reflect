@@ -64,9 +64,13 @@ fn main(input: VertexInput) -> VertexOutput {
 
 const reflect = new WgslReflect(shader);
 
+console.log(reflect.functions.length); // 1
 console.log(reflect.structs.length); // 4
 console.log(reflect.blocks.length); // 2
 console.log(reflect.uniforms.length); // 2
+
+console.log(reflect.entry.vertex.name); // "main", the name of the vertex entry function.
+console.log(reflect.entry.fragment); // undefined, there is no fragment entry function.
 
 const groups = reflect.getBindGroups();
 console.log(groups.length); // 1

@@ -775,8 +775,10 @@ class WgslParser {
         if (!this._match(Keyword.fn))
             return null;
 
-        const name = this._consume(Token.ident, "Expected function name.");
+        const name = this._consume(Token.ident, "Expected function name.").toString();
+
         this._consume(Token.paren_left, "Expected '(' for function arguments.");
+
         const args = [];
         if (!this._check(Token.paren_right)) {
             do {
@@ -1629,11 +1631,20 @@ class WgslReflect {
         const parser = new WgslParser();
         this.ast = parser.parse(code);
 
+        // All top-level structs in the shader.
         this.structs = [];
+        // All top-level block structs in the shader.
         this.blocks = [];
+        // All top-level uniform vars in the shader.
         this.uniforms = [];
+        // All top-level texture vars in the shader;
         this.textures = [];
+        // All top-level sampler vars in the shader.
         this.samplers = [];
+        // All top-level functions in the shader.
+        this.functions = [];
+        // All entry functions in the shader: vertex, fragment, and/or compute.
+        this.entry = {};
 
         for (var node of this.ast) {
             if (node._type == "struct") {
@@ -1665,6 +1676,16 @@ class WgslReflect {
                 const binding = this.getAttribute(node, "binding");
                 node.binding = binding && binding.value ? parseInt(binding.value) : 0;
                 this.samplers.push(node);
+            }
+
+            if (node._type == "function") {
+                this.functions.push(node);
+                const stage = this.getAttribute(node, "stage");
+                if (stage) {
+                    // TODO give error about conflicting entry points.
+                    // TODO give error about non-standard stages.
+                    this.entry[stage.value] = node;
+                }
             }
         }
     }
