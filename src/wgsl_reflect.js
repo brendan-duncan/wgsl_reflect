@@ -27,9 +27,13 @@ export class WgslReflect {
         // All top-level functions in the shader.
         this.functions = [];
         // All entry functions in the shader: vertex, fragment, and/or compute.
-        this.entry = {};
+        this.entry = {
+            vertex: [],
+            fragment: [],
+            compute: []
+        };
 
-        for (var node of this.ast) {
+        for (const node of this.ast) {
             if (node._type == "struct") {
                 this.structs.push(node);
                 if (this.getAttribute(node, "block")) {
@@ -65,9 +69,13 @@ export class WgslReflect {
                 this.functions.push(node);
                 const stage = this.getAttribute(node, "stage");
                 if (stage) {
-                    // TODO give error about conflicting entry points.
+                    node.inputs = this._getInputs(node);
+
                     // TODO give error about non-standard stages.
-                    this.entry[stage.value] = node;
+                    if (this.entry[stage.value])
+                        this.entry[stage.value].push(node);
+                    else
+                        this.entry[stage.value] = [node];
                 }
             }
         }
@@ -83,6 +91,47 @@ export class WgslReflect {
 
     isUniformVar(node) {
         return node && node._type == "var" && node.storage == "uniform";
+    }
+
+    _getInputs(args, inputs) {
+        if (args._type == "function")
+            args = args.args;
+        if (!inputs)
+            inputs = [];
+
+        for (const arg of args) {
+            const input = this._getInputInfo(arg);
+            if (input)
+                inputs.push(input);
+            const struct = this.getStruct(arg.type);
+            if (struct)
+                this._getInputs(struct.members, inputs);
+        }
+
+        return inputs;
+    }
+
+    _getInputInfo(node) {
+        const location = this.getAttribute(node, "location") || this.getAttribute(node, "builtin");
+        if (location) {
+            let input = {
+                name: node.name,
+                type: node.type,
+                input: node,
+                locationType: location.name,
+                location: this._parseInt(location.value)
+            };
+            const interpolation = this.getAttribute(node, "interpolation");
+            if (interpolation)
+                input.interpolation = interpolation.value;
+            return input;
+        }
+        return null;
+    }
+
+    _parseInt(s) {
+        const n = parseInt(s);
+        return isNaN(n) ? s : n;
     }
 
     getStruct(name) {

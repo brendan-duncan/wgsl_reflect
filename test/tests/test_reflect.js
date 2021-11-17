@@ -19,7 +19,7 @@ group("Reflect", function() {
 [[binding(3), group(0)]] var u_texture: texture_2d<f32>;
 
 struct VertexInput {
-    [[location(0)]] a_position: vec3<f32>;
+    [[builtin(position)]] a_position: vec3<f32>;
     [[location(1)]] a_normal: vec3<f32>;
     [[location(2)]] a_color: vec4<f32>;
     [[location(3)]] a_uv: vec2<f32>;
@@ -34,7 +34,7 @@ struct VertexOutput {
 };
 
 [[stage(vertex)]]
-fn main(input: VertexInput) -> VertexOutput {
+fn vertex_main(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
     output.Position = viewUniforms.viewProjection * modelUniforms.model * vec4<f32>(input.a_position, 1.0);
     output.v_position = output.Position;
@@ -47,8 +47,16 @@ fn main(input: VertexInput) -> VertexOutput {
 [[stage(fragment)]]
 fn frag_main() {}
 
-[[stage(compute)]]
-fn compute_main() {}
+[[stage(compute), workgroup_size(8,4,1)]]
+fn sorter() { }
+
+[[stage(compute), workgroup_size(8u)]]
+fn reverser() { }
+
+// Using an pipeline-overridable constant.
+[[override(42)]] let block_width = 12u;
+[[stage(compute), workgroup_size(block_width)]]
+fn shuffler() { }
 `;
 
     const reflect = new WgslReflect(shader);
@@ -107,15 +115,35 @@ fn compute_main() {}
     });
 
     test("function", function(test) {
-        test.equals(reflect.functions.length, 3);
-        test.equals(reflect.functions[0].name, "main");
+        test.equals(reflect.functions.length, 5);
+        test.equals(reflect.functions[0].name, "vertex_main");
         test.equals(reflect.functions[1].name, "frag_main");
-        test.equals(reflect.functions[2].name, "compute_main");
+        test.equals(reflect.functions[2].name, "sorter");
+        test.equals(reflect.functions[3].name, "reverser");
+        test.equals(reflect.functions[4].name, "shuffler");
     });
 
     test("entry", function(test) {
-        test.notNull(reflect.entry.vertex);
-        test.notNull(reflect.entry.fragment);
-        test.notNull(reflect.entry.compute);
+        test.equals(reflect.entry.vertex.length, 1);
+        test.equals(reflect.entry.fragment.length, 1);
+        test.equals(reflect.entry.compute.length, 3);
+    });
+
+    test("vertexInputs", function(test) {
+        const inputs = reflect.entry.vertex[0].inputs;
+        test.equals(inputs.length, 4);
+        test.validateObject(inputs[0], {
+            name: "a_position",
+            locationType: "builtin",
+            location: "position",
+            type: { name: "vec3" }
+        });
+
+        test.validateObject(inputs[1], {
+            name: "a_normal",
+            locationType: "location",
+            location: 1,
+            type: { name: "vec3" }
+        });
     });
 });

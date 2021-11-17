@@ -207,9 +207,9 @@ class WgslScanner {
 
 Token.WgslTokens = {
     decimal_float_literal:
-        /((-?[0-9]*\.[0-9]+|-?[0-9]+\.[0-9]*)((e|E)(\+|-)?[0-9]+)?)|(-?[0-9]+(e|E)(\+|-)?[0-9]+)/,
+        /((-?[0-9]*\.[0-9]+|-?[0-9]+\.[0-9]*)((e|E)(\+|-)?[0-9]+)?f?)|(-?[0-9]+(e|E)(\+|-)?[0-9]+f?)/,
     hex_float_literal:
-        /-?0x((([0-9a-fA-F]*\.[0-9a-fA-F]+|[0-9a-fA-F]+\.[0-9a-fA-F]*)((p|P)(\+|-)?[0-9]+)?)|([0-9a-fA-F]+(p|P)(\+|-)?[0-9]+))/,
+        /-?0x((([0-9a-fA-F]*\.[0-9a-fA-F]+|[0-9a-fA-F]+\.[0-9a-fA-F]*)((p|P)(\+|-)?[0-9]+f?)?)|([0-9a-fA-F]+(p|P)(\+|-)?[0-9]+f?))/,
     int_literal:
         /-?0x[0-9a-fA-F]+|0|-?[1-9][0-9]*/,
     uint_literal:
@@ -1603,7 +1603,15 @@ class WgslParser {
                 const attr = new AST("attribute", { name: name.toString() });
                 if (this._match(Token.paren_left)) {
                     // literal_or_ident
-                    attr.value = this._consume(Token.literal_or_ident).toString();
+                    attr.value = this._consume(Token.literal_or_ident, "Expected attribute value").toString();
+                    if (this._check(Token.comma)) {
+                        this._advance();
+                        attr.value = [attr.value];
+                        do {
+                            const v = this._consume(Token.literal_or_ident, "Expected attribute value").toString();
+                            attr.value.push(v);
+                        } while (this._match(Token.comma));
+                    }
                     this._consume(Token.paren_right, "Expected ')'");
                 }
                 attributes.push(attr);
@@ -1644,9 +1652,13 @@ class WgslReflect {
         // All top-level functions in the shader.
         this.functions = [];
         // All entry functions in the shader: vertex, fragment, and/or compute.
-        this.entry = {};
+        this.entry = {
+            vertex: [],
+            fragment: [],
+            compute: []
+        };
 
-        for (var node of this.ast) {
+        for (const node of this.ast) {
             if (node._type == "struct") {
                 this.structs.push(node);
                 if (this.getAttribute(node, "block")) {
@@ -1682,9 +1694,13 @@ class WgslReflect {
                 this.functions.push(node);
                 const stage = this.getAttribute(node, "stage");
                 if (stage) {
-                    // TODO give error about conflicting entry points.
+                    node.inputs = this._getInputs(node);
+
                     // TODO give error about non-standard stages.
-                    this.entry[stage.value] = node;
+                    if (this.entry[stage.value])
+                        this.entry[stage.value].push(node);
+                    else
+                        this.entry[stage.value] = [node];
                 }
             }
         }
@@ -1700,6 +1716,47 @@ class WgslReflect {
 
     isUniformVar(node) {
         return node && node._type == "var" && node.storage == "uniform";
+    }
+
+    _getInputs(args, inputs) {
+        if (args._type == "function")
+            args = args.args;
+        if (!inputs)
+            inputs = [];
+
+        for (const arg of args) {
+            const input = this._getInputInfo(arg);
+            if (input)
+                inputs.push(input);
+            const struct = this.getStruct(arg.type);
+            if (struct)
+                this._getInputs(struct.members, inputs);
+        }
+
+        return inputs;
+    }
+
+    _getInputInfo(node) {
+        const location = this.getAttribute(node, "location") || this.getAttribute(node, "builtin");
+        if (location) {
+            let input = {
+                name: node.name,
+                type: node.type,
+                input: node,
+                locationType: location.name,
+                location: this._parseInt(location.value)
+            };
+            const interpolation = this.getAttribute(node, "interpolation");
+            if (interpolation)
+                input.interpolation = interpolation.value;
+            return input;
+        }
+        return null;
+    }
+
+    _parseInt(s) {
+        const n = parseInt(s);
+        return isNaN(n) ? s : n;
     }
 
     getStruct(name) {

@@ -63,8 +63,22 @@ fn main(input: VertexInput) -> VertexOutput {
                 info += "<b>Entry Points</b>";
                 info += "<ul>";
                 for (let s in reflect.entry) {
-                    let e = reflect.entry[s];
-                    info += `<li>${s} : ${e.name}</li>`;
+                    for (let e of reflect.entry[s]) {
+                        info += `<li>${s} : <b>${e.name}</b></li>`;
+                        if (e.inputs.length) {
+                            info += "<ul>";
+                            info += "<li><b>Inputs</b></li>";
+                            info += "<ul>";
+                            for (let ei of e.inputs) {
+                                if (ei.type.format)
+                                    info += `<li>name:<b>${ei.name}</b> location:<b>${ei.location}</b> type:<b>${ei.type.name}&lt;${ei.type.format.name}></b></li>`;
+                                else
+                                    info += `<li>${ei.name} location:${ei.location} type:${ei.type.name}</li>`;
+                            }
+                            info += "</ul>";
+                            info += "</ul>";
+                        }
+                    }
                 }
                 info += "</ul>";
 

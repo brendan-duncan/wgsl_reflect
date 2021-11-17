@@ -992,7 +992,15 @@ export class WgslParser {
                 const attr = new AST("attribute", { name: name.toString() });
                 if (this._match(Token.paren_left)) {
                     // literal_or_ident
-                    attr.value = this._consume(Token.literal_or_ident).toString();
+                    attr.value = this._consume(Token.literal_or_ident, "Expected attribute value").toString();
+                    if (this._check(Token.comma)) {
+                        this._advance();
+                        attr.value = [attr.value];
+                        do {
+                            const v = this._consume(Token.literal_or_ident, "Expected attribute value").toString();
+                            attr.value.push(v);
+                        } while (this._match(Token.comma));
+                    }
                     this._consume(Token.paren_right, "Expected ')'");
                 }
                 attributes.push(attr);
