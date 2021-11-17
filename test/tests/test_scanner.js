@@ -51,8 +51,8 @@ group("Scanner", function() {
         test.equals(tokens[0]._type, Token.decimal_float_literal);
     });
 
-    test(".456", function(test) {
-        const scanner = new WgslScanner(".456");
+    test(".456f", function(test) {
+        const scanner = new WgslScanner(".456f");
         const tokens = scanner.scanTokens();
         test.equals(tokens.length, 2);
         test.equals(tokens[0]._type, Token.decimal_float_literal);
