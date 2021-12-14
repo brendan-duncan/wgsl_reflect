@@ -3,11 +3,11 @@ import { WgslReflect } from "../../src/wgsl_reflect.js";
 
 group("Reflect", function() {
     const shader = `
-[[block]] struct ViewUniforms {
+struct ViewUniforms {
     viewProjection: mat4x4<f32>;
 };
 
-[[block]] struct ModelUniforms {
+struct ModelUniforms {
     model: mat4x4<f32>;
     color: vec4<f32>;
     intensity: f32;
@@ -61,15 +61,15 @@ fn shuffler() { }
 
     const reflect = new WgslReflect(shader);
 
-    test("blocks", function(test) {
-        test.equals(reflect.blocks.length, 2);
+    test("struct", function(test) {
+        test.equals(reflect.structs.length, 4);
     });
 
     test("uniforms", function(test) {
         test.equals(reflect.uniforms.length, 2);
         test.equals(reflect.uniforms[0].name, "viewUniforms");
         test.equals(reflect.uniforms[0].type.name, "ViewUniforms");
-        test.notNull(reflect.getBlock(reflect.uniforms[0].type));
+        test.notNull(reflect.getStruct(reflect.uniforms[0].type));
     });
 
     test("textures", function(test) {

@@ -1784,24 +1784,6 @@ class WgslReflect {
         return null;
     }
 
-    getBlock(name) {
-        if (!name) return null;
-        if (name.constructor === AST) {
-            if (name._type == "struct") {
-                if (this.getAttribute("block"))
-                    return name;
-            }
-            if (name._type != "type")
-                return null;
-            name = name.name;
-        }
-        for (const u of this.blocks) {
-            if (u.name == name)
-                return u;
-        }
-        return null;
-    }
-
     getBindGroups() {
         const groups = [];
 
@@ -1843,7 +1825,7 @@ class WgslReflect {
         let group = this.getAttribute(node, "group");
         let binding = this.getAttribute(node, "binding");
 
-        const struct = this.getBlock(node.type);
+        const struct = this.getStruct(node.type);
 
         let offset = 0;
         let lastSize = 0;

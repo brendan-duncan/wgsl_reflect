@@ -16,8 +16,6 @@ export class WgslReflect {
 
         // All top-level structs in the shader.
         this.structs = [];
-        // All top-level block structs in the shader.
-        this.blocks = [];
         // All top-level uniform vars in the shader.
         this.uniforms = [];
         // All top-level texture vars in the shader;
@@ -36,9 +34,6 @@ export class WgslReflect {
         for (const node of this.ast) {
             if (node._type == "struct") {
                 this.structs.push(node);
-                if (this.getAttribute(node, "block")) {
-                    this.blocks.push(node);
-                }
             }
 
             if (this.isUniformVar(node)) {
@@ -159,24 +154,6 @@ export class WgslReflect {
         return null;
     }
 
-    getBlock(name) {
-        if (!name) return null;
-        if (name.constructor === AST) {
-            if (name._type == "struct") {
-                if (this.getAttribute("block"))
-                    return name;
-            }
-            if (name._type != "type")
-                return null;
-            name = name.name;
-        }
-        for (const u of this.blocks) {
-            if (u.name == name)
-                return u;
-        }
-        return null;
-    }
-
     getBindGroups() {
         const groups = [];
 
@@ -218,7 +195,7 @@ export class WgslReflect {
         let group = this.getAttribute(node, "group");
         let binding = this.getAttribute(node, "binding");
 
-        const struct = this.getBlock(node.type);
+        const struct = this.getStruct(node.type);
 
         let offset = 0;
         let lastSize = 0;
