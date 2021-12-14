@@ -10,11 +10,11 @@
             import * as wgsl from "./wgsl_reflect.module.js";
 
             const shader = `
-[[block]] struct ViewUniforms {
+struct ViewUniforms {
     viewProjection: mat4x4<f32>;
 };
 
-[[block]] struct ModelUniforms {
+struct ModelUniforms {
     model: mat4x4<f32>;
     color: vec4<f32>;
     intensity: f32;
@@ -56,6 +56,13 @@ fn main(input: VertexInput) -> VertexOutput {
             
             const shaderInfo = document.getElementById("shader_info");
 
+            function getTypeName(type) {
+                let name = type.name;
+                if (type.format)
+                    name += `&lt;${type.format.name}&gt;`;
+                return name;
+            }
+
             function parse() {
                 let info = "";
                 const reflect = new wgsl.WgslReflect(shadercode.value);
@@ -64,16 +71,13 @@ fn main(input: VertexInput) -> VertexOutput {
                 info += "<ul>";
                 for (let s in reflect.entry) {
                     for (let e of reflect.entry[s]) {
-                        info += `<li>${s} : <b>${e.name}</b></li>`;
+                        info += `<li><b>${e.name}</b>: ${s}</li>`;
                         if (e.inputs.length) {
                             info += "<ul>";
                             info += "<li><b>Inputs</b></li>";
                             info += "<ul>";
                             for (let ei of e.inputs) {
-                                if (ei.type.format)
-                                    info += `<li>name:<b>${ei.name}</b> location:<b>${ei.location}</b> type:<b>${ei.type.name}&lt;${ei.type.format.name}></b></li>`;
-                                else
-                                    info += `<li>${ei.name} location:${ei.location} type:${ei.type.name}</li>`;
+                                info += `<li><b>${ei.name}</b>: <b>${getTypeName(ei.type)}</b>  location:<b> ${ei.location}</b></li>`;
                             }
                             info += "</ul>";
                             info += "</ul>";
@@ -82,24 +86,28 @@ fn main(input: VertexInput) -> VertexOutput {
                 }
                 info += "</ul>";
 
-                info += `<b>Number of Structs</b>: ${reflect.structs.length}<p>`;
-                info += "<ul>"
-                for (let s of reflect.structs) {
-                    info += `<li>${s.name}</li>`
-                }
-                info += "</ul>";
-
-                info += `<b>Number of Blocks</b>: ${reflect.blocks.length}<p>`;
-                info += "<ul>"
-                for (let s of reflect.blocks) {
-                    info += `<li>${s.name}</li>`
-                }
-                info += "</ul>";
-
-                info += `<b>Number of Uniforms</b>: ${reflect.uniforms.length}<p>`;
+                info += `<b>Uniforms</b><p>`;
                 info += "<ul>"
                 for (let s of reflect.uniforms) {
-                    info += `<li><b>Name:</b> ${s.name} <b>Type:</b>${s.type.name}</li>`
+                    info += `<li><b>${s.name}</b>: <b>${s.type.name}</b></li>`
+
+                    const bufferInfo = reflect.getUniformBufferInfo(s);
+
+                    info += "<ul>";
+                    info += `<li><b>Buffer Size:</b> ${bufferInfo.size}</li>`;
+                    info += `<li><b>Bind Group:</b> ${bufferInfo.group}</li>`;
+                    info += `<li><b>Bind Index:</b> ${bufferInfo.binding}</li>`;
+                    info += `<li><b>Members:</b></li>`;
+                    info += "<ul>";
+                    for (let m in bufferInfo.members) {
+                        info += `<li><b>${bufferInfo.members[m].name}</b> : <b>${getTypeName(bufferInfo.members[m].type)}</b></li>`;
+                        info += "<ul>";
+                        info += `<li><b>Offset:</b>${bufferInfo.members[m].offset}</li>`;
+                        info += `<li><b>Size:</b>${bufferInfo.members[m].size}</li>`;
+                        info += "</ul>";
+                    }
+                    info += "</ul>";
+                    info += "</ul>";                   
                 }
                 info += "</ul>";
 

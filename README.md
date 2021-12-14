@@ -21,11 +21,11 @@ Calculate the bind group information in the shader:
 import { WgslReflect } from "./wgsl_reflect.module.js";
 
 const shader = `
-[[block]] struct ViewUniforms {
+struct ViewUniforms {
     viewProjection: mat4x4<f32>;
 };
 
-[[block]] struct ModelUniforms {
+struct ModelUniforms {
     model: mat4x4<f32>;
     color: vec4<f32>;
     intensity: f32;
@@ -66,7 +66,6 @@ const reflect = new WgslReflect(shader);
 
 console.log(reflect.functions.length); // 1
 console.log(reflect.structs.length); // 4
-console.log(reflect.blocks.length); // 2
 console.log(reflect.uniforms.length); // 2
 
 // Shader entry points
@@ -122,7 +121,7 @@ struct A {                                     //             align(8)  size(32)
     [[size(16)]] x: f32;                       // offset(16)  align(4)  size(16)
 };
 
-[[block]] struct B {                           //             align(16) size(208)
+struct B {                           //             align(16) size(208)
     a: vec2<f32>;                              // offset(0)   align(8)  size(8)
     // -- implicit member alignment padding -- // offset(8)             size(8)
     b: vec3<f32>;                              // offset(16)  align(16) size(12)

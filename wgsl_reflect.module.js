@@ -53,8 +53,8 @@ class WgslScanner {
             return true;
         }
 
-        // If it's a // comment, skip everything until the next line-feed
         if (lexeme == "/") {
+            // If it's a // comment, skip everything until the next line-feed.
             if (this._peekAhead() == "/") {
                 while (lexeme != "\n") {
                     if (this._isAtEnd())
@@ -63,6 +63,33 @@ class WgslScanner {
                 }
                 // skip the linefeed
                 this._line++;
+                return true;
+            } else if (this._peekAhead() == "*") {
+                // If it's a /* block comment, skip everything until the matching */,
+                // allowing for nested block comments.
+                this._advance();
+                let commentLevel = 1;
+                while (commentLevel > 0) {
+                    if (this._isAtEnd())
+                        return true;
+                    lexeme = this._advance();
+                    if (lexeme == "\n") {
+                        this._line++;
+                    } else if (lexeme == "*") {
+                        if (this._peekAhead() == "/") {
+                            this._advance();
+                            commentLevel--;
+                            if (commentLevel == 0) {
+                                return true;
+                            }
+                        }
+                    } else if (lexeme == "/") {
+                        if (this._peekAhead() == "*") {
+                            this._advance();
+                            commentLevel++;
+                        }
+                    }
+                }
                 return true;
             }
         }
@@ -1641,8 +1668,6 @@ class WgslReflect {
 
         // All top-level structs in the shader.
         this.structs = [];
-        // All top-level block structs in the shader.
-        this.blocks = [];
         // All top-level uniform vars in the shader.
         this.uniforms = [];
         // All top-level texture vars in the shader;
@@ -1661,9 +1686,6 @@ class WgslReflect {
         for (const node of this.ast) {
             if (node._type == "struct") {
                 this.structs.push(node);
-                if (this.getAttribute(node, "block")) {
-                    this.blocks.push(node);
-                }
             }
 
             if (this.isUniformVar(node)) {
@@ -1824,6 +1846,9 @@ class WgslReflect {
 
         let group = this.getAttribute(node, "group");
         let binding = this.getAttribute(node, "binding");
+
+        group = group && group.value ? parseInt(group.value) : 0;
+        binding = binding && binding.value ? parseInt(binding.value) : 0;
 
         const struct = this.getStruct(node.type);
 
