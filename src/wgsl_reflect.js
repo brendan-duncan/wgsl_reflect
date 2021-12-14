@@ -195,6 +195,9 @@ export class WgslReflect {
         let group = this.getAttribute(node, "group");
         let binding = this.getAttribute(node, "binding");
 
+        group = group && group.value ? parseInt(group.value) : 0;
+        binding = binding && binding.value ? parseInt(binding.value) : 0;
+
         const struct = this.getStruct(node.type);
 
         let offset = 0;
