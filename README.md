@@ -13,6 +13,9 @@ import { WgslReflect } from "./wgsl_reflect.module.js";
 const reflect = new WgslReflect(shader_code);
 ```
 
+## Try It Out
+[WGSL Reflect Example](https://brendan-duncan.github.io/wgsl_reflect/example.html)
+
 ## Examples
 
 Calculate the bind group information in the shader:
