@@ -30,6 +30,21 @@ group("Scanner", function() {
         test.equals(tokens[0]._type, Token.EOF);
     });
 
+    test("block comment", function(test) {
+        const scanner = new WgslScanner("\n/* this is\n a comment*/\n");
+        const tokens = scanner.scanTokens();
+        test.equals(tokens.length, 1);
+        test.equals(tokens[0]._type, Token.EOF);
+    });
+
+    test("nested block comment", function(test) {
+        const scanner = new WgslScanner("\nfoo/* this /*is\n a*/ comment*/\n");
+        const tokens = scanner.scanTokens();
+        test.equals(tokens.length, 2);
+        test.equals(tokens[0]._type, Token.ident);
+        test.equals(tokens[1]._type, Token.EOF);
+    });
+
     test("identifier", function(test) {
         const scanner = new WgslScanner("abc123");
         const tokens = scanner.scanTokens();

@@ -53,8 +53,8 @@ export class WgslScanner {
             return true;
         }
 
-        // If it's a // comment, skip everything until the next line-feed
         if (lexeme == "/") {
+            // If it's a // comment, skip everything until the next line-feed.
             if (this._peekAhead() == "/") {
                 while (lexeme != "\n") {
                     if (this._isAtEnd())
@@ -63,6 +63,33 @@ export class WgslScanner {
                 }
                 // skip the linefeed
                 this._line++;
+                return true;
+            } else if (this._peekAhead() == "*") {
+                // If it's a /* block comment, skip everything until the matching */,
+                // allowing for nested block comments.
+                this._advance();
+                let commentLevel = 1;
+                while (commentLevel > 0) {
+                    if (this._isAtEnd())
+                        return true;
+                    lexeme = this._advance();
+                    if (lexeme == "\n") {
+                        this._line++;
+                    } else if (lexeme == "*") {
+                        if (this._peekAhead() == "/") {
+                            this._advance();
+                            commentLevel--;
+                            if (commentLevel == 0) {
+                                return true;
+                            }
+                        }
+                    } else if (lexeme == "/") {
+                        if (this._peekAhead() == "*") {
+                            this._advance();
+                            commentLevel++;
+                        }
+                    }
+                }
                 return true;
             }
         }
