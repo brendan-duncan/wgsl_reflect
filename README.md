@@ -34,10 +34,10 @@ struct ModelUniforms {
     intensity: f32;
 };
 
-@binding(0) group(0) var<uniform> viewUniforms: ViewUniforms;
-@binding(1) group(0) var<uniform> modelUniforms: ModelUniforms;
-@binding(2) group(0) var u_sampler: sampler;
-@binding(3) group(0) var u_texture: texture_2d<f32>;
+@binding(0) @group(0) var<uniform> viewUniforms: ViewUniforms;
+@binding(1) @group(0) var<uniform> modelUniforms: ModelUniforms;
+@binding(2) @group(0) var u_sampler: sampler;
+@binding(3) @group(0) var u_texture: texture_2d<f32>;
 
 struct VertexInput {
     @location(0) a_position: vec3<f32>;
@@ -47,7 +47,7 @@ struct VertexInput {
 };
 
 struct VertexOutput {
-    @builtin(position)]] Position: vec4<f32>;
+    @builtin(position) Position: vec4<f32>;
     @location(0) v_position: vec4<f32>;
     @location(1) v_normal: vec3<f32>;
     @location(2) v_color: vec4<f32>;
