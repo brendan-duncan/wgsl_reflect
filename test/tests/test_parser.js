@@ -62,8 +62,8 @@ group("Parser", function() {
         }]);
     });
 
-    test("type foo = [[stride(16)]] array<vec4<f32>>;", function(test) {
-        const t = parser.parse("type foo = [[stride(16)]] array<vec4<f32>>;");
+    test("type foo = @stride(16) array<vec4<f32>>;", function(test) {
+        const t = parser.parse("type foo = @stride(16) array<vec4<f32>>;");
         test.equals(t.length, 1);
     });
 
@@ -78,13 +78,13 @@ group("Parser", function() {
         test.equals(t.length, 1);
     });
 
-    test("[[group(0), binding(2)]] var<uniform> param: Params;", function(test) {
-        const t = parser.parse("[[group(0), binding(2)]] var<uniform> param: Params;");
+    test("@group(0) @binding(2) var<uniform> param: Params;", function(test) {
+        const t = parser.parse("@group(0) @binding(2) var<uniform> param: Params;");
         test.equals(t.length, 1);
     });
 
-    test("[[group(0), binding(0)]] var<storage,read_write> pbuf: PositionsBuffer;", function(test) {
-        const t = parser.parse("[[group(0), binding(0)]] var<storage,read_write> pbuf: PositionsBuffer;");
+    test("@group(0) binding(0) var<storage,read_write> pbuf: PositionsBuffer;", function(test) {
+        const t = parser.parse("@group(0) @binding(0) var<storage,read_write> pbuf: PositionsBuffer;");
         test.validateObject(t, [{
             _type: "var",
             name: "pbuf",
@@ -131,8 +131,8 @@ group("Parser", function() {
         }]);
     });
 
-    test("[[override(0)]] let has_point_light: bool = true;", function(test) {
-        const t = parser.parse("[[override(0)]] let has_point_light: bool = true;");
+    test("@override(0) let has_point_light: bool = true;", function(test) {
+        const t = parser.parse("@override(0) let has_point_light: bool = true;");
         test.validateObject(t, [{
             _type: "let",
             name: "has_point_light",
@@ -147,8 +147,8 @@ group("Parser", function() {
 
     test("struct", function(test) {
         const code = `
-[[block]] struct S {
-    [[offset(0)]] a: f32;
+@block struct S {
+    @offset(0) a: f32;
     b: f32;
     data: RTArr;
 };`;
@@ -171,8 +171,8 @@ group("Parser", function() {
         test.equals(t.length, 1);
     });
 
-    test("[[stage(vertex)]] fn vert_main() -> [[builtin(position)]] vec4<f32> {}", function(test) {
-        const t = parser.parse("[[stage(vertex)]] fn vert_main() -> [[builtin(position)]] vec4<f32> {}");
+    test("@stage(vertex) fn vert_main() -> @builtin(position) vec4<f32> {}", function(test) {
+        const t = parser.parse("@stage(vertex) fn vert_main() -> @builtin(position) vec4<f32> {}");
         test.equals(t.length, 1);
     });
 });

@@ -249,6 +249,8 @@ Token.WgslTokens = {
         '&&',
     arrow :
         '->',
+    attr:
+        '@',
     attr_left:
         '[[',
     attr_right:

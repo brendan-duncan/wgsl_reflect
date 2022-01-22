@@ -13,27 +13,27 @@ struct ModelUniforms {
     intensity: f32;
 };
 
-[[binding(0), group(0)]] var<uniform> viewUniforms: ViewUniforms;
-[[binding(1), group(0)]] var<uniform> modelUniforms: ModelUniforms;
-[[binding(2), group(0)]] var u_sampler: sampler;
-[[binding(3), group(0)]] var u_texture: texture_2d<f32>;
+@binding(0) @group(0) var<uniform> viewUniforms: ViewUniforms;
+@binding(1) @group(0) var<uniform> modelUniforms: ModelUniforms;
+@binding(2) @group(0) var u_sampler: sampler;
+@binding(3) @group(0) var u_texture: texture_2d<f32>;
 
 struct VertexInput {
-    [[builtin(position)]] a_position: vec3<f32>;
-    [[location(1)]] a_normal: vec3<f32>;
-    [[location(2)]] a_color: vec4<f32>;
-    [[location(3)]] a_uv: vec2<f32>;
+    @builtin(position) a_position: vec3<f32>;
+    @location(1) a_normal: vec3<f32>;
+    @location(2) a_color: vec4<f32>;
+    @location(3) a_uv: vec2<f32>;
 };
 
 struct VertexOutput {
-    [[builtin(position)]] Position: vec4<f32>;
-    [[location(0)]] v_position: vec4<f32>;
-    [[location(1)]] v_normal: vec3<f32>;
-    [[location(2)]] v_color: vec4<f32>;
-    [[location(3)]] v_uv: vec2<f32>;
+    @builtin(position) Position: vec4<f32>;
+    @location(0) v_position: vec4<f32>;
+    @location(1) v_normal: vec3<f32>;
+    @location(2) v_color: vec4<f32>;
+    @location(3) v_uv: vec2<f32>;
 };
 
-[[stage(vertex)]]
+@stage(vertex)
 fn vertex_main(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
     output.Position = viewUniforms.viewProjection * modelUniforms.model * vec4<f32>(input.a_position, 1.0);
@@ -44,18 +44,18 @@ fn vertex_main(input: VertexInput) -> VertexOutput {
     return output;
 }
 
-[[stage(fragment)]]
+@stage(fragment)
 fn frag_main() {}
 
-[[stage(compute), workgroup_size(8,4,1)]]
+@stage(compute) @workgroup_size(8,4,1)
 fn sorter() { }
 
-[[stage(compute), workgroup_size(8u)]]
+@stage(compute) @workgroup_size(8u)
 fn reverser() { }
 
 // Using an pipeline-overridable constant.
-[[override(42)]] let block_width = 12u;
-[[stage(compute), workgroup_size(block_width)]]
+@override(42) let block_width = 12u;
+@stage(compute) @workgroup_size(block_width)
 fn shuffler() { }
 `;
 
@@ -94,8 +94,8 @@ fn shuffler() { }
         test.notNull(buffer);
         test.equals(buffer.type, "uniform", "buffer.type");
         test.equals(buffer.size, 96, "buffer.size");
-        test.equals(buffer.group.value, "0", "buffer.group.value");
-        test.equals(buffer.binding.value, "1", "buffer.binding.value");
+        test.equals(buffer.group, "0", "buffer.group.value");
+        test.equals(buffer.binding, "1", "buffer.binding.value");
         test.equals(buffer.members.length, 3, "buffer.members.length");
         test.equals(buffer.members[0].name, "model", "buffer.members[0].name");
         test.equals(buffer.members[1].name, "color", "buffer.members[1].name");

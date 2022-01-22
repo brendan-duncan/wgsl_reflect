@@ -125,8 +125,8 @@ export class WgslParser {
             return enable;
         }
 
-        // The following statements have an optional attribute_list*
-        const attrs = this._attribute_list();
+        // The following statements have an optional attribute*
+        const attrs = this._attribute();
 
         if (this._check(Keyword.var)) {
             const _var = this._global_variable_decl();
@@ -159,8 +159,8 @@ export class WgslParser {
     }
 
     _function_decl() {
-        // attribute_list* function_header compound_statement
-        // function_header: fn ident paren_left param_list? paren_right (arrow attribute_list* type_decl)?
+        // attribute* function_header compound_statement
+        // function_header: fn ident paren_left param_list? paren_right (arrow attribute* type_decl)?
         if (!this._match(Keyword.fn))
             return null;
 
@@ -171,13 +171,13 @@ export class WgslParser {
         const args = [];
         if (!this._check(Token.paren_right)) {
             do {
-                const argAttrs = this._attribute_list();
+                const argAttrs = this._attribute();
 
                 const name = this._consume(Token.ident, "Expected argument name.").toString();
 
                 this._consume(Token.colon, "Expected ':' for argument type.");
                 
-                const typeAttrs = this._attribute_list();
+                const typeAttrs = this._attribute();
                 const type = this._type_decl();
                 type.attributes = typeAttrs;
 
@@ -189,7 +189,7 @@ export class WgslParser {
 
         let _return = null;
         if (this._match(Token.arrow)) {
-            const attrs = this._attribute_list();
+            const attrs = this._attribute();
             _return = this._type_decl();
             _return.attributes = attrs;
         }
@@ -313,7 +313,7 @@ export class WgslParser {
             const name = this._consume(Token.ident, "Expected name for let.").toString();
             let type = null;
             if (this._match(Token.colon)) {
-                const typeAttrs = this._attribute_list();
+                const typeAttrs = this._attribute();
                 type = this._type_decl();
                 type.attributes = typeAttrs;
             }
@@ -747,7 +747,7 @@ export class WgslParser {
     }
 
     _struct_decl() {
-        // attribute_list* struct ident struct_body_decl
+        // attribute* struct ident struct_body_decl
         if (!this._match(Keyword.struct))
             return null;
 
@@ -756,15 +756,15 @@ export class WgslParser {
         this._consume(Token.brace_left, "Expected '{' for struct body.");
         const members = [];
         while (!this._check(Token.brace_right)) {
-            // struct_member: attribute_list* variable_ident_decl semicolon
-            const memberAttrs = this._attribute_list();
+            // struct_member: attribute* variable_ident_decl semicolon
+            const memberAttrs = this._attribute();
 
             const memberName = this._consume(Token.ident, "Expected variable name.").toString();
             //member.attributes = attrs;
 
             this._consume(Token.colon, "Expected ':' for struct member type.");
 
-            const typeAttrs = this._attribute_list();
+            const typeAttrs = this._attribute();
             const memberType = this._type_decl();
             memberType.attributes = typeAttrs;
 
@@ -783,7 +783,7 @@ export class WgslParser {
     }
 
     _global_variable_decl() {
-        // attribute_list* variable_decl (equal const_expression)?
+        // attribute* variable_decl (equal const_expression)?
         const _var = this._variable_decl();
         if (this._match(Token.equal))
             _var.value = this._const_expression();
@@ -791,14 +791,14 @@ export class WgslParser {
     }
 
     _global_constant_decl() {
-        // attribute_list* let (ident variable_ident_decl) global_const_initializer?
+        // attribute* let (ident variable_ident_decl) global_const_initializer?
         if (!this._match(Keyword.let))
             return null;
 
         const name = this._consume(Token.ident, "Expected variable name");
         let type = null;
         if (this._match(Token.colon)) {
-            const attrs = this._attribute_list();
+            const attrs = this._attribute();
             type = this._type_decl();
             type.attributes = attrs;
         }
@@ -850,7 +850,7 @@ export class WgslParser {
         const name = this._consume(Token.ident, "Expected variable name");
         let type = null;
         if (this._match(Token.colon)) {
-            const attrs = this._attribute_list();
+            const attrs = this._attribute();
             type = this._type_decl();
             type.attributes = attrs;
         }
@@ -928,9 +928,9 @@ export class WgslParser {
             return type;
 
         // The following type_decl's have an optional attribyte_list*
-        const attrs = this._attribute_list();
+        const attrs = this._attribute();
 
-        // attribute_list* array less_than type_decl (comma element_count_expression)? greater_than
+        // attribute* array less_than type_decl (comma element_count_expression)? greater_than
         if (this._match(Keyword.array)) {
             const array = this._previous();
             this._consume(Token.less_than, "Expected '<' for array type.");
@@ -980,35 +980,62 @@ export class WgslParser {
         return null;
     }
 
-    _attribute_list() {
-        // attr_left (attribute comma)* attribute attr_right
-        if (!this._match(Token.attr_left))
-            return null;
+    _attribute() {
+        // attr ident paren_left (literal_or_ident comma)* literal_or_ident paren_right
+        // attr ident
 
-        const attributes = [];
-        if (!this._check(Token.attr_right)) {
-            do {
-                const name = this._consume(Token.attribute_name, "Expected attribute name");
-                const attr = new AST("attribute", { name: name.toString() });
-                if (this._match(Token.paren_left)) {
-                    // literal_or_ident
-                    attr.value = this._consume(Token.literal_or_ident, "Expected attribute value").toString();
-                    if (this._check(Token.comma)) {
-                        this._advance();
-                        attr.value = [attr.value];
-                        do {
-                            const v = this._consume(Token.literal_or_ident, "Expected attribute value").toString();
-                            attr.value.push(v);
-                        } while (this._match(Token.comma));
-                    }
-                    this._consume(Token.paren_right, "Expected ')'");
+        let attributes = [];
+
+        while (this._match(Token.attr))
+        {
+            const name = this._consume(Token.attribute_name, "Expected attribute name");
+            const attr = new AST("attribute", { name: name.toString() });
+            if (this._match(Token.paren_left)) {
+                // literal_or_ident
+                attr.value = this._consume(Token.literal_or_ident, "Expected attribute value").toString();
+                if (this._check(Token.comma)) {
+                    this._advance();
+                    attr.value = [attr.value];
+                    do {
+                        const v = this._consume(Token.literal_or_ident, "Expected attribute value").toString();
+                        attr.value.push(v);
+                    } while (this._match(Token.comma));
                 }
-                attributes.push(attr);
-            } while (this._match(Token.comma));
-
+                this._consume(Token.paren_right, "Expected ')'");
+            }
+            attributes.push(attr);
         }
-        // Consume ]]
-        this._consume(Token.attr_right, "Expected ']]' after attribute declarations");
+
+        // Deprecated:
+        // attr_left (attribute comma)* attribute attr_right
+        while (this._match(Token.attr_left)) {
+            if (!this._check(Token.attr_right)) {
+                do {
+                    const name = this._consume(Token.attribute_name, "Expected attribute name");
+                    const attr = new AST("attribute", { name: name.toString() });
+                    if (this._match(Token.paren_left)) {
+                        // literal_or_ident
+                        attr.value = this._consume(Token.literal_or_ident, "Expected attribute value").toString();
+                        if (this._check(Token.comma)) {
+                            this._advance();
+                            attr.value = [attr.value];
+                            do {
+                                const v = this._consume(Token.literal_or_ident, "Expected attribute value").toString();
+                                attr.value.push(v);
+                            } while (this._match(Token.comma));
+                        }
+                        this._consume(Token.paren_right, "Expected ')'");
+                    }
+                    attributes.push(attr);
+                } while (this._match(Token.comma));
+
+            }
+            // Consume ]]
+            this._consume(Token.attr_right, "Expected ']]' after attribute declarations");
+        }
+
+        if (attributes.length == 0)
+            return null;
 
         return attributes;
     }

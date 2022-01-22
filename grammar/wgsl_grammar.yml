@@ -9,28 +9,26 @@ parser:
     float_literal
     true
     false
-  attribute_list:
-    attr_left (attribute comma)* attribute attr_right
   attribute:
-    ident paren_left (literal_or_ident comma)* literal_or_ident paren_right
-    ident
+    attr ident paren_left (literal_or_ident comma)* literal_or_ident paren_right
+    attr ident
   literal_or_ident:
     float_literal
     int_literal
     uint_literal
     ident
   array_type_decl:
-    attribute_list* array less_than type_decl (comma element_count_expression)? greater_than
+    attribute* array less_than type_decl (comma element_count_expression)? greater_than
   element_count_expression:
     int_literal
     uint_literal
     ident
   struct_decl:
-    attribute_list* struct ident struct_body_decl
+    attribute* struct ident struct_body_decl
   struct_body_decl:
     brace_left struct_member* brace_right
   struct_member:
-    attribute_list* variable_ident_decl semicolon
+    attribute* variable_ident_decl semicolon
   access_mode:
     read
     write
@@ -137,13 +135,13 @@ parser:
   variable_decl:
     var variable_qualifier? (ident variable_ident_decl)
   variable_ident_decl:
-    ident colon attribute_list* type_decl
+    ident colon attribute* type_decl
   variable_qualifier:
     less_than storage_class (comma access_mode)? greater_than
   global_variable_decl:
-    attribute_list* variable_decl (equal const_expression)?
+    attribute* variable_decl (equal const_expression)?
   global_constant_decl:
-    attribute_list* let (ident variable_ident_decl) global_const_initializer?
+    attribute* let (ident variable_ident_decl) global_const_initializer?
   global_const_initializer:
     equal const_expression
   const_expression:
@@ -260,13 +258,13 @@ parser:
     assignment_statement semicolon
     compound_statement
   function_decl:
-    attribute_list* function_header compound_statement
+    attribute* function_header compound_statement
   function_header:
-    fn ident paren_left param_list? paren_right (arrow attribute_list* type_decl)?
+    fn ident paren_left param_list? paren_right (arrow attribute* type_decl)?
   param_list:
     (param comma)* param comma?
   param:
-    attribute_list* variable_ident_decl
+    attribute* variable_ident_decl
   enable_directive:
     enable ident semicolon
   global_decl_or_directive:
@@ -297,10 +295,8 @@ scanner:
       '&&'
     arrow:
       '->'
-    attr_left:
-      '[['
-    attr_right:
-      ']]'
+    attr:
+      '@'
     forward_slash:
       '/'
     bang:

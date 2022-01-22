@@ -261,10 +261,10 @@ export class WgslReflect {
             // array<E, N>          AlignOf(E)          N * roundUp(AlignOf(E), SizeOf(E))
             // array<E>             AlignOf(E)          N * roundUp(AlignOf(E), SizeOf(E))  (N determined at runtime)
             //
-            // [[stride(Q)]] 
+            // @stride(Q)
             // array<E, N>          AlignOf(E)          N * Q
             //
-            // [[stride(Q)]]
+            // @stride(Q)
             // array<E>             AlignOf(E)          Nruntime * Q
             //const E = type.format.name;
             const E = this.getTypeInfo(type.format);
