@@ -147,11 +147,11 @@ group("Parser", function() {
 
     test("struct", function(test) {
         const code = `
-@block struct S {
+struct S {
     @offset(0) a: f32;
     b: f32;
     data: RTArr;
-};`;
+}`;
         const t = parser.parse(code);
         test.equals(t.length, 1);
     });

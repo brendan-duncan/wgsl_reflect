@@ -10,7 +10,7 @@ struct A {                                     //             align(8)  size(32)
     @size(16) x: f32;                       // offset(16)  align(4)  size(16)
 };
 
-@block struct B {                           //             align(16) size(208)
+struct B {                           //             align(16) size(208)
     a: vec2<f32>;                              // offset(0)   align(8)  size(8)
     // -- implicit member alignment padding -- // offset(8)             size(8)
     b: vec3<f32>;                              // offset(16)  align(16) size(12)
@@ -23,7 +23,7 @@ struct A {                                     //             align(8)  size(32)
     g: @stride(32) array<A, 3>;             // offset(96)  align(8)  size(96)
     h: i32;                                    // offset(192) align(4)  size(4)
     // -- implicit struct size padding --      // offset(196)           size(12)
-};
+}
 
 @group(0) @binding(0)
 var<uniform> uniform_buffer: B;`;

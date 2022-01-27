@@ -106,7 +106,7 @@ export class WgslParser {
         // global_variable_decl semicolon
         // global_constant_decl semicolon
         // type_alias semicolon
-        // struct_decl semicolon
+        // struct_decl
         // function_decl
         // enable_directive
 
@@ -145,7 +145,6 @@ export class WgslParser {
         if (this._check(Keyword.struct)) {
             const _struct = this._struct_decl();
             _struct.attributes = attrs;
-            this._consume(Token.semicolon, "Expected ';'.");
             return _struct;
         }
 

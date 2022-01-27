@@ -8,22 +8,22 @@ group("struct", function() {
     b : i32;
     c : i32;
     d : i32;
-  };
+  }
   
   struct S2 {
     e : i32;
     f : S1;
-  };
+  }
   
   struct S3 {
     g : i32;
     h : S1;
     i : S2;
-  };
+  }
   
   struct T {
     a : array<i32, 2>;
-  };
+  }
   
   @stage(compute) @workgroup_size(1)
   fn main() {
