@@ -746,7 +746,7 @@ class WgslParser {
         // global_variable_decl semicolon
         // global_constant_decl semicolon
         // type_alias semicolon
-        // struct_decl semicolon
+        // struct_decl
         // function_decl
         // enable_directive
 
@@ -785,7 +785,6 @@ class WgslParser {
         if (this._check(Keyword.struct)) {
             const _struct = this._struct_decl();
             _struct.attributes = attrs;
-            this._consume(Token.semicolon, "Expected ';'.");
             return _struct;
         }
 
@@ -1535,7 +1534,7 @@ class WgslParser {
         // array_type_decl
         // texture_sampler_types
 
-        if (this._check([Token.ident, Keyword.bool, Keyword.float32, Keyword.int32, Keyword.uint32])) {
+        if (this._check([Token.ident, ...Token.texel_format, Keyword.bool, Keyword.float32, Keyword.int32, Keyword.uint32])) {
             const type = this._advance();
             return new AST("type", { name: type.toString() });
         }
@@ -1544,8 +1543,11 @@ class WgslParser {
             let type = this._advance().toString();
             this._consume(Token.less_than, "Expected '<' for type.");
             const format = this._type_decl();
+            let access = null;
+            if (this._match(Token.comma))
+                access = this._consume(Token.access_mode, "Expected access_mode for pointer").toString();
             this._consume(Token.greater_than, "Expected '>' for type.");
-            return new AST(type, { name: type, format });
+            return new AST(type, { name: type, format, access });
         }
 
         // pointer less_than storage_class comma type_decl (comma access_mode)? greater_than

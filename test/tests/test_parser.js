@@ -175,4 +175,9 @@ struct S {
         const t = parser.parse("@stage(vertex) fn vert_main() -> @builtin(position) vec4<f32> {}");
         test.equals(t.length, 1);
     });
+
+    test("var W_out_origX0X : texture_storage_2d<rgba16float, write>;", function(test) {
+        const t = parser.parse("var W_out_origX0X : texture_storage_2d<rgba16float, write>;");
+        test.equals(t.length, 1);
+    })
 });
