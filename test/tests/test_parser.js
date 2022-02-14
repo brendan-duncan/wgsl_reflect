@@ -179,5 +179,20 @@ struct S {
     test("var W_out_origX0X : texture_storage_2d<rgba16float, write>;", function(test) {
         const t = parser.parse("var W_out_origX0X : texture_storage_2d<rgba16float, write>;");
         test.equals(t.length, 1);
-    })
+    });
+
+    test("if (foo) { }", function(test) {
+        const t = parser.parse("fn test() { if (foo) { } }");
+        test.equals(t.length, 1);
+    });
+
+    test("if foo { }", function(test) {
+        const t = parser.parse("fn test() { if foo { } }");
+        test.equals(t.length, 1);
+    });
+
+    test("switch foo { }", function(test) {
+        const t = parser.parse("fn test() { switch foo { default: { } } }");
+        test.equals(t.length, 1);
+    });
 });
