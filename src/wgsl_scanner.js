@@ -379,6 +379,7 @@ Token.WgslKeywords = [
     "if",
     "let",
     "loop",
+    "while",
     "private",
     "read",
     "read_write",
@@ -450,8 +451,7 @@ Token.WgslReserved = [
     "unless",
     "using",
     "vec",
-    "void",
-    "while"
+    "void"
 ];
 
 function _InitTokens() {

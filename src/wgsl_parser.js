@@ -242,6 +242,9 @@ export class WgslParser {
         if (this._check(Keyword.for))
             return this._for_statement();
 
+        if (this._check(Keyword.while))
+            return this._while_statement();
+
         if (this._check(Token.brace_left))
             return this._compound_statement();
 
@@ -265,12 +268,20 @@ export class WgslParser {
         return result;
     }
 
+    _while_statement() {
+        if (!this._match(Keyword.while))
+            return null;
+        let condition = this._optional_paren_expression();
+        const block = this._compound_statement();
+        return new AST("while", { condition, block });
+    }
+
     _for_statement() {
         // for paren_left for_header paren_right compound_statement
         if (!this._match(Keyword.for))
             return null;
 
-        this._match(Token.paren_left); // parens are optional with for statements
+        this._consume(Token.paren_left, "Expected '('.");
 
         // for_header: (variable_statement assignment_statement func_call_statement)? semicolon short_circuit_or_expression? semicolon (assignment_statement func_call_statement)?
         const init = !this._check(Token.semicolon) ? this._for_init() : null;
@@ -279,7 +290,7 @@ export class WgslParser {
         this._consume(Token.semicolon, "Expected ';'.");
         const increment = !this._check(Token.paren_right) ? this._for_increment() : null;
 
-        this._match(Token.paren_right); // parens are optional with for statements
+        this._consume(Token.paren_right, "Expected ')'.");
 
         const body = this._compound_statement();
 
@@ -389,7 +400,7 @@ export class WgslParser {
     }
 
     _switch_statement() {
-        // switch paren_expression brace_left switch_body+ brace_right
+        // switch optional_paren_expression brace_left switch_body+ brace_right
         if (!this._match(Keyword.switch))
             return null;
 
@@ -461,7 +472,7 @@ export class WgslParser {
     }
 
     _if_statement() {
-        // if paren_expression compound_statement elseif_statement? else_statement?
+        // if optional_paren_expression compound_statement elseif_statement? else_statement?
         if (!this._match(Keyword.if))
             return null;
 
@@ -480,7 +491,7 @@ export class WgslParser {
     }
 
     _elseif_statement() {
-        // else_if paren_expression compound_statement elseif_statement?
+        // else_if optional_paren_expression compound_statement elseif_statement?
         const elseif = [];
         const condition = this._optional_paren_expression();
         const block = this._compound_statement();
