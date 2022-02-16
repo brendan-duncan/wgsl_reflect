@@ -379,6 +379,7 @@ Token.WgslKeywords = [
     "if",
     "let",
     "loop",
+    "while",
     "private",
     "read",
     "read_write",
@@ -450,8 +451,7 @@ Token.WgslReserved = [
     "unless",
     "using",
     "vec",
-    "void",
-    "while"
+    "void"
 ];
 
 function _InitTokens() {
@@ -882,6 +882,9 @@ class WgslParser {
         if (this._check(Keyword.for))
             return this._for_statement();
 
+        if (this._check(Keyword.while))
+            return this._while_statement();
+
         if (this._check(Token.brace_left))
             return this._compound_statement();
 
@@ -898,10 +901,19 @@ class WgslParser {
             result = new AST("continue");
         else 
             result = this._func_call_statement() || this._assignment_statement();
-
-        this._consume(Token.semicolon, "Expected ';' after statement.");
+        
+        if (result != null)
+            this._consume(Token.semicolon, "Expected ';' after statement.");
 
         return result;
+    }
+
+    _while_statement() {
+        if (!this._match(Keyword.while))
+            return null;
+        let condition = this._optional_paren_expression();
+        const block = this._compound_statement();
+        return new AST("while", { condition, block });
     }
 
     _for_statement() {
@@ -909,7 +921,7 @@ class WgslParser {
         if (!this._match(Keyword.for))
             return null;
 
-        this._consume(Token.paren_left, "Expected '(' for for loop.");
+        this._consume(Token.paren_left, "Expected '('.");
 
         // for_header: (variable_statement assignment_statement func_call_statement)? semicolon short_circuit_or_expression? semicolon (assignment_statement func_call_statement)?
         const init = !this._check(Token.semicolon) ? this._for_init() : null;
@@ -918,7 +930,7 @@ class WgslParser {
         this._consume(Token.semicolon, "Expected ';'.");
         const increment = !this._check(Token.paren_right) ? this._for_increment() : null;
 
-        this._consume(Token.paren_right, "Expected ')' for for loop.");
+        this._consume(Token.paren_right, "Expected ')'.");
 
         const body = this._compound_statement();
 
@@ -967,8 +979,16 @@ class WgslParser {
     _assignment_statement() {
         // (unary_expression underscore) equal short_circuit_or_expression
         let _var = null;
-        if (!this._match(Token.underscore))
+
+        if (this._check(Token.brace_right))
+            return null;
+
+        let isUnderscore = this._match(Token.underscore);
+        if (!isUnderscore)
             _var = this._unary_expression();
+
+        if (!isUnderscore && _var == null)
+            return null;
 
         this._consume(Token.equal, "Expected '='.");
 
@@ -1020,11 +1040,11 @@ class WgslParser {
     }
 
     _switch_statement() {
-        // switch paren_expression brace_left switch_body+ brace_right
+        // switch optional_paren_expression brace_left switch_body+ brace_right
         if (!this._match(Keyword.switch))
             return null;
 
-        const condition = this._paren_expression();
+        const condition = this._optional_paren_expression();
         this._consume(Token.brace_left);
         const body = this._switch_body();
         if (body == null || body.length == 0)
@@ -1037,25 +1057,25 @@ class WgslParser {
         // case case_selectors colon brace_left case_body? brace_right
         // default colon brace_left case_body? brace_right
         const cases = [];
-        if (this._match(Token.case)) {
-            this._consume(Token.case);
+        if (this._match(Keyword.case)) {
+            this._consume(Keyword.case);
             const selector = this._case_selectors();
-            this._consume(Token.colon);
-            this._consume(Token.brace_left);
+            this._consume(Token.colon, "Exected ':' for switch case.");
+            this._consume(Token.brace_left, "Exected '{' for switch case.");
             const body = this._case_body();
-            this._consume(Token.brace_right);
+            this._consume(Token.brace_right, "Exected '}' for switch case.");
             cases.push(new AST("case", { selector, body }));
         }
 
-        if (this._match(Token.default)) {
-            this._consume(Token.colon);
-            this._consume(Token.brace_left);
+        if (this._match(Keyword.default)) {
+            this._consume(Token.colon, "Exected ':' for switch default.");
+            this._consume(Token.brace_left, "Exected '{' for switch default.");
             const body = this._case_body();
-            this._consume(Token.brace_right);
+            this._consume(Token.brace_right, "Exected '}' for switch default.");
             cases.push(new AST("default", { body }));
         }
 
-        if (this._check([Token.default, Token.case])) {
+        if (this._check([Keyword.default, Keyword.case])) {
             const _cases = this._switch_body();
             cases.push(_cases[0]);
         }
@@ -1092,11 +1112,11 @@ class WgslParser {
     }
 
     _if_statement() {
-        // if paren_expression compound_statement elseif_statement? else_statement?
+        // if optional_paren_expression compound_statement elseif_statement? else_statement?
         if (!this._match(Keyword.if))
             return null;
 
-        const condition = this._paren_expression();
+        const condition = this._optional_paren_expression();
         const block = this._compound_statement();
 
         let elseif = null;
@@ -1111,9 +1131,9 @@ class WgslParser {
     }
 
     _elseif_statement() {
-        // else_if paren_expression compound_statement elseif_statement?
+        // else_if optional_paren_expression compound_statement elseif_statement?
         const elseif = [];
-        const condition = this._paren_expression();
+        const condition = this._optional_paren_expression();
         const block = this._compound_statement();
         elseif.push(new AST("elseif", { condition, block }));
         if (this._match(Keyword.elseif))
@@ -1375,6 +1395,14 @@ class WgslParser {
         this._consume(Token.paren_right, "Expected ')' for agument list");
 
         return args;
+    }
+
+    _optional_paren_expression() {
+        // [paren_left] short_circuit_or_expression [paren_right]
+        this._match(Token.paren_left);
+        const expr = this._short_circuit_or_expression();
+        this._match(Token.paren_right);
+        return new AST("grouping_expr", { contents: expr });
     }
 
     _paren_expression() {
@@ -1707,6 +1735,8 @@ class WgslReflect {
         this.samplers = [];
         // All top-level functions in the shader.
         this.functions = [];
+        // All top-level type aliases in the shader.
+        this.aliases = [];
         // All entry functions in the shader: vertex, fragment, and/or compute.
         this.entry = {
             vertex: [],
@@ -1715,9 +1745,11 @@ class WgslReflect {
         };
 
         for (const node of this.ast) {
-            if (node._type == "struct") {
+            if (node._type == "struct")
                 this.structs.push(node);
-            }
+
+            if (node._type == "alias")
+                this.aliases.push(node);
 
             if (this.isUniformVar(node)) {
                 const group = this.getAttribute(node, "group");
@@ -1810,6 +1842,20 @@ class WgslReflect {
     _parseInt(s) {
         const n = parseInt(s);
         return isNaN(n) ? s : n;
+    }
+
+    getAlias(name) {
+        if (!name) return null;
+        if (name.constructor === AST) {
+            if (name._type != "type")
+                return null;
+            name = name.name;
+        }
+        for (const u of this.aliases) {
+            if (u.name == name)
+                return u.alias;
+        }
+        return null;
     }
 
     getStruct(name) {
@@ -1929,7 +1975,18 @@ class WgslReflect {
         if (type._type == "member")
             type = type.type;
 
-        let info = WgslReflect.TypeInfo[type.name];
+        if (type._type == "type") {
+            const alias = this.getAlias(type.name);
+            if (alias) {
+                type = alias;
+            } else {
+                const struct = this.getStruct(type.name);
+                if (struct)
+                    type = struct;
+            }
+        }
+
+        const info = WgslReflect.TypeInfo[type.name];
         if (info) {
             return {
                 align: Math.max(explicitAlign, info.align),
@@ -1972,12 +2029,6 @@ class WgslReflect {
                 align: Math.max(explicitAlign, align),
                 size: Math.max(explicitSize, size)
             };
-        }
-
-        if (type._type == "type") {
-            const struct = this.getStruct(type.name);
-            if (struct)
-                type = struct;
         }
 
         if (type._type == "struct") {
