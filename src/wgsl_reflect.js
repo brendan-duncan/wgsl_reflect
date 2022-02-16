@@ -24,6 +24,8 @@ export class WgslReflect {
         this.samplers = [];
         // All top-level functions in the shader.
         this.functions = [];
+        // All top-level type aliases in the shader.
+        this.aliases = [];
         // All entry functions in the shader: vertex, fragment, and/or compute.
         this.entry = {
             vertex: [],
@@ -32,9 +34,11 @@ export class WgslReflect {
         };
 
         for (const node of this.ast) {
-            if (node._type == "struct") {
+            if (node._type == "struct")
                 this.structs.push(node);
-            }
+
+            if (node._type == "alias")
+                this.aliases.push(node);
 
             if (this.isUniformVar(node)) {
                 const group = this.getAttribute(node, "group");
@@ -127,6 +131,20 @@ export class WgslReflect {
     _parseInt(s) {
         const n = parseInt(s);
         return isNaN(n) ? s : n;
+    }
+
+    getAlias(name) {
+        if (!name) return null;
+        if (name.constructor === AST) {
+            if (name._type != "type")
+                return null;
+            name = name.name;
+        }
+        for (const u of this.aliases) {
+            if (u.name == name)
+                return u.alias;
+        }
+        return null;
     }
 
     getStruct(name) {
@@ -246,7 +264,18 @@ export class WgslReflect {
         if (type._type == "member")
             type = type.type;
 
-        let info = WgslReflect.TypeInfo[type.name];
+        if (type._type == "type") {
+            const alias = this.getAlias(type.name);
+            if (alias) {
+                type = alias;
+            } else {
+                const struct = this.getStruct(type.name);
+                if (struct)
+                    type = struct;
+            }
+        }
+
+        const info = WgslReflect.TypeInfo[type.name];
         if (info) {
             return {
                 align: Math.max(explicitAlign, info.align),
@@ -289,12 +318,6 @@ export class WgslReflect {
                 align: Math.max(explicitAlign, align),
                 size: Math.max(explicitSize, size)
             };
-        }
-
-        if (type._type == "type") {
-            const struct = this.getStruct(type.name);
-            if (struct)
-                type = struct;
         }
 
         if (type._type == "struct") {

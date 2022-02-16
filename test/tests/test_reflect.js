@@ -2,6 +2,37 @@ import { test, group } from "../test.js";
 import { WgslReflect } from "../../src/wgsl_reflect.js";
 
 group("Reflect", function() {
+    test('typedef', function(test) {
+        const shader = `type Arr_1 = array<vec4<f32>, 20u>;
+
+        struct VGlobals {
+          x_Time : vec4<f32>;
+          x_WorldSpaceCameraPos : vec3<f32>;
+          @size(4)
+          padding : u32;
+          x_ProjectionParams : vec4<f32>;
+          unity_FogParams : vec4<f32>;
+          unity_MatrixV : mat4x4<f32>;
+          unity_MatrixVP : mat4x4<f32>;
+          x_MaxDepth : f32;
+          x_MaxWaveHeight : f32;
+          @size(8)
+          padding_1 : u32;
+          x_VeraslWater_DepthCamParams : vec4<f32>;
+          x_WaveCount : u32;
+          @size(12)
+          padding_2 : u32;
+          waveData : Arr_1;
+        }
+        @group(0) @binding(24) var<uniform> x_75 : VGlobals;`;
+        const reflect = new WgslReflect(shader);
+
+        test.equals(reflect.uniforms.length, 1);
+        test.equals(reflect.uniforms[0].name, 'x_75');
+        const bufferInfo = reflect.getUniformBufferInfo(reflect.uniforms[0]);
+        test.equals(bufferInfo.size, 560);
+    });
+
     const shader = `
 struct ViewUniforms {
     viewProjection: mat4x4<f32>;
@@ -145,5 +176,5 @@ fn shuffler() { }
             location: 1,
             type: { name: "vec3" }
         });
-    });
+    });    
 });
