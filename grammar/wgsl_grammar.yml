@@ -26,9 +26,9 @@ parser:
   struct_decl:
     attribute* struct ident struct_body_decl
   struct_body_decl:
-    brace_left struct_member* brace_right
+    brace_left (struct_member comma)* struct_member comma? brace_right
   struct_member:
-    attribute* variable_ident_decl semicolon
+    attribute* variable_ident_decl
   access_mode:
     read
     write

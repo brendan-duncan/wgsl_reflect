@@ -780,22 +780,25 @@ export class WgslParser {
 
         const name = this._consume(Token.ident, "Expected name for struct.").toString();
 
+        // struct_body_decl: brace_left (struct_member comma)* struct_member comma? brace_right
         this._consume(Token.brace_left, "Expected '{' for struct body.");
         const members = [];
         while (!this._check(Token.brace_right)) {
-            // struct_member: attribute* variable_ident_decl semicolon
+            // struct_member: attribute* variable_ident_decl
             const memberAttrs = this._attribute();
 
             const memberName = this._consume(Token.ident, "Expected variable name.").toString();
-            //member.attributes = attrs;
 
             this._consume(Token.colon, "Expected ':' for struct member type.");
 
             const typeAttrs = this._attribute();
             const memberType = this._type_decl();
             memberType.attributes = typeAttrs;
-
-            this._consume(Token.semicolon, "Expected ';' after struct member.");
+            
+            if (!this._check(Token.brace_right))
+                this._consume(Token.comma, "Expected ',' for struct member.");
+            else
+                this._match(Token.comma); // trailing comma optional.
 
             members.push(new AST("member", {
                 name: memberName,

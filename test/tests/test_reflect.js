@@ -6,23 +6,23 @@ group("Reflect", function() {
         const shader = `type Arr_1 = array<vec4<f32>, 20u>;
 
         struct VGlobals {
-          x_Time : vec4<f32>;
-          x_WorldSpaceCameraPos : vec3<f32>;
+          x_Time : vec4<f32>,
+          x_WorldSpaceCameraPos : vec3<f32>,
           @size(4)
-          padding : u32;
-          x_ProjectionParams : vec4<f32>;
-          unity_FogParams : vec4<f32>;
-          unity_MatrixV : mat4x4<f32>;
-          unity_MatrixVP : mat4x4<f32>;
-          x_MaxDepth : f32;
-          x_MaxWaveHeight : f32;
+          padding : u32,
+          x_ProjectionParams : vec4<f32>,
+          unity_FogParams : vec4<f32>,
+          unity_MatrixV : mat4x4<f32>,
+          unity_MatrixVP : mat4x4<f32>,
+          x_MaxDepth : f32,
+          x_MaxWaveHeight : f32,
           @size(8)
-          padding_1 : u32;
-          x_VeraslWater_DepthCamParams : vec4<f32>;
-          x_WaveCount : u32;
+          padding_1 : u32,
+          x_VeraslWater_DepthCamParams : vec4<f32>,
+          x_WaveCount : u32,
           @size(12)
-          padding_2 : u32;
-          waveData : Arr_1;
+          padding_2 : u32,
+          waveData : Arr_1,
         }
         @group(0) @binding(24) var<uniform> x_75 : VGlobals;`;
         const reflect = new WgslReflect(shader);
@@ -35,13 +35,13 @@ group("Reflect", function() {
 
     const shader = `
 struct ViewUniforms {
-    viewProjection: mat4x4<f32>;
+    viewProjection: mat4x4<f32>
 };
 
 struct ModelUniforms {
-    model: mat4x4<f32>;
-    color: vec4<f32>;
-    intensity: f32;
+    model: mat4x4<f32>,
+    color: vec4<f32>,
+    intensity: f32
 };
 
 @binding(0) @group(0) var<uniform> viewUniforms: ViewUniforms;
@@ -50,18 +50,18 @@ struct ModelUniforms {
 @binding(3) @group(0) var u_texture: texture_2d<f32>;
 
 struct VertexInput {
-    @builtin(position) a_position: vec3<f32>;
-    @location(1) a_normal: vec3<f32>;
-    @location(2) a_color: vec4<f32>;
-    @location(3) a_uv: vec2<f32>;
+    @builtin(position) a_position: vec3<f32>,
+    @location(1) a_normal: vec3<f32>,
+    @location(2) a_color: vec4<f32>,
+    @location(3) a_uv: vec2<f32>
 };
 
 struct VertexOutput {
-    @builtin(position) Position: vec4<f32>;
-    @location(0) v_position: vec4<f32>;
-    @location(1) v_normal: vec3<f32>;
-    @location(2) v_color: vec4<f32>;
-    @location(3) v_uv: vec2<f32>;
+    @builtin(position) Position: vec4<f32>,
+    @location(0) v_position: vec4<f32>,
+    @location(1) v_normal: vec3<f32>,
+    @location(2) v_color: vec4<f32>,
+    @location(3) v_uv: vec2<f32>,
 };
 
 @stage(vertex)

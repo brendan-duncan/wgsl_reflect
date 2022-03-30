@@ -12,13 +12,13 @@
 
             const shader = `
 struct ViewUniforms {
-    viewProjection: mat4x4<f32>;
+    viewProjection: mat4x4<f32>
 }
 
 struct ModelUniforms {
-    model: mat4x4<f32>;
-    color: vec4<f32>;
-    intensity: f32;
+    model: mat4x4<f32>,
+    color: vec4<f32>,
+    intensity: f32
 }
 
 @binding(0) @group(0) var<uniform> viewUniforms: ViewUniforms;
@@ -27,18 +27,18 @@ struct ModelUniforms {
 @binding(3) @group(0) var u_texture: texture_2d<f32>;
 
 struct VertexInput {
-    @location(0) a_position: vec3<f32>;
-    @location(1) a_normal: vec3<f32>;
-    @location(2) a_color: vec4<f32>;
-    @location(3) a_uv: vec2<f32>;
+    @location(0) a_position: vec3<f32>,
+    @location(1) a_normal: vec3<f32>,
+    @location(2) a_color: vec4<f32>,
+    @location(3) a_uv: vec2<f32>
 }
 
 struct VertexOutput {
-    @builtin(position) Position: vec4<f32>;
-    @location(0) v_position: vec4<f32>;
-    @location(1) v_normal: vec3<f32>;
-    @location(2) v_color: vec4<f32>;
-    @location(3) v_uv: vec2<f32>;
+    @builtin(position) Position: vec4<f32>,
+    @location(0) v_position: vec4<f32>,
+    @location(1) v_normal: vec3<f32>,
+    @location(2) v_color: vec4<f32>,
+    @location(3) v_uv: vec2<f32>
 }
 
 @stage(vertex)
