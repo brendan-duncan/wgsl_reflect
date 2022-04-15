@@ -1732,6 +1732,8 @@ class WgslReflect {
         this.structs = [];
         // All top-level uniform vars in the shader.
         this.uniforms = [];
+        // All top-level storage vars in the shader.
+        this.storage = [];
         // All top-level texture vars in the shader;
         this.textures = [];
         // All top-level sampler vars in the shader.
@@ -1760,6 +1762,14 @@ class WgslReflect {
                 const binding = this.getAttribute(node, "binding");
                 node.binding = binding && binding.value ? parseInt(binding.value) : 0;
                 this.uniforms.push(node);
+            }
+
+            if (this.isStorageVar(node)) {
+                const group = this.getAttribute(node, "group");
+                node.group = group && group.value ? parseInt(group.value) : 0;
+                const binding = this.getAttribute(node, "binding");
+                node.binding = binding && binding.value ? parseInt(binding.value) : 0;
+                this.storage.push(node);
             }
 
             if (this.isTextureVar(node)) {
@@ -1804,6 +1814,10 @@ class WgslReflect {
 
     isUniformVar(node) {
         return node && node._type == "var" && node.storage == "uniform";
+    }
+
+    isStorageVar(node) {
+        return node && node._type == "var" && node.storage == "storage";
     }
 
     _getInputs(args, inputs) {
@@ -1904,6 +1918,12 @@ class WgslReflect {
             const group = groups[u.group];
             group[u.binding] = { type: 'buffer', resource: this.getUniformBufferInfo(u) };
         }
+        
+        for (const u of this.storage) {
+            _makeRoom(u.group, u.binding);
+            const group = groups[u.group];
+            group[u.binding] = { type: 'storage', resource: this.getStorageBufferInfo(u) };
+        }
 
         for (const t of this.textures) {
             _makeRoom(t.group, t.binding);
@@ -1918,6 +1938,19 @@ class WgslReflect {
         }
 
         return groups;
+    }
+
+    getStorageBufferInfo(node) {
+        if (!this.isStorageVar(node))
+            return null;
+
+        let group = this.getAttribute(node, "group");
+        let binding = this.getAttribute(node, "binding");
+
+        group = group && group.value ? parseInt(group.value) : 0;
+        binding = binding && binding.value ? parseInt(binding.value) : 0;
+
+        return { name: node.name, type: node.type, group, binding };
     }
 
     getUniformBufferInfo(node) {
