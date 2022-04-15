@@ -176,5 +176,37 @@ fn shuffler() { }
             location: 1,
             type: { name: "vec3" }
         });
-    });    
+    });
+
+    test("storageBuffers", function(test) {
+        const shader = `@group(0) @binding(0) var<storage, read> x : array<f32>;
+        @group(0) @binding(1) var<storage, read> y : array<f32>;
+        @group(0) @binding(2) var<storage, write> z : array<f32>;
+        
+        @stage(compute) @workgroup_size(64)
+        fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
+          // Guard against out-of-bounds work group sizes
+          var idx = global_id.x;
+          z[idx] = x[idx] + y[idx];
+        }`
+        const reflect = new WgslReflect(shader);
+
+        const groups = reflect.getBindGroups();
+
+        test.equals(reflect.storage.length, 3);
+        test.equals(groups.length, 1);
+        test.equals(groups[0].length, 3);
+        test.equals(groups[0][0].type, "storage");
+        test.equals(groups[0][0].resource.name, "x");
+        test.equals(groups[0][0].resource.type.name, "array");
+        test.equals(groups[0][0].resource.type.format.name, "f32");
+        test.equals(groups[0][1].type, "storage");
+        test.equals(groups[0][1].resource.name, "y");
+        test.equals(groups[0][1].resource.type.name, "array");
+        test.equals(groups[0][1].resource.type.format.name, "f32");
+        test.equals(groups[0][2].type, "storage");
+        test.equals(groups[0][2].resource.name, "z");
+        test.equals(groups[0][2].resource.type.name, "array");
+        test.equals(groups[0][2].resource.type.format.name, "f32");
+    });
 });
