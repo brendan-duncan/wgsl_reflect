@@ -76,15 +76,16 @@ export class WgslReflect {
 
             if (node._type == "function") {
                 this.functions.push(node);
-                const stage = this.getAttribute(node, "stage");
+                const vertexStage = this.getAttribute(node, "vertex");
+                const fragmentStage = this.getAttribute(node, "fragment");
+                const computeStage = this.getAttribute(node, "compute");
+                const stage = vertexStage || fragmentStage || computeStage;
                 if (stage) {
                     node.inputs = this._getInputs(node);
-
-                    // TODO give error about non-standard stages.
-                    if (this.entry[stage.value])
-                        this.entry[stage.value].push(node);
+                    if (this.entry[stage.name])
+                        this.entry[stage.name].push(node);
                     else
-                        this.entry[stage.value] = [node];
+                        this.entry[stage.name] = [node];
                 }
             }
         }

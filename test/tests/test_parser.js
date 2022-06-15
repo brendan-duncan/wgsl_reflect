@@ -171,8 +171,8 @@ struct S {
         test.equals(t.length, 1);
     });
 
-    test("@stage(vertex) fn vert_main() -> @builtin(position) vec4<f32> {}", function(test) {
-        const t = parser.parse("@stage(vertex) fn vert_main() -> @builtin(position) vec4<f32> {}");
+    test("@vertex fn vert_main() -> @builtin(position) vec4<f32> {}", function(test) {
+        const t = parser.parse("@vertex fn vert_main() -> @builtin(position) vec4<f32> {}");
         test.equals(t.length, 1);
     });
 

@@ -64,7 +64,7 @@ struct VertexOutput {
     @location(3) v_uv: vec2<f32>,
 };
 
-@stage(vertex)
+@vertex
 fn vertex_main(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
     output.Position = viewUniforms.viewProjection * modelUniforms.model * vec4<f32>(input.a_position, 1.0);
@@ -75,18 +75,18 @@ fn vertex_main(input: VertexInput) -> VertexOutput {
     return output;
 }
 
-@stage(fragment)
+@fragment
 fn frag_main() {}
 
-@stage(compute) @workgroup_size(8,4,1)
+@compute @workgroup_size(8,4,1)
 fn sorter() { }
 
-@stage(compute) @workgroup_size(8u)
+@compute @workgroup_size(8u)
 fn reverser() { }
 
 // Using an pipeline-overridable constant.
 @override(42) let block_width = 12u;
-@stage(compute) @workgroup_size(block_width)
+@compute @workgroup_size(block_width)
 fn shuffler() { }
 `;
 

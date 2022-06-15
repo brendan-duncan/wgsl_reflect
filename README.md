@@ -14,6 +14,7 @@ const reflect = new WgslReflect(shader_code);
 ```
 
 ## Try It Out
+
 [WGSL Reflect Example](https://brendan-duncan.github.io/wgsl_reflect/example.html)
 
 ## Examples
@@ -54,7 +55,7 @@ struct VertexOutput {
     @location(3) v_uv: vec2<f32>
 }
 
-@stage(vertex)
+@vertex
 fn main(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
     output.Position = viewUniforms.viewProjection * modelUniforms.model * vec4<f32>(input.a_position, 1.0);
