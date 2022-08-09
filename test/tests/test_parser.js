@@ -195,4 +195,9 @@ struct S {
         const t = parser.parse("fn test() { switch foo { default: { } } }");
         test.equals(t.length, 1);
     });
+
+    test("trailing_comma", function(test) {
+        const t = parser.parse("fn foo (a:i32,) {}");
+        test.equals(t.length, 1);
+    });
 });

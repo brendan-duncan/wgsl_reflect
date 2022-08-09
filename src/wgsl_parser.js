@@ -170,6 +170,8 @@ export class WgslParser {
         const args = [];
         if (!this._check(Token.paren_right)) {
             do {
+                if (this._check(Token.paren_right))
+                    break;
                 const argAttrs = this._attribute();
 
                 const name = this._consume(Token.ident, "Expected argument name.").toString();
