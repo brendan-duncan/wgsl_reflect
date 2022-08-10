@@ -167,4 +167,14 @@ group("Scanner", function() {
         for (let i = 0; i < tokens.length; ++i)
             test.equals(tokens[i]._type, expected[i]);
     });
+
+    test("operators", function(test) {
+        const scanner = new WgslScanner(`fn foo() {
+            var b = 1;
+            b+=1;
+            b++;
+        }`);
+        const tokens = scanner.scanTokens();
+        test.equals(tokens.length, 19);
+    });
 });

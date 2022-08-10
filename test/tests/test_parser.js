@@ -200,4 +200,31 @@ struct S {
         const t = parser.parse("fn foo (a:i32,) {}");
         test.equals(t.length, 1);
     });
+
+    test("operators", function(test) {
+        const t = parser.parse(`fn foo() {
+            var b = 1;
+            b+=1;
+            b-=1;
+            b*=1;
+            b/=1;
+            b&=1;
+            b|=1;
+            b^=1;
+            b>>=1;
+            b<<=1;
+            b++;
+            b--;
+        }`);
+        test.equals(t.body.length, 12);
+    });
+
+    test("static_assert", function(test) {
+        const t = parser.parse(`fn foo() {
+            const x = 1;
+            const y = 2;
+            static_assert x < y; // valid at module-scope.
+            static_assert(y != 0); // parentheses are optional.
+        }`);
+    });
 });

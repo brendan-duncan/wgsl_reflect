@@ -319,6 +319,27 @@ Token.WgslTokens = {
         '_',
     xor:
         '^',
+
+    plus_equal:
+        '+=',
+    minus_equal:
+        '-=',
+    times_equal:
+        '*=',
+    division_equal:
+        '/=',
+    modulo_equal:
+        '%=',
+    and_equal:
+        '&=',
+    or_equal:
+        '|=',
+    xor_equal:
+        '^=',
+    shift_right_equal:
+        '>>=',
+    shift_left_equal:
+        '<<=',
 };
 
 Token.WgslKeywords = [
@@ -378,6 +399,7 @@ Token.WgslKeywords = [
     "function",
     "if",
     "let",
+    "const",
     "loop",
     "while",
     "private",
@@ -426,13 +448,13 @@ Token.WgslKeywords = [
     "rgba16float",
     "rgba32uint",
     "rgba32sint",
-    "rgba32float"
+    "rgba32float",
+    "static_assert"
 ];
 
 Token.WgslReserved = [
     "asm",
     "bf16",
-    "const",
     "do",
     "enum",
     "f16",
@@ -635,6 +657,25 @@ function _InitTokens() {
     Token.attribute_name = [
         Token.ident,
         Keyword.block,
+    ];
+
+    Token.assignment_operators = [
+        Token.equal,
+        Token.plus_equal,
+        Token.minus_equal,
+        Token.times_equal,
+        Token.division_equal,
+        Token.modulo_equal,
+        Token.and_equal,
+        Token.or_equal,
+        Token.xor_equal,
+        Token.shift_right_equal,
+        Token.shift_left_equal
+    ];
+
+    Token.increment_operators = [
+        Token.plus_plus,
+        Token.minus_minus
     ];
 }
 _InitTokens();
