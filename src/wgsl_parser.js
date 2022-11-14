@@ -978,12 +978,15 @@ export class WgslParser {
         
         if (this._check(Token.template_types)) {
             let type = this._advance().toString();
-            this._consume(Token.less_than, "Expected '<' for type.");
-            const format = this._type_decl();
+            let format = null;
             let access = null;
-            if (this._match(Token.comma))
-                access = this._consume(Token.access_mode, "Expected access_mode for pointer").toString();
-            this._consume(Token.greater_than, "Expected '>' for type.");
+            if (this._match(Token.less_than)) {
+                format = this._type_decl();
+                access = null;
+                if (this._match(Token.comma))
+                    access = this._consume(Token.access_mode, "Expected access_mode for pointer").toString();
+                this._consume(Token.greater_than, "Expected '>' for type.");
+            }
             return new AST(type, { name: type, format, access });
         }
 

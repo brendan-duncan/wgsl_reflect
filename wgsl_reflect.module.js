@@ -319,6 +319,27 @@ Token.WgslTokens = {
         '_',
     xor:
         '^',
+
+    plus_equal:
+        '+=',
+    minus_equal:
+        '-=',
+    times_equal:
+        '*=',
+    division_equal:
+        '/=',
+    modulo_equal:
+        '%=',
+    and_equal:
+        '&=',
+    or_equal:
+        '|=',
+    xor_equal:
+        '^=',
+    shift_right_equal:
+        '>>=',
+    shift_left_equal:
+        '<<=',
 };
 
 Token.WgslKeywords = [
@@ -378,6 +399,7 @@ Token.WgslKeywords = [
     "function",
     "if",
     "let",
+    "const",
     "loop",
     "while",
     "private",
@@ -426,13 +448,13 @@ Token.WgslKeywords = [
     "rgba16float",
     "rgba32uint",
     "rgba32sint",
-    "rgba32float"
+    "rgba32float",
+    "static_assert"
 ];
 
 Token.WgslReserved = [
     "asm",
     "bf16",
-    "const",
     "do",
     "enum",
     "f16",
@@ -636,6 +658,25 @@ function _InitTokens() {
         Token.ident,
         Keyword.block,
     ];
+
+    Token.assignment_operators = [
+        Token.equal,
+        Token.plus_equal,
+        Token.minus_equal,
+        Token.times_equal,
+        Token.division_equal,
+        Token.modulo_equal,
+        Token.and_equal,
+        Token.or_equal,
+        Token.xor_equal,
+        Token.shift_right_equal,
+        Token.shift_left_equal
+    ];
+
+    Token.increment_operators = [
+        Token.plus_plus,
+        Token.minus_minus
+    ];
 }
 _InitTokens();
 
@@ -810,6 +851,8 @@ class WgslParser {
         const args = [];
         if (!this._check(Token.paren_right)) {
             do {
+                if (this._check(Token.paren_right))
+                    break;
                 const argAttrs = this._attribute();
 
                 const name = this._consume(Token.ident, "Expected argument name.").toString();
@@ -866,6 +909,9 @@ class WgslParser {
         // discard semicolon
         // assignment_statement semicolon
         // compound_statement
+        // increment_statement semicolon
+        // decrement_statement semicolon
+        // static_assert_statement semicolon
 
         // Ignore any stand-alone semicolons
         while (this._match(Token.semicolon) && !this._isAtEnd());
@@ -885,13 +931,16 @@ class WgslParser {
         if (this._check(Keyword.while))
             return this._while_statement();
 
+        if (this._check(Keyword.static_assert))
+            return this._static_assert_statement();
+
         if (this._check(Token.brace_left))
             return this._compound_statement();
 
         let result = null;
         if (this._check(Keyword.return))
             result = this._return_statement();
-        else if (this._check([Keyword.var, Keyword.let]))
+        else if (this._check([Keyword.var, Keyword.let, Keyword.const]))
             result = this._variable_statement();
         else if (this._match(Keyword.discard))
             result = new AST("discard");
@@ -900,12 +949,19 @@ class WgslParser {
         else if (this._match(Keyword.continue))
             result = new AST("continue");
         else 
-            result = this._func_call_statement() || this._assignment_statement();
+            result = this._increment_decrement_statement() || this._func_call_statement() || this._assignment_statement();
         
         if (result != null)
             this._consume(Token.semicolon, "Expected ';' after statement.");
 
         return result;
+    }
+    
+    _static_assert_statement() {
+        if (!this._match(Keyword.static_assert))
+            return null;
+        let expression = this._optional_paren_expression();
+        return new AST("static_assert", { expression });
     }
 
     _while_statement() {
@@ -951,6 +1007,7 @@ class WgslParser {
         // variable_decl
         // variable_decl equal short_circuit_or_expression
         // let (ident variable_ident_decl) equal short_circuit_or_expression
+        // const (ident variable_ident_decl) equal short_circuit_or_expression
         if (this._check(Keyword.var)) {
             const _var = this._variable_decl();
             let value = null;
@@ -973,7 +1030,37 @@ class WgslParser {
             return new AST("let", { name, type, value });
         }
 
+        if (this._match(Keyword.const)) {
+            const name = this._consume(Token.ident, "Expected name for const.").toString();
+            let type = null;
+            if (this._match(Token.colon)) {
+                const typeAttrs = this._attribute();
+                type = this._type_decl();
+                type.attributes = typeAttrs;
+            }
+            this._consume(Token.equal, "Expected '=' for const.");
+            const value = this._short_circuit_or_expression();
+            return new AST("const", { name, type, value });
+        }
+
         return null;
+    }
+
+    _increment_decrement_statement() {
+        const savedPos = this._current;
+
+        const _var = this._unary_expression();
+        if (_var == null)
+            return null;
+
+        if (!this._check(Token.increment_operators)) {
+            this._current = savedPos;
+            return null;
+        }
+
+        const type = this._consume(Token.increment_operators, "Expected increment operator");
+
+        return new AST("increment", { type, var: _var });
     }
 
     _assignment_statement() {
@@ -990,11 +1077,11 @@ class WgslParser {
         if (!isUnderscore && _var == null)
             return null;
 
-        this._consume(Token.equal, "Expected '='.");
+        const type = this._consume(Token.assignment_operators, "Expected assignment operator.");
 
         const value = this._short_circuit_or_expression();
 
-        return new AST("assign", { var: _var, value });
+        return new AST("assign", { type, var: _var, value });
     }
 
     _func_call_statement() {
@@ -1572,12 +1659,15 @@ class WgslParser {
         
         if (this._check(Token.template_types)) {
             let type = this._advance().toString();
-            this._consume(Token.less_than, "Expected '<' for type.");
-            const format = this._type_decl();
+            let format = null;
             let access = null;
-            if (this._match(Token.comma))
-                access = this._consume(Token.access_mode, "Expected access_mode for pointer").toString();
-            this._consume(Token.greater_than, "Expected '>' for type.");
+            if (this._match(Token.less_than)) {
+                format = this._type_decl();
+                access = null;
+                if (this._match(Token.comma))
+                    access = this._consume(Token.access_mode, "Expected access_mode for pointer").toString();
+                this._consume(Token.greater_than, "Expected '>' for type.");
+            }
             return new AST(type, { name: type, format, access });
         }
 

@@ -216,7 +216,7 @@ struct S {
             b++;
             b--;
         }`);
-        test.equals(t.body.length, 12);
+        test.equals(t[0].body.length, 12);
     });
 
     test("static_assert", function(test) {
