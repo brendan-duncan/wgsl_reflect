@@ -240,23 +240,14 @@ export class WgslReflect {
         return { name: node.name, type: node.type, group, binding };
     }
 
-    getUniformBufferInfo(node) {
-        if (!this.isUniformVar(node))
-            return null;
-
-        let group = this.getAttribute(node, "group");
-        let binding = this.getAttribute(node, "binding");
-
-        group = group && group.value ? parseInt(group.value) : 0;
-        binding = binding && binding.value ? parseInt(binding.value) : 0;
-
+    getStructInfo(node) {
         const struct = this.getStruct(node.type);
 
         let offset = 0;
         let lastSize = 0;
         let lastOffset = 0;
         let structAlign = 0;
-        let buffer = { name: node.name, type: 'uniform', align: 0, size: 0, members: [], group, binding };
+        let buffer = { name: node.name, type: 'uniform', align: 0, size: 0, members: [] };
 
         for (let mi = 0, ml = struct.members.length; mi < ml; ++mi) {
             let member = struct.members[mi];
@@ -282,6 +273,23 @@ export class WgslReflect {
         buffer.align = structAlign;
 
         return buffer;
+    }
+
+    getUniformBufferInfo(node) {
+        if (!this.isUniformVar(node))
+            return null;
+
+        let group = this.getAttribute(node, "group");
+        let binding = this.getAttribute(node, "binding");
+
+        group = group && group.value ? parseInt(group.value) : 0;
+        binding = binding && binding.value ? parseInt(binding.value) : 0;
+
+        return {
+            ...this.getStructInfo(node),
+            group,
+            binding,
+        }
     }
 
     getTypeInfo(type) {
