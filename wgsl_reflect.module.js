@@ -2044,23 +2044,16 @@ class WgslReflect {
         return { name: node.name, type: node.type, group, binding };
     }
 
-    getUniformBufferInfo(node) {
-        if (!this.isUniformVar(node))
-            return null;
-
-        let group = this.getAttribute(node, "group");
-        let binding = this.getAttribute(node, "binding");
-
-        group = group && group.value ? parseInt(group.value) : 0;
-        binding = binding && binding.value ? parseInt(binding.value) : 0;
-
+    getStructInfo(node) {
         const struct = this.getStruct(node.type);
+        if (!struct)
+            return null;
 
         let offset = 0;
         let lastSize = 0;
         let lastOffset = 0;
         let structAlign = 0;
-        let buffer = { name: node.name, type: 'uniform', align: 0, size: 0, members: [], group, binding };
+        let buffer = { name: node.name, type: 'uniform', align: 0, size: 0, members: [] };
 
         for (let mi = 0, ml = struct.members.length; mi < ml; ++mi) {
             let member = struct.members[mi];
@@ -2077,8 +2070,10 @@ class WgslReflect {
             lastSize = size;
             lastOffset = offset;
             structAlign = Math.max(structAlign, align);
+            let isStruct = !!this.getStruct(type);
+            let members = this.getStructInfo(member)?.members ?? null;
 
-            let u = { name, offset, size, type, member };
+            let u = { name, offset, size, type, member, isStruct, members };
             buffer.members.push(u);
         }
 
@@ -2086,6 +2081,23 @@ class WgslReflect {
         buffer.align = structAlign;
 
         return buffer;
+    }
+
+    getUniformBufferInfo(node) {
+        if (!this.isUniformVar(node))
+            return null;
+
+        let group = this.getAttribute(node, "group");
+        let binding = this.getAttribute(node, "binding");
+
+        group = group && group.value ? parseInt(group.value) : 0;
+        binding = binding && binding.value ? parseInt(binding.value) : 0;
+
+        return {
+            ...this.getStructInfo(node),
+            group,
+            binding,
+        }
     }
 
     getTypeInfo(type) {
