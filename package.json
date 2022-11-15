@@ -3,6 +3,7 @@
   "version": "0.1.1",
   "description": "WGSL Parser and Reflection library",
   "module": "wgsl_reflect.module.js",
+  "types": "wgsl_reflect.module.d.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/brendan-duncan/wgsl_reflect"
