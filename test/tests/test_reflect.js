@@ -209,4 +209,37 @@ fn shuffler() { }
         test.equals(groups[0][2].resource.type.name, "array");
         test.equals(groups[0][2].resource.type.format.name, "f32");
     });
+
+    test("nested structs", function(test) {
+        const shader = `struct ViewUniforms {
+            viewProjection: mat4x4<f32>
+        };
+        
+        struct ModelUniforms {
+            model: mat4x4<f32>,
+            color: vec4<f32>,
+            intensity: f32,
+            view: ViewUniforms
+        };
+        @group(0) @binding(24) var<uniform> model : ModelUniforms;
+        @fragment
+        fn main() {
+        }`
+        const reflect = new WgslReflect(shader);
+
+        function showMembers(info, offset, prefix = "") {
+            for (let m of info.members) {
+                if (m.isStruct)
+                    showMembers(m, offset + m.offset, m.name + ".");
+                else
+                    console.log(prefix + m.name, m.type.name, offset + m.offset, m.size);
+            }
+        }
+
+        for (let u of reflect.uniforms) {
+            const info = reflect.getUniformBufferInfo(u);
+            
+            showMembers(info, 0);
+        }
+    });
 });

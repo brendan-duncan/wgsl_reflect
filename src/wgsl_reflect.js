@@ -242,6 +242,8 @@ export class WgslReflect {
 
     getStructInfo(node) {
         const struct = this.getStruct(node.type);
+        if (!struct)
+            return null;
 
         let offset = 0;
         let lastSize = 0;
@@ -264,8 +266,10 @@ export class WgslReflect {
             lastSize = size;
             lastOffset = offset;
             structAlign = Math.max(structAlign, align);
+            let isStruct = !!this.getStruct(type);
+            let members = this.getStructInfo(member)?.members ?? null;
 
-            let u = { name, offset, size, type, member };
+            let u = { name, offset, size, type, member, isStruct, members };
             buffer.members.push(u);
         }
 
