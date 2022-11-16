@@ -230,7 +230,7 @@ fn shuffler() { }
             model: mat4x4<f32>,
             color: vec4<f32>,
             intensity: f32,
-            view: ViewUniforms
+            view: array<ViewUniforms,2>
         };
         @group(0) @binding(24) var<uniform> model : ModelUniforms;
         @fragment
@@ -239,7 +239,8 @@ fn shuffler() { }
         const reflect = new WgslReflect(shader);
 
         for (let u of reflect.uniforms) {
-            const info = reflect.getUniformBufferInfo(u);
+            //const info = reflect.getUniformBufferInfo(u);
+            const info = reflect.getStructInfo(reflect.structs[1]);
 
             test.equals(info.members.length, 4);
             test.equals(info.members[0].name, 'model');
@@ -253,13 +254,17 @@ fn shuffler() { }
             test.equals(info.members[2].offset, 80);
             test.equals(info.members[2].size, 4);
             test.equals(info.members[3].name, 'view');
-            test.equals(info.members[3].type.name, 'ViewUniforms');
+            test.equals(info.members[3].type.name, 'array');
+            test.equals(info.members[3].type.format.name, 'ViewUniforms');
             test.equals(info.members[3].isStruct, true);
+            test.equals(info.members[3].isArray, true);
+            test.equals(info.members[3].arrayCount, 2);
             test.equals(info.members[3].offset, 96);
+            test.equals(info.members[3].size, 128);
             test.equals(info.members[3].members.length, 1);
             test.equals(info.members[3].members[0].name, 'viewProjection');
             test.equals(info.members[3].members[0].offset, 0);
-            test.equals(info.members[3].members[0].size, 64);           
+            test.equals(info.members[3].members[0].size, 64);
         }
     });
 });

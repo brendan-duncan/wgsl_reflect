@@ -266,10 +266,14 @@ export class WgslReflect {
             lastSize = size;
             lastOffset = offset;
             structAlign = Math.max(structAlign, align);
-            let isStruct = !!this.getStruct(type);
-            let members = this.getStructInfo(member)?.members ?? null;
+            let isArray = member.type._type === "array";
+            let s = this.getStruct(type) || (isArray ? this.getStruct(member.type.format.name) : null)
+            let isStruct = !!s;
+            
+            let arrayCount = parseInt(member.type.count ?? 0);
+            let members = isStruct ? this.getStructInfo(s)?.members : undefined;
 
-            let u = { name, offset, size, type, member, isStruct, members };
+            let u = { name, offset, size, type, member, isStruct, isArray, arrayCount, members };
             buffer.members.push(u);
         }
 
