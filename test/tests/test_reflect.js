@@ -261,6 +261,7 @@ fn shuffler() { }
             test.equals(info.members[3].arrayCount, 2);
             test.equals(info.members[3].offset, 96);
             test.equals(info.members[3].size, 128);
+            test.equals(info.members[3].structSize, 64);
             test.equals(info.members[3].members.length, 1);
             test.equals(info.members[3].members[0].name, 'viewProjection');
             test.equals(info.members[3].members[0].offset, 0);

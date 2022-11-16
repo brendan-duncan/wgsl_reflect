@@ -269,11 +269,13 @@ export class WgslReflect {
             let isArray = member.type._type === "array";
             let s = this.getStruct(type) || (isArray ? this.getStruct(member.type.format.name) : null)
             let isStruct = !!s;
+            let si = isStruct ? this.getStructInfo(s) : undefined;
+            let structSize = si?.size;
             
             let arrayCount = parseInt(member.type.count ?? 0);
-            let members = isStruct ? this.getStructInfo(s)?.members : undefined;
+            let members = isStruct ? si?.members : undefined;
 
-            let u = { name, offset, size, type, member, isStruct, isArray, arrayCount, members };
+            let u = { name, offset, size, type, member, isArray, arrayCount, isStruct, structSize, members };
             buffer.members.push(u);
         }
 
