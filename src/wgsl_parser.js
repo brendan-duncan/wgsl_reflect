@@ -318,8 +318,8 @@ export class WgslParser {
     }
 
     _for_increment() {
-        // (assignment_statement func_call_statement)?
-        return this._func_call_statement() || this._assignment_statement();
+        // (assignment_statement func_call_statement increment_statement)?
+        return this._func_call_statement() || this._increment_decrement_statement() || this._assignment_statement();
     }
 
     _variable_statement() {

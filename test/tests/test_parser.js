@@ -227,4 +227,27 @@ struct S {
             static_assert(y != 0); // parentheses are optional.
         }`);
     });
+
+    test("for incrementer", function(test) {
+        const t = parser.parse(`fn foo() {
+            for (var i = 0; i < 10; i++) {
+            }
+
+            for (var i = 0; i < 10; i += 5) {
+            }
+
+            for (var i = 0; i < 10; i = 20) {
+            }
+
+            for (var i = 0; i < 10; f(i)) {
+            }
+        }`);
+
+        test.equals(t[0].body.length, 4);
+        test.equals(t[0].body[0].increment._type, "increment");
+        test.equals(t[0].body[1].increment._type, "assign");
+        test.equals(t[0].body[2].increment._type, "assign");
+        test.equals(t[0].body[3].increment._type, "call");
+        console.log(t);
+    });
 });
