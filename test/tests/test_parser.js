@@ -248,6 +248,5 @@ struct S {
         test.equals(t[0].body[1].increment._type, "assign");
         test.equals(t[0].body[2].increment._type, "assign");
         test.equals(t[0].body[3].increment._type, "call");
-        console.log(t);
     });
 });

@@ -238,19 +238,28 @@ fn shuffler() { }
         }`
         const reflect = new WgslReflect(shader);
 
-        function showMembers(info, offset, prefix = "") {
-            for (let m of info.members) {
-                if (m.isStruct)
-                    showMembers(m, offset + m.offset, m.name + ".");
-                else
-                    console.log(prefix + m.name, m.type.name, offset + m.offset, m.size);
-            }
-        }
-
         for (let u of reflect.uniforms) {
             const info = reflect.getUniformBufferInfo(u);
-            
-            showMembers(info, 0);
+
+            test.equals(info.members.length, 4);
+            test.equals(info.members[0].name, 'model');
+            test.equals(info.members[0].isStruct, false);
+            test.equals(info.members[0].offset, 0);
+            test.equals(info.members[0].size, 64);
+            test.equals(info.members[1].name, 'color');
+            test.equals(info.members[1].offset, 64);
+            test.equals(info.members[1].size, 16);
+            test.equals(info.members[2].name, 'intensity');
+            test.equals(info.members[2].offset, 80);
+            test.equals(info.members[2].size, 4);
+            test.equals(info.members[3].name, 'view');
+            test.equals(info.members[3].type.name, 'ViewUniforms');
+            test.equals(info.members[3].isStruct, true);
+            test.equals(info.members[3].offset, 96);
+            test.equals(info.members[3].members.length, 1);
+            test.equals(info.members[3].members[0].name, 'viewProjection');
+            test.equals(info.members[3].members[0].offset, 0);
+            test.equals(info.members[3].members[0].size, 64);           
         }
     });
 });
