@@ -2045,7 +2045,7 @@ class WgslReflect {
     }
 
     getStructInfo(node) {
-        const struct = this.getStruct(node.type);
+        const struct = node._type === 'struct' ? node : this.getStruct(node.type);
         if (!struct)
             return null;
 
