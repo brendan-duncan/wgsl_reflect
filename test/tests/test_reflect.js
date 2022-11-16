@@ -94,6 +94,17 @@ fn shuffler() { }
 
     test("struct", function(test) {
         test.equals(reflect.structs.length, 4);
+
+        const names = reflect.structs.map(s => s.name);
+        test.true(names.includes('ViewUniforms'));
+        test.true(names.includes('ModelUniforms'));
+        test.true(names.includes('VertexInput'));
+        test.true(names.includes('VertexOutput'));
+
+        test.notNull(reflect.getStructInfo(reflect.structs[0]));
+        test.notNull(reflect.getStructInfo(reflect.structs[1]));
+        test.notNull(reflect.getStructInfo(reflect.structs[2]));
+        test.notNull(reflect.getStructInfo(reflect.structs[3]));
     });
 
     test("uniforms", function(test) {
