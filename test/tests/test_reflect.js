@@ -134,7 +134,7 @@ fn shuffler() { }
     test("uniformBufferInfo", function(test) {
         const buffer = reflect.getUniformBufferInfo(reflect.uniforms[1]);
         test.notNull(buffer);
-        test.equals(buffer.type, "uniform", "buffer.type");
+        test.equals(buffer.type.name, "ModelUniforms", "buffer.type");
         test.equals(buffer.size, 96, "buffer.size");
         test.equals(buffer.group, "0", "buffer.group.value");
         test.equals(buffer.binding, "1", "buffer.binding.value");
@@ -233,45 +233,61 @@ fn shuffler() { }
             view: array<ViewUniforms,2>,
             f32Array: array<f32,2>
         };
-        @group(0) @binding(24) var<uniform> model : ModelUniforms;
-        @fragment
-        fn main() {
-        }`
+        @group(0) @binding(0) var<uniform> model : ModelUniforms;
+        @binding(1) @group(0) var<uniform> uArray: array<vec4<f32>, 7>;
+        @binding(2) @group(0) var<uniform> uFloat: f32;`
         const reflect = new WgslReflect(shader);
 
-        for (let u of reflect.uniforms) {
-            const info = reflect.getStructInfo(reflect.structs[1]);
+        test.equals(reflect.uniforms.length, 3);
 
-            test.equals(info.members.length, 5);
-            test.equals(info.members[0].name, 'model');
-            test.equals(info.members[0].isStruct, false);
-            test.equals(info.members[0].offset, 0);
-            test.equals(info.members[0].size, 64);
-            test.equals(info.members[0].arrayStride, 64);
-            test.equals(info.members[1].name, 'color');
-            test.equals(info.members[1].offset, 64);
-            test.equals(info.members[1].size, 16);
-            test.equals(info.members[2].name, 'intensity');
-            test.equals(info.members[2].offset, 80);
-            test.equals(info.members[2].size, 4);
-            test.equals(info.members[3].name, 'view');
-            test.equals(info.members[3].type.name, 'array');
-            test.equals(info.members[3].type.format.name, 'ViewUniforms');
-            test.equals(info.members[3].isStruct, true);
-            test.equals(info.members[3].isArray, true);
-            test.equals(info.members[3].arrayCount, 2);
-            test.equals(info.members[3].offset, 96);
-            test.equals(info.members[3].size, 128);
-            test.equals(info.members[3].arrayStride, 64);
-            test.equals(info.members[3].members.length, 1);
-            test.equals(info.members[3].members[0].name, 'viewProjection');
-            test.equals(info.members[3].members[0].offset, 0);
-            test.equals(info.members[3].members[0].size, 64);
-            test.equals(info.members[4].name, 'f32Array');
-            test.equals(info.members[4].arrayCount, 2);
-            test.equals(info.members[4].offset, 224);
-            test.equals(info.members[4].size, 8);
-            test.equals(info.members[4].arrayStride, 4);
-        }
+        const info = reflect.getStructInfo(reflect.structs[1]);
+        test.equals(info.members.length, 5);
+        test.equals(info.members[0].name, 'model');
+        test.equals(info.members[0].isStruct, false);
+        test.equals(info.members[0].offset, 0);
+        test.equals(info.members[0].size, 64);
+        test.equals(info.members[0].arrayStride, 64);
+        test.equals(info.members[1].name, 'color');
+        test.equals(info.members[1].offset, 64);
+        test.equals(info.members[1].size, 16);
+        test.equals(info.members[2].name, 'intensity');
+        test.equals(info.members[2].offset, 80);
+        test.equals(info.members[2].size, 4);
+        test.equals(info.members[3].name, 'view');
+        test.equals(info.members[3].type.name, 'array');
+        test.equals(info.members[3].type.format.name, 'ViewUniforms');
+        test.equals(info.members[3].isStruct, true);
+        test.equals(info.members[3].isArray, true);
+        test.equals(info.members[3].arrayCount, 2);
+        test.equals(info.members[3].offset, 96);
+        test.equals(info.members[3].size, 128);
+        test.equals(info.members[3].arrayStride, 64);
+        test.equals(info.members[3].members.length, 1);
+        test.equals(info.members[3].members[0].name, 'viewProjection');
+        test.equals(info.members[3].members[0].offset, 0);
+        test.equals(info.members[3].members[0].size, 64);
+        test.equals(info.members[4].name, 'f32Array');
+        test.equals(info.members[4].arrayCount, 2);
+        test.equals(info.members[4].offset, 224);
+        test.equals(info.members[4].size, 8);
+        test.equals(info.members[4].arrayStride, 4);
+
+        const u0 = reflect.getUniformBufferInfo(reflect.uniforms[0]);
+        test.equals(u0.name, 'model');
+        test.equals(u0.type.name, 'ModelUniforms');
+        
+        const u1 = reflect.getUniformBufferInfo(reflect.uniforms[1]);
+        test.equals(u1.name, 'uArray');
+        test.equals(u1.type.name, 'array');
+        test.equals(u1.type.format.name, 'vec4');
+        test.equals(u1.type.format.format.name, 'f32');
+        test.equals(u1.size, 112);
+        test.equals(u1.align, 16);
+
+        const u2 = reflect.getUniformBufferInfo(reflect.uniforms[2]);
+        test.equals(u2.name, 'uFloat');
+        test.equals(u2.type.name, 'f32');
+        test.equals(u2.size, 4);
+        test.equals(u2.align, 4);
     });
 });
