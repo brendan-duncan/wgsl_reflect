@@ -230,7 +230,8 @@ fn shuffler() { }
             model: mat4x4<f32>,
             color: vec4<f32>,
             intensity: f32,
-            view: array<ViewUniforms,2>
+            view: array<ViewUniforms,2>,
+            f32Array: array<f32,2>
         };
         @group(0) @binding(24) var<uniform> model : ModelUniforms;
         @fragment
@@ -239,14 +240,14 @@ fn shuffler() { }
         const reflect = new WgslReflect(shader);
 
         for (let u of reflect.uniforms) {
-            //const info = reflect.getUniformBufferInfo(u);
             const info = reflect.getStructInfo(reflect.structs[1]);
 
-            test.equals(info.members.length, 4);
+            test.equals(info.members.length, 5);
             test.equals(info.members[0].name, 'model');
             test.equals(info.members[0].isStruct, false);
             test.equals(info.members[0].offset, 0);
             test.equals(info.members[0].size, 64);
+            test.equals(info.members[0].arrayStride, 64);
             test.equals(info.members[1].name, 'color');
             test.equals(info.members[1].offset, 64);
             test.equals(info.members[1].size, 16);
@@ -261,11 +262,16 @@ fn shuffler() { }
             test.equals(info.members[3].arrayCount, 2);
             test.equals(info.members[3].offset, 96);
             test.equals(info.members[3].size, 128);
-            test.equals(info.members[3].structSize, 64);
+            test.equals(info.members[3].arrayStride, 64);
             test.equals(info.members[3].members.length, 1);
             test.equals(info.members[3].members[0].name, 'viewProjection');
             test.equals(info.members[3].members[0].offset, 0);
             test.equals(info.members[3].members[0].size, 64);
+            test.equals(info.members[4].name, 'f32Array');
+            test.equals(info.members[4].arrayCount, 2);
+            test.equals(info.members[4].offset, 224);
+            test.equals(info.members[4].size, 8);
+            test.equals(info.members[4].arrayStride, 4);
         }
     });
 });

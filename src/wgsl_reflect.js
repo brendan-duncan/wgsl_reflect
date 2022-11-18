@@ -270,12 +270,12 @@ export class WgslReflect {
             let s = this.getStruct(type) || (isArray ? this.getStruct(member.type.format.name) : null)
             let isStruct = !!s;
             let si = isStruct ? this.getStructInfo(s) : undefined;
-            let structSize = si?.size;
+            let arrayStride = si?.size ?? isArray ? this.getTypeInfo(member.type.format)?.size : this.getTypeInfo(member.type)?.size;
             
             let arrayCount = parseInt(member.type.count ?? 0);
             let members = isStruct ? si?.members : undefined;
 
-            let u = { name, offset, size, type, member, isArray, arrayCount, isStruct, structSize, members };
+            let u = { name, offset, size, type, member, isArray, arrayCount, arrayStride, isStruct, members };
             buffer.members.push(u);
         }
 
@@ -303,6 +303,9 @@ export class WgslReflect {
     }
 
     getTypeInfo(type) {
+        if (!type)
+            return undefined;
+
         let explicitSize = 0;
         const sizeAttr = this.getAttribute(type, "size");
         if (sizeAttr)
