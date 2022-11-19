@@ -275,6 +275,8 @@ fn shuffler() { }
         const u0 = reflect.getUniformBufferInfo(reflect.uniforms[0]);
         test.equals(u0.name, 'model');
         test.equals(u0.type.name, 'ModelUniforms');
+        test.equals(u0.members.length, 5);
+        test.equals(u0.size, 240);
         
         const u1 = reflect.getUniformBufferInfo(reflect.uniforms[1]);
         test.equals(u1.name, 'uArray');
@@ -283,6 +285,9 @@ fn shuffler() { }
         test.equals(u1.type.format.format.name, 'f32');
         test.equals(u1.size, 112);
         test.equals(u1.align, 16);
+        test.equals(u1.isArray, true);
+        test.equals(u1.arrayStride, 16);
+        test.equals(u1.arrayCount, 7);
 
         const u2 = reflect.getUniformBufferInfo(reflect.uniforms[2]);
         test.equals(u2.name, 'uFloat');
