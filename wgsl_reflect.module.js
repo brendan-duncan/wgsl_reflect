@@ -2100,8 +2100,15 @@ class WgslReflect {
         info = this.getTypeInfo(node.type);
         if (!info)
             return info;
+
+        info.isStruct = false;
+        info.isArray = node.type._type === "array";
         info.name = node.name;
         info.type = node.type;
+        info.arrayStride = info.isArray ?
+            this.getTypeInfo(node.type.format)?.size :
+            this.getTypeInfo(node.type)?.size;
+        info.arrayCount = parseInt(node.type.count ?? 0);
         return info;
     }
 
