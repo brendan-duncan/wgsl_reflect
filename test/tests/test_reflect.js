@@ -295,4 +295,58 @@ fn shuffler() { }
         test.equals(u2.size, 4);
         test.equals(u2.align, 4);
     });
+
+    test("nested structs", function(test) {
+        const shader = `
+        struct SomeStruct {
+            value: f32,
+        };
+
+        struct SomeOtherStruct {
+            member1: f32,
+            member2: array<f32, 4>,
+            member3: SomeStruct,
+            member4: array<SomeStruct, 4>,
+        };
+
+        @group(0) @binding(0) var<uniform> uni1 : f32;
+        @group(0) @binding(1) var<uniform> uni2 : array<f32, 4>;
+        @group(0) @binding(2) var<uniform> uni3 : SomeStruct;
+        @group(0) @binding(2) var<uniform> uni4 : array<SomeStruct, 4>;
+        `;
+        const reflect = new WgslReflect(shader);
+        const uniforms = Object.fromEntries(reflect.uniforms.map(u => [u.name, u]));
+        const structs = Object.fromEntries(reflect.structs.map(s => [s.name, s]));
+
+        const someOtherStruct = reflect.getStructInfo(structs.SomeOtherStruct);
+        const members = Object.fromEntries(someOtherStruct.members.map(m => [m.name, m]));
+
+        const compare = (uniName, memberName) =>{
+            const uni = uniforms[uniName];
+            const member = members[memberName];
+            console.log(uni, member);
+
+            const uniInfo = reflect.getUniformBufferInfo(uni);
+            test.equals(uniInfo.size, member.size, `size: ${uniName} vs ${memberName}`);
+            test.equals(uniInfo.offset, member.offset, `offset: ${uniName} vs ${memberName}`);
+
+            test.equals(!!uniInfo.isArray, !!member.isArray, `isArray: ${uniName} vs ${memberName}`);
+            if (!uniInfo.isArray) {
+                test.equals(uniInfo.arrayCount, member.arrayCount, `arrayCount: ${uniName} vs ${memberName}`);
+                test.equals(uniInfo.arrayStride, member.arrayStride, `arrayStride: ${uniName} vs ${memberName}`);
+            }
+
+            test.equals(!!uniInfo.isStruct, !!member.isStruct, `isStruct: ${uniName} vs ${memberName}`);
+            if (uniInfo.isStruct) {
+                test.equals(uniInfo.members.length, member.members.length, `members.length: ${uniName} vs ${memberName}`);
+                // should we test deeper?
+            }
+        };
+
+        compare('uni1', 'member1');
+        compare('uni2', 'member2');
+        compare('uni3', 'member3');
+        compare('uni4', 'member4');
+
+    });
 });
