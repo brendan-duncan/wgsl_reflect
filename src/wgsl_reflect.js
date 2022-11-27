@@ -240,6 +240,16 @@ export class WgslReflect {
         return { name: node.name, type: node.type, group, binding };
     }
 
+    /// Returns information about a struct type, null if the type is not a struct.
+    /// {
+    ///     name: String,
+    ///     type: Object,
+    ///     align: Int,
+    ///     size: Int,
+    ///     members: Array,
+    ///     isArray: Bool
+    ///     isStruct: Bool
+    /// }
     getStructInfo(node) {
         if (!node)
             return null;
@@ -284,6 +294,9 @@ export class WgslReflect {
 
         buffer.size = this._roundUp(structAlign, lastOffset + lastSize);
         buffer.align = structAlign;
+        buffer.isArray = false;
+        buffer.isStruct = true;
+        buffer.arrayCount = 0;
 
         return buffer;
     }
@@ -297,11 +310,16 @@ export class WgslReflect {
         if (!info)
             return info;
 
-        info.isStruct = false;
+        let s = this.getStruct(node.type.format?.name);
+        let si = s ? this.getStructInfo(s) : undefined;
+
         info.isArray = node.type._type === "array";
+        info.isStruct = !!s;
+                
+        info.members = info.isStruct ? si?.members : undefined;
         info.name = node.name;
         info.type = node.type;
-        info.arrayStride = info.isArray ?
+        info.arrayStride = si?.size ?? info.isArray ?
             this.getTypeInfo(node.type.format)?.size :
             this.getTypeInfo(node.type)?.size;
         info.arrayCount = parseInt(node.type.count ?? 0);
@@ -385,11 +403,10 @@ export class WgslReflect {
             const N = parseInt(type.count || 1);
 
             const stride = this.getAttribute(type, "stride");
-            if (stride) {
+            if (stride)
                 size = N * parseInt(stride.value);
-            } else {
+            else
                 size = N * this._roundUp(align, size);
-            }
 
             if (explicitSize)
                 size = explicitSize;

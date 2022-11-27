@@ -324,11 +324,10 @@ fn shuffler() { }
         const compare = (uniName, memberName) =>{
             const uni = uniforms[uniName];
             const member = members[memberName];
-            console.log(uni, member);
 
             const uniInfo = reflect.getUniformBufferInfo(uni);
+            //console.log(uniInfo, member);
             test.equals(uniInfo.size, member.size, `size: ${uniName} vs ${memberName}`);
-            test.equals(uniInfo.offset, member.offset, `offset: ${uniName} vs ${memberName}`);
 
             test.equals(!!uniInfo.isArray, !!member.isArray, `isArray: ${uniName} vs ${memberName}`);
             if (!uniInfo.isArray) {
@@ -347,6 +346,5 @@ fn shuffler() { }
         compare('uni2', 'member2');
         compare('uni3', 'member3');
         compare('uni4', 'member4');
-
     });
 });
