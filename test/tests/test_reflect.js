@@ -313,38 +313,52 @@ fn shuffler() { }
         @group(0) @binding(1) var<uniform> uni2 : array<f32, 4>;
         @group(0) @binding(2) var<uniform> uni3 : SomeStruct;
         @group(0) @binding(2) var<uniform> uni4 : array<SomeStruct, 4>;
+
+        @group(1) @binding(0) var<storage> storage1 : f32;
+        @group(1) @binding(1) var<storage> storage2 : array<f32, 4>;
+        @group(1) @binding(2) var<storage> storage3 : SomeStruct;
+        @group(1) @binding(2) var<storage> storage4 : array<SomeStruct, 4>;
         `;
         const reflect = new WgslReflect(shader);
         const uniforms = Object.fromEntries(reflect.uniforms.map(u => [u.name, u]));
         const structs = Object.fromEntries(reflect.structs.map(s => [s.name, s]));
+        const storages = Object.fromEntries(reflect.storage.map(s => [s.name, s]));
 
         const someOtherStruct = reflect.getStructInfo(structs.SomeOtherStruct);
         const members = Object.fromEntries(someOtherStruct.members.map(m => [m.name, m]));
 
-        const compare = (uniName, memberName) =>{
+        const compare = (uniName, memberName, storageName) =>{
             const uni = uniforms[uniName];
             const member = members[memberName];
+            const storage = storages[storageName];
 
             const uniInfo = reflect.getUniformBufferInfo(uni);
+            const storageInfo = reflect.getStorageBufferInfo(storage);
             //console.log(uniInfo, member);
             test.equals(uniInfo.size, member.size, `size: ${uniName} vs ${memberName}`);
+            test.equals(storageInfo.size, member.size, `size: ${storageName} vs ${memberName}`);
 
             test.equals(!!uniInfo.isArray, !!member.isArray, `isArray: ${uniName} vs ${memberName}`);
+            test.equals(!!storageInfo.isArray, !!member.isArray, `isArray: ${storageName} vs ${memberName}`);
             if (!uniInfo.isArray) {
                 test.equals(uniInfo.arrayCount, member.arrayCount, `arrayCount: ${uniName} vs ${memberName}`);
                 test.equals(uniInfo.arrayStride, member.arrayStride, `arrayStride: ${uniName} vs ${memberName}`);
+                test.equals(storageInfo.arrayCount, member.arrayCount, `arrayCount: ${storageName} vs ${memberName}`);
+                test.equals(storageInfo.arrayStride, member.arrayStride, `arrayStride: ${storageName} vs ${memberName}`);
             }
 
             test.equals(!!uniInfo.isStruct, !!member.isStruct, `isStruct: ${uniName} vs ${memberName}`);
+            test.equals(!!storageInfo.isStruct, !!member.isStruct, `isStruct: ${storageName} vs ${memberName}`);
             if (uniInfo.isStruct) {
                 test.equals(uniInfo.members.length, member.members.length, `members.length: ${uniName} vs ${memberName}`);
+                test.equals(storageInfo.members.length, member.members.length, `members.length: ${storageName} vs ${memberName}`);
                 // should we test deeper?
             }
         };
 
-        compare('uni1', 'member1');
-        compare('uni2', 'member2');
-        compare('uni3', 'member3');
-        compare('uni4', 'member4');
+        compare('uni1', 'member1', 'storage1');
+        compare('uni2', 'member2', 'storage2');
+        compare('uni3', 'member3', 'storage3');
+        compare('uni4', 'member4', 'storage4');
     });
 });

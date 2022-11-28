@@ -237,7 +237,13 @@ export class WgslReflect {
         group = group && group.value ? parseInt(group.value) : 0;
         binding = binding && binding.value ? parseInt(binding.value) : 0;
 
-        return { name: node.name, type: node.type, group, binding };
+        let info = this._getUniformInfo(node);
+
+        return {
+            ...info,
+            group,
+            binding,
+        }
     }
 
     /// Returns information about a struct type, null if the type is not a struct.
