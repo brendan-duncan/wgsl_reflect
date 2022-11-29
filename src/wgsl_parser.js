@@ -550,7 +550,7 @@ export class WgslParser {
         // short_circuit_or_expression or_or short_circuit_and_expression
         let expr = this._short_circuit_and_expr();
         while (this._match(Token.or_or)) {
-            expr = new AST.BinaryOp(
+            expr = new AST.BinaryOperator(
                 this._previous().toString(), 
                 expr,
                 this._short_circuit_and_expr());
