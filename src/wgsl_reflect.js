@@ -1,7 +1,7 @@
 /**
  * @author Brendan Duncan / https://github.com/brendan-duncan
  */
-import { AST, WgslParser } from "./wgsl_parser.js";
+import { WgslParser } from "./wgsl_parser.js";
 import { Token } from "./wgsl_scanner.js";
 
 export class WgslReflect {
@@ -36,10 +36,10 @@ export class WgslReflect {
         };
 
         for (const node of this.ast) {
-            if (node._type == "struct")
+            if (node.astNodeType == "struct")
                 this.structs.push(node);
 
-            if (node._type == "alias")
+            if (node.astNodeType == "alias")
                 this.aliases.push(node);
 
             if (this.isUniformVar(node)) {
@@ -74,7 +74,7 @@ export class WgslReflect {
                 this.samplers.push(node);
             }
 
-            if (node._type == "function") {
+            if (node.astNodeType == "function") {
                 this.functions.push(node);
                 const vertexStage = this.getAttribute(node, "vertex");
                 const fragmentStage = this.getAttribute(node, "fragment");
@@ -92,23 +92,23 @@ export class WgslReflect {
     }
 
     isTextureVar(node) {
-        return node._type == "var" && WgslReflect.TextureTypes.indexOf(node.type.name) != -1;
+        return node.astNodeType == "var" && WgslReflect.TextureTypes.indexOf(node.type.name) != -1;
     }
 
     isSamplerVar(node) {
-        return node._type == "var" && WgslReflect.SamplerTypes.indexOf(node.type.name) != -1;
+        return node.astNodeType == "var" && WgslReflect.SamplerTypes.indexOf(node.type.name) != -1;
     }
 
     isUniformVar(node) {
-        return node && node._type == "var" && node.storage == "uniform";
+        return node && node.astNodeType == "var" && node.storage == "uniform";
     }
 
     isStorageVar(node) {
-        return node && node._type == "var" && node.storage == "storage";
+        return node && node.astNodeType == "var" && node.storage == "storage";
     }
 
     _getInputs(args, inputs) {
-        if (args._type == "function")
+        if (args.astNodeType == "function")
             args = args.args;
         if (!inputs)
             inputs = [];
@@ -150,24 +150,24 @@ export class WgslReflect {
 
     getAlias(name) {
         if (!name) return null;
-        if (name.constructor === AST) {
-            if (name._type != "type")
+        if (name.isAstNode) {
+            if (name.astNodeType != "type")
                 return null;
             name = name.name;
         }
         for (const u of this.aliases) {
             if (u.name == name)
-                return u.alias;
+                return u.type;
         }
         return null;
     }
 
     getStruct(name) {
         if (!name) return null;
-        if (name.constructor === AST) {
-            if (name._type == "struct")
+        if (name.isAstNode) {
+            if (name.astNodeType === "struct")
                 return name;
-            if (name._type != "type")
+            if (name.astNodeType !== "type")
                 return null;
             name = name.name;
         }
@@ -260,7 +260,7 @@ export class WgslReflect {
         if (!node)
             return null;
 
-        const struct = node._type === 'struct' ? node : this.getStruct(node.type);
+        const struct = node.astNodeType === 'struct' ? node : this.getStruct(node.type);
         if (!struct)
             return null;
 
@@ -285,13 +285,13 @@ export class WgslReflect {
             lastSize = size;
             lastOffset = offset;
             structAlign = Math.max(structAlign, align);
-            let isArray = member.type._type === "array";
+            let isArray = member.type.astNodeType === "array";
             let s = this.getStruct(type) || (isArray ? this.getStruct(member.type.format.name) : null)
             let isStruct = !!s;
             let si = isStruct ? this.getStructInfo(s) : undefined;
             let arrayStride = si?.size ?? isArray ? this.getTypeInfo(member.type.format)?.size : this.getTypeInfo(member.type)?.size;
             
-            let arrayCount = parseInt(member.type.count ?? 0);
+            let arrayCount = member.type.count ?? 0;
             let members = isStruct ? si?.members : undefined;
 
             let u = { name, offset, size, type, member, isArray, arrayCount, arrayStride, isStruct, members };
@@ -319,7 +319,7 @@ export class WgslReflect {
         let s = this.getStruct(node.type.format?.name);
         let si = s ? this.getStructInfo(s) : undefined;
 
-        info.isArray = node.type._type === "array";
+        info.isArray = node.type.astNodeType === "array";
         info.isStruct = !!s;
                 
         info.members = info.isStruct ? si?.members : undefined;
@@ -365,10 +365,10 @@ export class WgslReflect {
         if (alignAttr)
             explicitAlign = parseInt(alignAttr.value);
 
-        if (type._type == "member")
+        if (type.astNodeType == "member")
             type = type.type;
 
-        if (type._type == "type") {
+        if (type.astNodeType == "type") {
             const alias = this.getAlias(type.name);
             if (alias) {
                 type = alias;
@@ -423,7 +423,7 @@ export class WgslReflect {
             };
         }
 
-        if (type._type == "struct") {
+        if (type.astNodeType == "struct") {
             let align = 0;
             let size = 0;
             // struct S     AlignOf:    max(AlignOfMember(S, M1), ... , AlignOfMember(S, MN))

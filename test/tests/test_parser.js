@@ -18,7 +18,7 @@ group("Parser", function() {
     test("enable foo;", function(test) {
         const t = parser.parse("enable foo;");
         test.validateObject(t, [{
-            _type: "enable",
+            astNodeType: "enable",
             name: "foo"
         }]);
     });
@@ -27,18 +27,18 @@ group("Parser", function() {
     test("type", function(test) {
         const t = parser.parse("type foo = i32;");
         test.validateObject(t, [{
-            _type: "alias",
+            astNodeType: "alias",
             name: "foo",
-            alias: { name: "i32" }
+            type: { name: "i32" }
         }]);
     });
 
     test("type foo = vec3<f32>;", function(test) {
         const t = parser.parse("type foo = vec3<f32>;");
         test.validateObject(t, [{
-            _type: "alias",
+            astNodeType: "alias",
             name: "foo",
-            alias: {
+            type: {
                 name: "vec3",
                 format: {
                     name: "f32"
@@ -50,14 +50,14 @@ group("Parser", function() {
     test("type foo = array<f32, 5>;", function(test) {
         const t = parser.parse("type foo = array<f32, 5>;");
         test.validateObject(t, [{
-            _type: "alias",
+            astNodeType: "alias",
             name: "foo",
-            alias: {
+            type: {
                 name: "array",
                 format: {
                     name: "f32"
                 },
-                count: "5"
+                count: 5
             }
         }]);
     });
@@ -86,7 +86,7 @@ group("Parser", function() {
     test("@group(0) binding(0) var<storage,read_write> pbuf: PositionsBuffer;", function(test) {
         const t = parser.parse("@group(0) @binding(0) var<storage,read_write> pbuf: PositionsBuffer;");
         test.validateObject(t, [{
-            _type: "var",
+            astNodeType: "var",
             name: "pbuf",
             attributes: [
                 {
@@ -105,7 +105,7 @@ group("Parser", function() {
     test("let golden: f32 = 1.61803398875;", function(test) {
         const t = parser.parse("let golden: f32 = 1.61803398875;");
         test.validateObject(t, [{
-            _type: "let",
+            astNodeType: "let",
             name: "golden",
             type: {
                 name: "f32"
@@ -117,10 +117,10 @@ group("Parser", function() {
     test("let e2 = vec3<i32>(0,1,0);", function(test) {
         const t = parser.parse("let e2 = vec3<i32>(0,1,0);");
         test.validateObject(t, [{
-            _type: "let",
+            astNodeType: "let",
             name: "e2",
             value: {
-                _type: "create",
+                astNodeType: "create",
                 type: {
                     name: "vec3",
                     format: {
@@ -134,7 +134,7 @@ group("Parser", function() {
     test("@override(0) let has_point_light: bool = true;", function(test) {
         const t = parser.parse("@override(0) let has_point_light: bool = true;");
         test.validateObject(t, [{
-            _type: "let",
+            astNodeType: "let",
             name: "has_point_light",
             type: {
                 name: "bool"
@@ -160,7 +160,7 @@ struct S {
     test("let x : i32 = 42;", function(test) {
         const t = parser.parse("let x : i32 = 42;");
         test.validateObject(t, [{
-            _type: "let",
+            astNodeType: "let",
             name: "x"
         }]);
     });
@@ -244,9 +244,9 @@ struct S {
         }`);
 
         test.equals(t[0].body.length, 4);
-        test.equals(t[0].body[0].increment._type, "increment");
-        test.equals(t[0].body[1].increment._type, "assign");
-        test.equals(t[0].body[2].increment._type, "assign");
-        test.equals(t[0].body[3].increment._type, "call");
+        test.equals(t[0].body[0].increment.astNodeType, "increment");
+        test.equals(t[0].body[1].increment.astNodeType, "assign");
+        test.equals(t[0].body[2].increment.astNodeType, "assign");
+        test.equals(t[0].body[3].increment.astNodeType, "call");
     });
 });
