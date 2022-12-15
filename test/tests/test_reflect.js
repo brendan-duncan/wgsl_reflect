@@ -361,4 +361,129 @@ fn shuffler() { }
         compare('uni3', 'member3', 'storage3');
         compare('uni4', 'member4', 'storage4');
     });
+
+    function roundUp(k, n) {
+        return Math.ceil(n / k) * k;
+    }
+
+    function testType(test, type) {
+        const shader = `
+        struct Types {
+            m_base: ${type},
+            m_vec2: vec2<${type}>,
+            m_vec3: vec3<${type}>,
+            m_vec4: vec4<${type}>,
+            m_mat2x2: mat2x2<${type}>,
+            m_mat3x2: mat3x2<${type}>,
+            m_mat4x2: mat4x2<${type}>,
+            m_mat2x3: mat2x3<${type}>,
+            m_mat3x3: mat3x3<${type}>,
+            m_mat4x3: mat4x3<${type}>,
+            m_mat2x4: mat2x4<${type}>,
+            m_mat3x4: mat3x4<${type}>,
+            m_mat4x4: mat4x4<${type}>,
+        };
+        @group(0) @binding(0) var<uniform> u: Types;
+        `;
+        console.log(shader);
+        const reflect = new WgslReflect(shader);
+
+        const info = reflect.getStructInfo(reflect.structs[0]);
+
+        const fields = [
+            { name: "m_base",   align:  4, size:  4 },
+            { name: "m_vec2",   align:  8, size:  8 },
+            { name: "m_vec3",   align: 16, size: 12 },
+            { name: "m_vec4",   align: 16, size: 16 },
+            { name: "m_mat2x2", align:  8, size: 16 },
+            { name: "m_mat3x2", align:  8, size: 24 },
+            { name: "m_mat4x2", align:  8, size: 32 },
+            { name: "m_mat2x3", align: 16, size: 32 },
+            { name: "m_mat3x3", align: 16, size: 48 },
+            { name: "m_mat4x3", align: 16, size: 64 },
+            { name: "m_mat2x4", align: 16, size: 32 },
+            { name: "m_mat3x4", align: 16, size: 48 },
+            { name: "m_mat4x4", align: 16, size: 64 },
+        ];
+        test.equals(info.members.length, fields.length);
+
+        const divisor = type === 'f16' ? 2 : 1;
+        let offset = 0;
+        for (let i = 0; i < fields.length; ++i) {
+            const {name, align, size} = fields[i];
+            offset = roundUp(align / divisor, offset);
+
+            const member = info.members[i];
+            test.equals(member.name, name);
+            test.equals(member.isStruct, false);
+            test.equals(member.offset, offset);
+            test.equals(member.size, size / divisor);
+            offset += size;
+        }
+    }
+
+    //test('test f16', (test) => testType(test, 'f16'));
+    test('test f32', (test) => testType(test, 'f32'));
+    test('test i32', (test) => testType(test, 'i32'));
+    test('test u32', (test) => testType(test, 'u32'));
+
+    function testTypeAlias(test, suffix) {
+        const shader = `
+        struct Types {
+            m_vec2: vec2${suffix},
+            m_vec3: vec3${suffix},
+            m_vec4: vec4${suffix},
+            m_mat2x2: mat2x2${suffix},
+            m_mat3x2: mat3x2${suffix},
+            m_mat4x2: mat4x2${suffix},
+            m_mat2x3: mat2x3${suffix},
+            m_mat3x3: mat3x3${suffix},
+            m_mat4x3: mat4x3${suffix},
+            m_mat2x4: mat2x4${suffix},
+            m_mat3x4: mat3x4${suffix},
+            m_mat4x4: mat4x4${suffix},
+        };
+        @group(0) @binding(0) var<uniform> u: Types;
+        `;
+        console.log(shader);
+        const reflect = new WgslReflect(shader);
+
+        const info = reflect.getStructInfo(reflect.structs[0]);
+
+        const fields = [
+            { name: "m_vec2",   align:  8, size:  8 },
+            { name: "m_vec3",   align: 16, size: 12 },
+            { name: "m_vec4",   align: 16, size: 16 },
+            { name: "m_mat2x2", align:  8, size: 16 },
+            { name: "m_mat3x2", align:  8, size: 24 },
+            { name: "m_mat4x2", align:  8, size: 32 },
+            { name: "m_mat2x3", align: 16, size: 32 },
+            { name: "m_mat3x3", align: 16, size: 48 },
+            { name: "m_mat4x3", align: 16, size: 64 },
+            { name: "m_mat2x4", align: 16, size: 32 },
+            { name: "m_mat3x4", align: 16, size: 48 },
+            { name: "m_mat4x4", align: 16, size: 64 },
+        ];
+        test.equals(info.members.length, fields.length);
+
+        const divisor = suffix === 'h' ? 2 : 1;
+        let offset = 0;
+        for (let i = 0; i < fields.length; ++i) {
+            const {name, align, size} = fields[i];
+            offset = roundUp(align / divisor, offset);
+
+            const member = info.members[i];
+            test.equals(member.name, name);
+            test.equals(member.isStruct, false);
+            test.equals(member.offset, offset);
+            test.equals(member.size, size / divisor);
+            offset += size;
+        }
+    }
+
+    //test('test h', (test) => testTypeAlias(test, 'h'));
+    test('test f', (test) => testTypeAlias(test, 'f'));
+    test('test i', (test) => testTypeAlias(test, 'i'));
+    test('test u', (test) => testTypeAlias(test, 'u'));
+
 });

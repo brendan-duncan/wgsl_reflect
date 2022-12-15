@@ -379,12 +379,26 @@ export class WgslReflect {
             }
         }
 
-        const info = WgslReflect.TypeInfo[type.name];
-        if (info) {
-            return {
-                align: Math.max(explicitAlign, info.align),
-                size: Math.max(explicitSize, info.size)
-            };
+        {
+            const info = WgslReflect.TypeInfo[type.name];
+            if (info) {
+                const divisor = type.format === 'f16' ? 2 : 1
+                return {
+                    align: Math.max(explicitAlign, info.align / divisor),
+                    size: Math.max(explicitSize, info.size / divisor)
+                };
+            }
+        }
+
+        {
+            const info = WgslReflect.TypeInfo[type.name.substring(0, type.name.length - 1)]
+            if (info) {
+                const divisor = type.name[name.length - 1] === 'h' ? 2 : 1
+                return {
+                    align: Math.max(explicitAlign, info.align / divisor),
+                    size: Math.max(explicitSize, info.size / divisor)
+                };
+            }
         }
         
         if (type.name == "array") {
@@ -472,6 +486,7 @@ export class WgslReflect {
 // mat3x4<f32>          16                  48
 // mat4x4<f32>          16                  64
 WgslReflect.TypeInfo = {
+    "f16": { align: 2, size: 2 },
     "i32": { align: 4, size: 4 },
     "u32": { align: 4, size: 4 },
     "f32": { align: 4, size: 4 },
