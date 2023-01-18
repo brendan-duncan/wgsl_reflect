@@ -117,6 +117,13 @@ export class Test {
 
     validateObject(object, validator, message) {
         if (object === undefined || typeof(object) != typeof(validator)) {
+            if (typeof(validator) == "string") {
+                if (object) {
+                    if (object.toString() == validator) {
+                        return true;
+                    }
+                }
+            }
             return this._error(message || `type mismatch ${typeof(object)} != ${typeof(validator)} : ${object} ${validator}`);
         }
 
@@ -251,14 +258,12 @@ export class Test {
 export const __test = {
     totalTests: 0,
     totalFailed: 0,
-    totalPromises: []
 };
 
 let __group = {
     group: undefined,
     numTests: 0,
     testsFailed: 0,
-    promises: []
 };
 
 export function group(name, f) {
@@ -271,7 +276,6 @@ export function group(name, f) {
         group: div,
         numTests: 0,
         testsFailed: 0,
-        promises: []
     };
 
     __group = group;
@@ -288,19 +292,9 @@ export function group(name, f) {
     div = document.createElement("div");
     document.body.appendChild(div);
 
-    if (group.promises.length) {
-        const promises = group.promises;
-        __test.totalPromises.push(...group.promises);
-        Promise.all(promises).then(function() {
-            const numPassed = group.numTests - group.testsFailed;
-            div.className = (group.testsFailed > 0) ? "test_status_fail" : "test_status_pass";
-            div.innerText = `Tests: ${numPassed} / ${group.numTests}`;
-        });
-    } else {
-        const numPassed = group.numTests - group.testsFailed;
-        div.className = (group.testsFailed > 0) ? "test_status_fail" : "test_status_pass";
-        div.innerText = `Tests: ${numPassed} / ${group.numTests}`;
-    }
+    const numPassed = group.numTests - group.testsFailed;
+    div.className = (group.testsFailed > 0) ? "test_status_fail" : "test_status_pass";
+    div.innerText = `Tests: ${numPassed} / ${group.numTests}`;
 
     __test.totalTests += group.numTests;
     __test.totalFailed += group.testsFailed;
@@ -369,60 +363,3 @@ export function test(name, func) {
     _printLog(t._log);
 }
 
-export function testAsync(name, func) {
-    const t = new Test();
-    const group = __group;
-    group.numTests++;
-
-    const div = document.createElement("div");
-    if (group.group != undefined) {
-        group.group.appendChild(div);
-    } else {
-        document.body.append(div);
-    }
-
-    let promise;
-    try {
-        promise = func(t);
-    } catch (error) {
-        group.testsFailed++;
-        
-        div.className = "test_fail";
-        if (error.fileName != undefined) {
-            div.innerText = `${name} FAILED: ${error.fileName}:${error.lineNumber}: ${error}`;
-        } else {
-            div.innerText = `${name} FAILED: ${error}`;
-        }
-        return;
-    }
-
-    if (promise) {
-        group.promises.push(promise);
-
-        promise.then(function() {
-            let msg = "";
-            if (!t.state) {
-                group.testsFailed++;
-                __test.totalFailed++;
-                for (const m of t.messages) {
-                    msg += " : " + m;
-                }
-            }
-        
-            div.className = t.state ? "test_pass" : "test_fail";
-            div.innerText = `${name} ${t.state ? "PASSED" : "FAILED"}: ${msg}`;
-        });
-    } else {
-        let msg = "";
-        if (!t.state) {
-            group.testsFailed++;
-            __test.totalFailed++;
-            for (const m of t.messages) {
-                msg += " : " + m;
-            }
-        }
-    
-        div.className = t.state ? "test_pass" : "test_fail";
-        div.innerText = `${name} ${t.state ? "PASSED" : "FAILED"}: ${msg}`;
-    }
-}

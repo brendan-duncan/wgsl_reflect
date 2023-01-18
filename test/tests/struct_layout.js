@@ -1,5 +1,5 @@
 import { test, group } from "../test.js";
-import { WgslReflect } from "../../src/wgsl_reflect.js";
+import { WgslReflect } from "../../js/wgsl_reflect.js";
 
 group("struct_layout", function() {
     const shader = `

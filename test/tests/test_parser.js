@@ -1,5 +1,5 @@
 import { test, group } from "../test.js";
-import { WgslParser } from "../../src/wgsl_parser.js";
+import { WgslParser } from "../../js/wgsl_parser.js";
 
 group("Parser", function() {
     const parser = new WgslParser();
@@ -120,7 +120,7 @@ group("Parser", function() {
             astNodeType: "let",
             name: "e2",
             value: {
-                astNodeType: "create",
+                astNodeType: "createExpr",
                 type: {
                     name: "vec3",
                     format: {
@@ -188,6 +188,11 @@ struct S {
 
     test("if foo { }", function(test) {
         const t = parser.parse("fn test() { if foo { } }");
+        test.equals(t.length, 1);
+    });
+
+    test("switch foo { case 0: {} default: {} }", function(test) {
+        const t = parser.parse("fn test() { switch foo { case 0: {} default: {} } }");
         test.equals(t.length, 1);
     });
 

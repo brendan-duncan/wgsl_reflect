@@ -16,10 +16,4 @@ function displayResults() {
     document.body.append(document.createTextNode("FAILED TESTS: " + test.__test.totalFailed));
 }
 
-if (test.__test.totalPromises.length) {
-    Promise.all(test.__test.totalPromises).then(function() {
-        displayResults();
-    });
-} else {
-    displayResults();
-}
+displayResults();

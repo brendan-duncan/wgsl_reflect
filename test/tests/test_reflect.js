@@ -1,5 +1,5 @@
 import { test, group } from "../test.js";
-import { WgslReflect } from "../../src/wgsl_reflect.js";
+import { WgslReflect } from "../../js/wgsl_reflect.js";
 
 group("Reflect", function() {
     test('typedef', function(test) {
@@ -485,5 +485,4 @@ fn shuffler() { }
     test('test f', (test) => testTypeAlias(test, 'f'));
     test('test i', (test) => testTypeAlias(test, 'i'));
     test('test u', (test) => testTypeAlias(test, 'u'));
-
 });

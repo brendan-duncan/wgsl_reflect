@@ -20,6 +20,7 @@
       "test": "test"
   },
   "scripts": {
+    "prebuild": "tsc",
     "build": "rollup -c rollup.config.js"
   },
   "keywords": [
