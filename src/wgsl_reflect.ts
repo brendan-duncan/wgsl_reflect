@@ -387,7 +387,7 @@ export class WgslReflect {
         return groups;
     }
 
-    getStorageBufferInfo(node: VariableInfo | AST.Struct | AST.Var): BufferInfo {
+    getStorageBufferInfo(node: VariableInfo | AST.Struct | AST.Var): BufferInfo | null {
         if (node instanceof VariableInfo) {
             node = node.node;
         }
@@ -470,7 +470,7 @@ export class WgslReflect {
         return buffer;
     }
 
-    _getUniformInfo(node: AST.Var | AST.Struct): BufferInfo {
+    _getUniformInfo(node: AST.Var | AST.Struct): BufferInfo | null {
         const structInfo = this.getStructInfo(node);
         if (structInfo !== null)
             return structInfo;
@@ -502,7 +502,7 @@ export class WgslReflect {
         return info;
     }
 
-    getUniformBufferInfo(uniform: VariableInfo) {
+    getUniformBufferInfo(uniform: VariableInfo) : BufferInfo | null {
         if (!this.isUniformVar(uniform.node))
             return null;
 
