@@ -45,11 +45,11 @@ export class InputInfo {
     type: AST.Type | null;
     input: AST.Node;
     locationType: string;
-    location: number|string;
+    location: number | string;
     interpolation: string | null;
 
     constructor(name: string, type: AST.Type | null, input: AST.Node, locationType: string,
-        location: number|string) {
+        location: number | string) {
         this.name = name;
         this.type = type;
         this.input = input;
@@ -293,14 +293,14 @@ export class WgslReflect {
         return null;
     }
 
-    _parseString(s: string | string[]) {
+    _parseString(s: string | string[]): string {
         if (s instanceof Array) {
             s = s[0];
         }
         return s;
     }
 
-    _parseInt(s: string | string[]): number|string {
+    _parseInt(s: string | string[]): number | string {
         if (s instanceof Array) {
             s = s[0];
         }
@@ -327,7 +327,7 @@ export class WgslReflect {
         return null;
     }
 
-    getAlias(type: string | AST.Node | null) {
+    getAlias(type: string | AST.Node | null): AST.Type | null {
         if (type === null)
             return null;
 
@@ -369,7 +369,7 @@ export class WgslReflect {
         for (const u of this.storage) {
             _makeRoom(u.group, u.binding);
             const group = groups[u.group];
-            group[u.binding] = new BindGropEntry( 'storage', this.getStorageBufferInfo(u));
+            group[u.binding] = new BindGropEntry('storage', this.getStorageBufferInfo(u));
         }
 
         for (const t of this.textures) {
@@ -406,7 +406,7 @@ export class WgslReflect {
     }
 
     /// Returns information about a struct type, null if the type is not a struct.
-    getStructInfo(node: AST.Struct|AST.Var|null): BufferInfo|null {
+    getStructInfo(node: AST.Struct | AST.Var | null): BufferInfo | null {
         if (node === null)
             return null;
 
@@ -470,7 +470,7 @@ export class WgslReflect {
         return buffer;
     }
 
-    _getUniformInfo(node: AST.Var|AST.Struct): BufferInfo {
+    _getUniformInfo(node: AST.Var | AST.Struct): BufferInfo {
         const structInfo = this.getStructInfo(node);
         if (structInfo !== null)
             return structInfo;

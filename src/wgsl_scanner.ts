@@ -487,7 +487,7 @@ export class WgslScanner {
 
         let matchType = TokenTypes.none;
 
-        for (;;) {
+        for (; ;) {
             let matchedType = this._findType(lexeme);
 
             // The exception to "longest lexeme" rule is '>>'. In the case of 1>>2, it's a shift_right.
@@ -583,7 +583,7 @@ export class WgslScanner {
     }
 
     _match(lexeme: string, rule: string | RegExp): boolean {
-        if (typeof(rule) === "string") {
+        if (typeof (rule) === "string") {
             if (rule == lexeme) {
                 return true;
             }
