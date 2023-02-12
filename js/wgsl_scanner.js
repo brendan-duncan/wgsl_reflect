@@ -155,9 +155,9 @@ TokenTypes.keywords = {
     // WGSL grammar has a few keywords that have different token names than the strings they
     // represent. Aliasing them here.
     /*int32: new TokenType("i32", TokenClass.keyword, "i32"),
-    uint32: new TokenType("u32", TokenClass.keyword, "u32"),
-    float32: new TokenType("f32", TokenClass.keyword, "f32"),
-    pointer: new TokenType("ptr", TokenClass.keyword, "ptr"),*/
+        uint32: new TokenType("u32", TokenClass.keyword, "u32"),
+        float32: new TokenType("f32", TokenClass.keyword, "f32"),
+        pointer: new TokenType("ptr", TokenClass.keyword, "ptr"),*/
 };
 TokenTypes.tokens = {
     decimal_float_literal: new TokenType("decimal_float_literal", TokenClass.token, /((-?[0-9]*\.[0-9]+|-?[0-9]+\.[0-9]*)((e|E)(\+|-)?[0-9]+)?f?)|(-?[0-9]+(e|E)(\+|-)?[0-9]+f?)/),
@@ -165,70 +165,70 @@ TokenTypes.tokens = {
     int_literal: new TokenType("int_literal", TokenClass.token, /-?0x[0-9a-fA-F]+|0|-?[1-9][0-9]*/),
     uint_literal: new TokenType("uint_literal", TokenClass.token, /0x[0-9a-fA-F]+u|0u|[1-9][0-9]*u/),
     ident: new TokenType("ident", TokenClass.token, /[a-zA-Z][0-9a-zA-Z_]*/),
-    and: new TokenType("and", TokenClass.token, '&'),
-    and_and: new TokenType("and_and", TokenClass.token, '&&'),
-    arrow: new TokenType("arrow ", TokenClass.token, '->'),
-    attr: new TokenType("attr", TokenClass.token, '@'),
-    attr_left: new TokenType("attr_left", TokenClass.token, '[['),
-    attr_right: new TokenType("attr_right", TokenClass.token, ']]'),
-    forward_slash: new TokenType("forward_slash", TokenClass.token, '/'),
-    bang: new TokenType("bang", TokenClass.token, '!'),
-    bracket_left: new TokenType("bracket_left", TokenClass.token, '['),
-    bracket_right: new TokenType("bracket_right", TokenClass.token, ']'),
-    brace_left: new TokenType("brace_left", TokenClass.token, '{'),
-    brace_right: new TokenType("brace_right", TokenClass.token, '}'),
-    colon: new TokenType("colon", TokenClass.token, ':'),
-    comma: new TokenType("comma", TokenClass.token, ','),
-    equal: new TokenType("equal", TokenClass.token, '='),
-    equal_equal: new TokenType("equal_equal", TokenClass.token, '=='),
-    not_equal: new TokenType("not_equal", TokenClass.token, '!='),
-    greater_than: new TokenType("greater_than", TokenClass.token, '>'),
-    greater_than_equal: new TokenType("greater_than_equal", TokenClass.token, '>='),
-    shift_right: new TokenType("shift_right", TokenClass.token, '>>'),
-    less_than: new TokenType("less_than", TokenClass.token, '<'),
-    less_than_equal: new TokenType("less_than_equal", TokenClass.token, '<='),
-    shift_left: new TokenType("shift_left", TokenClass.token, '<<'),
-    modulo: new TokenType("modulo", TokenClass.token, '%'),
-    minus: new TokenType("minus", TokenClass.token, '-'),
-    minus_minus: new TokenType("minus_minus", TokenClass.token, '--'),
-    period: new TokenType("period", TokenClass.token, '.'),
-    plus: new TokenType("plus", TokenClass.token, '+'),
-    plus_plus: new TokenType("plus_plus", TokenClass.token, '++'),
-    or: new TokenType("or", TokenClass.token, '|'),
-    or_or: new TokenType("or_or", TokenClass.token, '||'),
-    paren_left: new TokenType("paren_left", TokenClass.token, '('),
-    paren_right: new TokenType("paren_right", TokenClass.token, ')'),
-    semicolon: new TokenType("semicolon", TokenClass.token, ';'),
-    star: new TokenType("star", TokenClass.token, '*'),
-    tilde: new TokenType("tilde", TokenClass.token, '~'),
-    underscore: new TokenType("underscore", TokenClass.token, '_'),
-    xor: new TokenType("xor", TokenClass.token, '^'),
-    plus_equal: new TokenType("plus_equal", TokenClass.token, '+='),
-    minus_equal: new TokenType("minus_equal", TokenClass.token, '-='),
-    times_equal: new TokenType("times_equal", TokenClass.token, '*='),
-    division_equal: new TokenType("division_equal", TokenClass.token, '/='),
-    modulo_equal: new TokenType("modulo_equal", TokenClass.token, '%='),
-    and_equal: new TokenType("and_equal", TokenClass.token, '&='),
-    or_equal: new TokenType("or_equal", TokenClass.token, '|='),
-    xor_equal: new TokenType("xor_equal", TokenClass.token, '^='),
-    shift_right_equal: new TokenType("shift_right_equal", TokenClass.token, '>>='),
-    shift_left_equal: new TokenType("shift_left_equal", TokenClass.token, '<<='),
+    and: new TokenType("and", TokenClass.token, "&"),
+    and_and: new TokenType("and_and", TokenClass.token, "&&"),
+    arrow: new TokenType("arrow ", TokenClass.token, "->"),
+    attr: new TokenType("attr", TokenClass.token, "@"),
+    attr_left: new TokenType("attr_left", TokenClass.token, "[["),
+    attr_right: new TokenType("attr_right", TokenClass.token, "]]"),
+    forward_slash: new TokenType("forward_slash", TokenClass.token, "/"),
+    bang: new TokenType("bang", TokenClass.token, "!"),
+    bracket_left: new TokenType("bracket_left", TokenClass.token, "["),
+    bracket_right: new TokenType("bracket_right", TokenClass.token, "]"),
+    brace_left: new TokenType("brace_left", TokenClass.token, "{"),
+    brace_right: new TokenType("brace_right", TokenClass.token, "}"),
+    colon: new TokenType("colon", TokenClass.token, ":"),
+    comma: new TokenType("comma", TokenClass.token, ","),
+    equal: new TokenType("equal", TokenClass.token, "="),
+    equal_equal: new TokenType("equal_equal", TokenClass.token, "=="),
+    not_equal: new TokenType("not_equal", TokenClass.token, "!="),
+    greater_than: new TokenType("greater_than", TokenClass.token, ">"),
+    greater_than_equal: new TokenType("greater_than_equal", TokenClass.token, ">="),
+    shift_right: new TokenType("shift_right", TokenClass.token, ">>"),
+    less_than: new TokenType("less_than", TokenClass.token, "<"),
+    less_than_equal: new TokenType("less_than_equal", TokenClass.token, "<="),
+    shift_left: new TokenType("shift_left", TokenClass.token, "<<"),
+    modulo: new TokenType("modulo", TokenClass.token, "%"),
+    minus: new TokenType("minus", TokenClass.token, "-"),
+    minus_minus: new TokenType("minus_minus", TokenClass.token, "--"),
+    period: new TokenType("period", TokenClass.token, "."),
+    plus: new TokenType("plus", TokenClass.token, "+"),
+    plus_plus: new TokenType("plus_plus", TokenClass.token, "++"),
+    or: new TokenType("or", TokenClass.token, "|"),
+    or_or: new TokenType("or_or", TokenClass.token, "||"),
+    paren_left: new TokenType("paren_left", TokenClass.token, "("),
+    paren_right: new TokenType("paren_right", TokenClass.token, ")"),
+    semicolon: new TokenType("semicolon", TokenClass.token, ";"),
+    star: new TokenType("star", TokenClass.token, "*"),
+    tilde: new TokenType("tilde", TokenClass.token, "~"),
+    underscore: new TokenType("underscore", TokenClass.token, "_"),
+    xor: new TokenType("xor", TokenClass.token, "^"),
+    plus_equal: new TokenType("plus_equal", TokenClass.token, "+="),
+    minus_equal: new TokenType("minus_equal", TokenClass.token, "-="),
+    times_equal: new TokenType("times_equal", TokenClass.token, "*="),
+    division_equal: new TokenType("division_equal", TokenClass.token, "/="),
+    modulo_equal: new TokenType("modulo_equal", TokenClass.token, "%="),
+    and_equal: new TokenType("and_equal", TokenClass.token, "&="),
+    or_equal: new TokenType("or_equal", TokenClass.token, "|="),
+    xor_equal: new TokenType("xor_equal", TokenClass.token, "^="),
+    shift_right_equal: new TokenType("shift_right_equal", TokenClass.token, ">>="),
+    shift_left_equal: new TokenType("shift_left_equal", TokenClass.token, "<<="),
 };
 TokenTypes.storage_class = [
     _a.keywords.function,
     _a.keywords.private,
     _a.keywords.workgroup,
     _a.keywords.uniform,
-    _a.keywords.storage
+    _a.keywords.storage,
 ];
 TokenTypes.access_mode = [
     _a.keywords.read,
     _a.keywords.write,
-    _a.keywords.read_write
+    _a.keywords.read_write,
 ];
 TokenTypes.sampler_type = [
     _a.keywords.sampler,
-    _a.keywords.sampler_comparison
+    _a.keywords.sampler_comparison,
 ];
 TokenTypes.sampled_texture_type = [
     _a.keywords.texture_1d,
@@ -236,29 +236,29 @@ TokenTypes.sampled_texture_type = [
     _a.keywords.texture_2d_array,
     _a.keywords.texture_3d,
     _a.keywords.texture_cube,
-    _a.keywords.texture_cube_array
+    _a.keywords.texture_cube_array,
 ];
 TokenTypes.multisampled_texture_type = [
-    _a.keywords.texture_multisampled_2d
+    _a.keywords.texture_multisampled_2d,
 ];
 TokenTypes.storage_texture_type = [
     _a.keywords.texture_storage_1d,
     _a.keywords.texture_storage_2d,
     _a.keywords.texture_storage_2d_array,
-    _a.keywords.texture_storage_3d
+    _a.keywords.texture_storage_3d,
 ];
 TokenTypes.depth_texture_type = [
     _a.keywords.texture_depth_2d,
     _a.keywords.texture_depth_2d_array,
     _a.keywords.texture_depth_cube,
     _a.keywords.texture_depth_cube_array,
-    _a.keywords.texture_depth_multisampled_2d
+    _a.keywords.texture_depth_multisampled_2d,
 ];
 TokenTypes.any_texture_type = [
     ..._a.sampled_texture_type,
     ..._a.multisampled_texture_type,
     ..._a.storage_texture_type,
-    ..._a.depth_texture_type
+    ..._a.depth_texture_type,
 ];
 TokenTypes.texel_format = [
     _a.keywords.r8unorm,
@@ -295,7 +295,7 @@ TokenTypes.texel_format = [
     _a.keywords.rgba16float,
     _a.keywords.rgba32uint,
     _a.keywords.rgba32sint,
-    _a.keywords.rgba32float
+    _a.keywords.rgba32float,
 ];
 TokenTypes.const_literal = [
     _a.tokens.int_literal,
@@ -303,7 +303,7 @@ TokenTypes.const_literal = [
     _a.tokens.decimal_float_literal,
     _a.tokens.hex_float_literal,
     _a.keywords.true,
-    _a.keywords.false
+    _a.keywords.false,
 ];
 TokenTypes.literal_or_ident = [
     _a.tokens.ident,
@@ -315,7 +315,7 @@ TokenTypes.literal_or_ident = [
 TokenTypes.element_count_expression = [
     _a.tokens.int_literal,
     _a.tokens.uint_literal,
-    _a.tokens.ident
+    _a.tokens.ident,
 ];
 TokenTypes.template_types = [
     _a.keywords.vec2,
@@ -336,10 +336,7 @@ TokenTypes.template_types = [
 ];
 // The grammar calls out 'block', but attribute grammar is defined to use a 'ident'.
 // The attribute grammar should be ident | block.
-TokenTypes.attribute_name = [
-    _a.tokens.ident,
-    _a.keywords.block,
-];
+TokenTypes.attribute_name = [_a.tokens.ident, _a.keywords.block];
 TokenTypes.assignment_operators = [
     _a.tokens.equal,
     _a.tokens.plus_equal,
@@ -351,11 +348,11 @@ TokenTypes.assignment_operators = [
     _a.tokens.or_equal,
     _a.tokens.xor_equal,
     _a.tokens.shift_right_equal,
-    _a.tokens.shift_left_equal
+    _a.tokens.shift_left_equal,
 ];
 TokenTypes.increment_operators = [
     _a.tokens.plus_plus,
-    _a.tokens.minus_minus
+    _a.tokens.minus_minus,
 ];
 /// A token parsed by the WgslScanner.
 export class Token {
@@ -447,7 +444,8 @@ export class WgslScanner {
         let matchType = TokenTypes.none;
         for (;;) {
             let matchedType = this._findType(lexeme);
-            // The exception to "longest lexeme" rule is '>>'. In the case of 1>>2, it's a shift_right.
+            // The exception to "longest lexeme" rule is '>>'. In the case of 1>>2, it's a
+            // shift_right.
             // In the case of array<vec4<f32>>, it's two greater_than's (one to close the vec4,
             // and one to close the array).
             // I don't know of a great way to resolve this, so '>>' is special-cased and if
@@ -530,7 +528,7 @@ export class WgslScanner {
         return TokenTypes.none;
     }
     _match(lexeme, rule) {
-        if (typeof (rule) === "string") {
+        if (typeof rule === "string") {
             if (rule == lexeme) {
                 return true;
             }

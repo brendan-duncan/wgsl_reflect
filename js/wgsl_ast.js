@@ -5,8 +5,12 @@
  */
 export class Node {
     constructor() { }
-    get isAstNode() { return true; }
-    get astNodeType() { return ""; }
+    get isAstNode() {
+        return true;
+    }
+    get astNodeType() {
+        return "";
+    }
 }
 /**
  * @class Statement
@@ -31,7 +35,9 @@ export class Function extends Statement {
         this.returnType = returnType;
         this.body = body;
     }
-    get astNodeType() { return "function"; }
+    get astNodeType() {
+        return "function";
+    }
 }
 /**
  * @class StaticAssert
@@ -43,7 +49,9 @@ export class StaticAssert extends Statement {
         super();
         this.expression = expression;
     }
-    get astNodeType() { return "staticAssert"; }
+    get astNodeType() {
+        return "staticAssert";
+    }
 }
 /**
  * @class While
@@ -56,7 +64,9 @@ export class While extends Statement {
         this.condition = condition;
         this.body = body;
     }
-    get astNodeType() { return "while"; }
+    get astNodeType() {
+        return "while";
+    }
 }
 /**
  * @class For
@@ -71,7 +81,9 @@ export class For extends Statement {
         this.increment = increment;
         this.body = body;
     }
-    get astNodeType() { return "for"; }
+    get astNodeType() {
+        return "for";
+    }
 }
 /**
  * @class Var
@@ -87,7 +99,9 @@ export class Var extends Statement {
         this.access = access;
         this.value = value;
     }
-    get astNodeType() { return "var"; }
+    get astNodeType() {
+        return "var";
+    }
 }
 /**
  * @class Let
@@ -103,7 +117,9 @@ export class Let extends Statement {
         this.access = access;
         this.value = value;
     }
-    get astNodeType() { return "let"; }
+    get astNodeType() {
+        return "let";
+    }
 }
 /**
  * @class Const
@@ -119,7 +135,9 @@ export class Const extends Statement {
         this.access = access;
         this.value = value;
     }
-    get astNodeType() { return "const"; }
+    get astNodeType() {
+        return "const";
+    }
 }
 export var IncrementOperator;
 (function (IncrementOperator) {
@@ -129,8 +147,8 @@ export var IncrementOperator;
 (function (IncrementOperator) {
     function parse(val) {
         const key = val;
-        if (key == 'parse')
-            throw new Error('Invalid value for IncrementOperator');
+        if (key == "parse")
+            throw new Error("Invalid value for IncrementOperator");
         return IncrementOperator[key];
     }
     IncrementOperator.parse = parse;
@@ -146,7 +164,9 @@ export class Increment extends Statement {
         this.operator = operator;
         this.variable = variable;
     }
-    get astNodeType() { return "increment"; }
+    get astNodeType() {
+        return "increment";
+    }
 }
 export var AssignOperator;
 (function (AssignOperator) {
@@ -162,12 +182,11 @@ export var AssignOperator;
     AssignOperator["shiftLeftAssign"] = "<<=";
     AssignOperator["shiftRightAssign"] = ">>=";
 })(AssignOperator || (AssignOperator = {}));
-;
 (function (AssignOperator) {
     function parse(val) {
         const key = val;
-        if (key == 'parse')
-            throw new Error('Invalid value for AssignOperator');
+        if (key == "parse")
+            throw new Error("Invalid value for AssignOperator");
         return AssignOperator[key];
     }
     AssignOperator.parse = parse;
@@ -184,7 +203,9 @@ export class Assign extends Statement {
         this.variable = variable;
         this.value = value;
     }
-    get astNodeType() { return "assign"; }
+    get astNodeType() {
+        return "assign";
+    }
 }
 /**
  * @class Call
@@ -197,7 +218,9 @@ export class Call extends Statement {
         this.name = name;
         this.args = args;
     }
-    get astNodeType() { return "call"; }
+    get astNodeType() {
+        return "call";
+    }
 }
 /**
  * @class Loop
@@ -210,7 +233,9 @@ export class Loop extends Statement {
         this.body = body;
         this.continuing = continuing;
     }
-    get astNodeType() { return "loop"; }
+    get astNodeType() {
+        return "loop";
+    }
 }
 /**
  * @class Switch
@@ -223,7 +248,9 @@ export class Switch extends Statement {
         this.condition = condition;
         this.body = body;
     }
-    get astNodeType() { return "body"; }
+    get astNodeType() {
+        return "body";
+    }
 }
 /**
  * @class If
@@ -238,7 +265,9 @@ export class If extends Statement {
         this.elseif = elseif;
         this.else = _else;
     }
-    get astNodeType() { return "if"; }
+    get astNodeType() {
+        return "if";
+    }
 }
 /**
  * @class Return
@@ -250,7 +279,9 @@ export class Return extends Statement {
         super();
         this.value = value;
     }
-    get astNodeType() { return "return"; }
+    get astNodeType() {
+        return "return";
+    }
 }
 /**
  * @class Struct
@@ -263,7 +294,9 @@ export class Struct extends Statement {
         this.name = name;
         this.members = members;
     }
-    get astNodeType() { return "struct"; }
+    get astNodeType() {
+        return "struct";
+    }
 }
 /**
  * @class Enable
@@ -275,7 +308,9 @@ export class Enable extends Statement {
         super();
         this.name = name;
     }
-    get astNodeType() { return "enable"; }
+    get astNodeType() {
+        return "enable";
+    }
 }
 /**
  * @class Alias
@@ -288,7 +323,9 @@ export class Alias extends Statement {
         this.name = name;
         this.type = type;
     }
-    get astNodeType() { return "alias"; }
+    get astNodeType() {
+        return "alias";
+    }
 }
 /**
  * @class Discard
@@ -299,7 +336,9 @@ export class Discard extends Statement {
     constructor() {
         super();
     }
-    get astNodeType() { return "discard"; }
+    get astNodeType() {
+        return "discard";
+    }
 }
 /**
  * @class Break
@@ -310,7 +349,9 @@ export class Break extends Statement {
     constructor() {
         super();
     }
-    get astNodeType() { return "break"; }
+    get astNodeType() {
+        return "break";
+    }
 }
 /**
  * @class Continue
@@ -321,7 +362,9 @@ export class Continue extends Statement {
     constructor() {
         super();
     }
-    get astNodeType() { return "continue"; }
+    get astNodeType() {
+        return "continue";
+    }
 }
 /**
  * @class Type
@@ -333,7 +376,9 @@ export class Type extends Node {
         super();
         this.name = name;
     }
-    get astNodeType() { return "type"; }
+    get astNodeType() {
+        return "type";
+    }
 }
 /**
  * @class TemplateType
@@ -346,7 +391,9 @@ export class TemplateType extends Type {
         this.format = format;
         this.access = access;
     }
-    get astNodeType() { return "template"; }
+    get astNodeType() {
+        return "template";
+    }
 }
 /**
  * @class PointerType
@@ -360,7 +407,9 @@ export class PointerType extends Type {
         this.type = type;
         this.access = access;
     }
-    get astNodeType() { return "pointer"; }
+    get astNodeType() {
+        return "pointer";
+    }
 }
 /**
  * @class ArrayType
@@ -374,7 +423,9 @@ export class ArrayType extends Type {
         this.format = format;
         this.count = count;
     }
-    get astNodeType() { return "array"; }
+    get astNodeType() {
+        return "array";
+    }
 }
 /**
  * @class SamplerType
@@ -387,7 +438,9 @@ export class SamplerType extends Type {
         this.format = format;
         this.access = access;
     }
-    get astNodeType() { return "sampler"; }
+    get astNodeType() {
+        return "sampler";
+    }
 }
 /**
  * @class Expression
@@ -409,8 +462,12 @@ export class StringExpr extends Expression {
         super();
         this.value = value;
     }
-    get astNodeType() { return "stringExpr"; }
-    toString() { return this.value; }
+    get astNodeType() {
+        return "stringExpr";
+    }
+    toString() {
+        return this.value;
+    }
 }
 /**
  * @class CreateExpr
@@ -423,7 +480,9 @@ export class CreateExpr extends Expression {
         this.type = type;
         this.args = args;
     }
-    get astNodeType() { return "createExpr"; }
+    get astNodeType() {
+        return "createExpr";
+    }
 }
 /**
  * @class CallExpr
@@ -436,7 +495,9 @@ export class CallExpr extends Expression {
         this.name = name;
         this.args = args;
     }
-    get astNodeType() { return "callExpr"; }
+    get astNodeType() {
+        return "callExpr";
+    }
 }
 /**
  * @class VariableExpr
@@ -448,7 +509,9 @@ export class VariableExpr extends Expression {
         super();
         this.name = name;
     }
-    get astNodeType() { return "varExpr"; }
+    get astNodeType() {
+        return "varExpr";
+    }
 }
 /**
  * @class LiteralExpr
@@ -460,7 +523,9 @@ export class LiteralExpr extends Expression {
         super();
         this.value = value;
     }
-    get astNodeType() { return "literalExpr"; }
+    get astNodeType() {
+        return "literalExpr";
+    }
 }
 /**
  * @class BitcastExpr
@@ -473,7 +538,9 @@ export class BitcastExpr extends Expression {
         this.type = type;
         this.value = value;
     }
-    get astNodeType() { return "bitcastExpr"; }
+    get astNodeType() {
+        return "bitcastExpr";
+    }
 }
 /**
  * @class TypecastExpr
@@ -486,7 +553,9 @@ export class TypecastExpr extends Expression {
         this.type = type;
         this.args = args;
     }
-    get astNodeType() { return "typecastExpr"; }
+    get astNodeType() {
+        return "typecastExpr";
+    }
 }
 /**
  * @class GroupingExpr
@@ -498,7 +567,9 @@ export class GroupingExpr extends Expression {
         super();
         this.contents = contents;
     }
-    get astNodeType() { return "groupExpr"; }
+    get astNodeType() {
+        return "groupExpr";
+    }
 }
 /**
  * @class Operator
@@ -521,7 +592,9 @@ export class UnaryOperator extends Operator {
         this.operator = operator;
         this.right = right;
     }
-    get astNodeType() { return "unaryOp"; }
+    get astNodeType() {
+        return "unaryOp";
+    }
 }
 /**
  * @class BinaryOperator
@@ -535,7 +608,9 @@ export class BinaryOperator extends Operator {
         this.left = left;
         this.right = right;
     }
-    get astNodeType() { return "binaryOp"; }
+    get astNodeType() {
+        return "binaryOp";
+    }
 }
 /**
  * @class SwitchCase
@@ -558,7 +633,9 @@ export class Case extends SwitchCase {
         this.selector = selector;
         this.body = body;
     }
-    get astNodeType() { return "case"; }
+    get astNodeType() {
+        return "case";
+    }
 }
 /**
  * @class Default
@@ -570,7 +647,9 @@ export class Default extends SwitchCase {
         super();
         this.body = body;
     }
-    get astNodeType() { return "default"; }
+    get astNodeType() {
+        return "default";
+    }
 }
 /**
  * @class Argument
@@ -584,7 +663,9 @@ export class Argument extends Node {
         this.type = type;
         this.attributes = attributes;
     }
-    get astNodeType() { return "argument"; }
+    get astNodeType() {
+        return "argument";
+    }
 }
 /**
  * @class ElseIf
@@ -597,7 +678,9 @@ export class ElseIf extends Node {
         this.condition = condition;
         this.body = body;
     }
-    get astNodeType() { return "elseif"; }
+    get astNodeType() {
+        return "elseif";
+    }
 }
 /**
  * @class Member
@@ -611,7 +694,9 @@ export class Member extends Node {
         this.type = type;
         this.attributes = attributes;
     }
-    get astNodeType() { return "member"; }
+    get astNodeType() {
+        return "member";
+    }
 }
 /**
  * @class Attribute
@@ -624,6 +709,8 @@ export class Attribute extends Node {
         this.name = name;
         this.value = value;
     }
-    get astNodeType() { return "attribute"; }
+    get astNodeType() {
+        return "attribute";
+    }
 }
 //# sourceMappingURL=wgsl_ast.js.map

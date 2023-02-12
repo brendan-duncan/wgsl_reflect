@@ -4,11 +4,15 @@
  * Base class for AST nodes parsed from a WGSL shader.
  */
 export class Node {
-    constructor() { }
+  constructor() {}
 
-    get isAstNode(): boolean { return true; }
+  get isAstNode(): boolean {
+    return true;
+  }
 
-    get astNodeType(): string { return ""; }
+  get astNodeType(): string {
+    return "";
+  }
 }
 
 /**
@@ -17,9 +21,9 @@ export class Node {
  * @category AST
  */
 export class Statement extends Node {
-    constructor() {
-        super();
-    }
+  constructor() {
+    super();
+  }
 }
 
 /**
@@ -28,22 +32,28 @@ export class Statement extends Node {
  * @category AST
  */
 export class Function extends Statement {
-    name: string;
-    args: Array<Argument>;
-    returnType: Type | null;
-    body: Array<Statement>;
-    attributes: Array<Attribute> | null;
+  name: string;
+  args: Array<Argument>;
+  returnType: Type | null;
+  body: Array<Statement>;
+  attributes: Array<Attribute> | null;
 
-    constructor(name: string, args: Array<Argument>, returnType: Type | null,
-        body: Array<Statement>) {
-        super();
-        this.name = name;
-        this.args = args;
-        this.returnType = returnType;
-        this.body = body;
-    }
+  constructor(
+    name: string,
+    args: Array<Argument>,
+    returnType: Type | null,
+    body: Array<Statement>
+  ) {
+    super();
+    this.name = name;
+    this.args = args;
+    this.returnType = returnType;
+    this.body = body;
+  }
 
-    get astNodeType(): string { return "function"; }
+  get astNodeType(): string {
+    return "function";
+  }
 }
 
 /**
@@ -52,14 +62,16 @@ export class Function extends Statement {
  * @category AST
  */
 export class StaticAssert extends Statement {
-    expression: Expression;
+  expression: Expression;
 
-    constructor(expression: Expression) {
-        super();
-        this.expression = expression;
-    }
+  constructor(expression: Expression) {
+    super();
+    this.expression = expression;
+  }
 
-    get astNodeType() { return "staticAssert"; }
+  get astNodeType() {
+    return "staticAssert";
+  }
 }
 
 /**
@@ -68,16 +80,18 @@ export class StaticAssert extends Statement {
  * @category AST
  */
 export class While extends Statement {
-    condition: Expression;
-    body: Array<Statement>;
+  condition: Expression;
+  body: Array<Statement>;
 
-    constructor(condition: Expression, body: Array<Statement>) {
-        super();
-        this.condition = condition;
-        this.body = body;
-    }
+  constructor(condition: Expression, body: Array<Statement>) {
+    super();
+    this.condition = condition;
+    this.body = body;
+  }
 
-    get astNodeType() { return "while"; }
+  get astNodeType() {
+    return "while";
+  }
 }
 
 /**
@@ -86,21 +100,27 @@ export class While extends Statement {
  * @category AST
  */
 export class For extends Statement {
-    init: Statement | null;
-    condition: Expression | null;
-    increment: Statement | null;
-    body: Array<Statement>;
+  init: Statement | null;
+  condition: Expression | null;
+  increment: Statement | null;
+  body: Array<Statement>;
 
-    constructor(init: Statement | null, condition: Expression | null, increment: Statement | null,
-        body: Array<Statement>) {
-        super();
-        this.init = init;
-        this.condition = condition;
-        this.increment = increment;
-        this.body = body;
-    }
+  constructor(
+    init: Statement | null,
+    condition: Expression | null,
+    increment: Statement | null,
+    body: Array<Statement>
+  ) {
+    super();
+    this.init = init;
+    this.condition = condition;
+    this.increment = increment;
+    this.body = body;
+  }
 
-    get astNodeType() { return "for"; }
+  get astNodeType() {
+    return "for";
+  }
 }
 
 /**
@@ -109,24 +129,31 @@ export class For extends Statement {
  * @category AST
  */
 export class Var extends Statement {
-    name: string;
-    type: Type | null;
-    storage: string | null;
-    access: string | null;
-    value: Expression | null;
-    attributes: Array<Attribute> | null;
+  name: string;
+  type: Type | null;
+  storage: string | null;
+  access: string | null;
+  value: Expression | null;
+  attributes: Array<Attribute> | null;
 
-    constructor(name: string, type: Type | null, storage: string | null, access: string | null,
-        value: Expression | null) {
-        super();
-        this.name = name;
-        this.type = type;
-        this.storage = storage;
-        this.access = access;
-        this.value = value;
-    }
+  constructor(
+    name: string,
+    type: Type | null,
+    storage: string | null,
+    access: string | null,
+    value: Expression | null
+  ) {
+    super();
+    this.name = name;
+    this.type = type;
+    this.storage = storage;
+    this.access = access;
+    this.value = value;
+  }
 
-    get astNodeType() { return "var"; }
+  get astNodeType() {
+    return "var";
+  }
 }
 
 /**
@@ -135,24 +162,31 @@ export class Var extends Statement {
  * @category AST
  */
 export class Let extends Statement {
-    name: string;
-    type: Type | null;
-    storage: string | null;
-    access: string | null;
-    value: Expression | null;
-    attributes: Array<Attribute> | null;
+  name: string;
+  type: Type | null;
+  storage: string | null;
+  access: string | null;
+  value: Expression | null;
+  attributes: Array<Attribute> | null;
 
-    constructor(name: string, type: Type | null, storage: string | null, access: string | null,
-        value: Expression | null) {
-        super();
-        this.name = name;
-        this.type = type;
-        this.storage = storage;
-        this.access = access;
-        this.value = value;
-    }
+  constructor(
+    name: string,
+    type: Type | null,
+    storage: string | null,
+    access: string | null,
+    value: Expression | null
+  ) {
+    super();
+    this.name = name;
+    this.type = type;
+    this.storage = storage;
+    this.access = access;
+    this.value = value;
+  }
 
-    get astNodeType() { return "let"; }
+  get astNodeType() {
+    return "let";
+  }
 }
 
 /**
@@ -161,38 +195,44 @@ export class Let extends Statement {
  * @category AST
  */
 export class Const extends Statement {
-    name: string;
-    type: Type | null;
-    storage: string | null;
-    access: string | null;
-    value: Expression;
-    attributes: Array<Attribute> | null;
+  name: string;
+  type: Type | null;
+  storage: string | null;
+  access: string | null;
+  value: Expression;
+  attributes: Array<Attribute> | null;
 
-    constructor(name: string, type: Type | null, storage: string | null, access: string | null,
-        value: Expression) {
-        super();
-        this.name = name;
-        this.type = type;
-        this.storage = storage;
-        this.access = access;
-        this.value = value;
-    }
+  constructor(
+    name: string,
+    type: Type | null,
+    storage: string | null,
+    access: string | null,
+    value: Expression
+  ) {
+    super();
+    this.name = name;
+    this.type = type;
+    this.storage = storage;
+    this.access = access;
+    this.value = value;
+  }
 
-    get astNodeType() { return "const"; }
+  get astNodeType() {
+    return "const";
+  }
 }
 
 export enum IncrementOperator {
-    increment = "++",
-    decrement = "--"
+  increment = "++",
+  decrement = "--",
 }
 
 export namespace IncrementOperator {
-    export function parse(val: string): IncrementOperator {
-        const key = val as keyof typeof IncrementOperator;
-        if (key == 'parse')
-            throw new Error('Invalid value for IncrementOperator');
-        return IncrementOperator[key];
-    }
+  export function parse(val: string): IncrementOperator {
+    const key = val as keyof typeof IncrementOperator;
+    if (key == "parse") throw new Error("Invalid value for IncrementOperator");
+    return IncrementOperator[key];
+  }
 }
 
 /**
@@ -201,39 +241,40 @@ export namespace IncrementOperator {
  * @category AST
  */
 export class Increment extends Statement {
-    operator: IncrementOperator;
-    variable: Expression;
+  operator: IncrementOperator;
+  variable: Expression;
 
-    constructor(operator: IncrementOperator, variable: Expression) {
-        super();
-        this.operator = operator;
-        this.variable = variable;
-    }
+  constructor(operator: IncrementOperator, variable: Expression) {
+    super();
+    this.operator = operator;
+    this.variable = variable;
+  }
 
-    get astNodeType() { return "increment"; }
+  get astNodeType() {
+    return "increment";
+  }
 }
 
 export enum AssignOperator {
-    assign = "=",
-    addAssign = "+=",
-    subtractAssin = "-=",
-    multiplyAssign = "*=",
-    divideAssign = "/=",
-    moduloAssign = "%=",
-    andAssign = "&=",
-    orAssign = "|=",
-    xorAssign = "^=",
-    shiftLeftAssign = "<<=",
-    shiftRightAssign = ">>="
-};
+  assign = "=",
+  addAssign = "+=",
+  subtractAssin = "-=",
+  multiplyAssign = "*=",
+  divideAssign = "/=",
+  moduloAssign = "%=",
+  andAssign = "&=",
+  orAssign = "|=",
+  xorAssign = "^=",
+  shiftLeftAssign = "<<=",
+  shiftRightAssign = ">>=",
+}
 
 export namespace AssignOperator {
-    export function parse(val: string): AssignOperator {
-        const key = val as keyof typeof AssignOperator;
-        if (key == 'parse')
-            throw new Error('Invalid value for AssignOperator');
-        return AssignOperator[key];
-    }
+  export function parse(val: string): AssignOperator {
+    const key = val as keyof typeof AssignOperator;
+    if (key == "parse") throw new Error("Invalid value for AssignOperator");
+    return AssignOperator[key];
+  }
 }
 
 /**
@@ -242,18 +283,24 @@ export namespace AssignOperator {
  * @category AST
  */
 export class Assign extends Statement {
-    operator: AssignOperator;
-    variable: Expression;
-    value: Expression;
+  operator: AssignOperator;
+  variable: Expression;
+  value: Expression;
 
-    constructor(operator: AssignOperator, variable: Expression, value: Expression) {
-        super();
-        this.operator = operator;
-        this.variable = variable;
-        this.value = value;
-    }
+  constructor(
+    operator: AssignOperator,
+    variable: Expression,
+    value: Expression
+  ) {
+    super();
+    this.operator = operator;
+    this.variable = variable;
+    this.value = value;
+  }
 
-    get astNodeType() { return "assign"; }
+  get astNodeType() {
+    return "assign";
+  }
 }
 
 /**
@@ -262,16 +309,18 @@ export class Assign extends Statement {
  * @category AST
  */
 export class Call extends Statement {
-    name: string;
-    args: Array<Expression>;
+  name: string;
+  args: Array<Expression>;
 
-    constructor(name: string, args: Array<Expression>) {
-        super();
-        this.name = name;
-        this.args = args;
-    }
+  constructor(name: string, args: Array<Expression>) {
+    super();
+    this.name = name;
+    this.args = args;
+  }
 
-    get astNodeType() { return "call"; }
+  get astNodeType() {
+    return "call";
+  }
 }
 
 /**
@@ -280,16 +329,18 @@ export class Call extends Statement {
  * @category AST
  */
 export class Loop extends Statement {
-    body: Array<Statement>;
-    continuing: Array<Statement> | null;
+  body: Array<Statement>;
+  continuing: Array<Statement> | null;
 
-    constructor(body: Array<Statement>, continuing: Array<Statement> | null) {
-        super();
-        this.body = body;
-        this.continuing = continuing;
-    }
+  constructor(body: Array<Statement>, continuing: Array<Statement> | null) {
+    super();
+    this.body = body;
+    this.continuing = continuing;
+  }
 
-    get astNodeType() { return "loop"; }
+  get astNodeType() {
+    return "loop";
+  }
 }
 
 /**
@@ -298,16 +349,18 @@ export class Loop extends Statement {
  * @category AST
  */
 export class Switch extends Statement {
-    condition: Expression;
-    body: Array<Statement>;
+  condition: Expression;
+  body: Array<Statement>;
 
-    constructor(condition: Expression, body: Array<Statement>) {
-        super();
-        this.condition = condition;
-        this.body = body;
-    }
+  constructor(condition: Expression, body: Array<Statement>) {
+    super();
+    this.condition = condition;
+    this.body = body;
+  }
 
-    get astNodeType() { return "body"; }
+  get astNodeType() {
+    return "body";
+  }
 }
 
 /**
@@ -316,21 +369,27 @@ export class Switch extends Statement {
  * @category AST
  */
 export class If extends Statement {
-    condition: Expression;
-    body: Array<Statement>;
-    elseif: Array<ElseIf> | null;
-    else: Array<Statement> | null;
+  condition: Expression;
+  body: Array<Statement>;
+  elseif: Array<ElseIf> | null;
+  else: Array<Statement> | null;
 
-    constructor(condition: Expression, body: Array<Statement>, elseif: Array<ElseIf> | null,
-        _else: Array<Statement> | null) {
-        super();
-        this.condition = condition;
-        this.body = body;
-        this.elseif = elseif;
-        this.else = _else;
-    }
+  constructor(
+    condition: Expression,
+    body: Array<Statement>,
+    elseif: Array<ElseIf> | null,
+    _else: Array<Statement> | null
+  ) {
+    super();
+    this.condition = condition;
+    this.body = body;
+    this.elseif = elseif;
+    this.else = _else;
+  }
 
-    get astNodeType() { return "if"; }
+  get astNodeType() {
+    return "if";
+  }
 }
 
 /**
@@ -339,14 +398,16 @@ export class If extends Statement {
  * @category AST
  */
 export class Return extends Statement {
-    value: Expression;
+  value: Expression;
 
-    constructor(value: Expression) {
-        super();
-        this.value = value;
-    }
+  constructor(value: Expression) {
+    super();
+    this.value = value;
+  }
 
-    get astNodeType() { return "return"; }
+  get astNodeType() {
+    return "return";
+  }
 }
 
 /**
@@ -355,17 +416,19 @@ export class Return extends Statement {
  * @category AST
  */
 export class Struct extends Statement {
-    name: string;
-    members: Array<Member>;
-    attributes: Array<Attribute> | null;
+  name: string;
+  members: Array<Member>;
+  attributes: Array<Attribute> | null;
 
-    constructor(name: string, members: Array<Member>) {
-        super();
-        this.name = name;
-        this.members = members;
-    }
+  constructor(name: string, members: Array<Member>) {
+    super();
+    this.name = name;
+    this.members = members;
+  }
 
-    get astNodeType() { return "struct"; }
+  get astNodeType() {
+    return "struct";
+  }
 }
 
 /**
@@ -374,14 +437,16 @@ export class Struct extends Statement {
  * @category AST
  */
 export class Enable extends Statement {
-    name: string;
+  name: string;
 
-    constructor(name: string) {
-        super();
-        this.name = name;
-    }
+  constructor(name: string) {
+    super();
+    this.name = name;
+  }
 
-    get astNodeType() { return "enable"; }
+  get astNodeType() {
+    return "enable";
+  }
 }
 
 /**
@@ -390,16 +455,18 @@ export class Enable extends Statement {
  * @category AST
  */
 export class Alias extends Statement {
-    name: string;
-    type: Type;
+  name: string;
+  type: Type;
 
-    constructor(name: string, type: Type) {
-        super();
-        this.name = name;
-        this.type = type;
-    }
+  constructor(name: string, type: Type) {
+    super();
+    this.name = name;
+    this.type = type;
+  }
 
-    get astNodeType() { return "alias"; }
+  get astNodeType() {
+    return "alias";
+  }
 }
 
 /**
@@ -408,11 +475,13 @@ export class Alias extends Statement {
  * @category AST
  */
 export class Discard extends Statement {
-    constructor() {
-        super();
-    }
+  constructor() {
+    super();
+  }
 
-    get astNodeType() { return "discard"; }
+  get astNodeType() {
+    return "discard";
+  }
 }
 
 /**
@@ -421,11 +490,13 @@ export class Discard extends Statement {
  * @category AST
  */
 export class Break extends Statement {
-    constructor() {
-        super();
-    }
+  constructor() {
+    super();
+  }
 
-    get astNodeType() { return "break"; }
+  get astNodeType() {
+    return "break";
+  }
 }
 
 /**
@@ -434,11 +505,13 @@ export class Break extends Statement {
  * @category AST
  */
 export class Continue extends Statement {
-    constructor() {
-        super();
-    }
+  constructor() {
+    super();
+  }
 
-    get astNodeType() { return "continue"; }
+  get astNodeType() {
+    return "continue";
+  }
 }
 
 /**
@@ -447,15 +520,17 @@ export class Continue extends Statement {
  * @category AST
  */
 export class Type extends Node {
-    name: string;
-    attributes: Array<Attribute> | null;
+  name: string;
+  attributes: Array<Attribute> | null;
 
-    constructor(name: string) {
-        super();
-        this.name = name;
-    }
+  constructor(name: string) {
+    super();
+    this.name = name;
+  }
 
-    get astNodeType() { return "type"; }
+  get astNodeType() {
+    return "type";
+  }
 }
 
 /**
@@ -464,16 +539,18 @@ export class Type extends Node {
  * @category AST
  */
 export class TemplateType extends Type {
-    format: Type | null;
-    access: string | null;
+  format: Type | null;
+  access: string | null;
 
-    constructor(name: string, format: Type | null, access: string | null) {
-        super(name);
-        this.format = format;
-        this.access = access;
-    }
+  constructor(name: string, format: Type | null, access: string | null) {
+    super(name);
+    this.format = format;
+    this.access = access;
+  }
 
-    get astNodeType() { return "template"; }
+  get astNodeType() {
+    return "template";
+  }
 }
 
 /**
@@ -482,18 +559,25 @@ export class TemplateType extends Type {
  * @category AST
  */
 export class PointerType extends Type {
-    storage: string;
-    type: Type | null;
-    access: string | null;
+  storage: string;
+  type: Type | null;
+  access: string | null;
 
-    constructor(name: string, storage: string, type: Type | null, access: string | null) {
-        super(name);
-        this.storage = storage;
-        this.type = type;
-        this.access = access;
-    }
+  constructor(
+    name: string,
+    storage: string,
+    type: Type | null,
+    access: string | null
+  ) {
+    super(name);
+    this.storage = storage;
+    this.type = type;
+    this.access = access;
+  }
 
-    get astNodeType() { return "pointer"; }
+  get astNodeType() {
+    return "pointer";
+  }
 }
 
 /**
@@ -502,19 +586,26 @@ export class PointerType extends Type {
  * @category AST
  */
 export class ArrayType extends Type {
-    name: string;
-    attributes: Array<Attribute> | null;
-    format: Type | null;
+  name: string;
+  attributes: Array<Attribute> | null;
+  format: Type | null;
+  count: number;
+
+  constructor(
+    name: string,
+    attributes: Array<Attribute> | null,
+    format: Type | null,
     count: number
+  ) {
+    super(name);
+    this.attributes = attributes;
+    this.format = format;
+    this.count = count;
+  }
 
-    constructor(name: string, attributes: Array<Attribute> | null, format: Type | null, count: number) {
-        super(name);
-        this.attributes = attributes;
-        this.format = format;
-        this.count = count;
-    }
-
-    get astNodeType() { return "array"; }
+  get astNodeType() {
+    return "array";
+  }
 }
 
 /**
@@ -523,16 +614,22 @@ export class ArrayType extends Type {
  * @category AST
  */
 export class SamplerType extends Type {
-    format: Type | string | null;
-    access: string | null;
+  format: Type | string | null;
+  access: string | null;
 
-    constructor(name: string, format: Type | string | null, access: string | null) {
-        super(name);
-        this.format = format;
-        this.access = access;
-    }
+  constructor(
+    name: string,
+    format: Type | string | null,
+    access: string | null
+  ) {
+    super(name);
+    this.format = format;
+    this.access = access;
+  }
 
-    get astNodeType() { return "sampler"; }
+  get astNodeType() {
+    return "sampler";
+  }
 }
 
 /**
@@ -541,11 +638,11 @@ export class SamplerType extends Type {
  * @category AST
  */
 export class Expression extends Node {
-    postfix: Expression | null;
+  postfix: Expression | null;
 
-    constructor() {
-        super();
-    }
+  constructor() {
+    super();
+  }
 }
 
 /**
@@ -554,16 +651,20 @@ export class Expression extends Node {
  * @category AST
  */
 export class StringExpr extends Expression {
-    value: string;
+  value: string;
 
-    constructor(value: string) {
-        super();
-        this.value = value;
-    }
+  constructor(value: string) {
+    super();
+    this.value = value;
+  }
 
-    get astNodeType() { return "stringExpr"; }
+  get astNodeType() {
+    return "stringExpr";
+  }
 
-    toString(): string { return this.value; }
+  toString(): string {
+    return this.value;
+  }
 }
 
 /**
@@ -572,16 +673,18 @@ export class StringExpr extends Expression {
  * @category AST
  */
 export class CreateExpr extends Expression {
-    type: Type | null;
-    args: Array<Expression> | null;
+  type: Type | null;
+  args: Array<Expression> | null;
 
-    constructor(type: Type | null, args: Array<Expression> | null) {
-        super();
-        this.type = type;
-        this.args = args;
-    }
+  constructor(type: Type | null, args: Array<Expression> | null) {
+    super();
+    this.type = type;
+    this.args = args;
+  }
 
-    get astNodeType() { return "createExpr"; }
+  get astNodeType() {
+    return "createExpr";
+  }
 }
 
 /**
@@ -590,16 +693,18 @@ export class CreateExpr extends Expression {
  * @category AST
  */
 export class CallExpr extends Expression {
-    name: string;
-    args: Array<Expression> | null;
+  name: string;
+  args: Array<Expression> | null;
 
-    constructor(name: string, args: Array<Expression> | null) {
-        super();
-        this.name = name;
-        this.args = args;
-    }
+  constructor(name: string, args: Array<Expression> | null) {
+    super();
+    this.name = name;
+    this.args = args;
+  }
 
-    get astNodeType() { return "callExpr"; }
+  get astNodeType() {
+    return "callExpr";
+  }
 }
 
 /**
@@ -608,14 +713,16 @@ export class CallExpr extends Expression {
  * @category AST
  */
 export class VariableExpr extends Expression {
-    name: string;
+  name: string;
 
-    constructor(name: string) {
-        super();
-        this.name = name;
-    }
+  constructor(name: string) {
+    super();
+    this.name = name;
+  }
 
-    get astNodeType() { return "varExpr"; }
+  get astNodeType() {
+    return "varExpr";
+  }
 }
 
 /**
@@ -624,14 +731,16 @@ export class VariableExpr extends Expression {
  * @category AST
  */
 export class LiteralExpr extends Expression {
-    value: string;
+  value: string;
 
-    constructor(value: string) {
-        super();
-        this.value = value;
-    }
+  constructor(value: string) {
+    super();
+    this.value = value;
+  }
 
-    get astNodeType() { return "literalExpr"; }
+  get astNodeType() {
+    return "literalExpr";
+  }
 }
 
 /**
@@ -640,16 +749,18 @@ export class LiteralExpr extends Expression {
  * @category AST
  */
 export class BitcastExpr extends Expression {
-    type: Type | null;
-    value: Expression;
+  type: Type | null;
+  value: Expression;
 
-    constructor(type: Type | null, value: Expression) {
-        super();
-        this.type = type;
-        this.value = value;
-    }
+  constructor(type: Type | null, value: Expression) {
+    super();
+    this.type = type;
+    this.value = value;
+  }
 
-    get astNodeType() { return "bitcastExpr"; }
+  get astNodeType() {
+    return "bitcastExpr";
+  }
 }
 
 /**
@@ -658,16 +769,18 @@ export class BitcastExpr extends Expression {
  * @category AST
  */
 export class TypecastExpr extends Expression {
-    type: Type | null;
-    args: Array<Expression> | null;
+  type: Type | null;
+  args: Array<Expression> | null;
 
-    constructor(type: Type | null, args: Array<Expression> | null) {
-        super();
-        this.type = type;
-        this.args = args;
-    }
+  constructor(type: Type | null, args: Array<Expression> | null) {
+    super();
+    this.type = type;
+    this.args = args;
+  }
 
-    get astNodeType() { return "typecastExpr"; }
+  get astNodeType() {
+    return "typecastExpr";
+  }
 }
 
 /**
@@ -676,14 +789,16 @@ export class TypecastExpr extends Expression {
  * @category AST
  */
 export class GroupingExpr extends Expression {
-    contents: Array<Expression>;
+  contents: Array<Expression>;
 
-    constructor(contents: Array<Expression>) {
-        super();
-        this.contents = contents;
-    }
+  constructor(contents: Array<Expression>) {
+    super();
+    this.contents = contents;
+  }
 
-    get astNodeType() { return "groupExpr"; }
+  get astNodeType() {
+    return "groupExpr";
+  }
 }
 
 /**
@@ -692,9 +807,9 @@ export class GroupingExpr extends Expression {
  * @category AST
  */
 export class Operator extends Expression {
-    constructor() {
-        super();
-    }
+  constructor() {
+    super();
+  }
 }
 
 /**
@@ -703,16 +818,18 @@ export class Operator extends Expression {
  * @category AST
  */
 export class UnaryOperator extends Operator {
-    operator: string;
-    right: Expression;
+  operator: string;
+  right: Expression;
 
-    constructor(operator: string, right: Expression) {
-        super();
-        this.operator = operator;
-        this.right = right;
-    }
+  constructor(operator: string, right: Expression) {
+    super();
+    this.operator = operator;
+    this.right = right;
+  }
 
-    get astNodeType() { return "unaryOp"; }
+  get astNodeType() {
+    return "unaryOp";
+  }
 }
 
 /**
@@ -721,18 +838,20 @@ export class UnaryOperator extends Operator {
  * @category AST
  */
 export class BinaryOperator extends Operator {
-    operator: string;
-    left: Expression;
-    right: Expression;
+  operator: string;
+  left: Expression;
+  right: Expression;
 
-    constructor(operator: string, left: Expression, right: Expression) {
-        super();
-        this.operator = operator;
-        this.left = left;
-        this.right = right;
-    }
+  constructor(operator: string, left: Expression, right: Expression) {
+    super();
+    this.operator = operator;
+    this.left = left;
+    this.right = right;
+  }
 
-    get astNodeType() { return "binaryOp"; }
+  get astNodeType() {
+    return "binaryOp";
+  }
 }
 
 /**
@@ -741,9 +860,9 @@ export class BinaryOperator extends Operator {
  * @category AST
  */
 export class SwitchCase extends Node {
-    constructor() {
-        super();
-    }
+  constructor() {
+    super();
+  }
 }
 
 /**
@@ -752,16 +871,18 @@ export class SwitchCase extends Node {
  * @category AST
  */
 export class Case extends SwitchCase {
-    selector: Array<string>;
-    body: Array<Statement>;
+  selector: Array<string>;
+  body: Array<Statement>;
 
-    constructor(selector: Array<string>, body: Array<Statement>) {
-        super();
-        this.selector = selector;
-        this.body = body;
-    }
+  constructor(selector: Array<string>, body: Array<Statement>) {
+    super();
+    this.selector = selector;
+    this.body = body;
+  }
 
-    get astNodeType() { return "case"; }
+  get astNodeType() {
+    return "case";
+  }
 }
 
 /**
@@ -770,14 +891,16 @@ export class Case extends SwitchCase {
  * @category AST
  */
 export class Default extends SwitchCase {
-    body: Array<Statement>;
+  body: Array<Statement>;
 
-    constructor(body: Array<Statement>) {
-        super();
-        this.body = body;
-    }
+  constructor(body: Array<Statement>) {
+    super();
+    this.body = body;
+  }
 
-    get astNodeType() { return "default"; }
+  get astNodeType() {
+    return "default";
+  }
 }
 
 /**
@@ -786,18 +909,20 @@ export class Default extends SwitchCase {
  * @category AST
  */
 export class Argument extends Node {
-    name: string;
-    type: Type;
-    attributes: Array<Attribute> | null;
+  name: string;
+  type: Type;
+  attributes: Array<Attribute> | null;
 
-    constructor(name: string, type: Type, attributes: Array<Attribute> | null) {
-        super();
-        this.name = name;
-        this.type = type;
-        this.attributes = attributes;
-    }
+  constructor(name: string, type: Type, attributes: Array<Attribute> | null) {
+    super();
+    this.name = name;
+    this.type = type;
+    this.attributes = attributes;
+  }
 
-    get astNodeType() { return "argument"; }
+  get astNodeType() {
+    return "argument";
+  }
 }
 
 /**
@@ -806,16 +931,18 @@ export class Argument extends Node {
  * @category AST
  */
 export class ElseIf extends Node {
-    condition: Expression;
-    body: Array<Statement>;
+  condition: Expression;
+  body: Array<Statement>;
 
-    constructor(condition: Expression, body: Array<Statement>) {
-        super();
-        this.condition = condition;
-        this.body = body;
-    }
+  constructor(condition: Expression, body: Array<Statement>) {
+    super();
+    this.condition = condition;
+    this.body = body;
+  }
 
-    get astNodeType() { return "elseif"; }
+  get astNodeType() {
+    return "elseif";
+  }
 }
 
 /**
@@ -824,18 +951,24 @@ export class ElseIf extends Node {
  * @category AST
  */
 export class Member extends Node {
-    name: string;
-    type: Type | null;
-    attributes: Array<Attribute> | null;
+  name: string;
+  type: Type | null;
+  attributes: Array<Attribute> | null;
 
-    constructor(name: string, type: Type | null, attributes: Array<Attribute> | null) {
-        super();
-        this.name = name;
-        this.type = type;
-        this.attributes = attributes;
-    }
+  constructor(
+    name: string,
+    type: Type | null,
+    attributes: Array<Attribute> | null
+  ) {
+    super();
+    this.name = name;
+    this.type = type;
+    this.attributes = attributes;
+  }
 
-    get astNodeType() { return "member"; }
+  get astNodeType() {
+    return "member";
+  }
 }
 
 /**
@@ -844,14 +977,16 @@ export class Member extends Node {
  * @category AST
  */
 export class Attribute extends Node {
-    name: string;
-    value: string | Array<string> | null;
+  name: string;
+  value: string | Array<string> | null;
 
-    constructor(name: string, value: string | Array<string> | null) {
-        super();
-        this.name = name;
-        this.value = value;
-    }
+  constructor(name: string, value: string | Array<string> | null) {
+    super();
+    this.name = name;
+    this.value = value;
+  }
 
-    get astNodeType() { return "attribute"; }
+  get astNodeType() {
+    return "attribute";
+  }
 }

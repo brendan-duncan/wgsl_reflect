@@ -10,19 +10,33 @@ export class VariableInfo {
         this.binding = binding;
         this.node = node;
     }
-    get name() { return this.node.name; }
-    get type() { return this.node.type; }
-    get attributes() { return this.node.attributes; }
+    get name() {
+        return this.node.name;
+    }
+    get type() {
+        return this.node.type;
+    }
+    get attributes() {
+        return this.node.attributes;
+    }
 }
 export class FunctionInfo {
     constructor(node) {
         this.inputs = [];
         this.node = node;
     }
-    get name() { return this.node.name; }
-    get returnType() { return this.node.returnType; }
-    get args() { return this.node.args; }
-    get attributes() { return this.node.attributes; }
+    get name() {
+        return this.node.name;
+    }
+    get returnType() {
+        return this.node.returnType;
+    }
+    get args() {
+        return this.node.args;
+    }
+    get attributes() {
+        return this.node.attributes;
+    }
 }
 export class InputInfo {
     constructor(name, type, input, locationType, location) {
@@ -131,12 +145,14 @@ export class WgslReflect {
         }
     }
     isTextureVar(node) {
-        return node instanceof AST.Var && node.type !== null &&
-            WgslReflect.textureTypes.indexOf(node.type.name) != -1;
+        return (node instanceof AST.Var &&
+            node.type !== null &&
+            WgslReflect.textureTypes.indexOf(node.type.name) != -1);
     }
     isSamplerVar(node) {
-        return node instanceof AST.Var && node.type !== null &&
-            WgslReflect.samplerTypes.indexOf(node.type.name) != -1;
+        return (node instanceof AST.Var &&
+            node.type !== null &&
+            WgslReflect.samplerTypes.indexOf(node.type.name) != -1);
     }
     isUniformVar(node) {
         return node instanceof AST.Var && node.storage == "uniform";
@@ -153,19 +169,19 @@ export class WgslReflect {
         if (v instanceof Array) {
             v = v[0];
         }
-        if (typeof (v) === "number") {
+        if (typeof v === "number") {
             return v;
         }
-        if (typeof (v) === "string") {
+        if (typeof v === "string") {
             return parseInt(v);
         }
         return defaultValue;
     }
     getAttribute(node, name) {
         const obj = node;
-        if (!obj || !obj['attributes'])
+        if (!obj || !obj["attributes"])
             return null;
-        const attrs = obj['attributes'];
+        const attrs = obj["attributes"];
         for (let a of attrs) {
             if (a.name == name)
                 return a;
@@ -252,22 +268,22 @@ export class WgslReflect {
         for (const u of this.uniforms) {
             _makeRoom(u.group, u.binding);
             const group = groups[u.group];
-            group[u.binding] = new BindGropEntry('buffer', this.getUniformBufferInfo(u));
+            group[u.binding] = new BindGropEntry("buffer", this.getUniformBufferInfo(u));
         }
         for (const u of this.storage) {
             _makeRoom(u.group, u.binding);
             const group = groups[u.group];
-            group[u.binding] = new BindGropEntry('storage', this.getStorageBufferInfo(u));
+            group[u.binding] = new BindGropEntry("storage", this.getStorageBufferInfo(u));
         }
         for (const t of this.textures) {
             _makeRoom(t.group, t.binding);
             const group = groups[t.group];
-            group[t.binding] = new BindGropEntry('texture', t);
+            group[t.binding] = new BindGropEntry("texture", t);
         }
         for (const t of this.samplers) {
             _makeRoom(t.group, t.binding);
             const group = groups[t.group];
-            group[t.binding] = new BindGropEntry('sampler', t);
+            group[t.binding] = new BindGropEntry("sampler", t);
         }
         return groups;
     }
@@ -296,7 +312,7 @@ export class WgslReflect {
         let lastSize = 0;
         let lastOffset = 0;
         let structAlign = 0;
-        let buffer = new BufferInfo(node.name, (node instanceof AST.Var) ? node.type : null);
+        let buffer = new BufferInfo(node.name, node instanceof AST.Var ? node.type : null);
         buffer.members = [];
         for (let mi = 0, ml = struct.members.length; mi < ml; ++mi) {
             const member = struct.members[mi];
@@ -312,13 +328,14 @@ export class WgslReflect {
             lastOffset = offset;
             structAlign = Math.max(structAlign, align);
             const isArray = member.type.astNodeType === "array";
-            const s = this.getStruct(type) || (isArray ? this.getStruct((_a = type['format']) === null || _a === void 0 ? void 0 : _a.name)
-                : null);
+            const s = this.getStruct(type) ||
+                (isArray ? this.getStruct((_a = type["format"]) === null || _a === void 0 ? void 0 : _a.name) : null);
             const isStruct = !!s;
             const si = isStruct ? this.getStructInfo(s) : undefined;
-            const arrayStride = ((_b = si === null || si === void 0 ? void 0 : si.size) !== null && _b !== void 0 ? _b : isArray) ? (_c = this.getTypeInfo(type['format'])) === null || _c === void 0 ? void 0 : _c.size
+            const arrayStride = ((_b = si === null || si === void 0 ? void 0 : si.size) !== null && _b !== void 0 ? _b : isArray)
+                ? (_c = this.getTypeInfo(type["format"])) === null || _c === void 0 ? void 0 : _c.size
                 : (_d = this.getTypeInfo(member.type)) === null || _d === void 0 ? void 0 : _d.size;
-            const arrayCount = (_e = member.type['count']) !== null && _e !== void 0 ? _e : 0;
+            const arrayCount = (_e = member.type["count"]) !== null && _e !== void 0 ? _e : 0;
             const members = isStruct ? si === null || si === void 0 ? void 0 : si.members : undefined;
             const u = new MemberInfo();
             u.node = member;
@@ -352,17 +369,18 @@ export class WgslReflect {
         const info = new BufferInfo(node.name, n.type);
         info.align = typeInfo.align;
         info.size = typeInfo.size;
-        let s = this.getStruct((_a = n.type['format']) === null || _a === void 0 ? void 0 : _a.name);
+        let s = this.getStruct((_a = n.type["format"]) === null || _a === void 0 ? void 0 : _a.name);
         let si = s ? this.getStructInfo(s) : undefined;
         info.isArray = n.type.astNodeType === "array";
         info.isStruct = !!s;
         info.members = info.isStruct ? si === null || si === void 0 ? void 0 : si.members : undefined;
         info.name = n.name;
         info.type = n.type;
-        info.arrayStride = ((_b = si === null || si === void 0 ? void 0 : si.size) !== null && _b !== void 0 ? _b : info.isArray) ?
-            (_c = this.getTypeInfo(n.type['format'])) === null || _c === void 0 ? void 0 : _c.size :
-            (_d = this.getTypeInfo(n.type)) === null || _d === void 0 ? void 0 : _d.size;
-        info.arrayCount = parseInt((_e = n.type['count']) !== null && _e !== void 0 ? _e : 0);
+        info.arrayStride =
+            ((_b = si === null || si === void 0 ? void 0 : si.size) !== null && _b !== void 0 ? _b : info.isArray)
+                ? (_c = this.getTypeInfo(n.type["format"])) === null || _c === void 0 ? void 0 : _c.size
+                : (_d = this.getTypeInfo(n.type)) === null || _d === void 0 ? void 0 : _d.size;
+        info.arrayCount = parseInt((_e = n.type["count"]) !== null && _e !== void 0 ? _e : 0);
         return info;
     }
     getUniformBufferInfo(uniform) {
@@ -395,14 +413,14 @@ export class WgslReflect {
         {
             const info = WgslReflect.typeInfo[type.name];
             if (info !== undefined) {
-                const divisor = type['format'] === 'f16' ? 2 : 1;
+                const divisor = type["format"] === "f16" ? 2 : 1;
                 return new TypeInfo(Math.max(explicitAlign, info.align / divisor), Math.max(explicitSize, info.size / divisor));
             }
         }
         {
             const info = WgslReflect.typeInfo[type.name.substring(0, type.name.length - 1)];
             if (info) {
-                const divisor = type.name[type.name.length - 1] === 'h' ? 2 : 1;
+                const divisor = type.name[type.name.length - 1] === "h" ? 2 : 1;
                 return new TypeInfo(Math.max(explicitAlign, info.align / divisor), Math.max(explicitSize, info.size / divisor));
             }
         }
@@ -419,12 +437,12 @@ export class WgslReflect {
             // @stride(Q)
             // array<E>             AlignOf(E)          Nruntime * Q
             //const E = type.format.name;
-            const E = this.getTypeInfo(type['format']);
+            const E = this.getTypeInfo(type["format"]);
             if (E !== null) {
                 size = E.size;
                 align = E.align;
             }
-            const N = parseInt((_a = type['count']) !== null && _a !== void 0 ? _a : 1);
+            const N = parseInt((_a = type["count"]) !== null && _a !== void 0 ? _a : 1);
             const stride = this.getAttributeNum(type, "stride", this._roundUp(align, size));
             size = N * stride;
             if (explicitSize)
@@ -472,24 +490,28 @@ export class WgslReflect {
 // mat3x4<f32>          16                  48
 // mat4x4<f32>          16                  64
 WgslReflect.typeInfo = {
-    "f16": { align: 2, size: 2 },
-    "i32": { align: 4, size: 4 },
-    "u32": { align: 4, size: 4 },
-    "f32": { align: 4, size: 4 },
-    "atomic": { align: 4, size: 4 },
-    "vec2": { align: 8, size: 8 },
-    "vec3": { align: 16, size: 12 },
-    "vec4": { align: 16, size: 16 },
-    "mat2x2": { align: 8, size: 16 },
-    "mat3x2": { align: 8, size: 24 },
-    "mat4x2": { align: 8, size: 32 },
-    "mat2x3": { align: 16, size: 32 },
-    "mat3x3": { align: 16, size: 48 },
-    "mat4x3": { align: 16, size: 64 },
-    "mat2x4": { align: 16, size: 32 },
-    "mat3x4": { align: 16, size: 48 },
-    "mat4x4": { align: 16, size: 64 },
+    f16: { align: 2, size: 2 },
+    i32: { align: 4, size: 4 },
+    u32: { align: 4, size: 4 },
+    f32: { align: 4, size: 4 },
+    atomic: { align: 4, size: 4 },
+    vec2: { align: 8, size: 8 },
+    vec3: { align: 16, size: 12 },
+    vec4: { align: 16, size: 16 },
+    mat2x2: { align: 8, size: 16 },
+    mat3x2: { align: 8, size: 24 },
+    mat4x2: { align: 8, size: 32 },
+    mat2x3: { align: 16, size: 32 },
+    mat3x3: { align: 16, size: 48 },
+    mat4x3: { align: 16, size: 64 },
+    mat2x4: { align: 16, size: 32 },
+    mat3x4: { align: 16, size: 48 },
+    mat4x4: { align: 16, size: 64 },
 };
-WgslReflect.textureTypes = TokenTypes.any_texture_type.map((t) => { return t.name; });
-WgslReflect.samplerTypes = TokenTypes.sampler_type.map((t) => { return t.name; });
+WgslReflect.textureTypes = TokenTypes.any_texture_type.map((t) => {
+    return t.name;
+});
+WgslReflect.samplerTypes = TokenTypes.sampler_type.map((t) => {
+    return t.name;
+});
 //# sourceMappingURL=wgsl_reflect.js.map
