@@ -1,12 +1,12 @@
 # WebGPU Shading Language Reflection Library
 
-A WebGPU Shading Language parser and reflection library for Javascript.
+A WebGPU Shading Language parser and reflection library for Typescript and Javascript.
 
 **wgsl_reflect** can parse a WGSL shader and analyze its contents, providing information about the shader. It can determine the bind group layout of the shader, resource bindings, uniform buffers, the members of a uniform buffer, their names, types, sizes, offsets into the buffer.
 
 ## Usage
 
-The *wgsl_reflect.module.js* file is a self-contained roll-up of the library that can be included in your project and imported with:
+The _wgsl_reflect.module.js_ file is a self-contained roll-up of the library that can be included in your project and imported with:
 
 ```javascript
 import { WgslReflect } from "./wgsl_reflect.module.js";
