@@ -827,6 +827,7 @@ TokenTypes.keywords = {
     storage: new TokenType("storage", TokenClass.keyword, "storage"),
     switch: new TokenType("switch", TokenClass.keyword, "switch"),
     true: new TokenType("true", TokenClass.keyword, "true"),
+    alias: new TokenType("alias", TokenClass.keyword, "alias"),
     type: new TokenType("type", TokenClass.keyword, "type"),
     uniform: new TokenType("uniform", TokenClass.keyword, "uniform"),
     var: new TokenType("var", TokenClass.keyword, "var"),
@@ -1386,7 +1387,7 @@ class WgslParser {
         // Ignore any stand-alone semicolons
         while (this._match(TokenTypes.tokens.semicolon) && !this._isAtEnd())
             ;
-        if (this._match(TokenTypes.keywords.type)) {
+        if (this._match(TokenTypes.keywords.alias)) {
             const type = this._type_alias();
             this._consume(TokenTypes.tokens.semicolon, "Expected ';'");
             return type;

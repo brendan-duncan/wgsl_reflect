@@ -78,7 +78,7 @@ export class EntryFunctions {
         this.compute = [];
     }
 }
-export class WgslReflect {
+class WgslReflect {
     constructor(code) {
         /// All top-level structs in the shader.
         this.structs = [];
@@ -514,4 +514,5 @@ WgslReflect.textureTypes = TokenTypes.any_texture_type.map((t) => {
 WgslReflect.samplerTypes = TokenTypes.sampler_type.map((t) => {
     return t.name;
 });
+export { WgslReflect };
 //# sourceMappingURL=wgsl_reflect.js.map

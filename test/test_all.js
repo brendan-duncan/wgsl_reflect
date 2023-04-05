@@ -8,12 +8,16 @@ import * as reflect from "./tests/test_reflect.js";
 import * as struct_layout from "./tests/struct_layout.js";
 
 function displayResults() {
-    document.body.appendChild(document.createElement("p"));
-    document.body.append(document.createElement("hr"));
-    document.body.appendChild(document.createElement("p"));
-    document.body.append(document.createTextNode("TOTAL TESTS: " + test.__test.totalTests));
-    document.body.appendChild(document.createElement("br"));
-    document.body.append(document.createTextNode("FAILED TESTS: " + test.__test.totalFailed));
+  document.body.appendChild(document.createElement("p"));
+  document.body.append(document.createElement("hr"));
+  document.body.appendChild(document.createElement("p"));
+  document.body.append(
+    document.createTextNode("TOTAL TESTS: " + test.__test.totalTests)
+  );
+  document.body.appendChild(document.createElement("br"));
+  document.body.append(
+    document.createTextNode("FAILED TESTS: " + test.__test.totalFailed)
+  );
 }
 
 displayResults();

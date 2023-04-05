@@ -104,7 +104,7 @@ export class WgslParser {
         // Ignore any stand-alone semicolons
         while (this._match(TokenTypes.tokens.semicolon) && !this._isAtEnd())
             ;
-        if (this._match(TokenTypes.keywords.type)) {
+        if (this._match(TokenTypes.keywords.alias)) {
             const type = this._type_alias();
             this._consume(TokenTypes.tokens.semicolon, "Expected ';'");
             return type;
