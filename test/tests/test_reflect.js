@@ -11,6 +11,17 @@ group("Reflect", function () {
     test.equals(bufferInfo.size, 16 * 12);
   });
 
+  test("const2", function (test) {
+    const shader = `const FOO = radians(90);
+    const BAR = sin(FOO);
+    const NUM_COLORS = u32(BAR + 3); // result 4
+    @group(0) @binding(0) var<uniform> uni: array<vec4f, NUM_COLORS>;`;
+    const reflect = new WgslReflect(shader);
+    test.equals(reflect.uniforms.length, 1);
+    const bufferInfo = reflect.getUniformBufferInfo(reflect.uniforms[0]);
+    test.equals(bufferInfo.size, 16 * 4);
+  });
+
   test("alias", function (test) {
     const shader = `alias material_index = u32;
         alias color = vec3f;

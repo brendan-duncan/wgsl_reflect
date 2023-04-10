@@ -728,6 +728,10 @@ export class CallExpr extends Expression {
         return Math.acos(this.args[0].evaluate());
       case "atan":
         return Math.atan(this.args[0].evaluate());
+      case "radians":
+        return (this.args[0].evaluate() * Math.PI) / 180;
+      case "degrees":
+        return (this.args[0].evaluate() * 180) / Math.PI;
       default:
         throw new Error("Non const function: " + this.name);
     }
