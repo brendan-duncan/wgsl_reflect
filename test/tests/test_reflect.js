@@ -2,6 +2,15 @@ import { test, group } from "../test.js";
 import { WgslReflect } from "../../js/wgsl_reflect.js";
 
 group("Reflect", function () {
+  test("const", function (test) {
+    const shader = `const NUM_COLORS = 10 + 2;
+    @group(0) @binding(0) var<uniform> uni: array<vec4f, NUM_COLORS>;`;
+    const reflect = new WgslReflect(shader);
+    test.equals(reflect.uniforms.length, 1);
+    const bufferInfo = reflect.getUniformBufferInfo(reflect.uniforms[0]);
+    test.equals(bufferInfo.size, 16 * 12);
+  });
+
   test("alias", function (test) {
     const shader = `alias material_index = u32;
         alias color = vec3f;

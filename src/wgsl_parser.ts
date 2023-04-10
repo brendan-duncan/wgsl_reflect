@@ -8,6 +8,7 @@ import * as AST from "./wgsl_ast.js";
 export class WgslParser {
   _tokens: Array<Token> = [];
   _current: number = 0;
+  _constants: Map<string, AST.Const> = new Map();
 
   parse(tokensOrCode: Array<Token> | string): Array<AST.Statement> {
     this._initialize(tokensOrCode);
@@ -137,10 +138,17 @@ export class WgslParser {
     }
 
     if (this._check(TokenTypes.keywords.let)) {
-      const _let = this._global_constant_decl();
+      const _let = this._global_let_decl();
       if (_let != null) _let.attributes = attrs;
       this._consume(TokenTypes.tokens.semicolon, "Expected ';'.");
       return _let;
+    }
+
+    if (this._check(TokenTypes.keywords.const)) {
+      const _const = this._global_const_decl();
+      if (_const != null) _const.attributes = attrs;
+      this._consume(TokenTypes.tokens.semicolon, "Expected ';'.");
+      return _const;
     }
 
     if (this._check(TokenTypes.keywords.struct)) {
@@ -870,12 +878,17 @@ export class WgslParser {
         const args = this._argument_expression_list();
         return new AST.CallExpr(name, args);
       }
+      if (this._constants.has(name)) {
+        const c = this._constants.get(name);
+        const v = c.evaluate();
+        return new AST.ConstExpr(name, v);
+      }
       return new AST.VariableExpr(name);
     }
 
     // const_literal
     if (this._match(TokenTypes.const_literal)) {
-      return new AST.LiteralExpr(this._previous().toString());
+      return new AST.LiteralExpr(parseFloat(this._previous().toString()));
     }
 
     // paren_expression
@@ -991,7 +1004,32 @@ export class WgslParser {
     return _var;
   }
 
-  _global_constant_decl(): AST.Let | null {
+  _global_const_decl(): AST.Let | null {
+    // attribute* const (ident variable_ident_decl) global_const_initializer?
+    if (!this._match(TokenTypes.keywords.const)) return null;
+
+    const name = this._consume(
+      TokenTypes.tokens.ident,
+      "Expected variable name"
+    );
+    let type: AST.Type | null = null;
+    if (this._match(TokenTypes.tokens.colon)) {
+      const attrs = this._attribute();
+      type = this._type_decl();
+      if (type != null) type.attributes = attrs;
+    }
+    let value: AST.Expression | null = null;
+    if (this._match(TokenTypes.tokens.equal)) {
+      let valueExpr = this._short_circuit_or_expression();
+      let constValue = valueExpr.evaluate();
+      value = new AST.LiteralExpr(constValue);
+    }
+    const c = new AST.Const(name.toString(), type, "", "", value);
+    this._constants.set(c.name, c);
+    return c;
+  }
+
+  _global_let_decl(): AST.Let | null {
     // attribute* let (ident variable_ident_decl) global_const_initializer?
     if (!this._match(TokenTypes.keywords.let)) return null;
 
@@ -1178,11 +1216,10 @@ export class WgslParser {
       );
       const format = this._type_decl();
       let count: string = "";
-      if (this._match(TokenTypes.tokens.comma))
-        count = this._consume(
-          TokenTypes.element_count_expression,
-          "Expected element_count for array."
-        ).toString();
+      if (this._match(TokenTypes.tokens.comma)) {
+        let c = this._shift_expression();
+        count = c.evaluate().toString();
+      }
       this._consume(TokenTypes.tokens.greater_than, "Expected '>' for array.");
       let countInt = count ? parseInt(count) : 0;
       return new AST.ArrayType(array.toString(), attrs, format, countInt);

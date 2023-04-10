@@ -13,6 +13,10 @@ export class Node {
   get astNodeType(): string {
     return "";
   }
+
+  evaluate(): number {
+    throw new Error("Cannot evaluate node");
+  }
 }
 
 /**
@@ -219,6 +223,10 @@ export class Const extends Statement {
 
   get astNodeType() {
     return "const";
+  }
+
+  evaluate(): number {
+    return this.value.evaluate();
   }
 }
 
@@ -705,6 +713,25 @@ export class CallExpr extends Expression {
   get astNodeType() {
     return "callExpr";
   }
+
+  evaluate(): number {
+    switch (this.name) {
+      case "sin":
+        return Math.sin(this.args[0].evaluate());
+      case "cos":
+        return Math.cos(this.args[0].evaluate());
+      case "tan":
+        return Math.tan(this.args[0].evaluate());
+      case "asin":
+        return Math.asin(this.args[0].evaluate());
+      case "acos":
+        return Math.acos(this.args[0].evaluate());
+      case "atan":
+        return Math.atan(this.args[0].evaluate());
+      default:
+        throw new Error("Non const function: " + this.name);
+    }
+  }
 }
 
 /**
@@ -726,20 +753,48 @@ export class VariableExpr extends Expression {
 }
 
 /**
+ * @class ConstExpr
+ * @extends Expression
+ * @category AST
+ */
+export class ConstExpr extends Expression {
+  name: string;
+  value: number;
+
+  constructor(name: string, value: number) {
+    super();
+    this.name = name;
+    this.value = value;
+  }
+
+  get astNodeType() {
+    return "constExpr";
+  }
+
+  evaluate(): number {
+    return this.value;
+  }
+}
+
+/**
  * @class LiteralExpr
  * @extends Expression
  * @category AST
  */
 export class LiteralExpr extends Expression {
-  value: string;
+  value: number;
 
-  constructor(value: string) {
+  constructor(value: number) {
     super();
     this.value = value;
   }
 
   get astNodeType() {
     return "literalExpr";
+  }
+
+  evaluate(): number {
+    return this.value;
   }
 }
 
@@ -781,6 +836,10 @@ export class TypecastExpr extends Expression {
   get astNodeType() {
     return "typecastExpr";
   }
+
+  evaluate(): number {
+    return this.args[0].evaluate();
+  }
 }
 
 /**
@@ -799,6 +858,10 @@ export class GroupingExpr extends Expression {
   get astNodeType() {
     return "groupExpr";
   }
+
+  evaluate(): number {
+    return this.contents[0].evaluate();
+  }
 }
 
 /**
@@ -816,6 +879,7 @@ export class Operator extends Expression {
  * @class UnaryOperator
  * @extends Operator
  * @category AST
+ * @property {string} operator +, -, !, ~
  */
 export class UnaryOperator extends Operator {
   operator: string;
@@ -830,12 +894,28 @@ export class UnaryOperator extends Operator {
   get astNodeType() {
     return "unaryOp";
   }
+
+  evaluate(): number {
+    switch (this.operator) {
+      case "+":
+        return this.right.evaluate();
+      case "-":
+        return -this.right.evaluate();
+      case "!":
+        return this.right.evaluate() ? 0 : 1;
+      case "~":
+        return ~this.right.evaluate();
+      default:
+        throw new Error("Unknown unary operator: " + this.operator);
+    }
+  }
 }
 
 /**
  * @class BinaryOperator
  * @extends Operator
  * @category AST
+ * @property {string} operator +, -, *, /, %, ==, !=, <, >, <=, >=, &&, ||
  */
 export class BinaryOperator extends Operator {
   operator: string;
@@ -851,6 +931,39 @@ export class BinaryOperator extends Operator {
 
   get astNodeType() {
     return "binaryOp";
+  }
+
+  evaluate(): number {
+    switch (this.operator) {
+      case "+":
+        return this.left.evaluate() + this.right.evaluate();
+      case "-":
+        return this.left.evaluate() - this.right.evaluate();
+      case "*":
+        return this.left.evaluate() * this.right.evaluate();
+      case "/":
+        return this.left.evaluate() / this.right.evaluate();
+      case "%":
+        return this.left.evaluate() % this.right.evaluate();
+      case "==":
+        return this.left.evaluate() == this.right.evaluate() ? 1 : 0;
+      case "!=":
+        return this.left.evaluate() != this.right.evaluate() ? 1 : 0;
+      case "<":
+        return this.left.evaluate() < this.right.evaluate() ? 1 : 0;
+      case ">":
+        return this.left.evaluate() > this.right.evaluate() ? 1 : 0;
+      case "<=":
+        return this.left.evaluate() <= this.right.evaluate() ? 1 : 0;
+      case ">=":
+        return this.left.evaluate() >= this.right.evaluate() ? 1 : 0;
+      case "&&":
+        return this.left.evaluate() && this.right.evaluate() ? 1 : 0;
+      case "||":
+        return this.left.evaluate() || this.right.evaluate() ? 1 : 0;
+      default:
+        throw new Error(`Unknown operator ${this.operator}`);
+    }
   }
 }
 
