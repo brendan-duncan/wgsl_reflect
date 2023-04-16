@@ -1,3 +1,10 @@
+export class ParseContext {
+    constructor() {
+        this.constants = new Map();
+        this.aliases = new Map();
+        this.structs = new Map();
+    }
+}
 /**
  * @class Node
  * @category AST
@@ -11,8 +18,11 @@ export class Node {
     get astNodeType() {
         return "";
     }
-    evaluate() {
+    evaluate(context) {
         throw new Error("Cannot evaluate node");
+    }
+    evaluateString(context) {
+        return this.evaluate(context).toString();
     }
 }
 /**
@@ -141,8 +151,8 @@ export class Const extends Statement {
     get astNodeType() {
         return "const";
     }
-    evaluate() {
-        return this.value.evaluate();
+    evaluate(context) {
+        return this.value.evaluate(context);
     }
 }
 export var IncrementOperator;
@@ -302,6 +312,14 @@ export class Struct extends Statement {
     }
     get astNodeType() {
         return "struct";
+    }
+    /// Return the index of the member with the given name, or -1 if not found.
+    getMemberIndex(name) {
+        for (let i = 0; i < this.members.length; i++) {
+            if (this.members[i].name == name)
+                return i;
+        }
+        return -1;
     }
 }
 /**
@@ -474,6 +492,9 @@ export class StringExpr extends Expression {
     toString() {
         return this.value;
     }
+    evaluateString() {
+        return this.value;
+    }
 }
 /**
  * @class CreateExpr
@@ -504,24 +525,24 @@ export class CallExpr extends Expression {
     get astNodeType() {
         return "callExpr";
     }
-    evaluate() {
+    evaluate(context) {
         switch (this.name) {
             case "sin":
-                return Math.sin(this.args[0].evaluate());
+                return Math.sin(this.args[0].evaluate(context));
             case "cos":
-                return Math.cos(this.args[0].evaluate());
+                return Math.cos(this.args[0].evaluate(context));
             case "tan":
-                return Math.tan(this.args[0].evaluate());
+                return Math.tan(this.args[0].evaluate(context));
             case "asin":
-                return Math.asin(this.args[0].evaluate());
+                return Math.asin(this.args[0].evaluate(context));
             case "acos":
-                return Math.acos(this.args[0].evaluate());
+                return Math.acos(this.args[0].evaluate(context));
             case "atan":
-                return Math.atan(this.args[0].evaluate());
+                return Math.atan(this.args[0].evaluate(context));
             case "radians":
-                return (this.args[0].evaluate() * Math.PI) / 180;
+                return (this.args[0].evaluate(context) * Math.PI) / 180;
             case "degrees":
-                return (this.args[0].evaluate() * 180) / Math.PI;
+                return (this.args[0].evaluate(context) * 180) / Math.PI;
             default:
                 throw new Error("Non const function: " + this.name);
         }
@@ -547,16 +568,29 @@ export class VariableExpr extends Expression {
  * @category AST
  */
 export class ConstExpr extends Expression {
-    constructor(name, value) {
+    constructor(name, initializer) {
         super();
         this.name = name;
-        this.value = value;
+        this.initializer = initializer;
     }
     get astNodeType() {
         return "constExpr";
     }
-    evaluate() {
-        return this.value;
+    evaluate(context) {
+        var _a, _b;
+        if (this.initializer instanceof CreateExpr) {
+            // This is a struct constant
+            const property = (_a = this.postfix) === null || _a === void 0 ? void 0 : _a.evaluateString(context);
+            const type = (_b = this.initializer.type) === null || _b === void 0 ? void 0 : _b.name;
+            const struct = context.structs.get(type);
+            const memberIndex = struct === null || struct === void 0 ? void 0 : struct.getMemberIndex(property);
+            if (memberIndex != -1) {
+                const value = this.initializer.args[memberIndex].evaluate(context);
+                return value;
+            }
+            console.log(memberIndex);
+        }
+        return this.initializer.evaluate(context);
     }
 }
 /**
@@ -605,8 +639,8 @@ export class TypecastExpr extends Expression {
     get astNodeType() {
         return "typecastExpr";
     }
-    evaluate() {
-        return this.args[0].evaluate();
+    evaluate(context) {
+        return this.args[0].evaluate(context);
     }
 }
 /**
@@ -622,8 +656,8 @@ export class GroupingExpr extends Expression {
     get astNodeType() {
         return "groupExpr";
     }
-    evaluate() {
-        return this.contents[0].evaluate();
+    evaluate(context) {
+        return this.contents[0].evaluate(context);
     }
 }
 /**
@@ -651,16 +685,16 @@ export class UnaryOperator extends Operator {
     get astNodeType() {
         return "unaryOp";
     }
-    evaluate() {
+    evaluate(context) {
         switch (this.operator) {
             case "+":
-                return this.right.evaluate();
+                return this.right.evaluate(context);
             case "-":
-                return -this.right.evaluate();
+                return -this.right.evaluate(context);
             case "!":
-                return this.right.evaluate() ? 0 : 1;
+                return this.right.evaluate(context) ? 0 : 1;
             case "~":
-                return ~this.right.evaluate();
+                return ~this.right.evaluate(context);
             default:
                 throw new Error("Unknown unary operator: " + this.operator);
         }
@@ -682,34 +716,50 @@ export class BinaryOperator extends Operator {
     get astNodeType() {
         return "binaryOp";
     }
-    evaluate() {
+    evaluate(context) {
         switch (this.operator) {
             case "+":
-                return this.left.evaluate() + this.right.evaluate();
+                return this.left.evaluate(context) + this.right.evaluate(context);
             case "-":
-                return this.left.evaluate() - this.right.evaluate();
+                return this.left.evaluate(context) - this.right.evaluate(context);
             case "*":
-                return this.left.evaluate() * this.right.evaluate();
+                return this.left.evaluate(context) * this.right.evaluate(context);
             case "/":
-                return this.left.evaluate() / this.right.evaluate();
+                return this.left.evaluate(context) / this.right.evaluate(context);
             case "%":
-                return this.left.evaluate() % this.right.evaluate();
+                return this.left.evaluate(context) % this.right.evaluate(context);
             case "==":
-                return this.left.evaluate() == this.right.evaluate() ? 1 : 0;
+                return this.left.evaluate(context) == this.right.evaluate(context)
+                    ? 1
+                    : 0;
             case "!=":
-                return this.left.evaluate() != this.right.evaluate() ? 1 : 0;
+                return this.left.evaluate(context) != this.right.evaluate(context)
+                    ? 1
+                    : 0;
             case "<":
-                return this.left.evaluate() < this.right.evaluate() ? 1 : 0;
+                return this.left.evaluate(context) < this.right.evaluate(context)
+                    ? 1
+                    : 0;
             case ">":
-                return this.left.evaluate() > this.right.evaluate() ? 1 : 0;
+                return this.left.evaluate(context) > this.right.evaluate(context)
+                    ? 1
+                    : 0;
             case "<=":
-                return this.left.evaluate() <= this.right.evaluate() ? 1 : 0;
+                return this.left.evaluate(context) <= this.right.evaluate(context)
+                    ? 1
+                    : 0;
             case ">=":
-                return this.left.evaluate() >= this.right.evaluate() ? 1 : 0;
+                return this.left.evaluate(context) >= this.right.evaluate(context)
+                    ? 1
+                    : 0;
             case "&&":
-                return this.left.evaluate() && this.right.evaluate() ? 1 : 0;
+                return this.left.evaluate(context) && this.right.evaluate(context)
+                    ? 1
+                    : 0;
             case "||":
-                return this.left.evaluate() || this.right.evaluate() ? 1 : 0;
+                return this.left.evaluate(context) || this.right.evaluate(context)
+                    ? 1
+                    : 0;
             default:
                 throw new Error(`Unknown operator ${this.operator}`);
         }

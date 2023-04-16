@@ -2,6 +2,31 @@ import { test, group } from "../test.js";
 import { WgslReflect } from "../../js/wgsl_reflect.js";
 
 group("Reflect", function () {
+  test("alias struct", function (test) {
+    const shader = `alias foo = u32;
+    alias bar = foo;
+    struct Vehicle {
+      num_wheels: bar,
+      mass_kg: f32,
+    }
+    alias Car = Vehicle;
+    const num_cars = 2 * 2;
+    struct Ship {
+        cars: array<Car, num_cars>,
+    };
+    const a_bicycle = Car(2, 10.5);
+    const bike_num_wheels = a_bicycle.num_wheels;
+    struct Ocean {
+        things: array<Ship, a_bicycle.num_wheels>,
+    };
+    @group(0) @binding(0) var<uniform> ocean: Ocean;`;
+
+    const reflect = new WgslReflect(shader);
+    test.equals(reflect.uniforms.length, 1);
+    const bufferInfo = reflect.getUniformBufferInfo(reflect.uniforms[0]);
+    test.equals(bufferInfo.size, 64);
+  });
+
   test("const", function (test) {
     const shader = `const NUM_COLORS = 10 + 2;
     @group(0) @binding(0) var<uniform> uni: array<vec4f, NUM_COLORS>;`;

@@ -8,7 +8,7 @@ export class WgslParser {
     constructor() {
         this._tokens = [];
         this._current = 0;
-        this._constants = new Map();
+        this._context = new AST.ParseContext();
     }
     parse(tokensOrCode) {
         this._initialize(tokensOrCode);
@@ -661,18 +661,32 @@ export class WgslParser {
         }
         return null;
     }
+    _getStruct(name) {
+        if (this._context.aliases.has(name)) {
+            const alias = this._context.aliases.get(name).type;
+            return alias;
+        }
+        if (this._context.structs.has(name)) {
+            const struct = this._context.structs.get(name);
+            return struct;
+        }
+        return null;
+    }
     _primary_expression() {
         // ident argument_expression_list?
         if (this._match(TokenTypes.tokens.ident)) {
             const name = this._previous().toString();
             if (this._check(TokenTypes.tokens.paren_left)) {
                 const args = this._argument_expression_list();
+                const struct = this._getStruct(name);
+                if (struct != null) {
+                    return new AST.CreateExpr(struct, args);
+                }
                 return new AST.CallExpr(name, args);
             }
-            if (this._constants.has(name)) {
-                const c = this._constants.get(name);
-                const v = c.evaluate();
-                return new AST.ConstExpr(name, v);
+            if (this._context.constants.has(name)) {
+                const c = this._context.constants.get(name);
+                return new AST.ConstExpr(name, c.value);
             }
             return new AST.VariableExpr(name);
         }
@@ -749,7 +763,9 @@ export class WgslParser {
             members.push(new AST.Member(memberName, memberType, memberAttrs));
         }
         this._consume(TokenTypes.tokens.brace_right, "Expected '}' after struct body.");
-        return new AST.Struct(name, members);
+        const structNode = new AST.Struct(name, members);
+        this._context.structs.set(name, structNode);
+        return structNode;
     }
     _global_variable_decl() {
         // attribute* variable_decl (equal const_expression)?
@@ -773,11 +789,20 @@ export class WgslParser {
         let value = null;
         if (this._match(TokenTypes.tokens.equal)) {
             let valueExpr = this._short_circuit_or_expression();
-            let constValue = valueExpr.evaluate();
-            value = new AST.LiteralExpr(constValue);
+            if (valueExpr instanceof AST.CreateExpr) {
+                value = valueExpr;
+            }
+            else if (valueExpr instanceof AST.ConstExpr &&
+                valueExpr.initializer instanceof AST.CreateExpr) {
+                value = valueExpr.initializer;
+            }
+            else {
+                let constValue = valueExpr.evaluate(this._context);
+                value = new AST.LiteralExpr(constValue);
+            }
         }
         const c = new AST.Const(name.toString(), type, "", "", value);
-        this._constants.set(c.name, c);
+        this._context.constants.set(c.name, c);
         return c;
     }
     _global_let_decl() {
@@ -847,11 +872,16 @@ export class WgslParser {
         // type ident equal type_decl
         const name = this._consume(TokenTypes.tokens.ident, "identity expected.");
         this._consume(TokenTypes.tokens.equal, "Expected '=' for type alias.");
-        const alias = this._type_decl();
-        if (alias === null) {
+        let aliasType = this._type_decl();
+        if (aliasType === null) {
             throw this._error(this._peek(), "Expected Type for Alias.");
         }
-        return new AST.Alias(name.toString(), alias);
+        if (this._context.aliases.has(aliasType.name)) {
+            aliasType = this._context.aliases.get(aliasType.name).type;
+        }
+        const aliasNode = new AST.Alias(name.toString(), aliasType);
+        this._context.aliases.set(aliasNode.name, aliasNode);
+        return aliasNode;
     }
     _type_decl() {
         // ident
@@ -922,11 +952,14 @@ export class WgslParser {
         if (this._match(TokenTypes.keywords.array)) {
             const array = this._previous();
             this._consume(TokenTypes.tokens.less_than, "Expected '<' for array type.");
-            const format = this._type_decl();
+            let format = this._type_decl();
+            if (this._context.aliases.has(format.name)) {
+                format = this._context.aliases.get(format.name).type;
+            }
             let count = "";
             if (this._match(TokenTypes.tokens.comma)) {
                 let c = this._shift_expression();
-                count = c.evaluate().toString();
+                count = c.evaluate(this._context).toString();
             }
             this._consume(TokenTypes.tokens.greater_than, "Expected '>' for array.");
             let countInt = count ? parseInt(count) : 0;

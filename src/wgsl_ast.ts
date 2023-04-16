@@ -1,3 +1,9 @@
+export class ParseContext {
+  constants: Map<string, Const> = new Map();
+  aliases: Map<string, Alias> = new Map();
+  structs: Map<string, Struct> = new Map();
+}
+
 /**
  * @class Node
  * @category AST
@@ -14,8 +20,12 @@ export class Node {
     return "";
   }
 
-  evaluate(): number {
+  evaluate(context: ParseContext): number {
     throw new Error("Cannot evaluate node");
+  }
+
+  evaluateString(context: ParseContext): string {
+    return this.evaluate(context).toString();
   }
 }
 
@@ -225,8 +235,8 @@ export class Const extends Statement {
     return "const";
   }
 
-  evaluate(): number {
-    return this.value.evaluate();
+  evaluate(context: ParseContext): number {
+    return this.value.evaluate(context);
   }
 }
 
@@ -436,6 +446,14 @@ export class Struct extends Statement {
 
   get astNodeType() {
     return "struct";
+  }
+
+  /// Return the index of the member with the given name, or -1 if not found.
+  getMemberIndex(name: string): number {
+    for (let i = 0; i < this.members.length; i++) {
+      if (this.members[i].name == name) return i;
+    }
+    return -1;
   }
 }
 
@@ -673,6 +691,10 @@ export class StringExpr extends Expression {
   toString(): string {
     return this.value;
   }
+
+  evaluateString(): string {
+    return this.value;
+  }
 }
 
 /**
@@ -714,24 +736,24 @@ export class CallExpr extends Expression {
     return "callExpr";
   }
 
-  evaluate(): number {
+  evaluate(context: ParseContext): number {
     switch (this.name) {
       case "sin":
-        return Math.sin(this.args[0].evaluate());
+        return Math.sin(this.args[0].evaluate(context));
       case "cos":
-        return Math.cos(this.args[0].evaluate());
+        return Math.cos(this.args[0].evaluate(context));
       case "tan":
-        return Math.tan(this.args[0].evaluate());
+        return Math.tan(this.args[0].evaluate(context));
       case "asin":
-        return Math.asin(this.args[0].evaluate());
+        return Math.asin(this.args[0].evaluate(context));
       case "acos":
-        return Math.acos(this.args[0].evaluate());
+        return Math.acos(this.args[0].evaluate(context));
       case "atan":
-        return Math.atan(this.args[0].evaluate());
+        return Math.atan(this.args[0].evaluate(context));
       case "radians":
-        return (this.args[0].evaluate() * Math.PI) / 180;
+        return (this.args[0].evaluate(context) * Math.PI) / 180;
       case "degrees":
-        return (this.args[0].evaluate() * 180) / Math.PI;
+        return (this.args[0].evaluate(context) * 180) / Math.PI;
       default:
         throw new Error("Non const function: " + this.name);
     }
@@ -763,20 +785,33 @@ export class VariableExpr extends Expression {
  */
 export class ConstExpr extends Expression {
   name: string;
-  value: number;
+  initializer: Expression;
 
-  constructor(name: string, value: number) {
+  constructor(name: string, initializer: Expression) {
     super();
     this.name = name;
-    this.value = value;
+    this.initializer = initializer;
   }
 
   get astNodeType() {
     return "constExpr";
   }
 
-  evaluate(): number {
-    return this.value;
+  evaluate(context: ParseContext): number {
+    if (this.initializer instanceof CreateExpr) {
+      // This is a struct constant
+      const property = this.postfix?.evaluateString(context);
+      const type = this.initializer.type?.name;
+      const struct = context.structs.get(type);
+      const memberIndex = struct?.getMemberIndex(property);
+      if (memberIndex != -1) {
+        const value = this.initializer.args[memberIndex].evaluate(context);
+        return value;
+      }
+      console.log(memberIndex);
+    }
+
+    return this.initializer.evaluate(context);
   }
 }
 
@@ -841,8 +876,8 @@ export class TypecastExpr extends Expression {
     return "typecastExpr";
   }
 
-  evaluate(): number {
-    return this.args[0].evaluate();
+  evaluate(context: ParseContext): number {
+    return this.args[0].evaluate(context);
   }
 }
 
@@ -863,8 +898,8 @@ export class GroupingExpr extends Expression {
     return "groupExpr";
   }
 
-  evaluate(): number {
-    return this.contents[0].evaluate();
+  evaluate(context: ParseContext): number {
+    return this.contents[0].evaluate(context);
   }
 }
 
@@ -899,16 +934,16 @@ export class UnaryOperator extends Operator {
     return "unaryOp";
   }
 
-  evaluate(): number {
+  evaluate(context: ParseContext): number {
     switch (this.operator) {
       case "+":
-        return this.right.evaluate();
+        return this.right.evaluate(context);
       case "-":
-        return -this.right.evaluate();
+        return -this.right.evaluate(context);
       case "!":
-        return this.right.evaluate() ? 0 : 1;
+        return this.right.evaluate(context) ? 0 : 1;
       case "~":
-        return ~this.right.evaluate();
+        return ~this.right.evaluate(context);
       default:
         throw new Error("Unknown unary operator: " + this.operator);
     }
@@ -937,34 +972,50 @@ export class BinaryOperator extends Operator {
     return "binaryOp";
   }
 
-  evaluate(): number {
+  evaluate(context: ParseContext): number {
     switch (this.operator) {
       case "+":
-        return this.left.evaluate() + this.right.evaluate();
+        return this.left.evaluate(context) + this.right.evaluate(context);
       case "-":
-        return this.left.evaluate() - this.right.evaluate();
+        return this.left.evaluate(context) - this.right.evaluate(context);
       case "*":
-        return this.left.evaluate() * this.right.evaluate();
+        return this.left.evaluate(context) * this.right.evaluate(context);
       case "/":
-        return this.left.evaluate() / this.right.evaluate();
+        return this.left.evaluate(context) / this.right.evaluate(context);
       case "%":
-        return this.left.evaluate() % this.right.evaluate();
+        return this.left.evaluate(context) % this.right.evaluate(context);
       case "==":
-        return this.left.evaluate() == this.right.evaluate() ? 1 : 0;
+        return this.left.evaluate(context) == this.right.evaluate(context)
+          ? 1
+          : 0;
       case "!=":
-        return this.left.evaluate() != this.right.evaluate() ? 1 : 0;
+        return this.left.evaluate(context) != this.right.evaluate(context)
+          ? 1
+          : 0;
       case "<":
-        return this.left.evaluate() < this.right.evaluate() ? 1 : 0;
+        return this.left.evaluate(context) < this.right.evaluate(context)
+          ? 1
+          : 0;
       case ">":
-        return this.left.evaluate() > this.right.evaluate() ? 1 : 0;
+        return this.left.evaluate(context) > this.right.evaluate(context)
+          ? 1
+          : 0;
       case "<=":
-        return this.left.evaluate() <= this.right.evaluate() ? 1 : 0;
+        return this.left.evaluate(context) <= this.right.evaluate(context)
+          ? 1
+          : 0;
       case ">=":
-        return this.left.evaluate() >= this.right.evaluate() ? 1 : 0;
+        return this.left.evaluate(context) >= this.right.evaluate(context)
+          ? 1
+          : 0;
       case "&&":
-        return this.left.evaluate() && this.right.evaluate() ? 1 : 0;
+        return this.left.evaluate(context) && this.right.evaluate(context)
+          ? 1
+          : 0;
       case "||":
-        return this.left.evaluate() || this.right.evaluate() ? 1 : 0;
+        return this.left.evaluate(context) || this.right.evaluate(context)
+          ? 1
+          : 0;
       default:
         throw new Error(`Unknown operator ${this.operator}`);
     }
