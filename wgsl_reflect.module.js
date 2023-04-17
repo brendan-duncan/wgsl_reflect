@@ -527,22 +527,105 @@ class CallExpr extends Expression {
     }
     evaluate(context) {
         switch (this.name) {
-            case "sin":
-                return Math.sin(this.args[0].evaluate(context));
-            case "cos":
-                return Math.cos(this.args[0].evaluate(context));
-            case "tan":
-                return Math.tan(this.args[0].evaluate(context));
-            case "asin":
-                return Math.asin(this.args[0].evaluate(context));
+            case "abs":
+                return Math.abs(this.args[0].evaluate(context));
             case "acos":
                 return Math.acos(this.args[0].evaluate(context));
+            case "acosh":
+                return Math.acosh(this.args[0].evaluate(context));
+            case "asin":
+                return Math.asin(this.args[0].evaluate(context));
+            case "asinh":
+                return Math.asinh(this.args[0].evaluate(context));
             case "atan":
                 return Math.atan(this.args[0].evaluate(context));
-            case "radians":
-                return (this.args[0].evaluate(context) * Math.PI) / 180;
+            case "atan2":
+                return Math.atan2(this.args[0].evaluate(context), this.args[1].evaluate(context));
+            case "atanh":
+                return Math.atanh(this.args[0].evaluate(context));
+            case "ceil":
+                return Math.ceil(this.args[0].evaluate(context));
+            case "clamp":
+                return Math.min(Math.max(this.args[0].evaluate(context), this.args[1].evaluate(context)), this.args[2].evaluate(context));
+            case "cos":
+                return Math.cos(this.args[0].evaluate(context));
+            //case "cross":
+            //TODO: (x[i] * y[j] - x[j] * y[i])
             case "degrees":
                 return (this.args[0].evaluate(context) * 180) / Math.PI;
+            //case "determinant":
+            //TODO implement
+            case "distance":
+                return Math.sqrt(Math.pow(this.args[0].evaluate(context) - this.args[1].evaluate(context), 2));
+            case "dot":
+            //TODO: (x[i] * y[i])
+            case "exp":
+                return Math.exp(this.args[0].evaluate(context));
+            case "exp2":
+                return Math.pow(2, this.args[0].evaluate(context));
+            //case "extractBits":
+            //TODO: implement
+            //case "firstLeadingBit":
+            //TODO: implement
+            case "floor":
+                return Math.floor(this.args[0].evaluate(context));
+            case "fma":
+                return (this.args[0].evaluate(context) * this.args[1].evaluate(context) +
+                    this.args[2].evaluate(context));
+            case "fract":
+                return (this.args[0].evaluate(context) -
+                    Math.floor(this.args[0].evaluate(context)));
+            //case "frexp":
+            //TODO: implement
+            case "inverseSqrt":
+                return 1 / Math.sqrt(this.args[0].evaluate(context));
+            //case "length":
+            //TODO: implement
+            case "log":
+                return Math.log(this.args[0].evaluate(context));
+            case "log2":
+                return Math.log2(this.args[0].evaluate(context));
+            case "max":
+                return Math.max(this.args[0].evaluate(context), this.args[1].evaluate(context));
+            case "min":
+                return Math.min(this.args[0].evaluate(context), this.args[1].evaluate(context));
+            case "mix":
+                return (this.args[0].evaluate(context) *
+                    (1 - this.args[2].evaluate(context)) +
+                    this.args[1].evaluate(context) * this.args[2].evaluate(context));
+            case "modf":
+                return (this.args[0].evaluate(context) -
+                    Math.floor(this.args[0].evaluate(context)));
+            case "pow":
+                return Math.pow(this.args[0].evaluate(context), this.args[1].evaluate(context));
+            case "radians":
+                return (this.args[0].evaluate(context) * Math.PI) / 180;
+            case "round":
+                return Math.round(this.args[0].evaluate(context));
+            case "sign":
+                return Math.sign(this.args[0].evaluate(context));
+            case "sin":
+                return Math.sin(this.args[0].evaluate(context));
+            case "sinh":
+                return Math.sinh(this.args[0].evaluate(context));
+            case "saturate":
+                return Math.min(Math.max(this.args[0].evaluate(context), 0), 1);
+            case "smoothstep":
+                return (this.args[0].evaluate(context) *
+                    this.args[0].evaluate(context) *
+                    (3 - 2 * this.args[0].evaluate(context)));
+            case "sqrt":
+                return Math.sqrt(this.args[0].evaluate(context));
+            case "step":
+                return this.args[0].evaluate(context) < this.args[1].evaluate(context)
+                    ? 0
+                    : 1;
+            case "tan":
+                return Math.tan(this.args[0].evaluate(context));
+            case "tanh":
+                return Math.tanh(this.args[0].evaluate(context));
+            case "trunc":
+                return Math.trunc(this.args[0].evaluate(context));
             default:
                 throw new Error("Non const function: " + this.name);
         }
