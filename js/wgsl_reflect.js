@@ -231,6 +231,7 @@ class WgslReflect {
             return null;
         if (name instanceof AST.Struct)
             return name;
+        name = this.getAlias(name) || name;
         if (name instanceof AST.Type) {
             name = name.name;
         }
@@ -251,7 +252,7 @@ class WgslReflect {
         }
         for (const u of this.aliases) {
             if (u.name == type)
-                return u.type;
+                return this.getAlias(u.type) || u.type;
         }
         return null;
     }
@@ -320,7 +321,7 @@ class WgslReflect {
             const info = this.getTypeInfo(member);
             if (!info)
                 continue;
-            const type = member.type;
+            const type = this.getAlias(member.type) || member.type;
             const align = info.align;
             const size = info.size;
             offset = this._roundUp(align, offset + lastSize);
@@ -366,21 +367,22 @@ class WgslReflect {
         const typeInfo = this.getTypeInfo(n.type);
         if (typeInfo === null)
             return null;
-        const info = new BufferInfo(node.name, n.type);
+        const type = this.getAlias(n.type) || n.type;
+        const info = new BufferInfo(node.name, type);
         info.align = typeInfo.align;
         info.size = typeInfo.size;
-        let s = this.getStruct((_a = n.type["format"]) === null || _a === void 0 ? void 0 : _a.name);
+        let s = this.getStruct((_a = type["format"]) === null || _a === void 0 ? void 0 : _a.name);
         let si = s ? this.getStructInfo(s) : undefined;
-        info.isArray = n.type.astNodeType === "array";
+        info.isArray = type.astNodeType === "array";
         info.isStruct = !!s;
         info.members = info.isStruct ? si === null || si === void 0 ? void 0 : si.members : undefined;
         info.name = n.name;
-        info.type = n.type;
+        info.type = type;
         info.arrayStride =
             ((_b = si === null || si === void 0 ? void 0 : si.size) !== null && _b !== void 0 ? _b : info.isArray)
-                ? (_c = this.getTypeInfo(n.type["format"])) === null || _c === void 0 ? void 0 : _c.size
-                : (_d = this.getTypeInfo(n.type)) === null || _d === void 0 ? void 0 : _d.size;
-        info.arrayCount = parseInt((_e = n.type["count"]) !== null && _e !== void 0 ? _e : 0);
+                ? (_c = this.getTypeInfo(type["format"])) === null || _c === void 0 ? void 0 : _c.size
+                : (_d = this.getTypeInfo(type)) === null || _d === void 0 ? void 0 : _d.size;
+        info.arrayCount = parseInt((_e = type["count"]) !== null && _e !== void 0 ? _e : 0);
         return info;
     }
     getUniformBufferInfo(uniform) {
@@ -404,11 +406,9 @@ class WgslReflect {
             if (alias !== null) {
                 type = alias;
             }
-            else {
-                const struct = this.getStruct(type.name);
-                if (struct !== null)
-                    type = struct;
-            }
+            const struct = this.getStruct(type.name);
+            if (struct !== null)
+                type = struct;
         }
         {
             const info = WgslReflect.typeInfo[type.name];

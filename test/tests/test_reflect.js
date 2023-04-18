@@ -51,13 +51,55 @@ group("Reflect", function () {
     const shader = `alias material_index = u32;
         alias color = vec3f;
         struct material {
-            index: material_type,
+            index: material_index,
             diffuse: color,
         }
-        @group(0) @binding(1) var<storage> materials: array<material>;`;
+        @group(0) @binding(1) var<storage> materials: array<material, 10>;`;
 
     const reflect = new WgslReflect(shader);
     test.equals(reflect.aliases.length, 2);
+    const info = reflect.getStorageBufferInfo(reflect.storage[0]);
+    test.equals(!!info, true);
+  });
+
+  test("nested-alias", function (test) {
+    const shader = `
+          struct Foo {
+            a: u32,
+            b: f32,
+          };
+          alias foo1 = Foo;
+          alias foo2 = foo1;
+          alias foo3 = foo2;
+          @group(0) @binding(1) var<storage> materials: foo3;
+    `;
+    const reflect = new WgslReflect(shader);
+    test.equals(reflect.aliases.length, 3);
+    const info = reflect.getStorageBufferInfo(reflect.storage[0]);
+    test.equals(info.isStruct, true);
+    test.equals(info.isArray, false);
+    test.equals(info.members.length, 2);
+    test.equals(info.size, 8);
+  });
+
+  test("nested-alias-array", function (test) {
+    const shader = `
+        struct Foo {
+          a: u32,
+          b: f32,
+        };
+        alias foo1 = Foo;
+        alias foo2 = foo1;
+        alias foo3 = foo2;
+        @group(0) @binding(1) var<storage> materials: array<foo3, 10>;
+    `;
+    const reflect = new WgslReflect(shader);
+    test.equals(reflect.aliases.length, 3);
+    const info = reflect.getStorageBufferInfo(reflect.storage[0]);
+    test.equals(info.isStruct, true);
+    test.equals(info.isArray, true);
+    test.equals(info.members.length, 2);
+    test.equals(info.size, 80);
   });
 
   test("typedef", function (test) {
