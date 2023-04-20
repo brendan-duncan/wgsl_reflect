@@ -339,6 +339,7 @@ export class WgslReflect {
 
     if (name instanceof AST.Struct) return name;
 
+    name = this.getAlias(name) || name;
     if (name instanceof AST.Type) {
       name = name.name;
     }
@@ -361,7 +362,7 @@ export class WgslReflect {
     }
 
     for (const u of this.aliases) {
-      if (u.name == type) return u.type;
+      if (u.name == type) return this.getAlias(u.type) || u.type;
     }
 
     return null;
@@ -455,7 +456,7 @@ export class WgslReflect {
       const info = this.getTypeInfo(member);
       if (!info) continue;
 
-      const type = member.type;
+      const type = this.getAlias(member.type) || member.type;
       const align = info.align;
       const size = info.size;
       offset = this._roundUp(align, offset + lastSize);
@@ -507,25 +508,26 @@ export class WgslReflect {
 
     const typeInfo = this.getTypeInfo(n.type);
     if (typeInfo === null) return null;
+    const type = this.getAlias(n.type) || n.type;
 
-    const info = new BufferInfo(node.name, n.type);
+    const info = new BufferInfo(node.name, type);
     info.align = typeInfo.align;
     info.size = typeInfo.size;
 
-    let s = this.getStruct(n.type["format"]?.name);
+    let s = this.getStruct(type["format"]?.name);
     let si = s ? this.getStructInfo(s) : undefined;
 
-    info.isArray = n.type.astNodeType === "array";
+    info.isArray = type.astNodeType === "array";
     info.isStruct = !!s;
 
     info.members = info.isStruct ? si?.members : undefined;
     info.name = n.name;
-    info.type = n.type;
+    info.type = type;
     info.arrayStride =
       si?.size ?? info.isArray
-        ? this.getTypeInfo(n.type["format"])?.size
-        : this.getTypeInfo(n.type)?.size;
-    info.arrayCount = parseInt(n.type["count"] ?? 0);
+        ? this.getTypeInfo(type["format"])?.size
+        : this.getTypeInfo(type)?.size;
+    info.arrayCount = parseInt(type["count"] ?? 0);
 
     return info;
   }
@@ -539,6 +541,8 @@ export class WgslReflect {
     return info;
   }
 
+
+
   getTypeInfo(type: AST.Type | null | undefined): TypeInfo | null {
     if (type === null || type === undefined) return null;
 
@@ -551,10 +555,9 @@ export class WgslReflect {
       const alias = this.getAlias(type.name);
       if (alias !== null) {
         type = alias;
-      } else {
-        const struct = this.getStruct(type.name);
-        if (struct !== null) type = struct;
       }
+      const struct = this.getStruct(type.name);
+      if (struct !== null) type = struct;
     }
 
     {
