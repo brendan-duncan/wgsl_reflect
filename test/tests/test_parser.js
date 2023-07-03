@@ -280,4 +280,19 @@ struct S {
     test.equals(t[0].body[2].increment.astNodeType, "assign");
     test.equals(t[0].body[3].increment.astNodeType, "call");
   });
+
+  test("inferred type arrays", function (test) {
+    const t = parser.parse(`
+      @vertex fn vs(@builtin(vertex_index) vertexIndex : u32) -> @builtin(position) vec4f {
+      let pos = array(
+        vec2f( 0.0,  0.5),  // top center
+        vec2f(-0.5, -0.5),  // bottom left
+        vec2f( 0.5, -0.5)   // bottom right
+      );
+  
+      return vec4f(pos[vertexIndex], 0.0, 1.0);
+    }`);
+
+    test.equals(t[0].body.length, 2);
+  });
 });
