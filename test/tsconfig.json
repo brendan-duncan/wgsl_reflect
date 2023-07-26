@@ -1,0 +1,23 @@
+{
+    "compilerOptions": {
+        "target": "ES5",
+        "module": "CommonJS",
+        "noImplicitAny": false,
+        "sourceMap": true,
+        "declarationMap": true,
+        "declaration": true,
+        "experimentalDecorators": true,
+        "emitDeclarationOnly": true,
+        "skipLibCheck": true,
+        "esModuleInterop": true,
+        "lib": [
+            "ES2015",
+            "ES2017",
+            "DOM",
+        ],
+        "outDir": "lib"
+    },
+    "include": [
+        "*.ts",
+    ]
+}

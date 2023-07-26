@@ -1,0 +1,9 @@
+{
+    "name": "@feng3d/wgsl_reflect",
+    "$schema": "https://typedoc.org/schema.json",
+    "entryPoints": [
+        "src/index.ts"
+    ],
+    "sourceLinkTemplate": "https://github.com/wardenfeng/wgsl_reflect/tree/master/{path}#L{line}",
+    "out": "public"
+}

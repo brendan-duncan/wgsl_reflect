@@ -1,28 +1,23 @@
 {
-  "compilerOptions": {
-    "target": "es6",
-    "lib": ["es5", "es6", "dom"],
-    "noEmitHelpers": false,
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "sourceMap": true,
-    "pretty": true,
-    "allowUnreachableCode": true,
-    "allowUnusedLabels": true,
-    "noImplicitAny": false,
-    "noImplicitReturns": false,
-    "noImplicitUseStrict": false,
-    "noFallthroughCasesInSwitch": false,
-    "allowSyntheticDefaultImports": true,
-    "outDir": "js"
-  },
-  "files": [
-    "src/wgsl_scanner.ts",
-    "src/wgsl_ast.ts",
-    "src/wgsl_parser.ts",
-    "src/wgsl_reflect.ts"
-  ],
-  "exclude": ["node_modules"],
-  "compileOnSave": true,
-  "buildOnSave": true
+    "compilerOptions": {
+        "target": "ES5",
+        "module": "CommonJS",
+        "noImplicitAny": false,
+        "sourceMap": true,
+        "declarationMap": true,
+        "declaration": true,
+        "experimentalDecorators": true,
+        "emitDeclarationOnly": true,
+        "skipLibCheck": true,
+        "esModuleInterop": true,
+        "lib": [
+            "ES2015",
+            "ES2017",
+            "DOM",
+        ],
+        "outDir": "lib"
+    },
+    "include": [
+        "src/**/*.ts",
+    ]
 }

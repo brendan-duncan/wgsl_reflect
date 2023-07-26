@@ -1,4 +1,5 @@
-export class ParseContext {
+export class ParseContext
+{
   constants: Map<string, Const> = new Map();
   aliases: Map<string, Alias> = new Map();
   structs: Map<string, Struct> = new Map();
@@ -9,22 +10,27 @@ export class ParseContext {
  * @category AST
  * Base class for AST nodes parsed from a WGSL shader.
  */
-export class Node {
-  constructor() {}
+export class Node
+{
+  constructor() { }
 
-  get isAstNode(): boolean {
+  get isAstNode(): boolean
+  {
     return true;
   }
 
-  get astNodeType(): string {
-    return "";
+  get astNodeType(): string
+  {
+    return '';
   }
 
-  evaluate(context: ParseContext): number {
-    throw new Error("Cannot evaluate node");
+  evaluate(context: ParseContext): number
+  {
+    throw new Error('Cannot evaluate node');
   }
 
-  evaluateString(context: ParseContext): string {
+  evaluateString(context: ParseContext): string
+  {
     return this.evaluate(context).toString();
   }
 }
@@ -34,8 +40,10 @@ export class Node {
  * @extends Node
  * @category AST
  */
-export class Statement extends Node {
-  constructor() {
+export class Statement extends Node
+{
+  constructor()
+  {
     super();
   }
 }
@@ -45,7 +53,8 @@ export class Statement extends Node {
  * @extends Statement
  * @category AST
  */
-export class Function extends Statement {
+export class Function extends Statement
+{
   name: string;
   args: Array<Argument>;
   returnType: Type | null;
@@ -57,7 +66,8 @@ export class Function extends Statement {
     args: Array<Argument>,
     returnType: Type | null,
     body: Array<Statement>
-  ) {
+  )
+  {
     super();
     this.name = name;
     this.args = args;
@@ -65,8 +75,9 @@ export class Function extends Statement {
     this.body = body;
   }
 
-  get astNodeType(): string {
-    return "function";
+  get astNodeType(): string
+  {
+    return 'function';
   }
 }
 
@@ -75,16 +86,19 @@ export class Function extends Statement {
  * @extends Statement
  * @category AST
  */
-export class StaticAssert extends Statement {
+export class StaticAssert extends Statement
+{
   expression: Expression;
 
-  constructor(expression: Expression) {
+  constructor(expression: Expression)
+  {
     super();
     this.expression = expression;
   }
 
-  get astNodeType() {
-    return "staticAssert";
+  get astNodeType()
+  {
+    return 'staticAssert';
   }
 }
 
@@ -93,18 +107,21 @@ export class StaticAssert extends Statement {
  * @extends Statement
  * @category AST
  */
-export class While extends Statement {
+export class While extends Statement
+{
   condition: Expression;
   body: Array<Statement>;
 
-  constructor(condition: Expression, body: Array<Statement>) {
+  constructor(condition: Expression, body: Array<Statement>)
+  {
     super();
     this.condition = condition;
     this.body = body;
   }
 
-  get astNodeType() {
-    return "while";
+  get astNodeType()
+  {
+    return 'while';
   }
 }
 
@@ -113,7 +130,8 @@ export class While extends Statement {
  * @extends Statement
  * @category AST
  */
-export class For extends Statement {
+export class For extends Statement
+{
   init: Statement | null;
   condition: Expression | null;
   increment: Statement | null;
@@ -124,7 +142,8 @@ export class For extends Statement {
     condition: Expression | null,
     increment: Statement | null,
     body: Array<Statement>
-  ) {
+  )
+  {
     super();
     this.init = init;
     this.condition = condition;
@@ -132,8 +151,9 @@ export class For extends Statement {
     this.body = body;
   }
 
-  get astNodeType() {
-    return "for";
+  get astNodeType()
+  {
+    return 'for';
   }
 }
 
@@ -142,7 +162,8 @@ export class For extends Statement {
  * @extends Statement
  * @category AST
  */
-export class Var extends Statement {
+export class Var extends Statement
+{
   name: string;
   type: Type | null;
   storage: string | null;
@@ -156,7 +177,8 @@ export class Var extends Statement {
     storage: string | null,
     access: string | null,
     value: Expression | null
-  ) {
+  )
+  {
     super();
     this.name = name;
     this.type = type;
@@ -165,8 +187,9 @@ export class Var extends Statement {
     this.value = value;
   }
 
-  get astNodeType() {
-    return "var";
+  get astNodeType()
+  {
+    return 'var';
   }
 }
 
@@ -175,7 +198,8 @@ export class Var extends Statement {
  * @extends Statement
  * @category AST
  */
-export class Let extends Statement {
+export class Let extends Statement
+{
   name: string;
   type: Type | null;
   storage: string | null;
@@ -189,7 +213,8 @@ export class Let extends Statement {
     storage: string | null,
     access: string | null,
     value: Expression | null
-  ) {
+  )
+  {
     super();
     this.name = name;
     this.type = type;
@@ -198,8 +223,9 @@ export class Let extends Statement {
     this.value = value;
   }
 
-  get astNodeType() {
-    return "let";
+  get astNodeType()
+  {
+    return 'let';
   }
 }
 
@@ -208,7 +234,8 @@ export class Let extends Statement {
  * @extends Statement
  * @category AST
  */
-export class Const extends Statement {
+export class Const extends Statement
+{
   name: string;
   type: Type | null;
   storage: string | null;
@@ -222,7 +249,8 @@ export class Const extends Statement {
     storage: string | null,
     access: string | null,
     value: Expression
-  ) {
+  )
+  {
     super();
     this.name = name;
     this.type = type;
@@ -231,26 +259,21 @@ export class Const extends Statement {
     this.value = value;
   }
 
-  get astNodeType() {
-    return "const";
+  get astNodeType()
+  {
+    return 'const';
   }
 
-  evaluate(context: ParseContext): number {
+  evaluate(context: ParseContext): number
+  {
     return this.value.evaluate(context);
   }
 }
 
-export enum IncrementOperator {
-  increment = "++",
-  decrement = "--",
-}
-
-export namespace IncrementOperator {
-  export function parse(val: string): IncrementOperator {
-    const key = val as keyof typeof IncrementOperator;
-    if (key == "parse") throw new Error("Invalid value for IncrementOperator");
-    return IncrementOperator[key];
-  }
+export enum IncrementOperator
+{
+  increment = '++',
+  decrement = '--',
 }
 
 /**
@@ -258,41 +281,44 @@ export namespace IncrementOperator {
  * @extends Statement
  * @category AST
  */
-export class Increment extends Statement {
+export class Increment extends Statement
+{
   operator: IncrementOperator;
   variable: Expression;
 
-  constructor(operator: IncrementOperator, variable: Expression) {
+  constructor(operator: IncrementOperator, variable: Expression)
+  {
     super();
     this.operator = operator;
     this.variable = variable;
   }
 
-  get astNodeType() {
-    return "increment";
+  get astNodeType()
+  {
+    return 'increment';
   }
 }
 
-export enum AssignOperator {
-  assign = "=",
-  addAssign = "+=",
-  subtractAssin = "-=",
-  multiplyAssign = "*=",
-  divideAssign = "/=",
-  moduloAssign = "%=",
-  andAssign = "&=",
-  orAssign = "|=",
-  xorAssign = "^=",
-  shiftLeftAssign = "<<=",
-  shiftRightAssign = ">>=",
+export enum AssignOperator
+{
+  assign = '=',
+  addAssign = '+=',
+  subtractAssin = '-=',
+  multiplyAssign = '*=',
+  divideAssign = '/=',
+  moduloAssign = '%=',
+  andAssign = '&=',
+  orAssign = '|=',
+  xorAssign = '^=',
+  shiftLeftAssign = '<<=',
+  shiftRightAssign = '>>=',
 }
 
-export namespace AssignOperator {
-  export function parse(val: string): AssignOperator {
-    const key = val as keyof typeof AssignOperator;
-    if (key == "parse") throw new Error("Invalid value for AssignOperator");
-    return AssignOperator[key];
-  }
+export function assignOperatorParse(val: string): AssignOperator
+{
+  const key = val as keyof typeof AssignOperator;
+
+  return AssignOperator[key];
 }
 
 /**
@@ -300,7 +326,8 @@ export namespace AssignOperator {
  * @extends Statement
  * @category AST
  */
-export class Assign extends Statement {
+export class Assign extends Statement
+{
   operator: AssignOperator;
   variable: Expression;
   value: Expression;
@@ -309,15 +336,17 @@ export class Assign extends Statement {
     operator: AssignOperator,
     variable: Expression,
     value: Expression
-  ) {
+  )
+  {
     super();
     this.operator = operator;
     this.variable = variable;
     this.value = value;
   }
 
-  get astNodeType() {
-    return "assign";
+  get astNodeType()
+  {
+    return 'assign';
   }
 }
 
@@ -326,18 +355,21 @@ export class Assign extends Statement {
  * @extends Statement
  * @category AST
  */
-export class Call extends Statement {
+export class Call extends Statement
+{
   name: string;
   args: Array<Expression>;
 
-  constructor(name: string, args: Array<Expression>) {
+  constructor(name: string, args: Array<Expression>)
+  {
     super();
     this.name = name;
     this.args = args;
   }
 
-  get astNodeType() {
-    return "call";
+  get astNodeType()
+  {
+    return 'call';
   }
 }
 
@@ -346,18 +378,21 @@ export class Call extends Statement {
  * @extends Statement
  * @category AST
  */
-export class Loop extends Statement {
+export class Loop extends Statement
+{
   body: Array<Statement>;
   continuing: Array<Statement> | null;
 
-  constructor(body: Array<Statement>, continuing: Array<Statement> | null) {
+  constructor(body: Array<Statement>, continuing: Array<Statement> | null)
+  {
     super();
     this.body = body;
     this.continuing = continuing;
   }
 
-  get astNodeType() {
-    return "loop";
+  get astNodeType()
+  {
+    return 'loop';
   }
 }
 
@@ -366,18 +401,21 @@ export class Loop extends Statement {
  * @extends Statement
  * @category AST
  */
-export class Switch extends Statement {
+export class Switch extends Statement
+{
   condition: Expression;
   body: Array<Statement>;
 
-  constructor(condition: Expression, body: Array<Statement>) {
+  constructor(condition: Expression, body: Array<Statement>)
+  {
     super();
     this.condition = condition;
     this.body = body;
   }
 
-  get astNodeType() {
-    return "body";
+  get astNodeType()
+  {
+    return 'body';
   }
 }
 
@@ -386,7 +424,8 @@ export class Switch extends Statement {
  * @extends Statement
  * @category AST
  */
-export class If extends Statement {
+export class If extends Statement
+{
   condition: Expression;
   body: Array<Statement>;
   elseif: Array<ElseIf> | null;
@@ -397,7 +436,8 @@ export class If extends Statement {
     body: Array<Statement>,
     elseif: Array<ElseIf> | null,
     _else: Array<Statement> | null
-  ) {
+  )
+  {
     super();
     this.condition = condition;
     this.body = body;
@@ -405,8 +445,9 @@ export class If extends Statement {
     this.else = _else;
   }
 
-  get astNodeType() {
-    return "if";
+  get astNodeType()
+  {
+    return 'if';
   }
 }
 
@@ -415,16 +456,19 @@ export class If extends Statement {
  * @extends Statement
  * @category AST
  */
-export class Return extends Statement {
+export class Return extends Statement
+{
   value: Expression;
 
-  constructor(value: Expression) {
+  constructor(value: Expression)
+  {
     super();
     this.value = value;
   }
 
-  get astNodeType() {
-    return "return";
+  get astNodeType()
+  {
+    return 'return';
   }
 }
 
@@ -433,26 +477,32 @@ export class Return extends Statement {
  * @extends Statement
  * @category AST
  */
-export class Struct extends Statement {
+export class Struct extends Statement
+{
   name: string;
   members: Array<Member>;
   attributes: Array<Attribute> | null;
 
-  constructor(name: string, members: Array<Member>) {
+  constructor(name: string, members: Array<Member>)
+  {
     super();
     this.name = name;
     this.members = members;
   }
 
-  get astNodeType() {
-    return "struct";
+  get astNodeType()
+  {
+    return 'struct';
   }
 
-  /// Return the index of the member with the given name, or -1 if not found.
-  getMemberIndex(name: string): number {
-    for (let i = 0; i < this.members.length; i++) {
-      if (this.members[i].name == name) return i;
+  // / Return the index of the member with the given name, or -1 if not found.
+  getMemberIndex(name: string): number
+  {
+    for (let i = 0; i < this.members.length; i++)
+    {
+      if (this.members[i].name === name) return i;
     }
+
     return -1;
   }
 }
@@ -462,16 +512,19 @@ export class Struct extends Statement {
  * @extends Statement
  * @category AST
  */
-export class Enable extends Statement {
+export class Enable extends Statement
+{
   name: string;
 
-  constructor(name: string) {
+  constructor(name: string)
+  {
     super();
     this.name = name;
   }
 
-  get astNodeType() {
-    return "enable";
+  get astNodeType()
+  {
+    return 'enable';
   }
 }
 
@@ -480,18 +533,21 @@ export class Enable extends Statement {
  * @extends Statement
  * @category AST
  */
-export class Alias extends Statement {
+export class Alias extends Statement
+{
   name: string;
   type: Type;
 
-  constructor(name: string, type: Type) {
+  constructor(name: string, type: Type)
+  {
     super();
     this.name = name;
     this.type = type;
   }
 
-  get astNodeType() {
-    return "alias";
+  get astNodeType()
+  {
+    return 'alias';
   }
 }
 
@@ -500,13 +556,16 @@ export class Alias extends Statement {
  * @extends Statement
  * @category AST
  */
-export class Discard extends Statement {
-  constructor() {
+export class Discard extends Statement
+{
+  constructor()
+  {
     super();
   }
 
-  get astNodeType() {
-    return "discard";
+  get astNodeType()
+  {
+    return 'discard';
   }
 }
 
@@ -515,13 +574,16 @@ export class Discard extends Statement {
  * @extends Statement
  * @category AST
  */
-export class Break extends Statement {
-  constructor() {
+export class Break extends Statement
+{
+  constructor()
+  {
     super();
   }
 
-  get astNodeType() {
-    return "break";
+  get astNodeType()
+  {
+    return 'break';
   }
 }
 
@@ -530,13 +592,16 @@ export class Break extends Statement {
  * @extends Statement
  * @category AST
  */
-export class Continue extends Statement {
-  constructor() {
+export class Continue extends Statement
+{
+  constructor()
+  {
     super();
   }
 
-  get astNodeType() {
-    return "continue";
+  get astNodeType()
+  {
+    return 'continue';
   }
 }
 
@@ -545,17 +610,20 @@ export class Continue extends Statement {
  * @extends Node
  * @category AST
  */
-export class Type extends Node {
+export class Type extends Node
+{
   name: string;
   attributes: Array<Attribute> | null;
 
-  constructor(name: string) {
+  constructor(name: string)
+  {
     super();
     this.name = name;
   }
 
-  get astNodeType() {
-    return "type";
+  get astNodeType()
+  {
+    return 'type';
   }
 }
 
@@ -564,18 +632,21 @@ export class Type extends Node {
  * @extends Type
  * @category AST
  */
-export class TemplateType extends Type {
+export class TemplateType extends Type
+{
   format: Type | null;
   access: string | null;
 
-  constructor(name: string, format: Type | null, access: string | null) {
+  constructor(name: string, format: Type | null, access: string | null)
+  {
     super(name);
     this.format = format;
     this.access = access;
   }
 
-  get astNodeType() {
-    return "template";
+  get astNodeType()
+  {
+    return 'template';
   }
 }
 
@@ -584,7 +655,8 @@ export class TemplateType extends Type {
  * @extends Type
  * @category AST
  */
-export class PointerType extends Type {
+export class PointerType extends Type
+{
   storage: string;
   type: Type | null;
   access: string | null;
@@ -594,15 +666,17 @@ export class PointerType extends Type {
     storage: string,
     type: Type | null,
     access: string | null
-  ) {
+  )
+  {
     super(name);
     this.storage = storage;
     this.type = type;
     this.access = access;
   }
 
-  get astNodeType() {
-    return "pointer";
+  get astNodeType()
+  {
+    return 'pointer';
   }
 }
 
@@ -611,7 +685,8 @@ export class PointerType extends Type {
  * @extends Type
  * @category AST
  */
-export class ArrayType extends Type {
+export class ArrayType extends Type
+{
   name: string;
   attributes: Array<Attribute> | null;
   format: Type | null;
@@ -622,15 +697,17 @@ export class ArrayType extends Type {
     attributes: Array<Attribute> | null,
     format: Type | null,
     count: number
-  ) {
+  )
+  {
     super(name);
     this.attributes = attributes;
     this.format = format;
     this.count = count;
   }
 
-  get astNodeType() {
-    return "array";
+  get astNodeType()
+  {
+    return 'array';
   }
 }
 
@@ -639,7 +716,8 @@ export class ArrayType extends Type {
  * @extends Type
  * @category AST
  */
-export class SamplerType extends Type {
+export class SamplerType extends Type
+{
   format: Type | string | null;
   access: string | null;
 
@@ -647,14 +725,16 @@ export class SamplerType extends Type {
     name: string,
     format: Type | string | null,
     access: string | null
-  ) {
+  )
+  {
     super(name);
     this.format = format;
     this.access = access;
   }
 
-  get astNodeType() {
-    return "sampler";
+  get astNodeType()
+  {
+    return 'sampler';
   }
 }
 
@@ -663,10 +743,12 @@ export class SamplerType extends Type {
  * @extends Node
  * @category AST
  */
-export class Expression extends Node {
+export class Expression extends Node
+{
   postfix: Expression | null;
 
-  constructor() {
+  constructor()
+  {
     super();
   }
 }
@@ -676,23 +758,28 @@ export class Expression extends Node {
  * @extends Expression
  * @category AST
  */
-export class StringExpr extends Expression {
+export class StringExpr extends Expression
+{
   value: string;
 
-  constructor(value: string) {
+  constructor(value: string)
+  {
     super();
     this.value = value;
   }
 
-  get astNodeType() {
-    return "stringExpr";
+  get astNodeType()
+  {
+    return 'stringExpr';
   }
 
-  toString(): string {
+  toString(): string
+  {
     return this.value;
   }
 
-  evaluateString(): string {
+  evaluateString(): string
+  {
     return this.value;
   }
 }
@@ -702,18 +789,21 @@ export class StringExpr extends Expression {
  * @extends Expression
  * @category AST
  */
-export class CreateExpr extends Expression {
+export class CreateExpr extends Expression
+{
   type: Type | null;
   args: Array<Expression> | null;
 
-  constructor(type: Type | null, args: Array<Expression> | null) {
+  constructor(type: Type | null, args: Array<Expression> | null)
+  {
     super();
     this.type = type;
     this.args = args;
   }
 
-  get astNodeType() {
-    return "createExpr";
+  get astNodeType()
+  {
+    return 'createExpr';
   }
 }
 
@@ -722,44 +812,49 @@ export class CreateExpr extends Expression {
  * @extends Expression
  * @category AST
  */
-export class CallExpr extends Expression {
+export class CallExpr extends Expression
+{
   name: string;
   args: Array<Expression> | null;
 
-  constructor(name: string, args: Array<Expression> | null) {
+  constructor(name: string, args: Array<Expression> | null)
+  {
     super();
     this.name = name;
     this.args = args;
   }
 
-  get astNodeType() {
-    return "callExpr";
+  get astNodeType()
+  {
+    return 'callExpr';
   }
 
-  evaluate(context: ParseContext): number {
-    switch (this.name) {
-      case "abs":
+  evaluate(context: ParseContext): number
+  {
+    switch (this.name)
+    {
+      case 'abs':
         return Math.abs(this.args[0].evaluate(context));
-      case "acos":
+      case 'acos':
         return Math.acos(this.args[0].evaluate(context));
-      case "acosh":
+      case 'acosh':
         return Math.acosh(this.args[0].evaluate(context));
-      case "asin":
+      case 'asin':
         return Math.asin(this.args[0].evaluate(context));
-      case "asinh":
+      case 'asinh':
         return Math.asinh(this.args[0].evaluate(context));
-      case "atan":
+      case 'atan':
         return Math.atan(this.args[0].evaluate(context));
-      case "atan2":
+      case 'atan2':
         return Math.atan2(
           this.args[0].evaluate(context),
           this.args[1].evaluate(context)
         );
-      case "atanh":
+      case 'atanh':
         return Math.atanh(this.args[0].evaluate(context));
-      case "ceil":
+      case 'ceil':
         return Math.ceil(this.args[0].evaluate(context));
-      case "clamp":
+      case 'clamp':
         return Math.min(
           Math.max(
             this.args[0].evaluate(context),
@@ -767,111 +862,110 @@ export class CallExpr extends Expression {
           ),
           this.args[2].evaluate(context)
         );
-      case "cos":
+      case 'cos':
         return Math.cos(this.args[0].evaluate(context));
-      //case "cross":
-      //TODO: (x[i] * y[j] - x[j] * y[i])
-      case "degrees":
+      // case "cross":
+      // TODO: (x[i] * y[j] - x[j] * y[i])
+      case 'degrees':
         return (this.args[0].evaluate(context) * 180) / Math.PI;
-      //case "determinant":
-      //TODO implement
-      case "distance":
+      // case "determinant":
+      // TODO implement
+      case 'distance':
         return Math.sqrt(
           Math.pow(
             this.args[0].evaluate(context) - this.args[1].evaluate(context),
             2
           )
         );
-      case "dot":
-      //TODO: (x[i] * y[i])
-      case "exp":
+      case 'dot': // TODO: (x[i] * y[i])
+      case 'exp':
         return Math.exp(this.args[0].evaluate(context));
-      case "exp2":
+      case 'exp2':
         return Math.pow(2, this.args[0].evaluate(context));
-      //case "extractBits":
-      //TODO: implement
-      //case "firstLeadingBit":
-      //TODO: implement
-      case "floor":
+      // case "extractBits":
+      // TODO: implement
+      // case "firstLeadingBit":
+      // TODO: implement
+      case 'floor':
         return Math.floor(this.args[0].evaluate(context));
-      case "fma":
+      case 'fma':
         return (
-          this.args[0].evaluate(context) * this.args[1].evaluate(context) +
-          this.args[2].evaluate(context)
+          this.args[0].evaluate(context) * this.args[1].evaluate(context)
+          + this.args[2].evaluate(context)
         );
-      case "fract":
+      case 'fract':
         return (
-          this.args[0].evaluate(context) -
-          Math.floor(this.args[0].evaluate(context))
+          this.args[0].evaluate(context)
+          - Math.floor(this.args[0].evaluate(context))
         );
-      //case "frexp":
-      //TODO: implement
-      case "inverseSqrt":
+      // case "frexp":
+      // TODO: implement
+      case 'inverseSqrt':
         return 1 / Math.sqrt(this.args[0].evaluate(context));
-      //case "length":
-      //TODO: implement
-      case "log":
+      // case "length":
+      // TODO: implement
+      case 'log':
         return Math.log(this.args[0].evaluate(context));
-      case "log2":
+      case 'log2':
         return Math.log2(this.args[0].evaluate(context));
-      case "max":
+      case 'max':
         return Math.max(
           this.args[0].evaluate(context),
           this.args[1].evaluate(context)
         );
-      case "min":
+      case 'min':
         return Math.min(
           this.args[0].evaluate(context),
           this.args[1].evaluate(context)
         );
-      case "mix":
+      case 'mix':
         return (
-          this.args[0].evaluate(context) *
-            (1 - this.args[2].evaluate(context)) +
-          this.args[1].evaluate(context) * this.args[2].evaluate(context)
+          this.args[0].evaluate(context)
+          * (1 - this.args[2].evaluate(context))
+          + this.args[1].evaluate(context) * this.args[2].evaluate(context)
         );
-      case "modf":
+      case 'modf':
         return (
-          this.args[0].evaluate(context) -
-          Math.floor(this.args[0].evaluate(context))
+          this.args[0].evaluate(context)
+          - Math.floor(this.args[0].evaluate(context))
         );
-      case "pow":
+      case 'pow':
         return Math.pow(
           this.args[0].evaluate(context),
           this.args[1].evaluate(context)
         );
-      case "radians":
+      case 'radians':
         return (this.args[0].evaluate(context) * Math.PI) / 180;
-      case "round":
+      case 'round':
         return Math.round(this.args[0].evaluate(context));
-      case "sign":
+      case 'sign':
         return Math.sign(this.args[0].evaluate(context));
-      case "sin":
+      case 'sin':
         return Math.sin(this.args[0].evaluate(context));
-      case "sinh":
+      case 'sinh':
         return Math.sinh(this.args[0].evaluate(context));
-      case "saturate":
+      case 'saturate':
         return Math.min(Math.max(this.args[0].evaluate(context), 0), 1);
-      case "smoothstep":
+      case 'smoothstep':
         return (
-          this.args[0].evaluate(context) *
-          this.args[0].evaluate(context) *
-          (3 - 2 * this.args[0].evaluate(context))
+          this.args[0].evaluate(context)
+          * this.args[0].evaluate(context)
+          * (3 - 2 * this.args[0].evaluate(context))
         );
-      case "sqrt":
+      case 'sqrt':
         return Math.sqrt(this.args[0].evaluate(context));
-      case "step":
+      case 'step':
         return this.args[0].evaluate(context) < this.args[1].evaluate(context)
           ? 0
           : 1;
-      case "tan":
+      case 'tan':
         return Math.tan(this.args[0].evaluate(context));
-      case "tanh":
+      case 'tanh':
         return Math.tanh(this.args[0].evaluate(context));
-      case "trunc":
+      case 'trunc':
         return Math.trunc(this.args[0].evaluate(context));
       default:
-        throw new Error("Non const function: " + this.name);
+        throw new Error(`Non const function: ${this.name}`);
     }
   }
 }
@@ -881,16 +975,19 @@ export class CallExpr extends Expression {
  * @extends Expression
  * @category AST
  */
-export class VariableExpr extends Expression {
+export class VariableExpr extends Expression
+{
   name: string;
 
-  constructor(name: string) {
+  constructor(name: string)
+  {
     super();
     this.name = name;
   }
 
-  get astNodeType() {
-    return "varExpr";
+  get astNodeType()
+  {
+    return 'varExpr';
   }
 }
 
@@ -899,29 +996,36 @@ export class VariableExpr extends Expression {
  * @extends Expression
  * @category AST
  */
-export class ConstExpr extends Expression {
+export class ConstExpr extends Expression
+{
   name: string;
   initializer: Expression;
 
-  constructor(name: string, initializer: Expression) {
+  constructor(name: string, initializer: Expression)
+  {
     super();
     this.name = name;
     this.initializer = initializer;
   }
 
-  get astNodeType() {
-    return "constExpr";
+  get astNodeType()
+  {
+    return 'constExpr';
   }
 
-  evaluate(context: ParseContext): number {
-    if (this.initializer instanceof CreateExpr) {
+  evaluate(context: ParseContext): number
+  {
+    if (this.initializer instanceof CreateExpr)
+    {
       // This is a struct constant
       const property = this.postfix?.evaluateString(context);
       const type = this.initializer.type?.name;
       const struct = context.structs.get(type);
       const memberIndex = struct?.getMemberIndex(property);
-      if (memberIndex != -1) {
+      if (memberIndex !== -1)
+      {
         const value = this.initializer.args[memberIndex].evaluate(context);
+
         return value;
       }
       console.log(memberIndex);
@@ -936,19 +1040,23 @@ export class ConstExpr extends Expression {
  * @extends Expression
  * @category AST
  */
-export class LiteralExpr extends Expression {
+export class LiteralExpr extends Expression
+{
   value: number;
 
-  constructor(value: number) {
+  constructor(value: number)
+  {
     super();
     this.value = value;
   }
 
-  get astNodeType() {
-    return "literalExpr";
+  get astNodeType()
+  {
+    return 'literalExpr';
   }
 
-  evaluate(): number {
+  evaluate(): number
+  {
     return this.value;
   }
 }
@@ -958,18 +1066,21 @@ export class LiteralExpr extends Expression {
  * @extends Expression
  * @category AST
  */
-export class BitcastExpr extends Expression {
+export class BitcastExpr extends Expression
+{
   type: Type | null;
   value: Expression;
 
-  constructor(type: Type | null, value: Expression) {
+  constructor(type: Type | null, value: Expression)
+  {
     super();
     this.type = type;
     this.value = value;
   }
 
-  get astNodeType() {
-    return "bitcastExpr";
+  get astNodeType()
+  {
+    return 'bitcastExpr';
   }
 }
 
@@ -978,21 +1089,25 @@ export class BitcastExpr extends Expression {
  * @extends Expression
  * @category AST
  */
-export class TypecastExpr extends Expression {
+export class TypecastExpr extends Expression
+{
   type: Type | null;
   args: Array<Expression> | null;
 
-  constructor(type: Type | null, args: Array<Expression> | null) {
+  constructor(type: Type | null, args: Array<Expression> | null)
+  {
     super();
     this.type = type;
     this.args = args;
   }
 
-  get astNodeType() {
-    return "typecastExpr";
+  get astNodeType()
+  {
+    return 'typecastExpr';
   }
 
-  evaluate(context: ParseContext): number {
+  evaluate(context: ParseContext): number
+  {
     return this.args[0].evaluate(context);
   }
 }
@@ -1002,19 +1117,23 @@ export class TypecastExpr extends Expression {
  * @extends Expression
  * @category AST
  */
-export class GroupingExpr extends Expression {
+export class GroupingExpr extends Expression
+{
   contents: Array<Expression>;
 
-  constructor(contents: Array<Expression>) {
+  constructor(contents: Array<Expression>)
+  {
     super();
     this.contents = contents;
   }
 
-  get astNodeType() {
-    return "groupExpr";
+  get astNodeType()
+  {
+    return 'groupExpr';
   }
 
-  evaluate(context: ParseContext): number {
+  evaluate(context: ParseContext): number
+  {
     return this.contents[0].evaluate(context);
   }
 }
@@ -1024,8 +1143,10 @@ export class GroupingExpr extends Expression {
  * @extends Expression
  * @category AST
  */
-export class Operator extends Expression {
-  constructor() {
+export class Operator extends Expression
+{
+  constructor()
+  {
     super();
   }
 }
@@ -1036,32 +1157,37 @@ export class Operator extends Expression {
  * @category AST
  * @property {string} operator +, -, !, ~
  */
-export class UnaryOperator extends Operator {
+export class UnaryOperator extends Operator
+{
   operator: string;
   right: Expression;
 
-  constructor(operator: string, right: Expression) {
+  constructor(operator: string, right: Expression)
+  {
     super();
     this.operator = operator;
     this.right = right;
   }
 
-  get astNodeType() {
-    return "unaryOp";
+  get astNodeType()
+  {
+    return 'unaryOp';
   }
 
-  evaluate(context: ParseContext): number {
-    switch (this.operator) {
-      case "+":
+  evaluate(context: ParseContext): number
+  {
+    switch (this.operator)
+    {
+      case '+':
         return this.right.evaluate(context);
-      case "-":
+      case '-':
         return -this.right.evaluate(context);
-      case "!":
+      case '!':
         return this.right.evaluate(context) ? 0 : 1;
-      case "~":
+      case '~':
         return ~this.right.evaluate(context);
       default:
-        throw new Error("Unknown unary operator: " + this.operator);
+        throw new Error(`Unknown unary operator: ${this.operator}`);
     }
   }
 }
@@ -1072,63 +1198,68 @@ export class UnaryOperator extends Operator {
  * @category AST
  * @property {string} operator +, -, *, /, %, ==, !=, <, >, <=, >=, &&, ||
  */
-export class BinaryOperator extends Operator {
+export class BinaryOperator extends Operator
+{
   operator: string;
   left: Expression;
   right: Expression;
 
-  constructor(operator: string, left: Expression, right: Expression) {
+  constructor(operator: string, left: Expression, right: Expression)
+  {
     super();
     this.operator = operator;
     this.left = left;
     this.right = right;
   }
 
-  get astNodeType() {
-    return "binaryOp";
+  get astNodeType()
+  {
+    return 'binaryOp';
   }
 
-  evaluate(context: ParseContext): number {
-    switch (this.operator) {
-      case "+":
+  evaluate(context: ParseContext): number
+  {
+    switch (this.operator)
+    {
+      case '+':
         return this.left.evaluate(context) + this.right.evaluate(context);
-      case "-":
+      case '-':
         return this.left.evaluate(context) - this.right.evaluate(context);
-      case "*":
+      case '*':
         return this.left.evaluate(context) * this.right.evaluate(context);
-      case "/":
+      case '/':
         return this.left.evaluate(context) / this.right.evaluate(context);
-      case "%":
+      case '%':
         return this.left.evaluate(context) % this.right.evaluate(context);
-      case "==":
-        return this.left.evaluate(context) == this.right.evaluate(context)
+      case '==':
+        return this.left.evaluate(context) === this.right.evaluate(context)
           ? 1
           : 0;
-      case "!=":
-        return this.left.evaluate(context) != this.right.evaluate(context)
+      case '!=':
+        return this.left.evaluate(context) !== this.right.evaluate(context)
           ? 1
           : 0;
-      case "<":
+      case '<':
         return this.left.evaluate(context) < this.right.evaluate(context)
           ? 1
           : 0;
-      case ">":
+      case '>':
         return this.left.evaluate(context) > this.right.evaluate(context)
           ? 1
           : 0;
-      case "<=":
+      case '<=':
         return this.left.evaluate(context) <= this.right.evaluate(context)
           ? 1
           : 0;
-      case ">=":
+      case '>=':
         return this.left.evaluate(context) >= this.right.evaluate(context)
           ? 1
           : 0;
-      case "&&":
+      case '&&':
         return this.left.evaluate(context) && this.right.evaluate(context)
           ? 1
           : 0;
-      case "||":
+      case '||':
         return this.left.evaluate(context) || this.right.evaluate(context)
           ? 1
           : 0;
@@ -1143,8 +1274,10 @@ export class BinaryOperator extends Operator {
  * @extends Node
  * @category AST
  */
-export class SwitchCase extends Node {
-  constructor() {
+export class SwitchCase extends Node
+{
+  constructor()
+  {
     super();
   }
 }
@@ -1154,18 +1287,21 @@ export class SwitchCase extends Node {
  * @extends SwitchCase
  * @category AST
  */
-export class Case extends SwitchCase {
+export class Case extends SwitchCase
+{
   selector: Array<string>;
   body: Array<Statement>;
 
-  constructor(selector: Array<string>, body: Array<Statement>) {
+  constructor(selector: Array<string>, body: Array<Statement>)
+  {
     super();
     this.selector = selector;
     this.body = body;
   }
 
-  get astNodeType() {
-    return "case";
+  get astNodeType()
+  {
+    return 'case';
   }
 }
 
@@ -1174,16 +1310,19 @@ export class Case extends SwitchCase {
  * @extends SwitchCase
  * @category AST
  */
-export class Default extends SwitchCase {
+export class Default extends SwitchCase
+{
   body: Array<Statement>;
 
-  constructor(body: Array<Statement>) {
+  constructor(body: Array<Statement>)
+  {
     super();
     this.body = body;
   }
 
-  get astNodeType() {
-    return "default";
+  get astNodeType()
+  {
+    return 'default';
   }
 }
 
@@ -1192,20 +1331,23 @@ export class Default extends SwitchCase {
  * @extends Node
  * @category AST
  */
-export class Argument extends Node {
+export class Argument extends Node
+{
   name: string;
   type: Type;
   attributes: Array<Attribute> | null;
 
-  constructor(name: string, type: Type, attributes: Array<Attribute> | null) {
+  constructor(name: string, type: Type, attributes: Array<Attribute> | null)
+  {
     super();
     this.name = name;
     this.type = type;
     this.attributes = attributes;
   }
 
-  get astNodeType() {
-    return "argument";
+  get astNodeType()
+  {
+    return 'argument';
   }
 }
 
@@ -1214,18 +1356,21 @@ export class Argument extends Node {
  * @extends Node
  * @category AST
  */
-export class ElseIf extends Node {
+export class ElseIf extends Node
+{
   condition: Expression;
   body: Array<Statement>;
 
-  constructor(condition: Expression, body: Array<Statement>) {
+  constructor(condition: Expression, body: Array<Statement>)
+  {
     super();
     this.condition = condition;
     this.body = body;
   }
 
-  get astNodeType() {
-    return "elseif";
+  get astNodeType()
+  {
+    return 'elseif';
   }
 }
 
@@ -1234,7 +1379,8 @@ export class ElseIf extends Node {
  * @extends Node
  * @category AST
  */
-export class Member extends Node {
+export class Member extends Node
+{
   name: string;
   type: Type | null;
   attributes: Array<Attribute> | null;
@@ -1243,15 +1389,17 @@ export class Member extends Node {
     name: string,
     type: Type | null,
     attributes: Array<Attribute> | null
-  ) {
+  )
+  {
     super();
     this.name = name;
     this.type = type;
     this.attributes = attributes;
   }
 
-  get astNodeType() {
-    return "member";
+  get astNodeType()
+  {
+    return 'member';
   }
 }
 
@@ -1260,17 +1408,20 @@ export class Member extends Node {
  * @extends Node
  * @category AST
  */
-export class Attribute extends Node {
+export class Attribute extends Node
+{
   name: string;
   value: string | Array<string> | null;
 
-  constructor(name: string, value: string | Array<string> | null) {
+  constructor(name: string, value: string | Array<string> | null)
+  {
     super();
     this.name = name;
     this.value = value;
   }
 
-  get astNodeType() {
-    return "attribute";
+  get astNodeType()
+  {
+    return 'attribute';
   }
 }
