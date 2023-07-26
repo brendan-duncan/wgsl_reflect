@@ -20,7 +20,7 @@ export class VariableInfo {
     return this.node.name;
   }
 
-  get type(): AST.Type | null {
+  get type(): AST.Type{
     return this.node.type;
   }
 
