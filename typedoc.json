@@ -4,6 +4,6 @@
     "entryPoints": [
         "src/index.ts"
     ],
-    "sourceLinkTemplate": "https://github.com/wardenfeng/wgsl_reflect/tree/master/{path}#L{line}",
+    "sourceLinkTemplate": "https://gitlab.com/wardenfeng/wgsl_reflect/tree/master/{path}#L{line}",
     "out": "public"
 }
