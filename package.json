@@ -1,50 +1,63 @@
 {
-  "name": "wgsl_reflect",
-  "version": "0.1.1",
+  "name": "@feng3d/wgsl_reflect",
+  "version": "0.0.1",
   "description": "WGSL Parser and Reflection library",
-  "module": "wgsl_reflect.module.js",
-  "types": "wgsl_reflect.module.d.ts",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/brendan-duncan/wgsl_reflect"
-  },
-  "sideEffects": false,
-  "files": [
-    "wgsl_reflect.module.js",
-    "LICENSE.md",
-    "package.json",
-    "README.md",
-    "wgsl"
-  ],
-  "directories": {
-      "test": "test"
-  },
-  "scripts": {
-    "prebuild": "tsc",
-    "build": "rollup -c rollup.config.js"
-  },
-  "keywords": [
-    "wgsl_reflect",
-    "webgpu",
-    "wgsl",
-    "javascript",
-    "html5"
-  ],
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "module": "src/index.ts",
   "author": "Brendan Duncan",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/brendan-duncan/wgsl_reflect/issues"
+  "scripts": {
+    "dev": "cd examples && npm run dev",
+    "clean": "rimraf \"{lib,dist,public}\"",
+    "build": "vite build",
+    "build:w": "vite build -w",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "types": "tsc",
+    "watch": "tsc -w",
+    "lint": "eslint --ext .js --ext .ts src test --ignore-path .gitignore --max-warnings 0",
+    "lintfix": "npm run lint -- --fix",
+    "docs": "typedoc && cd examples && vite build --outDir ../public",
+    "release": "npm run clean && npm run lint && npm run docs && npm run build && npm run types && npm publish",
+    "prepublishOnly": "node scripts/prepublish.js",
+    "postpublish": "node scripts/postpublish.js"
   },
-  "homepage": "https://github.com/brendan-duncan/wgsl_reflect",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wardenfeng/wgsl_reflect.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist/",
+    "lib",
+    "src"
+  ],
   "devDependencies": {
-    "rollup": "^2.60.0"
+    "@typescript-eslint/eslint-plugin": "5.17.0",
+    "@typescript-eslint/parser": "5.17.0",
+    "@vitest/ui": "^0.32.2",
+    "cross-env": "7.0.3",
+    "eslint": "8.12.0",
+    "rimraf": "3.0.2",
+    "tslib": "^2.4.0",
+    "typedoc": "^0.24.8",
+    "typescript": "5.1.3",
+    "vite": "^4.3.9",
+    "vitest": "^0.32.2"
   },
-  "jspm": {
-      "files": [
-          "package.json",
-          "LICENSE.md",
-          "README.md",
-          "wgsl_reflect.module.js"
-      ]
+  "dependencies": {},
+  "oldconfig": {
+    "version": "0.1.1",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/brendan-duncan/wgsl_reflect"
+    },
+    "bugs": {
+      "url": "https://github.com/brendan-duncan/wgsl_reflect/issues"
+    },
+    "homepage": "https://github.com/brendan-duncan/wgsl_reflect",
   }
 }

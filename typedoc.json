@@ -1,0 +1,9 @@
+{
+    "name": "webgpu",
+    "$schema": "https://typedoc.org/schema.json",
+    "entryPoints": [
+        "src/index.ts"
+    ],
+    "sourceLinkTemplate": "https://gitlab.com/wardenfeng/webgpu/tree/master/{path}#L{line}",
+    "out": "public/docs"
+}
