@@ -21,12 +21,12 @@ export class Node
 
   get astNodeType(): string
   {
-    return "";
+    return '';
   }
 
   evaluate(context: ParseContext): number
   {
-    throw new Error("Cannot evaluate node");
+    throw new Error('Cannot evaluate node');
   }
 
   evaluateString(context: ParseContext): string
@@ -77,7 +77,7 @@ export class Function extends Statement
 
   get astNodeType(): string
   {
-    return "function";
+    return 'function';
   }
 }
 
@@ -98,7 +98,7 @@ export class StaticAssert extends Statement
 
   get astNodeType()
   {
-    return "staticAssert";
+    return 'staticAssert';
   }
 }
 
@@ -121,7 +121,7 @@ export class While extends Statement
 
   get astNodeType()
   {
-    return "while";
+    return 'while';
   }
 }
 
@@ -153,7 +153,7 @@ export class For extends Statement
 
   get astNodeType()
   {
-    return "for";
+    return 'for';
   }
 }
 
@@ -189,7 +189,7 @@ export class Var extends Statement
 
   get astNodeType()
   {
-    return "var";
+    return 'var';
   }
 }
 
@@ -225,7 +225,7 @@ export class Let extends Statement
 
   get astNodeType()
   {
-    return "let";
+    return 'let';
   }
 }
 
@@ -261,7 +261,7 @@ export class Const extends Statement
 
   get astNodeType()
   {
-    return "const";
+    return 'const';
   }
 
   evaluate(context: ParseContext): number
@@ -272,18 +272,8 @@ export class Const extends Statement
 
 export enum IncrementOperator
 {
-  increment = "++",
-  decrement = "--",
-}
-
-export namespace IncrementOperator
-{
-  export function parse(val: string): IncrementOperator
-  {
-    const key = val as keyof typeof IncrementOperator;
-    if (key == "parse") throw new Error("Invalid value for IncrementOperator");
-    return IncrementOperator[key];
-  }
+  increment = '++',
+  decrement = '--',
 }
 
 /**
@@ -305,33 +295,30 @@ export class Increment extends Statement
 
   get astNodeType()
   {
-    return "increment";
+    return 'increment';
   }
 }
 
 export enum AssignOperator
 {
-  assign = "=",
-  addAssign = "+=",
-  subtractAssin = "-=",
-  multiplyAssign = "*=",
-  divideAssign = "/=",
-  moduloAssign = "%=",
-  andAssign = "&=",
-  orAssign = "|=",
-  xorAssign = "^=",
-  shiftLeftAssign = "<<=",
-  shiftRightAssign = ">>=",
+  assign = '=',
+  addAssign = '+=',
+  subtractAssin = '-=',
+  multiplyAssign = '*=',
+  divideAssign = '/=',
+  moduloAssign = '%=',
+  andAssign = '&=',
+  orAssign = '|=',
+  xorAssign = '^=',
+  shiftLeftAssign = '<<=',
+  shiftRightAssign = '>>=',
 }
 
-export namespace AssignOperator
+export function assignOperatorParse(val: string): AssignOperator
 {
-  export function parse(val: string): AssignOperator
-  {
-    const key = val as keyof typeof AssignOperator;
-    if (key == "parse") throw new Error("Invalid value for AssignOperator");
-    return AssignOperator[key];
-  }
+  const key = val as keyof typeof AssignOperator;
+
+  return AssignOperator[key];
 }
 
 /**
@@ -359,7 +346,7 @@ export class Assign extends Statement
 
   get astNodeType()
   {
-    return "assign";
+    return 'assign';
   }
 }
 
@@ -382,7 +369,7 @@ export class Call extends Statement
 
   get astNodeType()
   {
-    return "call";
+    return 'call';
   }
 }
 
@@ -405,7 +392,7 @@ export class Loop extends Statement
 
   get astNodeType()
   {
-    return "loop";
+    return 'loop';
   }
 }
 
@@ -428,7 +415,7 @@ export class Switch extends Statement
 
   get astNodeType()
   {
-    return "body";
+    return 'body';
   }
 }
 
@@ -460,7 +447,7 @@ export class If extends Statement
 
   get astNodeType()
   {
-    return "if";
+    return 'if';
   }
 }
 
@@ -481,7 +468,7 @@ export class Return extends Statement
 
   get astNodeType()
   {
-    return "return";
+    return 'return';
   }
 }
 
@@ -505,16 +492,17 @@ export class Struct extends Statement
 
   get astNodeType()
   {
-    return "struct";
+    return 'struct';
   }
 
-  /// Return the index of the member with the given name, or -1 if not found.
+  // / Return the index of the member with the given name, or -1 if not found.
   getMemberIndex(name: string): number
   {
     for (let i = 0; i < this.members.length; i++)
     {
-      if (this.members[i].name == name) return i;
+      if (this.members[i].name === name) return i;
     }
+
     return -1;
   }
 }
@@ -536,7 +524,7 @@ export class Enable extends Statement
 
   get astNodeType()
   {
-    return "enable";
+    return 'enable';
   }
 }
 
@@ -559,7 +547,7 @@ export class Alias extends Statement
 
   get astNodeType()
   {
-    return "alias";
+    return 'alias';
   }
 }
 
@@ -577,7 +565,7 @@ export class Discard extends Statement
 
   get astNodeType()
   {
-    return "discard";
+    return 'discard';
   }
 }
 
@@ -595,7 +583,7 @@ export class Break extends Statement
 
   get astNodeType()
   {
-    return "break";
+    return 'break';
   }
 }
 
@@ -613,7 +601,7 @@ export class Continue extends Statement
 
   get astNodeType()
   {
-    return "continue";
+    return 'continue';
   }
 }
 
@@ -635,7 +623,7 @@ export class Type extends Node
 
   get astNodeType()
   {
-    return "type";
+    return 'type';
   }
 }
 
@@ -658,7 +646,7 @@ export class TemplateType extends Type
 
   get astNodeType()
   {
-    return "template";
+    return 'template';
   }
 }
 
@@ -688,7 +676,7 @@ export class PointerType extends Type
 
   get astNodeType()
   {
-    return "pointer";
+    return 'pointer';
   }
 }
 
@@ -719,7 +707,7 @@ export class ArrayType extends Type
 
   get astNodeType()
   {
-    return "array";
+    return 'array';
   }
 }
 
@@ -746,7 +734,7 @@ export class SamplerType extends Type
 
   get astNodeType()
   {
-    return "sampler";
+    return 'sampler';
   }
 }
 
@@ -782,7 +770,7 @@ export class StringExpr extends Expression
 
   get astNodeType()
   {
-    return "stringExpr";
+    return 'stringExpr';
   }
 
   toString(): string
@@ -815,7 +803,7 @@ export class CreateExpr extends Expression
 
   get astNodeType()
   {
-    return "createExpr";
+    return 'createExpr';
   }
 }
 
@@ -838,35 +826,35 @@ export class CallExpr extends Expression
 
   get astNodeType()
   {
-    return "callExpr";
+    return 'callExpr';
   }
 
   evaluate(context: ParseContext): number
   {
     switch (this.name)
     {
-      case "abs":
+      case 'abs':
         return Math.abs(this.args[0].evaluate(context));
-      case "acos":
+      case 'acos':
         return Math.acos(this.args[0].evaluate(context));
-      case "acosh":
+      case 'acosh':
         return Math.acosh(this.args[0].evaluate(context));
-      case "asin":
+      case 'asin':
         return Math.asin(this.args[0].evaluate(context));
-      case "asinh":
+      case 'asinh':
         return Math.asinh(this.args[0].evaluate(context));
-      case "atan":
+      case 'atan':
         return Math.atan(this.args[0].evaluate(context));
-      case "atan2":
+      case 'atan2':
         return Math.atan2(
           this.args[0].evaluate(context),
           this.args[1].evaluate(context)
         );
-      case "atanh":
+      case 'atanh':
         return Math.atanh(this.args[0].evaluate(context));
-      case "ceil":
+      case 'ceil':
         return Math.ceil(this.args[0].evaluate(context));
-      case "clamp":
+      case 'clamp':
         return Math.min(
           Math.max(
             this.args[0].evaluate(context),
@@ -874,111 +862,110 @@ export class CallExpr extends Expression
           ),
           this.args[2].evaluate(context)
         );
-      case "cos":
+      case 'cos':
         return Math.cos(this.args[0].evaluate(context));
-      //case "cross":
-      //TODO: (x[i] * y[j] - x[j] * y[i])
-      case "degrees":
+      // case "cross":
+      // TODO: (x[i] * y[j] - x[j] * y[i])
+      case 'degrees':
         return (this.args[0].evaluate(context) * 180) / Math.PI;
-      //case "determinant":
-      //TODO implement
-      case "distance":
+      // case "determinant":
+      // TODO implement
+      case 'distance':
         return Math.sqrt(
           Math.pow(
             this.args[0].evaluate(context) - this.args[1].evaluate(context),
             2
           )
         );
-      case "dot":
-      //TODO: (x[i] * y[i])
-      case "exp":
+      case 'dot': // TODO: (x[i] * y[i])
+      case 'exp':
         return Math.exp(this.args[0].evaluate(context));
-      case "exp2":
+      case 'exp2':
         return Math.pow(2, this.args[0].evaluate(context));
-      //case "extractBits":
-      //TODO: implement
-      //case "firstLeadingBit":
-      //TODO: implement
-      case "floor":
+      // case "extractBits":
+      // TODO: implement
+      // case "firstLeadingBit":
+      // TODO: implement
+      case 'floor':
         return Math.floor(this.args[0].evaluate(context));
-      case "fma":
+      case 'fma':
         return (
-          this.args[0].evaluate(context) * this.args[1].evaluate(context) +
-          this.args[2].evaluate(context)
+          this.args[0].evaluate(context) * this.args[1].evaluate(context)
+          + this.args[2].evaluate(context)
         );
-      case "fract":
+      case 'fract':
         return (
-          this.args[0].evaluate(context) -
-          Math.floor(this.args[0].evaluate(context))
+          this.args[0].evaluate(context)
+          - Math.floor(this.args[0].evaluate(context))
         );
-      //case "frexp":
-      //TODO: implement
-      case "inverseSqrt":
+      // case "frexp":
+      // TODO: implement
+      case 'inverseSqrt':
         return 1 / Math.sqrt(this.args[0].evaluate(context));
-      //case "length":
-      //TODO: implement
-      case "log":
+      // case "length":
+      // TODO: implement
+      case 'log':
         return Math.log(this.args[0].evaluate(context));
-      case "log2":
+      case 'log2':
         return Math.log2(this.args[0].evaluate(context));
-      case "max":
+      case 'max':
         return Math.max(
           this.args[0].evaluate(context),
           this.args[1].evaluate(context)
         );
-      case "min":
+      case 'min':
         return Math.min(
           this.args[0].evaluate(context),
           this.args[1].evaluate(context)
         );
-      case "mix":
+      case 'mix':
         return (
-          this.args[0].evaluate(context) *
-          (1 - this.args[2].evaluate(context)) +
-          this.args[1].evaluate(context) * this.args[2].evaluate(context)
+          this.args[0].evaluate(context)
+          * (1 - this.args[2].evaluate(context))
+          + this.args[1].evaluate(context) * this.args[2].evaluate(context)
         );
-      case "modf":
+      case 'modf':
         return (
-          this.args[0].evaluate(context) -
-          Math.floor(this.args[0].evaluate(context))
+          this.args[0].evaluate(context)
+          - Math.floor(this.args[0].evaluate(context))
         );
-      case "pow":
+      case 'pow':
         return Math.pow(
           this.args[0].evaluate(context),
           this.args[1].evaluate(context)
         );
-      case "radians":
+      case 'radians':
         return (this.args[0].evaluate(context) * Math.PI) / 180;
-      case "round":
+      case 'round':
         return Math.round(this.args[0].evaluate(context));
-      case "sign":
+      case 'sign':
         return Math.sign(this.args[0].evaluate(context));
-      case "sin":
+      case 'sin':
         return Math.sin(this.args[0].evaluate(context));
-      case "sinh":
+      case 'sinh':
         return Math.sinh(this.args[0].evaluate(context));
-      case "saturate":
+      case 'saturate':
         return Math.min(Math.max(this.args[0].evaluate(context), 0), 1);
-      case "smoothstep":
+      case 'smoothstep':
         return (
-          this.args[0].evaluate(context) *
-          this.args[0].evaluate(context) *
-          (3 - 2 * this.args[0].evaluate(context))
+          this.args[0].evaluate(context)
+          * this.args[0].evaluate(context)
+          * (3 - 2 * this.args[0].evaluate(context))
         );
-      case "sqrt":
+      case 'sqrt':
         return Math.sqrt(this.args[0].evaluate(context));
-      case "step":
+      case 'step':
         return this.args[0].evaluate(context) < this.args[1].evaluate(context)
           ? 0
           : 1;
-      case "tan":
+      case 'tan':
         return Math.tan(this.args[0].evaluate(context));
-      case "tanh":
+      case 'tanh':
         return Math.tanh(this.args[0].evaluate(context));
-      case "trunc":
+      case 'trunc':
         return Math.trunc(this.args[0].evaluate(context));
       default:
-        throw new Error("Non const function: " + this.name);
+        throw new Error(`Non const function: ${this.name}`);
     }
   }
 }
@@ -1000,7 +987,7 @@ export class VariableExpr extends Expression
 
   get astNodeType()
   {
-    return "varExpr";
+    return 'varExpr';
   }
 }
 
@@ -1023,7 +1010,7 @@ export class ConstExpr extends Expression
 
   get astNodeType()
   {
-    return "constExpr";
+    return 'constExpr';
   }
 
   evaluate(context: ParseContext): number
@@ -1035,9 +1022,10 @@ export class ConstExpr extends Expression
       const type = this.initializer.type?.name;
       const struct = context.structs.get(type);
       const memberIndex = struct?.getMemberIndex(property);
-      if (memberIndex != -1)
+      if (memberIndex !== -1)
       {
         const value = this.initializer.args[memberIndex].evaluate(context);
+
         return value;
       }
       console.log(memberIndex);
@@ -1064,7 +1052,7 @@ export class LiteralExpr extends Expression
 
   get astNodeType()
   {
-    return "literalExpr";
+    return 'literalExpr';
   }
 
   evaluate(): number
@@ -1092,7 +1080,7 @@ export class BitcastExpr extends Expression
 
   get astNodeType()
   {
-    return "bitcastExpr";
+    return 'bitcastExpr';
   }
 }
 
@@ -1115,7 +1103,7 @@ export class TypecastExpr extends Expression
 
   get astNodeType()
   {
-    return "typecastExpr";
+    return 'typecastExpr';
   }
 
   evaluate(context: ParseContext): number
@@ -1141,7 +1129,7 @@ export class GroupingExpr extends Expression
 
   get astNodeType()
   {
-    return "groupExpr";
+    return 'groupExpr';
   }
 
   evaluate(context: ParseContext): number
@@ -1183,23 +1171,23 @@ export class UnaryOperator extends Operator
 
   get astNodeType()
   {
-    return "unaryOp";
+    return 'unaryOp';
   }
 
   evaluate(context: ParseContext): number
   {
     switch (this.operator)
     {
-      case "+":
+      case '+':
         return this.right.evaluate(context);
-      case "-":
+      case '-':
         return -this.right.evaluate(context);
-      case "!":
+      case '!':
         return this.right.evaluate(context) ? 0 : 1;
-      case "~":
+      case '~':
         return ~this.right.evaluate(context);
       default:
-        throw new Error("Unknown unary operator: " + this.operator);
+        throw new Error(`Unknown unary operator: ${this.operator}`);
     }
   }
 }
@@ -1226,52 +1214,52 @@ export class BinaryOperator extends Operator
 
   get astNodeType()
   {
-    return "binaryOp";
+    return 'binaryOp';
   }
 
   evaluate(context: ParseContext): number
   {
     switch (this.operator)
     {
-      case "+":
+      case '+':
         return this.left.evaluate(context) + this.right.evaluate(context);
-      case "-":
+      case '-':
         return this.left.evaluate(context) - this.right.evaluate(context);
-      case "*":
+      case '*':
         return this.left.evaluate(context) * this.right.evaluate(context);
-      case "/":
+      case '/':
         return this.left.evaluate(context) / this.right.evaluate(context);
-      case "%":
+      case '%':
         return this.left.evaluate(context) % this.right.evaluate(context);
-      case "==":
-        return this.left.evaluate(context) == this.right.evaluate(context)
+      case '==':
+        return this.left.evaluate(context) === this.right.evaluate(context)
           ? 1
           : 0;
-      case "!=":
-        return this.left.evaluate(context) != this.right.evaluate(context)
+      case '!=':
+        return this.left.evaluate(context) !== this.right.evaluate(context)
           ? 1
           : 0;
-      case "<":
+      case '<':
         return this.left.evaluate(context) < this.right.evaluate(context)
           ? 1
           : 0;
-      case ">":
+      case '>':
         return this.left.evaluate(context) > this.right.evaluate(context)
           ? 1
           : 0;
-      case "<=":
+      case '<=':
         return this.left.evaluate(context) <= this.right.evaluate(context)
           ? 1
           : 0;
-      case ">=":
+      case '>=':
         return this.left.evaluate(context) >= this.right.evaluate(context)
           ? 1
           : 0;
-      case "&&":
+      case '&&':
         return this.left.evaluate(context) && this.right.evaluate(context)
           ? 1
           : 0;
-      case "||":
+      case '||':
         return this.left.evaluate(context) || this.right.evaluate(context)
           ? 1
           : 0;
@@ -1313,7 +1301,7 @@ export class Case extends SwitchCase
 
   get astNodeType()
   {
-    return "case";
+    return 'case';
   }
 }
 
@@ -1334,7 +1322,7 @@ export class Default extends SwitchCase
 
   get astNodeType()
   {
-    return "default";
+    return 'default';
   }
 }
 
@@ -1359,7 +1347,7 @@ export class Argument extends Node
 
   get astNodeType()
   {
-    return "argument";
+    return 'argument';
   }
 }
 
@@ -1382,7 +1370,7 @@ export class ElseIf extends Node
 
   get astNodeType()
   {
-    return "elseif";
+    return 'elseif';
   }
 }
 
@@ -1411,7 +1399,7 @@ export class Member extends Node
 
   get astNodeType()
   {
-    return "member";
+    return 'member';
   }
 }
 
@@ -1434,6 +1422,6 @@ export class Attribute extends Node
 
   get astNodeType()
   {
-    return "attribute";
+    return 'attribute';
   }
 }
