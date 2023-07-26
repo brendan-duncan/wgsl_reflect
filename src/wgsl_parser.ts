@@ -10,7 +10,7 @@ export class WgslParser {
   _current: number = 0;
   _context: AST.ParseContext = new AST.ParseContext();
 
-  parse(tokensOrCode: Array<Token> | string): Array<AST.Statement> {
+  parse(tokensOrCode?: Array<Token> | string): Array<AST.Statement> {
     this._initialize(tokensOrCode);
 
     let statements: Array<AST.Statement> = [];

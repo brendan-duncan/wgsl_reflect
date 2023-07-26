@@ -543,7 +543,7 @@ export class WgslReflect {
 
 
 
-  getTypeInfo(type: AST.Type | null | undefined): TypeInfo | null {
+  getTypeInfo(type: AST.Type | null | undefined) {
     if (type === null || type === undefined) return null;
 
     const explicitSize = this.getAttributeNum(type, "size", 0);

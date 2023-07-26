@@ -10,10 +10,6 @@
         "emitDeclarationOnly": true,
         "skipLibCheck": true,
         "esModuleInterop": true,
-        "typeRoots": [
-            "./node_modules/@webgpu/types",
-            "./node_modules/@types"
-        ],
         "lib": [
             "ES2015",
             "ES2017",
