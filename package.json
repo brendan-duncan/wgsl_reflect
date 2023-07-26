@@ -8,7 +8,7 @@
   "author": "Brendan Duncan",
   "license": "MIT",
   "scripts": {
-    "dev": "cd examples && npm run dev",
+    "dev": "vite",
     "clean": "rimraf \"{lib,dist,public}\"",
     "build": "vite build",
     "build:w": "vite build -w",
@@ -18,7 +18,7 @@
     "watch": "tsc -w",
     "lint": "eslint --ext .js --ext .ts src test --ignore-path .gitignore --max-warnings 0",
     "lintfix": "npm run lint -- --fix",
-    "docs": "typedoc && cd examples && vite build --outDir ../public",
+    "docs": "typedoc",
     "release": "npm run clean && npm run lint && npm run docs && npm run build && npm run types && npm publish",
     "prepublishOnly": "node scripts/prepublish.js",
     "postpublish": "node scripts/postpublish.js"

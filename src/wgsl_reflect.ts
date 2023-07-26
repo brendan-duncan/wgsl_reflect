@@ -607,7 +607,7 @@ export class WgslReflect
     return info;
   }
 
-  getUniformBufferInfo(uniform: VariableInfo): BufferInfo | null
+  getUniformBufferInfo(uniform: VariableInfo)
   {
     if (!this.isUniformVar(uniform.node)) return null;
 
