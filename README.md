@@ -9,7 +9,7 @@ A WebGPU Shading Language parser and reflection library for Typescript and Javas
 The _wgsl_reflect.module.js_ file is a self-contained roll-up of the library that can be included in your project and imported with:
 
 ```javascript
-import { WgslReflect } from "./wgsl_reflect.module.js";
+import { WgslReflect } from "@feng3d/wgsl_reflect";
 const reflect = new WgslReflect(shader_code);
 ```
 
@@ -22,7 +22,7 @@ const reflect = new WgslReflect(shader_code);
 Calculate the bind group information in the shader:
 
 ```javascript
-import { WgslReflect } from "./wgsl_reflect.module.js";
+import { WgslReflect } from "@feng3d/wgsl_reflect";
 
 const shader = `
 struct ViewUniforms {
@@ -93,7 +93,7 @@ console.log(groups.length); // 1
 console.log(groups[0].length); // 4, bindings in group(0)
 
 console.log(groups[0][1].type); // "buffer", the type of resource at group(0) binding(1)
-console.log(groups[0][1].resource.size); // 108, the size of the uniform buffer.
+console.log(groups[0][1].resource.size); // 96, the size of the uniform buffer.
 console.log(groups[0][1].resource.members.length); // 3, members in ModelUniforms.
 console.log(groups[0][1].resource.members[0].name); // "model", the name of the first member in the uniform buffer.
 console.log(groups[0][1].resource.members[0].offset); // 0, the offset of 'model' in the uniform buffer.
@@ -113,7 +113,7 @@ console.log(groups[0][3].resource.type.format.name); // "f32"
 Calculate the member information for a uniform buffer block:
 
 ```javascript
-import { WgslReflect } from "./wgsl_reflect.module.js";
+import { WgslReflect } from "@feng3d/wgsl_reflect";
 
 // WgslReflect can calculate the size and offset for members of a uniform buffer block.
 
@@ -151,7 +151,7 @@ const info = reflect.getUniformBufferInfo(reflect.uniforms[0]);
 console.log(info.size); // 208, the size of the uniform buffer in bytes
 console.log(info.group); // 0
 console.log(info.binding); // 0
-console.log(info.members.length); // 7, members in B
+console.log(info.members.length); // 8, members in B
 console.log(info.members[0].name); // "a"
 console.log(info.members[0].offset); // 0, the offset of 'a' in the buffer
 console.log(info.members[0].size); // 8, the size of 'a' in bytes
