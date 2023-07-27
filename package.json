@@ -33,7 +33,8 @@
   "files": [
     "dist/",
     "lib",
-    "src"
+    "src",
+    "tsconfig.json"
   ],
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "5.17.0",
