@@ -1,5 +1,5 @@
 {
-  "name": "@feng3d/wgsl_reflect",
+  "name": "wgsl_reflect",
   "version": "0.0.1",
   "description": "WGSL Parser and Reflection library",
   "main": "src/index.ts",

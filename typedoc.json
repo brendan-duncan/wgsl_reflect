@@ -1,5 +1,5 @@
 {
-    "name": "@feng3d/wgsl_reflect",
+    "name": "wgsl_reflect",
     "$schema": "https://typedoc.org/schema.json",
     "entryPoints": [
         "src/index.ts"

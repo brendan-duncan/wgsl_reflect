@@ -9,7 +9,7 @@ A WebGPU Shading Language parser and reflection library for Typescript and Javas
 The _wgsl_reflect.module.js_ file is a self-contained roll-up of the library that can be included in your project and imported with:
 
 ```javascript
-import { WgslReflect } from "@feng3d/wgsl_reflect";
+import { WgslReflect } from "wgsl_reflect";
 const reflect = new WgslReflect(shader_code);
 ```
 
@@ -22,7 +22,7 @@ const reflect = new WgslReflect(shader_code);
 Calculate the bind group information in the shader:
 
 ```javascript
-import { WgslReflect } from "@feng3d/wgsl_reflect";
+import { WgslReflect } from "wgsl_reflect";
 
 const shader = `
 struct ViewUniforms {
@@ -113,7 +113,7 @@ console.log(groups[0][3].resource.type.format.name); // "f32"
 Calculate the member information for a uniform buffer block:
 
 ```javascript
-import { WgslReflect } from "@feng3d/wgsl_reflect";
+import { WgslReflect } from "wgsl_reflect";
 
 // WgslReflect can calculate the size and offset for members of a uniform buffer block.
 
