@@ -687,7 +687,6 @@ export class PointerType extends Type
  */
 export class ArrayType extends Type
 {
-  name: string;
   attributes: Array<Attribute> | null;
   format: Type | null;
   count: number;
