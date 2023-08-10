@@ -163,7 +163,6 @@ export class TokenTypes
     default: new TokenType('default', TokenClass.keyword, 'default'),
     discard: new TokenType('discard', TokenClass.keyword, 'discard'),
     else: new TokenType('else', TokenClass.keyword, 'else'),
-    elseif: new TokenType('elseif', TokenClass.keyword, 'elseif'),
     enable: new TokenType('enable', TokenClass.keyword, 'enable'),
     fallthrough: new TokenType(
       'fallthrough',
