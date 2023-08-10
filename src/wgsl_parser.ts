@@ -194,6 +194,15 @@ export class WgslParser
       return _const;
     }
 
+    if (this._check(TokenTypes.keywords.override))
+    {
+      const _override = this._global_override_decl();
+      if (_override !== null) _override.attributes = attrs;
+      this._consume(TokenTypes.tokens.semicolon, 'Expected \';\'.');
+
+      return _override;
+    }
+
     if (this._check(TokenTypes.keywords.struct))
     {
       const _struct = this._struct_decl();
@@ -1237,6 +1246,49 @@ export class WgslParser
     }
     const c = new AST.Const(name.toString(), type, '', '', value);
     this._context.constants.set(c.name, c);
+
+    return c;
+  }
+
+  _global_override_decl(): AST.Let | null
+  {
+    // attribute* const (ident variable_ident_decl) global_const_initializer?
+    if (!this._match(TokenTypes.keywords.override)) return null;
+
+    const name = this._consume(
+      TokenTypes.tokens.ident,
+      'Expected variable name'
+    );
+    let type: AST.Type | null = null;
+    if (this._match(TokenTypes.tokens.colon))
+    {
+      const attrs = this._attribute();
+      type = this._type_decl();
+      if (type !== null) type.attributes = attrs;
+    }
+    let value: AST.Expression | null = null;
+    if (this._match(TokenTypes.tokens.equal))
+    {
+      const valueExpr = this._short_circuit_or_expression();
+      if (valueExpr instanceof AST.CreateExpr)
+      {
+        value = valueExpr;
+      }
+      else if (
+        valueExpr instanceof AST.ConstExpr
+        && valueExpr.initializer instanceof AST.CreateExpr
+      )
+      {
+        value = valueExpr.initializer;
+      }
+      else
+      {
+        const constValue = valueExpr.evaluate(this._context);
+        value = new AST.LiteralExpr(constValue);
+      }
+    }
+    const c = new AST.Override(name.toString(), type, '', '', value);
+    this._context.overrides.set(c.name, c);
 
     return c;
   }

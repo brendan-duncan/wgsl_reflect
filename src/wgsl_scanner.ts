@@ -177,6 +177,7 @@ export class TokenTypes
     if: new TokenType('if', TokenClass.keyword, 'if'),
     let: new TokenType('let', TokenClass.keyword, 'let'),
     const: new TokenType('const', TokenClass.keyword, 'const'),
+    override: new TokenType('override', TokenClass.keyword, 'override'),
     loop: new TokenType('loop', TokenClass.keyword, 'loop'),
     while: new TokenType('while', TokenClass.keyword, 'while'),
     private: new TokenType('private', TokenClass.keyword, 'private'),

@@ -170,6 +170,8 @@ export class EntryFunctions
 export class WgslReflect
 {
   ast: Array<AST.Statement> | null;
+  // All top-level overrides in the shader.
+  overrides: Array<AST.Override> = [];
   // / All top-level structs in the shader.
   structs: Array<AST.Struct> = [];
   // / All top-level uniform vars in the shader.
@@ -204,6 +206,8 @@ export class WgslReflect
       if (node.astNodeType === 'struct') this.structs.push(node as AST.Struct);
 
       if (node.astNodeType === 'alias') this.aliases.push(node as AST.Alias);
+
+      if (node.astNodeType === 'override') this.overrides.push(node as AST.Override);
 
       if (this.isUniformVar(node))
       {
