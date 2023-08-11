@@ -177,7 +177,7 @@ export class WgslReflect
   // / All top-level uniform vars in the shader.
   uniforms: Array<VariableInfo> = [];
   // / All top-level storage vars in the shader.
-  storage: Array<VariableInfo> = [];
+  storages: Array<VariableInfo> = [];
   // / All top-level texture vars in the shader;
   textures: Array<VariableInfo> = [];
   // All top-level sampler vars in the shader.
@@ -224,7 +224,7 @@ export class WgslReflect
         const g = this.getAttributeNum(node, 'group', 0);
         const b = this.getAttributeNum(node, 'binding', 0);
 
-        this.storage.push(new VariableInfo(v, g, b));
+        this.storages.push(new VariableInfo(v, g, b));
       }
 
       if (this.isTextureVar(node))
@@ -459,7 +459,7 @@ export class WgslReflect
       );
     }
 
-    for (const u of this.storage)
+    for (const u of this.storages)
     {
       _makeRoom(u.group, u.binding);
       const group = groups[u.group];
