@@ -20,6 +20,24 @@ export class VariableInfo {
         return this.node.attributes;
     }
 }
+export class OverrideInfo {
+    constructor(node, id) {
+        this.node = node;
+        this.id = id;
+    }
+    get name() {
+        return this.node.name;
+    }
+    get type() {
+        return this.node.type;
+    }
+    get attributes() {
+        return this.node.attributes;
+    }
+    get declaration() {
+        return this.node.value;
+    }
+}
 export class FunctionInfo {
     constructor(node) {
         this.inputs = [];
@@ -78,10 +96,12 @@ export class EntryFunctions {
         this.compute = [];
     }
 }
-class WgslReflect {
+export class WgslReflect {
     constructor(code) {
         /// All top-level structs in the shader.
         this.structs = [];
+        /// All top-level overrides in the shader.
+        this.overrides = [];
         /// All top-level uniform vars in the shader.
         this.uniforms = [];
         /// All top-level storage vars in the shader.
@@ -111,6 +131,11 @@ class WgslReflect {
                 const g = this.getAttributeNum(node, "group", 0);
                 const b = this.getAttributeNum(node, "binding", 0);
                 this.uniforms.push(new VariableInfo(v, g, b));
+            }
+            if (this.isOverride(node)) {
+                const v = node;
+                const id = this.getAttributeNum(node, "id", 0);
+                this.overrides.push(new OverrideInfo(v, id));
             }
             if (this.isStorageVar(node)) {
                 const v = node;
@@ -156,6 +181,9 @@ class WgslReflect {
     }
     isUniformVar(node) {
         return node instanceof AST.Var && node.storage == "uniform";
+    }
+    isOverride(node) {
+        return node instanceof AST.Override;
     }
     isStorageVar(node) {
         return node instanceof AST.Var && node.storage == "storage";
@@ -514,5 +542,4 @@ WgslReflect.textureTypes = TokenTypes.any_texture_type.map((t) => {
 WgslReflect.samplerTypes = TokenTypes.sampler_type.map((t) => {
     return t.name;
 });
-export { WgslReflect };
 //# sourceMappingURL=wgsl_reflect.js.map

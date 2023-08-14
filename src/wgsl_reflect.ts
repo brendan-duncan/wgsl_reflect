@@ -29,6 +29,33 @@ export class VariableInfo {
   }
 }
 
+
+export class OverrideInfo {
+  node: AST.Override;
+  id: number;
+
+  constructor(node: AST.Override, id: number) {
+    this.node = node;
+    this.id = id;
+  }
+
+  get name(): string {
+    return this.node.name;
+  }
+
+  get type(): AST.Type | null {
+    return this.node.type;
+  }
+
+  get attributes(): Array<AST.Attribute> | null {
+    return this.node.attributes;
+  }
+
+  get declaration(): AST.Expression | null {
+    return this.node.value;
+  }
+}
+
 export class FunctionInfo {
   node: AST.Function;
   inputs: Array<InputInfo> = [];
@@ -150,6 +177,8 @@ export class WgslReflect {
   ast: Array<AST.Statement> | null;
   /// All top-level structs in the shader.
   structs: Array<AST.Struct> = [];
+  /// All top-level overrides in the shader.
+  overrides: Array<OverrideInfo> = [];
   /// All top-level uniform vars in the shader.
   uniforms: Array<VariableInfo> = [];
   /// All top-level storage vars in the shader.
@@ -185,6 +214,11 @@ export class WgslReflect {
         const g = this.getAttributeNum(node, "group", 0);
         const b = this.getAttributeNum(node, "binding", 0);
         this.uniforms.push(new VariableInfo(v, g, b));
+      }
+      if (this.isOverride(node)) {
+        const v = node as AST.Override;
+        const id = this.getAttributeNum(node, "id", 0);
+        this.overrides.push(new OverrideInfo(v, id));
       }
 
       if (this.isStorageVar(node)) {
@@ -249,6 +283,10 @@ export class WgslReflect {
 
   isUniformVar(node: AST.Node): boolean {
     return node instanceof AST.Var && node.storage == "uniform";
+  }
+
+  isOverride(node: AST.Node): boolean {
+    return node instanceof AST.Override;
   }
 
   isStorageVar(node: AST.Node): boolean {

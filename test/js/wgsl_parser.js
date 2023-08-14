@@ -124,6 +124,13 @@ export class WgslParser {
             this._consume(TokenTypes.tokens.semicolon, "Expected ';'.");
             return _var;
         }
+        if (this._check(TokenTypes.keywords.override)) {
+            const _override = this._override_variable_decl();
+            if (_override != null)
+                _override.attributes = attrs;
+            this._consume(TokenTypes.tokens.semicolon, "Expected ';'.");
+            return _override;
+        }
         if (this._check(TokenTypes.keywords.let)) {
             const _let = this._global_let_decl();
             if (_let != null)
@@ -394,7 +401,7 @@ export class WgslParser {
         const statements = [];
         let statement = this._statement();
         while (statement !== null) {
-            if (statement instanceof (Array)) {
+            if (Array.isArray(statement)) {
                 for (let s of statement) {
                     statements.push(s);
                 }
@@ -774,6 +781,13 @@ export class WgslParser {
             _var.value = this._const_expression();
         return _var;
     }
+    _override_variable_decl() {
+        // attribute* override_decl (equal const_expression)?
+        const _override = this._override_decl();
+        if (_override && this._match(TokenTypes.tokens.equal))
+            _override.value = this._const_expression();
+        return _override;
+    }
     _global_const_decl() {
         // attribute* const (ident variable_ident_decl) global_const_initializer?
         if (!this._match(TokenTypes.keywords.const))
@@ -862,6 +876,20 @@ export class WgslParser {
                 type.attributes = attrs;
         }
         return new AST.Var(name.toString(), type, storage, access, null);
+    }
+    _override_decl() {
+        // override (ident variable_ident_decl)
+        if (!this._match(TokenTypes.keywords.override))
+            return null;
+        const name = this._consume(TokenTypes.tokens.ident, "Expected variable name");
+        let type = null;
+        if (this._match(TokenTypes.tokens.colon)) {
+            const attrs = this._attribute();
+            type = this._type_decl();
+            if (type != null)
+                type.attributes = attrs;
+        }
+        return new AST.Override(name.toString(), type, null);
     }
     _enable_directive() {
         // enable ident semicolon
