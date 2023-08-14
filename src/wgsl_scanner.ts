@@ -180,6 +180,7 @@ export class TokenTypes {
     type: new TokenType("type", TokenClass.keyword, "type"),
     uniform: new TokenType("uniform", TokenClass.keyword, "uniform"),
     var: new TokenType("var", TokenClass.keyword, "var"),
+    override: new TokenType("override", TokenClass.keyword, "override"),
     workgroup: new TokenType("workgroup", TokenClass.keyword, "workgroup"),
     write: new TokenType("write", TokenClass.keyword, "write"),
     r8unorm: new TokenType("r8unorm", TokenClass.keyword, "r8unorm"),

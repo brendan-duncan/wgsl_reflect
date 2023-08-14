@@ -3,7 +3,8 @@
   "version": "0.1.1",
   "description": "WGSL Parser and Reflection library",
   "module": "wgsl_reflect.module.js",
-  "types": "wgsl_reflect.module.d.ts",
+  "main": "wgsl_reflect.node.js",
+  "types": "types/index.d.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/brendan-duncan/wgsl_reflect"
@@ -11,17 +12,19 @@
   "sideEffects": false,
   "files": [
     "wgsl_reflect.module.js",
+    "wgsl_reflect.node.js",
     "LICENSE.md",
     "package.json",
     "README.md",
-    "wgsl"
+    "wgsl",
+    "types"
   ],
   "directories": {
       "test": "test"
   },
   "scripts": {
-    "prebuild": "tsc",
-    "build": "rollup -c rollup.config.js"
+    "build": "rollup -c rollup.config.js",
+    "test": "tsc --project test/tsconfig.json"
   },
   "keywords": [
     "wgsl_reflect",
@@ -37,14 +40,18 @@
   },
   "homepage": "https://github.com/brendan-duncan/wgsl_reflect",
   "devDependencies": {
-    "rollup": "^2.60.0"
+    "rollup": "^2.60.0",
+    "@rollup/plugin-typescript": "^11.1.2",
+    "tslib": "^2.6.1"
   },
   "jspm": {
       "files": [
           "package.json",
           "LICENSE.md",
           "README.md",
-          "wgsl_reflect.module.js"
+          "wgsl_reflect.module.js",
+          "wgsl_reflect.node.js",
+          "types"
       ]
   }
 }

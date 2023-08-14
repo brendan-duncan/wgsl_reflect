@@ -1,3 +1,7 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
 class ParseContext {
     constructor() {
         this.constants = new Map();
@@ -171,11 +175,11 @@ class Const extends Statement {
         return this.value.evaluate(context);
     }
 }
-var IncrementOperator;
+exports.IncrementOperator = void 0;
 (function (IncrementOperator) {
     IncrementOperator["increment"] = "++";
     IncrementOperator["decrement"] = "--";
-})(IncrementOperator || (IncrementOperator = {}));
+})(exports.IncrementOperator || (exports.IncrementOperator = {}));
 (function (IncrementOperator) {
     function parse(val) {
         const key = val;
@@ -184,7 +188,7 @@ var IncrementOperator;
         return IncrementOperator[key];
     }
     IncrementOperator.parse = parse;
-})(IncrementOperator || (IncrementOperator = {}));
+})(exports.IncrementOperator || (exports.IncrementOperator = {}));
 /**
  * @class Increment
  * @extends Statement
@@ -200,7 +204,7 @@ class Increment extends Statement {
         return "increment";
     }
 }
-var AssignOperator;
+exports.AssignOperator = void 0;
 (function (AssignOperator) {
     AssignOperator["assign"] = "=";
     AssignOperator["addAssign"] = "+=";
@@ -213,7 +217,7 @@ var AssignOperator;
     AssignOperator["xorAssign"] = "^=";
     AssignOperator["shiftLeftAssign"] = "<<=";
     AssignOperator["shiftRightAssign"] = ">>=";
-})(AssignOperator || (AssignOperator = {}));
+})(exports.AssignOperator || (exports.AssignOperator = {}));
 (function (AssignOperator) {
     function parse(val) {
         const key = val;
@@ -222,7 +226,7 @@ var AssignOperator;
         return AssignOperator[key];
     }
     AssignOperator.parse = parse;
-})(AssignOperator || (AssignOperator = {}));
+})(exports.AssignOperator || (exports.AssignOperator = {}));
 /**
  * @class Assign
  * @extends Statement
@@ -967,12 +971,12 @@ class Attribute extends Node {
 }
 
 var _a;
-var TokenClass;
+exports.TokenClass = void 0;
 (function (TokenClass) {
     TokenClass[TokenClass["token"] = 0] = "token";
     TokenClass[TokenClass["keyword"] = 1] = "keyword";
     TokenClass[TokenClass["reserved"] = 2] = "reserved";
-})(TokenClass || (TokenClass = {}));
+})(exports.TokenClass || (exports.TokenClass = {}));
 class TokenType {
     constructor(name, type, rule) {
         this.name = name;
@@ -987,141 +991,141 @@ class TokenType {
 class TokenTypes {
 }
 _a = TokenTypes;
-TokenTypes.none = new TokenType("", TokenClass.reserved, "");
-TokenTypes.eof = new TokenType("EOF", TokenClass.token, "");
+TokenTypes.none = new TokenType("", exports.TokenClass.reserved, "");
+TokenTypes.eof = new TokenType("EOF", exports.TokenClass.token, "");
 TokenTypes.reserved = {
-    asm: new TokenType("asm", TokenClass.reserved, "asm"),
-    bf16: new TokenType("bf16", TokenClass.reserved, "bf16"),
-    do: new TokenType("do", TokenClass.reserved, "do"),
-    enum: new TokenType("enum", TokenClass.reserved, "enum"),
-    f16: new TokenType("f16", TokenClass.reserved, "f16"),
-    f64: new TokenType("f64", TokenClass.reserved, "f64"),
-    handle: new TokenType("handle", TokenClass.reserved, "handle"),
-    i8: new TokenType("i8", TokenClass.reserved, "i8"),
-    i16: new TokenType("i16", TokenClass.reserved, "i16"),
-    i64: new TokenType("i64", TokenClass.reserved, "i64"),
-    mat: new TokenType("mat", TokenClass.reserved, "mat"),
-    premerge: new TokenType("premerge", TokenClass.reserved, "premerge"),
-    regardless: new TokenType("regardless", TokenClass.reserved, "regardless"),
-    typedef: new TokenType("typedef", TokenClass.reserved, "typedef"),
-    u8: new TokenType("u8", TokenClass.reserved, "u8"),
-    u16: new TokenType("u16", TokenClass.reserved, "u16"),
-    u64: new TokenType("u64", TokenClass.reserved, "u64"),
-    unless: new TokenType("unless", TokenClass.reserved, "unless"),
-    using: new TokenType("using", TokenClass.reserved, "using"),
-    vec: new TokenType("vec", TokenClass.reserved, "vec"),
-    void: new TokenType("void", TokenClass.reserved, "void"),
+    asm: new TokenType("asm", exports.TokenClass.reserved, "asm"),
+    bf16: new TokenType("bf16", exports.TokenClass.reserved, "bf16"),
+    do: new TokenType("do", exports.TokenClass.reserved, "do"),
+    enum: new TokenType("enum", exports.TokenClass.reserved, "enum"),
+    f16: new TokenType("f16", exports.TokenClass.reserved, "f16"),
+    f64: new TokenType("f64", exports.TokenClass.reserved, "f64"),
+    handle: new TokenType("handle", exports.TokenClass.reserved, "handle"),
+    i8: new TokenType("i8", exports.TokenClass.reserved, "i8"),
+    i16: new TokenType("i16", exports.TokenClass.reserved, "i16"),
+    i64: new TokenType("i64", exports.TokenClass.reserved, "i64"),
+    mat: new TokenType("mat", exports.TokenClass.reserved, "mat"),
+    premerge: new TokenType("premerge", exports.TokenClass.reserved, "premerge"),
+    regardless: new TokenType("regardless", exports.TokenClass.reserved, "regardless"),
+    typedef: new TokenType("typedef", exports.TokenClass.reserved, "typedef"),
+    u8: new TokenType("u8", exports.TokenClass.reserved, "u8"),
+    u16: new TokenType("u16", exports.TokenClass.reserved, "u16"),
+    u64: new TokenType("u64", exports.TokenClass.reserved, "u64"),
+    unless: new TokenType("unless", exports.TokenClass.reserved, "unless"),
+    using: new TokenType("using", exports.TokenClass.reserved, "using"),
+    vec: new TokenType("vec", exports.TokenClass.reserved, "vec"),
+    void: new TokenType("void", exports.TokenClass.reserved, "void"),
 };
 TokenTypes.keywords = {
-    array: new TokenType("array", TokenClass.keyword, "array"),
-    atomic: new TokenType("atomic", TokenClass.keyword, "atomic"),
-    bool: new TokenType("bool", TokenClass.keyword, "bool"),
-    f32: new TokenType("f32", TokenClass.keyword, "f32"),
-    i32: new TokenType("i32", TokenClass.keyword, "i32"),
-    mat2x2: new TokenType("mat2x2", TokenClass.keyword, "mat2x2"),
-    mat2x3: new TokenType("mat2x3", TokenClass.keyword, "mat2x3"),
-    mat2x4: new TokenType("mat2x4", TokenClass.keyword, "mat2x4"),
-    mat3x2: new TokenType("mat3x2", TokenClass.keyword, "mat3x2"),
-    mat3x3: new TokenType("mat3x3", TokenClass.keyword, "mat3x3"),
-    mat3x4: new TokenType("mat3x4", TokenClass.keyword, "mat3x4"),
-    mat4x2: new TokenType("mat4x2", TokenClass.keyword, "mat4x2"),
-    mat4x3: new TokenType("mat4x3", TokenClass.keyword, "mat4x3"),
-    mat4x4: new TokenType("mat4x4", TokenClass.keyword, "mat4x4"),
-    ptr: new TokenType("ptr", TokenClass.keyword, "ptr"),
-    sampler: new TokenType("sampler", TokenClass.keyword, "sampler"),
-    sampler_comparison: new TokenType("sampler_comparison", TokenClass.keyword, "sampler_comparison"),
-    struct: new TokenType("struct", TokenClass.keyword, "struct"),
-    texture_1d: new TokenType("texture_1d", TokenClass.keyword, "texture_1d"),
-    texture_2d: new TokenType("texture_2d", TokenClass.keyword, "texture_2d"),
-    texture_2d_array: new TokenType("texture_2d_array", TokenClass.keyword, "texture_2d_array"),
-    texture_3d: new TokenType("texture_3d", TokenClass.keyword, "texture_3d"),
-    texture_cube: new TokenType("texture_cube", TokenClass.keyword, "texture_cube"),
-    texture_cube_array: new TokenType("texture_cube_array", TokenClass.keyword, "texture_cube_array"),
-    texture_multisampled_2d: new TokenType("texture_multisampled_2d", TokenClass.keyword, "texture_multisampled_2d"),
-    texture_storage_1d: new TokenType("texture_storage_1d", TokenClass.keyword, "texture_storage_1d"),
-    texture_storage_2d: new TokenType("texture_storage_2d", TokenClass.keyword, "texture_storage_2d"),
-    texture_storage_2d_array: new TokenType("texture_storage_2d_array", TokenClass.keyword, "texture_storage_2d_array"),
-    texture_storage_3d: new TokenType("texture_storage_3d", TokenClass.keyword, "texture_storage_3d"),
-    texture_depth_2d: new TokenType("texture_depth_2d", TokenClass.keyword, "texture_depth_2d"),
-    texture_depth_2d_array: new TokenType("texture_depth_2d_array", TokenClass.keyword, "texture_depth_2d_array"),
-    texture_depth_cube: new TokenType("texture_depth_cube", TokenClass.keyword, "texture_depth_cube"),
-    texture_depth_cube_array: new TokenType("texture_depth_cube_array", TokenClass.keyword, "texture_depth_cube_array"),
-    texture_depth_multisampled_2d: new TokenType("texture_depth_multisampled_2d", TokenClass.keyword, "texture_depth_multisampled_2d"),
-    u32: new TokenType("u32", TokenClass.keyword, "u32"),
-    vec2: new TokenType("vec2", TokenClass.keyword, "vec2"),
-    vec3: new TokenType("vec3", TokenClass.keyword, "vec3"),
-    vec4: new TokenType("vec4", TokenClass.keyword, "vec4"),
-    bitcast: new TokenType("bitcast", TokenClass.keyword, "bitcast"),
-    block: new TokenType("block", TokenClass.keyword, "block"),
-    break: new TokenType("break", TokenClass.keyword, "break"),
-    case: new TokenType("case", TokenClass.keyword, "case"),
-    continue: new TokenType("continue", TokenClass.keyword, "continue"),
-    continuing: new TokenType("continuing", TokenClass.keyword, "continuing"),
-    default: new TokenType("default", TokenClass.keyword, "default"),
-    discard: new TokenType("discard", TokenClass.keyword, "discard"),
-    else: new TokenType("else", TokenClass.keyword, "else"),
-    elseif: new TokenType("elseif", TokenClass.keyword, "elseif"),
-    enable: new TokenType("enable", TokenClass.keyword, "enable"),
-    fallthrough: new TokenType("fallthrough", TokenClass.keyword, "fallthrough"),
-    false: new TokenType("false", TokenClass.keyword, "false"),
-    fn: new TokenType("fn", TokenClass.keyword, "fn"),
-    for: new TokenType("for", TokenClass.keyword, "for"),
-    function: new TokenType("function", TokenClass.keyword, "function"),
-    if: new TokenType("if", TokenClass.keyword, "if"),
-    let: new TokenType("let", TokenClass.keyword, "let"),
-    const: new TokenType("const", TokenClass.keyword, "const"),
-    loop: new TokenType("loop", TokenClass.keyword, "loop"),
-    while: new TokenType("while", TokenClass.keyword, "while"),
-    private: new TokenType("private", TokenClass.keyword, "private"),
-    read: new TokenType("read", TokenClass.keyword, "read"),
-    read_write: new TokenType("read_write", TokenClass.keyword, "read_write"),
-    return: new TokenType("return", TokenClass.keyword, "return"),
-    storage: new TokenType("storage", TokenClass.keyword, "storage"),
-    switch: new TokenType("switch", TokenClass.keyword, "switch"),
-    true: new TokenType("true", TokenClass.keyword, "true"),
-    alias: new TokenType("alias", TokenClass.keyword, "alias"),
-    type: new TokenType("type", TokenClass.keyword, "type"),
-    uniform: new TokenType("uniform", TokenClass.keyword, "uniform"),
-    var: new TokenType("var", TokenClass.keyword, "var"),
-    override: new TokenType("override", TokenClass.keyword, "override"),
-    workgroup: new TokenType("workgroup", TokenClass.keyword, "workgroup"),
-    write: new TokenType("write", TokenClass.keyword, "write"),
-    r8unorm: new TokenType("r8unorm", TokenClass.keyword, "r8unorm"),
-    r8snorm: new TokenType("r8snorm", TokenClass.keyword, "r8snorm"),
-    r8uint: new TokenType("r8uint", TokenClass.keyword, "r8uint"),
-    r8sint: new TokenType("r8sint", TokenClass.keyword, "r8sint"),
-    r16uint: new TokenType("r16uint", TokenClass.keyword, "r16uint"),
-    r16sint: new TokenType("r16sint", TokenClass.keyword, "r16sint"),
-    r16float: new TokenType("r16float", TokenClass.keyword, "r16float"),
-    rg8unorm: new TokenType("rg8unorm", TokenClass.keyword, "rg8unorm"),
-    rg8snorm: new TokenType("rg8snorm", TokenClass.keyword, "rg8snorm"),
-    rg8uint: new TokenType("rg8uint", TokenClass.keyword, "rg8uint"),
-    rg8sint: new TokenType("rg8sint", TokenClass.keyword, "rg8sint"),
-    r32uint: new TokenType("r32uint", TokenClass.keyword, "r32uint"),
-    r32sint: new TokenType("r32sint", TokenClass.keyword, "r32sint"),
-    r32float: new TokenType("r32float", TokenClass.keyword, "r32float"),
-    rg16uint: new TokenType("rg16uint", TokenClass.keyword, "rg16uint"),
-    rg16sint: new TokenType("rg16sint", TokenClass.keyword, "rg16sint"),
-    rg16float: new TokenType("rg16float", TokenClass.keyword, "rg16float"),
-    rgba8unorm: new TokenType("rgba8unorm", TokenClass.keyword, "rgba8unorm"),
-    rgba8unorm_srgb: new TokenType("rgba8unorm_srgb", TokenClass.keyword, "rgba8unorm_srgb"),
-    rgba8snorm: new TokenType("rgba8snorm", TokenClass.keyword, "rgba8snorm"),
-    rgba8uint: new TokenType("rgba8uint", TokenClass.keyword, "rgba8uint"),
-    rgba8sint: new TokenType("rgba8sint", TokenClass.keyword, "rgba8sint"),
-    bgra8unorm: new TokenType("bgra8unorm", TokenClass.keyword, "bgra8unorm"),
-    bgra8unorm_srgb: new TokenType("bgra8unorm_srgb", TokenClass.keyword, "bgra8unorm_srgb"),
-    rgb10a2unorm: new TokenType("rgb10a2unorm", TokenClass.keyword, "rgb10a2unorm"),
-    rg11b10float: new TokenType("rg11b10float", TokenClass.keyword, "rg11b10float"),
-    rg32uint: new TokenType("rg32uint", TokenClass.keyword, "rg32uint"),
-    rg32sint: new TokenType("rg32sint", TokenClass.keyword, "rg32sint"),
-    rg32float: new TokenType("rg32float", TokenClass.keyword, "rg32float"),
-    rgba16uint: new TokenType("rgba16uint", TokenClass.keyword, "rgba16uint"),
-    rgba16sint: new TokenType("rgba16sint", TokenClass.keyword, "rgba16sint"),
-    rgba16float: new TokenType("rgba16float", TokenClass.keyword, "rgba16float"),
-    rgba32uint: new TokenType("rgba32uint", TokenClass.keyword, "rgba32uint"),
-    rgba32sint: new TokenType("rgba32sint", TokenClass.keyword, "rgba32sint"),
-    rgba32float: new TokenType("rgba32float", TokenClass.keyword, "rgba32float"),
-    static_assert: new TokenType("static_assert", TokenClass.keyword, "static_assert"),
+    array: new TokenType("array", exports.TokenClass.keyword, "array"),
+    atomic: new TokenType("atomic", exports.TokenClass.keyword, "atomic"),
+    bool: new TokenType("bool", exports.TokenClass.keyword, "bool"),
+    f32: new TokenType("f32", exports.TokenClass.keyword, "f32"),
+    i32: new TokenType("i32", exports.TokenClass.keyword, "i32"),
+    mat2x2: new TokenType("mat2x2", exports.TokenClass.keyword, "mat2x2"),
+    mat2x3: new TokenType("mat2x3", exports.TokenClass.keyword, "mat2x3"),
+    mat2x4: new TokenType("mat2x4", exports.TokenClass.keyword, "mat2x4"),
+    mat3x2: new TokenType("mat3x2", exports.TokenClass.keyword, "mat3x2"),
+    mat3x3: new TokenType("mat3x3", exports.TokenClass.keyword, "mat3x3"),
+    mat3x4: new TokenType("mat3x4", exports.TokenClass.keyword, "mat3x4"),
+    mat4x2: new TokenType("mat4x2", exports.TokenClass.keyword, "mat4x2"),
+    mat4x3: new TokenType("mat4x3", exports.TokenClass.keyword, "mat4x3"),
+    mat4x4: new TokenType("mat4x4", exports.TokenClass.keyword, "mat4x4"),
+    ptr: new TokenType("ptr", exports.TokenClass.keyword, "ptr"),
+    sampler: new TokenType("sampler", exports.TokenClass.keyword, "sampler"),
+    sampler_comparison: new TokenType("sampler_comparison", exports.TokenClass.keyword, "sampler_comparison"),
+    struct: new TokenType("struct", exports.TokenClass.keyword, "struct"),
+    texture_1d: new TokenType("texture_1d", exports.TokenClass.keyword, "texture_1d"),
+    texture_2d: new TokenType("texture_2d", exports.TokenClass.keyword, "texture_2d"),
+    texture_2d_array: new TokenType("texture_2d_array", exports.TokenClass.keyword, "texture_2d_array"),
+    texture_3d: new TokenType("texture_3d", exports.TokenClass.keyword, "texture_3d"),
+    texture_cube: new TokenType("texture_cube", exports.TokenClass.keyword, "texture_cube"),
+    texture_cube_array: new TokenType("texture_cube_array", exports.TokenClass.keyword, "texture_cube_array"),
+    texture_multisampled_2d: new TokenType("texture_multisampled_2d", exports.TokenClass.keyword, "texture_multisampled_2d"),
+    texture_storage_1d: new TokenType("texture_storage_1d", exports.TokenClass.keyword, "texture_storage_1d"),
+    texture_storage_2d: new TokenType("texture_storage_2d", exports.TokenClass.keyword, "texture_storage_2d"),
+    texture_storage_2d_array: new TokenType("texture_storage_2d_array", exports.TokenClass.keyword, "texture_storage_2d_array"),
+    texture_storage_3d: new TokenType("texture_storage_3d", exports.TokenClass.keyword, "texture_storage_3d"),
+    texture_depth_2d: new TokenType("texture_depth_2d", exports.TokenClass.keyword, "texture_depth_2d"),
+    texture_depth_2d_array: new TokenType("texture_depth_2d_array", exports.TokenClass.keyword, "texture_depth_2d_array"),
+    texture_depth_cube: new TokenType("texture_depth_cube", exports.TokenClass.keyword, "texture_depth_cube"),
+    texture_depth_cube_array: new TokenType("texture_depth_cube_array", exports.TokenClass.keyword, "texture_depth_cube_array"),
+    texture_depth_multisampled_2d: new TokenType("texture_depth_multisampled_2d", exports.TokenClass.keyword, "texture_depth_multisampled_2d"),
+    u32: new TokenType("u32", exports.TokenClass.keyword, "u32"),
+    vec2: new TokenType("vec2", exports.TokenClass.keyword, "vec2"),
+    vec3: new TokenType("vec3", exports.TokenClass.keyword, "vec3"),
+    vec4: new TokenType("vec4", exports.TokenClass.keyword, "vec4"),
+    bitcast: new TokenType("bitcast", exports.TokenClass.keyword, "bitcast"),
+    block: new TokenType("block", exports.TokenClass.keyword, "block"),
+    break: new TokenType("break", exports.TokenClass.keyword, "break"),
+    case: new TokenType("case", exports.TokenClass.keyword, "case"),
+    continue: new TokenType("continue", exports.TokenClass.keyword, "continue"),
+    continuing: new TokenType("continuing", exports.TokenClass.keyword, "continuing"),
+    default: new TokenType("default", exports.TokenClass.keyword, "default"),
+    discard: new TokenType("discard", exports.TokenClass.keyword, "discard"),
+    else: new TokenType("else", exports.TokenClass.keyword, "else"),
+    elseif: new TokenType("elseif", exports.TokenClass.keyword, "elseif"),
+    enable: new TokenType("enable", exports.TokenClass.keyword, "enable"),
+    fallthrough: new TokenType("fallthrough", exports.TokenClass.keyword, "fallthrough"),
+    false: new TokenType("false", exports.TokenClass.keyword, "false"),
+    fn: new TokenType("fn", exports.TokenClass.keyword, "fn"),
+    for: new TokenType("for", exports.TokenClass.keyword, "for"),
+    function: new TokenType("function", exports.TokenClass.keyword, "function"),
+    if: new TokenType("if", exports.TokenClass.keyword, "if"),
+    let: new TokenType("let", exports.TokenClass.keyword, "let"),
+    const: new TokenType("const", exports.TokenClass.keyword, "const"),
+    loop: new TokenType("loop", exports.TokenClass.keyword, "loop"),
+    while: new TokenType("while", exports.TokenClass.keyword, "while"),
+    private: new TokenType("private", exports.TokenClass.keyword, "private"),
+    read: new TokenType("read", exports.TokenClass.keyword, "read"),
+    read_write: new TokenType("read_write", exports.TokenClass.keyword, "read_write"),
+    return: new TokenType("return", exports.TokenClass.keyword, "return"),
+    storage: new TokenType("storage", exports.TokenClass.keyword, "storage"),
+    switch: new TokenType("switch", exports.TokenClass.keyword, "switch"),
+    true: new TokenType("true", exports.TokenClass.keyword, "true"),
+    alias: new TokenType("alias", exports.TokenClass.keyword, "alias"),
+    type: new TokenType("type", exports.TokenClass.keyword, "type"),
+    uniform: new TokenType("uniform", exports.TokenClass.keyword, "uniform"),
+    var: new TokenType("var", exports.TokenClass.keyword, "var"),
+    override: new TokenType("override", exports.TokenClass.keyword, "override"),
+    workgroup: new TokenType("workgroup", exports.TokenClass.keyword, "workgroup"),
+    write: new TokenType("write", exports.TokenClass.keyword, "write"),
+    r8unorm: new TokenType("r8unorm", exports.TokenClass.keyword, "r8unorm"),
+    r8snorm: new TokenType("r8snorm", exports.TokenClass.keyword, "r8snorm"),
+    r8uint: new TokenType("r8uint", exports.TokenClass.keyword, "r8uint"),
+    r8sint: new TokenType("r8sint", exports.TokenClass.keyword, "r8sint"),
+    r16uint: new TokenType("r16uint", exports.TokenClass.keyword, "r16uint"),
+    r16sint: new TokenType("r16sint", exports.TokenClass.keyword, "r16sint"),
+    r16float: new TokenType("r16float", exports.TokenClass.keyword, "r16float"),
+    rg8unorm: new TokenType("rg8unorm", exports.TokenClass.keyword, "rg8unorm"),
+    rg8snorm: new TokenType("rg8snorm", exports.TokenClass.keyword, "rg8snorm"),
+    rg8uint: new TokenType("rg8uint", exports.TokenClass.keyword, "rg8uint"),
+    rg8sint: new TokenType("rg8sint", exports.TokenClass.keyword, "rg8sint"),
+    r32uint: new TokenType("r32uint", exports.TokenClass.keyword, "r32uint"),
+    r32sint: new TokenType("r32sint", exports.TokenClass.keyword, "r32sint"),
+    r32float: new TokenType("r32float", exports.TokenClass.keyword, "r32float"),
+    rg16uint: new TokenType("rg16uint", exports.TokenClass.keyword, "rg16uint"),
+    rg16sint: new TokenType("rg16sint", exports.TokenClass.keyword, "rg16sint"),
+    rg16float: new TokenType("rg16float", exports.TokenClass.keyword, "rg16float"),
+    rgba8unorm: new TokenType("rgba8unorm", exports.TokenClass.keyword, "rgba8unorm"),
+    rgba8unorm_srgb: new TokenType("rgba8unorm_srgb", exports.TokenClass.keyword, "rgba8unorm_srgb"),
+    rgba8snorm: new TokenType("rgba8snorm", exports.TokenClass.keyword, "rgba8snorm"),
+    rgba8uint: new TokenType("rgba8uint", exports.TokenClass.keyword, "rgba8uint"),
+    rgba8sint: new TokenType("rgba8sint", exports.TokenClass.keyword, "rgba8sint"),
+    bgra8unorm: new TokenType("bgra8unorm", exports.TokenClass.keyword, "bgra8unorm"),
+    bgra8unorm_srgb: new TokenType("bgra8unorm_srgb", exports.TokenClass.keyword, "bgra8unorm_srgb"),
+    rgb10a2unorm: new TokenType("rgb10a2unorm", exports.TokenClass.keyword, "rgb10a2unorm"),
+    rg11b10float: new TokenType("rg11b10float", exports.TokenClass.keyword, "rg11b10float"),
+    rg32uint: new TokenType("rg32uint", exports.TokenClass.keyword, "rg32uint"),
+    rg32sint: new TokenType("rg32sint", exports.TokenClass.keyword, "rg32sint"),
+    rg32float: new TokenType("rg32float", exports.TokenClass.keyword, "rg32float"),
+    rgba16uint: new TokenType("rgba16uint", exports.TokenClass.keyword, "rgba16uint"),
+    rgba16sint: new TokenType("rgba16sint", exports.TokenClass.keyword, "rgba16sint"),
+    rgba16float: new TokenType("rgba16float", exports.TokenClass.keyword, "rgba16float"),
+    rgba32uint: new TokenType("rgba32uint", exports.TokenClass.keyword, "rgba32uint"),
+    rgba32sint: new TokenType("rgba32sint", exports.TokenClass.keyword, "rgba32sint"),
+    rgba32float: new TokenType("rgba32float", exports.TokenClass.keyword, "rgba32float"),
+    static_assert: new TokenType("static_assert", exports.TokenClass.keyword, "static_assert"),
     // WGSL grammar has a few keywords that have different token names than the strings they
     // represent. Aliasing them here.
     /*int32: new TokenType("i32", TokenClass.keyword, "i32"),
@@ -1130,59 +1134,59 @@ TokenTypes.keywords = {
         pointer: new TokenType("ptr", TokenClass.keyword, "ptr"),*/
 };
 TokenTypes.tokens = {
-    decimal_float_literal: new TokenType("decimal_float_literal", TokenClass.token, /((-?[0-9]*\.[0-9]+|-?[0-9]+\.[0-9]*)((e|E)(\+|-)?[0-9]+)?f?)|(-?[0-9]+(e|E)(\+|-)?[0-9]+f?)/),
-    hex_float_literal: new TokenType("hex_float_literal", TokenClass.token, /-?0x((([0-9a-fA-F]*\.[0-9a-fA-F]+|[0-9a-fA-F]+\.[0-9a-fA-F]*)((p|P)(\+|-)?[0-9]+f?)?)|([0-9a-fA-F]+(p|P)(\+|-)?[0-9]+f?))/),
-    int_literal: new TokenType("int_literal", TokenClass.token, /-?0x[0-9a-fA-F]+|0|-?[1-9][0-9]*/),
-    uint_literal: new TokenType("uint_literal", TokenClass.token, /0x[0-9a-fA-F]+u|0u|[1-9][0-9]*u/),
-    ident: new TokenType("ident", TokenClass.token, /[a-zA-Z][0-9a-zA-Z_]*/),
-    and: new TokenType("and", TokenClass.token, "&"),
-    and_and: new TokenType("and_and", TokenClass.token, "&&"),
-    arrow: new TokenType("arrow ", TokenClass.token, "->"),
-    attr: new TokenType("attr", TokenClass.token, "@"),
-    attr_left: new TokenType("attr_left", TokenClass.token, "[["),
-    attr_right: new TokenType("attr_right", TokenClass.token, "]]"),
-    forward_slash: new TokenType("forward_slash", TokenClass.token, "/"),
-    bang: new TokenType("bang", TokenClass.token, "!"),
-    bracket_left: new TokenType("bracket_left", TokenClass.token, "["),
-    bracket_right: new TokenType("bracket_right", TokenClass.token, "]"),
-    brace_left: new TokenType("brace_left", TokenClass.token, "{"),
-    brace_right: new TokenType("brace_right", TokenClass.token, "}"),
-    colon: new TokenType("colon", TokenClass.token, ":"),
-    comma: new TokenType("comma", TokenClass.token, ","),
-    equal: new TokenType("equal", TokenClass.token, "="),
-    equal_equal: new TokenType("equal_equal", TokenClass.token, "=="),
-    not_equal: new TokenType("not_equal", TokenClass.token, "!="),
-    greater_than: new TokenType("greater_than", TokenClass.token, ">"),
-    greater_than_equal: new TokenType("greater_than_equal", TokenClass.token, ">="),
-    shift_right: new TokenType("shift_right", TokenClass.token, ">>"),
-    less_than: new TokenType("less_than", TokenClass.token, "<"),
-    less_than_equal: new TokenType("less_than_equal", TokenClass.token, "<="),
-    shift_left: new TokenType("shift_left", TokenClass.token, "<<"),
-    modulo: new TokenType("modulo", TokenClass.token, "%"),
-    minus: new TokenType("minus", TokenClass.token, "-"),
-    minus_minus: new TokenType("minus_minus", TokenClass.token, "--"),
-    period: new TokenType("period", TokenClass.token, "."),
-    plus: new TokenType("plus", TokenClass.token, "+"),
-    plus_plus: new TokenType("plus_plus", TokenClass.token, "++"),
-    or: new TokenType("or", TokenClass.token, "|"),
-    or_or: new TokenType("or_or", TokenClass.token, "||"),
-    paren_left: new TokenType("paren_left", TokenClass.token, "("),
-    paren_right: new TokenType("paren_right", TokenClass.token, ")"),
-    semicolon: new TokenType("semicolon", TokenClass.token, ";"),
-    star: new TokenType("star", TokenClass.token, "*"),
-    tilde: new TokenType("tilde", TokenClass.token, "~"),
-    underscore: new TokenType("underscore", TokenClass.token, "_"),
-    xor: new TokenType("xor", TokenClass.token, "^"),
-    plus_equal: new TokenType("plus_equal", TokenClass.token, "+="),
-    minus_equal: new TokenType("minus_equal", TokenClass.token, "-="),
-    times_equal: new TokenType("times_equal", TokenClass.token, "*="),
-    division_equal: new TokenType("division_equal", TokenClass.token, "/="),
-    modulo_equal: new TokenType("modulo_equal", TokenClass.token, "%="),
-    and_equal: new TokenType("and_equal", TokenClass.token, "&="),
-    or_equal: new TokenType("or_equal", TokenClass.token, "|="),
-    xor_equal: new TokenType("xor_equal", TokenClass.token, "^="),
-    shift_right_equal: new TokenType("shift_right_equal", TokenClass.token, ">>="),
-    shift_left_equal: new TokenType("shift_left_equal", TokenClass.token, "<<="),
+    decimal_float_literal: new TokenType("decimal_float_literal", exports.TokenClass.token, /((-?[0-9]*\.[0-9]+|-?[0-9]+\.[0-9]*)((e|E)(\+|-)?[0-9]+)?f?)|(-?[0-9]+(e|E)(\+|-)?[0-9]+f?)/),
+    hex_float_literal: new TokenType("hex_float_literal", exports.TokenClass.token, /-?0x((([0-9a-fA-F]*\.[0-9a-fA-F]+|[0-9a-fA-F]+\.[0-9a-fA-F]*)((p|P)(\+|-)?[0-9]+f?)?)|([0-9a-fA-F]+(p|P)(\+|-)?[0-9]+f?))/),
+    int_literal: new TokenType("int_literal", exports.TokenClass.token, /-?0x[0-9a-fA-F]+|0|-?[1-9][0-9]*/),
+    uint_literal: new TokenType("uint_literal", exports.TokenClass.token, /0x[0-9a-fA-F]+u|0u|[1-9][0-9]*u/),
+    ident: new TokenType("ident", exports.TokenClass.token, /[a-zA-Z][0-9a-zA-Z_]*/),
+    and: new TokenType("and", exports.TokenClass.token, "&"),
+    and_and: new TokenType("and_and", exports.TokenClass.token, "&&"),
+    arrow: new TokenType("arrow ", exports.TokenClass.token, "->"),
+    attr: new TokenType("attr", exports.TokenClass.token, "@"),
+    attr_left: new TokenType("attr_left", exports.TokenClass.token, "[["),
+    attr_right: new TokenType("attr_right", exports.TokenClass.token, "]]"),
+    forward_slash: new TokenType("forward_slash", exports.TokenClass.token, "/"),
+    bang: new TokenType("bang", exports.TokenClass.token, "!"),
+    bracket_left: new TokenType("bracket_left", exports.TokenClass.token, "["),
+    bracket_right: new TokenType("bracket_right", exports.TokenClass.token, "]"),
+    brace_left: new TokenType("brace_left", exports.TokenClass.token, "{"),
+    brace_right: new TokenType("brace_right", exports.TokenClass.token, "}"),
+    colon: new TokenType("colon", exports.TokenClass.token, ":"),
+    comma: new TokenType("comma", exports.TokenClass.token, ","),
+    equal: new TokenType("equal", exports.TokenClass.token, "="),
+    equal_equal: new TokenType("equal_equal", exports.TokenClass.token, "=="),
+    not_equal: new TokenType("not_equal", exports.TokenClass.token, "!="),
+    greater_than: new TokenType("greater_than", exports.TokenClass.token, ">"),
+    greater_than_equal: new TokenType("greater_than_equal", exports.TokenClass.token, ">="),
+    shift_right: new TokenType("shift_right", exports.TokenClass.token, ">>"),
+    less_than: new TokenType("less_than", exports.TokenClass.token, "<"),
+    less_than_equal: new TokenType("less_than_equal", exports.TokenClass.token, "<="),
+    shift_left: new TokenType("shift_left", exports.TokenClass.token, "<<"),
+    modulo: new TokenType("modulo", exports.TokenClass.token, "%"),
+    minus: new TokenType("minus", exports.TokenClass.token, "-"),
+    minus_minus: new TokenType("minus_minus", exports.TokenClass.token, "--"),
+    period: new TokenType("period", exports.TokenClass.token, "."),
+    plus: new TokenType("plus", exports.TokenClass.token, "+"),
+    plus_plus: new TokenType("plus_plus", exports.TokenClass.token, "++"),
+    or: new TokenType("or", exports.TokenClass.token, "|"),
+    or_or: new TokenType("or_or", exports.TokenClass.token, "||"),
+    paren_left: new TokenType("paren_left", exports.TokenClass.token, "("),
+    paren_right: new TokenType("paren_right", exports.TokenClass.token, ")"),
+    semicolon: new TokenType("semicolon", exports.TokenClass.token, ";"),
+    star: new TokenType("star", exports.TokenClass.token, "*"),
+    tilde: new TokenType("tilde", exports.TokenClass.token, "~"),
+    underscore: new TokenType("underscore", exports.TokenClass.token, "_"),
+    xor: new TokenType("xor", exports.TokenClass.token, "^"),
+    plus_equal: new TokenType("plus_equal", exports.TokenClass.token, "+="),
+    minus_equal: new TokenType("minus_equal", exports.TokenClass.token, "-="),
+    times_equal: new TokenType("times_equal", exports.TokenClass.token, "*="),
+    division_equal: new TokenType("division_equal", exports.TokenClass.token, "/="),
+    modulo_equal: new TokenType("modulo_equal", exports.TokenClass.token, "%="),
+    and_equal: new TokenType("and_equal", exports.TokenClass.token, "&="),
+    or_equal: new TokenType("or_equal", exports.TokenClass.token, "|="),
+    xor_equal: new TokenType("xor_equal", exports.TokenClass.token, "^="),
+    shift_right_equal: new TokenType("shift_right_equal", exports.TokenClass.token, ">>="),
+    shift_left_equal: new TokenType("shift_left_equal", exports.TokenClass.token, "<<="),
 };
 TokenTypes.storage_class = [
     _a.keywords.function,
@@ -1898,8 +1902,8 @@ class WgslParser {
         }
         const token = this._consume(TokenTypes.increment_operators, "Expected increment operator");
         return new Increment(token.type === TokenTypes.tokens.plus_plus
-            ? IncrementOperator.increment
-            : IncrementOperator.decrement, _var);
+            ? exports.IncrementOperator.increment
+            : exports.IncrementOperator.decrement, _var);
     }
     _assignment_statement() {
         // (unary_expression underscore) equal short_circuit_or_expression
@@ -1913,7 +1917,7 @@ class WgslParser {
             return null;
         const type = this._consume(TokenTypes.assignment_operators, "Expected assignment operator.");
         const value = this._short_circuit_or_expression();
-        return new Assign(AssignOperator.parse(type.lexeme), _var, value);
+        return new Assign(exports.AssignOperator.parse(type.lexeme), _var, value);
     }
     _func_call_statement() {
         // ident argument_expression_list
@@ -3163,5 +3167,69 @@ WgslReflect.samplerTypes = TokenTypes.sampler_type.map((t) => {
     return t.name;
 });
 
-export { Alias, Argument, ArrayType, Assign, AssignOperator, Attribute, BinaryOperator, BindGropEntry, BitcastExpr, Break, BufferInfo, Call, CallExpr, Case, Const, ConstExpr, Continue, CreateExpr, Default, Discard, ElseIf, Enable, EntryFunctions, Expression, For, Function, FunctionInfo, GroupingExpr, If, Increment, IncrementOperator, InputInfo, Let, LiteralExpr, Loop, Member, MemberInfo, Node, Operator, Override, OverrideInfo, ParseContext, PointerType, Return, SamplerType, Statement, StaticAssert, StringExpr, Struct, StructInfo, Switch, SwitchCase, TemplateType, Token, TokenClass, TokenType, TokenTypes, Type, TypeInfo, TypecastExpr, UnaryOperator, Var, VariableExpr, VariableInfo, WgslParser, WgslReflect, WgslScanner, While };
-//# sourceMappingURL=wgsl_reflect.module.js.map
+exports.Alias = Alias;
+exports.Argument = Argument;
+exports.ArrayType = ArrayType;
+exports.Assign = Assign;
+exports.Attribute = Attribute;
+exports.BinaryOperator = BinaryOperator;
+exports.BindGropEntry = BindGropEntry;
+exports.BitcastExpr = BitcastExpr;
+exports.Break = Break;
+exports.BufferInfo = BufferInfo;
+exports.Call = Call;
+exports.CallExpr = CallExpr;
+exports.Case = Case;
+exports.Const = Const;
+exports.ConstExpr = ConstExpr;
+exports.Continue = Continue;
+exports.CreateExpr = CreateExpr;
+exports.Default = Default;
+exports.Discard = Discard;
+exports.ElseIf = ElseIf;
+exports.Enable = Enable;
+exports.EntryFunctions = EntryFunctions;
+exports.Expression = Expression;
+exports.For = For;
+exports.Function = Function;
+exports.FunctionInfo = FunctionInfo;
+exports.GroupingExpr = GroupingExpr;
+exports.If = If;
+exports.Increment = Increment;
+exports.InputInfo = InputInfo;
+exports.Let = Let;
+exports.LiteralExpr = LiteralExpr;
+exports.Loop = Loop;
+exports.Member = Member;
+exports.MemberInfo = MemberInfo;
+exports.Node = Node;
+exports.Operator = Operator;
+exports.Override = Override;
+exports.OverrideInfo = OverrideInfo;
+exports.ParseContext = ParseContext;
+exports.PointerType = PointerType;
+exports.Return = Return;
+exports.SamplerType = SamplerType;
+exports.Statement = Statement;
+exports.StaticAssert = StaticAssert;
+exports.StringExpr = StringExpr;
+exports.Struct = Struct;
+exports.StructInfo = StructInfo;
+exports.Switch = Switch;
+exports.SwitchCase = SwitchCase;
+exports.TemplateType = TemplateType;
+exports.Token = Token;
+exports.TokenType = TokenType;
+exports.TokenTypes = TokenTypes;
+exports.Type = Type;
+exports.TypeInfo = TypeInfo;
+exports.TypecastExpr = TypecastExpr;
+exports.UnaryOperator = UnaryOperator;
+exports.Var = Var;
+exports.VariableExpr = VariableExpr;
+exports.VariableInfo = VariableInfo;
+exports.WgslParser = WgslParser;
+exports.WgslReflect = WgslReflect;
+exports.WgslScanner = WgslScanner;
+exports.While = While;
+//# sourceMappingURL=wgsl_reflect.node.js.map

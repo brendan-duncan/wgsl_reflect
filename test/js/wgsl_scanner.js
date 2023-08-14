@@ -16,7 +16,7 @@ export class TokenType {
     }
 }
 /// Catalog of defined token types, keywords, and reserved words.
-class TokenTypes {
+export class TokenTypes {
 }
 _a = TokenTypes;
 TokenTypes.none = new TokenType("", TokenClass.reserved, "");
@@ -115,6 +115,7 @@ TokenTypes.keywords = {
     type: new TokenType("type", TokenClass.keyword, "type"),
     uniform: new TokenType("uniform", TokenClass.keyword, "uniform"),
     var: new TokenType("var", TokenClass.keyword, "var"),
+    override: new TokenType("override", TokenClass.keyword, "override"),
     workgroup: new TokenType("workgroup", TokenClass.keyword, "workgroup"),
     write: new TokenType("write", TokenClass.keyword, "write"),
     r8unorm: new TokenType("r8unorm", TokenClass.keyword, "r8unorm"),
@@ -355,7 +356,6 @@ TokenTypes.increment_operators = [
     _a.tokens.plus_plus,
     _a.tokens.minus_minus,
 ];
-export { TokenTypes };
 /// A token parsed by the WgslScanner.
 export class Token {
     constructor(type, lexeme, line) {

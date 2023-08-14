@@ -171,6 +171,33 @@ export class Var extends Statement {
 }
 
 /**
+ * @class Override
+ * @extends Statement
+ * @category AST
+ */
+export class Override extends Statement {
+  name: string;
+  type: Type | null;
+  value: Expression | null;
+  attributes: Array<Attribute> | null;
+
+  constructor(
+      name: string,
+      type: Type | null,
+      value: Expression | null
+  ) {
+    super();
+    this.name = name;
+    this.type = type;
+    this.value = value;
+  }
+
+  get astNodeType() {
+    return "override";
+  }
+}
+
+/**
  * @class Let
  * @extends Statement
  * @category AST

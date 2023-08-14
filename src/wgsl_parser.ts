@@ -3,6 +3,7 @@
  */
 import { WgslScanner, Token, TokenType, TokenTypes } from "./wgsl_scanner.js";
 import * as AST from "./wgsl_ast.js";
+import {Override} from "./wgsl_ast.js";
 
 /// Parse a sequence of tokens from the WgslScanner into an Abstract Syntax Tree (AST).
 export class WgslParser {
@@ -135,6 +136,13 @@ export class WgslParser {
       if (_var != null) _var.attributes = attrs;
       this._consume(TokenTypes.tokens.semicolon, "Expected ';'.");
       return _var;
+    }
+
+    if (this._check(TokenTypes.keywords.override)) {
+      const _override = this._override_variable_decl();
+      if (_override != null) _override.attributes = attrs;
+      this._consume(TokenTypes.tokens.semicolon, "Expected ';'.");
+      return _override;
     }
 
     if (this._check(TokenTypes.keywords.let)) {
@@ -498,7 +506,7 @@ export class WgslParser {
     const statements: Array<AST.Statement> = [];
     let statement = this._statement();
     while (statement !== null) {
-      if (statement instanceof Array<AST.Statement>) {
+      if (Array.isArray(statement)) {
         for (let s of statement) {
           statements.push(s);
         }
@@ -1021,6 +1029,15 @@ export class WgslParser {
     return _var;
   }
 
+  _override_variable_decl(): AST.Override | null {
+    // attribute* override_decl (equal const_expression)?
+    const _override = this._override_decl();
+    if (_override && this._match(TokenTypes.tokens.equal))
+      _override.value = this._const_expression();
+
+    return _override;
+  }
+
   _global_const_decl(): AST.Let | null {
     // attribute* const (ident variable_ident_decl) global_const_initializer?
     if (!this._match(TokenTypes.keywords.const)) return null;
@@ -1130,6 +1147,24 @@ export class WgslParser {
     }
 
     return new AST.Var(name.toString(), type, storage, access, null);
+  }
+
+  _override_decl(): AST.Override | null {
+    // override (ident variable_ident_decl)
+    if (!this._match(TokenTypes.keywords.override)) return null;
+
+    const name = this._consume(
+        TokenTypes.tokens.ident,
+        "Expected variable name"
+    );
+    let type: AST.Type | null = null;
+    if (this._match(TokenTypes.tokens.colon)) {
+      const attrs = this._attribute();
+      type = this._type_decl();
+      if (type != null) type.attributes = attrs;
+    }
+
+    return new AST.Override(name.toString(), type, null);
   }
 
   _enable_directive(): AST.Enable {

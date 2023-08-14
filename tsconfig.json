@@ -14,13 +14,12 @@
     "noImplicitUseStrict": false,
     "noFallthroughCasesInSwitch": false,
     "allowSyntheticDefaultImports": true,
-    "outDir": "js"
+    "outDir": "js",
+    "declaration": true,
+    "declarationDir": "types"
   },
   "files": [
-    "src/wgsl_scanner.ts",
-    "src/wgsl_ast.ts",
-    "src/wgsl_parser.ts",
-    "src/wgsl_reflect.ts"
+    "src/index.ts"
   ],
   "exclude": ["node_modules"],
   "compileOnSave": true,
