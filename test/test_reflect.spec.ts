@@ -1,4 +1,4 @@
-import { assert, describe, expect, it } from 'vitest';
+import { assert, describe, it } from 'vitest';
 const { ok, equal, deepEqual, strictEqual, isNotNull } = assert;
 
 import { ArrayType, TemplateType, WgslReflect } from '../src';
@@ -66,7 +66,7 @@ describe('Reflect', () =>
 
     const reflect = new WgslReflect(shader);
     equal(reflect.aliases.length, 2);
-    const info = reflect.getStorageBufferInfo(reflect.storage[0]);
+    const info = reflect.getStorageBufferInfo(reflect.storages[0]);
     equal(!!info, true);
   });
 
@@ -84,7 +84,7 @@ describe('Reflect', () =>
     `;
     const reflect = new WgslReflect(shader);
     equal(reflect.aliases.length, 3);
-    const info = reflect.getStorageBufferInfo(reflect.storage[0]);
+    const info = reflect.getStorageBufferInfo(reflect.storages[0]);
     equal(info.isStruct, true);
     equal(info.isArray, false);
     equal(info.members.length, 2);
@@ -105,7 +105,7 @@ describe('Reflect', () =>
     `;
     const reflect = new WgslReflect(shader);
     equal(reflect.aliases.length, 3);
-    const info = reflect.getStorageBufferInfo(reflect.storage[0]);
+    const info = reflect.getStorageBufferInfo(reflect.storages[0]);
     equal(info.isStruct, true);
     equal(info.isArray, true);
     equal(info.members.length, 2);
@@ -196,7 +196,7 @@ fn sorter() { }
 fn reverser() { }
 
 // Using an pipeline-overridable constant.
-@override(42) let block_width = 12u;
+@id(42) override block_width = 12u;
 @compute @workgroup_size(block_width)
 fn shuffler() { }
 `;
@@ -326,7 +326,7 @@ fn shuffler() { }
 
     const groups = reflect.getBindGroups();
 
-    equal(reflect.storage.length, 3);
+    equal(reflect.storages.length, 3);
     equal(groups.length, 1);
     equal(groups[0].length, 3);
     equal(groups[0][0].type, 'storage');
@@ -449,7 +449,7 @@ fn shuffler() { }
     );
     const structs = Object.fromEntries(reflect.structs.map((s) => [s.name, s]));
     const storages = Object.fromEntries(
-      reflect.storage.map((s) => [s.name, s])
+      reflect.storages.map((s) => [s.name, s])
     );
 
     const someOtherStruct = reflect.getStructInfo(structs.SomeOtherStruct);
@@ -671,4 +671,76 @@ fn shuffler() { }
   it('test f', (test) => testTypeAlias(test, 'f'));
   it('test i', (test) => testTypeAlias(test, 'i'));
   it('test u', (test) => testTypeAlias(test, 'u'));
+
+  it('override', function (test)
+  {
+    const shader = `
+    @id(0)    override has_point_light: bool = true;
+    @id(1200) override specular_param: f32 = 2.3;
+    @id(1300) override gain: f32;
+              override width: f32 = 0.0;
+              override depth: f32;   
+              override height = 2;
+        `;
+
+    const reflect = new WgslReflect(shader);
+    equal(reflect.overrides.length, 6);
+
+    let override = reflect.overrides[0];
+    equal(override.name, 'has_point_light');
+    equal(override.id, 0);
+    equal(override.type.name, 'bool');
+    equal(override.declaration.toString(), 'true');
+
+    override = reflect.overrides[1];
+    equal(override.name, 'specular_param');
+    equal(override.id, 1200);
+    equal(override.type.name, 'f32');
+    equal(override.declaration.toString(), '2.3');
+
+    override = reflect.overrides[2];
+    equal(override.name, 'gain');
+    equal(override.id, 1300);
+    equal(override.type.name, 'f32');
+    equal(override.declaration, undefined);
+
+    override = reflect.overrides[3];
+    equal(override.name, 'width');
+    equal(override.id, undefined);
+    equal(override.type.name, 'f32');
+    equal(override.declaration.toString(), '0.0');
+
+    override = reflect.overrides[4];
+    equal(override.name, 'depth');
+    equal(override.id, undefined);
+    equal(override.type.name, 'f32');
+    equal(override.declaration?.toString(), undefined);
+
+    override = reflect.overrides[5];
+    equal(override.name, 'height');
+    equal(override.id, undefined);
+    equal(override.type?.name, undefined);
+    equal(override.declaration.toString(), '2');
+  });
+
+  // depends on another overridable constant.
+  // @see https://gpuweb.github.io/gpuweb/wgsl/#override-declaration
+  // it('override ', function (test)
+  // {
+  //   const shader = `
+  //             override depth: f32;
+  //             override height = 2 * depth;
+  //       `;
+
+  //   const reflect = new WgslReflect(shader);
+  //   equal(reflect.overrides.length, 2);
+
+  //   let override = reflect.overrides[0];
+  //   equal(override.name, 'depth');
+  //   equal(override.type.name, 'f32');
+
+  //   override = reflect.overrides[1];
+  //   equal(override.name, 'height');
+  //   equal(override.declaration.toString(), '2 * depth');
+  // });
 });

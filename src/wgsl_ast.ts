@@ -1,7 +1,6 @@
 export class ParseContext
 {
   constants: Map<string, Const> = new Map();
-  overrides: Map<string, Override> = new Map();
   aliases: Map<string, Alias> = new Map();
   structs: Map<string, Struct> = new Map();
 }
@@ -195,6 +194,36 @@ export class Var extends Statement
 }
 
 /**
+ * @class Override
+ * @extends Statement
+ * @category AST
+ */
+export class Override extends Statement
+{
+  name: string;
+  type: Type | null;
+  value: Expression;
+  attributes: Array<Attribute> | null;
+
+  constructor(
+    name: string,
+    type: Type | null,
+    value: Expression
+  )
+  {
+    super();
+    this.name = name;
+    this.type = type;
+    this.value = value;
+  }
+
+  get astNodeType()
+  {
+    return 'override';
+  }
+}
+
+/**
  * @class Let
  * @extends Statement
  * @category AST
@@ -263,47 +292,6 @@ export class Const extends Statement
   get astNodeType()
   {
     return 'const';
-  }
-
-  evaluate(context: ParseContext): number
-  {
-    return this.value.evaluate(context);
-  }
-}
-
-/**
- * @class Override
- * @extends Statement
- * @category AST
- */
-export class Override extends Statement
-{
-  name: string;
-  type: Type | null;
-  storage: string | null;
-  access: string | null;
-  value: Expression;
-  attributes: Array<Attribute> | null;
-
-  constructor(
-    name: string,
-    type: Type | null,
-    storage: string | null,
-    access: string | null,
-    value: Expression
-  )
-  {
-    super();
-    this.name = name;
-    this.type = type;
-    this.storage = storage;
-    this.access = access;
-    this.value = value;
-  }
-
-  get astNodeType()
-  {
-    return 'override';
   }
 
   evaluate(context: ParseContext): number

@@ -1,9 +1,9 @@
 /**
  * @author Brendan Duncan / https://github.com/brendan-duncan
  */
-import { WgslParser } from './wgsl_parser.js';
-import { TokenTypes } from './wgsl_scanner.js';
-import * as AST from './wgsl_ast.js';
+import * as AST from './wgsl_ast';
+import { WgslParser } from './wgsl_parser';
+import { TokenTypes } from './wgsl_scanner';
 
 export class VariableInfo
 {
@@ -31,6 +31,38 @@ export class VariableInfo
   get attributes(): Array<AST.Attribute> | null
   {
     return this.node.attributes;
+  }
+}
+
+export class OverrideInfo
+{
+  node: AST.Override;
+  id: number;
+
+  constructor(node: AST.Override, id: number)
+  {
+    this.node = node;
+    this.id = id;
+  }
+
+  get name(): string
+  {
+    return this.node.name;
+  }
+
+  get type(): AST.Type | null
+  {
+    return this.node.type;
+  }
+
+  get attributes(): Array<AST.Attribute> | null
+  {
+    return this.node.attributes;
+  }
+
+  get declaration(): AST.Expression | null
+  {
+    return this.node.value;
   }
 }
 
@@ -170,23 +202,23 @@ export class EntryFunctions
 export class WgslReflect
 {
   ast: Array<AST.Statement> | null;
-  // All top-level overrides in the shader.
-  overrides: Array<AST.Override> = [];
-  // / All top-level structs in the shader.
+  // All top-level structs in the shader.
   structs: Array<AST.Struct> = [];
-  // / All top-level uniform vars in the shader.
+  // All top-level overrides in the shader.
+  overrides: Array<OverrideInfo> = [];
+  // All top-level uniform vars in the shader.
   uniforms: Array<VariableInfo> = [];
-  // / All top-level storage vars in the shader.
+  // All top-level storage vars in the shader.
   storages: Array<VariableInfo> = [];
-  // / All top-level texture vars in the shader;
+  // All top-level texture vars in the shader;
   textures: Array<VariableInfo> = [];
   // All top-level sampler vars in the shader.
   samplers: Array<VariableInfo> = [];
-  // / All top-level functions in the shader.
+  // All top-level functions in the shader.
   functions: Array<FunctionInfo> = [];
-  // / All top-level type aliases in the shader.
+  // All top-level type aliases in the shader.
   aliases: Array<AST.Alias> = [];
-  // / All entry functions in the shader: vertex, fragment, and/or compute.
+  // All entry functions in the shader: vertex, fragment, and/or compute.
   entry: EntryFunctions;
 
   constructor(code: string | undefined)
@@ -207,14 +239,19 @@ export class WgslReflect
 
       if (node.astNodeType === 'alias') this.aliases.push(node as AST.Alias);
 
-      if (node.astNodeType === 'override') this.overrides.push(node as AST.Override);
-
       if (this.isUniformVar(node))
       {
         const v = node as AST.Var;
         const g = this.getAttributeNum(node, 'group', 0);
         const b = this.getAttributeNum(node, 'binding', 0);
         this.uniforms.push(new VariableInfo(v, g, b));
+      }
+
+      if (this.isOverride(node))
+      {
+        const v = node as AST.Override;
+        const id = this.getAttributeNum(node, 'id', undefined);
+        this.overrides.push(new OverrideInfo(v, id));
       }
 
       if (this.isStorageVar(node))
@@ -287,6 +324,11 @@ export class WgslReflect
   isUniformVar(node: AST.Node): boolean
   {
     return node instanceof AST.Var && node.storage === 'uniform';
+  }
+
+  isOverride(node: AST.Node): boolean
+  {
+    return node instanceof AST.Override;
   }
 
   isStorageVar(node: AST.Node): boolean

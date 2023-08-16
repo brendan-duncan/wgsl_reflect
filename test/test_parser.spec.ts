@@ -164,21 +164,6 @@ describe('Parser', () =>
         ]);
     });
 
-    it('@override(0) let has_point_light: bool = true;', () =>
-    {
-        const t: any = parser.parse('@override(0) let has_point_light: bool = true;');
-        validateObject(t, [
-            {
-                astNodeType: 'let',
-                name: 'has_point_light',
-                type: {
-                    name: 'bool',
-                },
-                value: { value: 'true' },
-            },
-        ]);
-    });
-
     // struct
 
     it('struct', () =>

@@ -1,8 +1,8 @@
 /**
  * @author Brendan Duncan / https://github.com/brendan-duncan
  */
-import * as AST from './wgsl_ast.js';
-import { Token, TokenType, TokenTypes, WgslScanner } from './wgsl_scanner.js';
+import * as AST from './wgsl_ast';
+import { Token, TokenType, TokenTypes, WgslScanner } from './wgsl_scanner';
 
 // / Parse a sequence of tokens from the WgslScanner into an Abstract Syntax Tree (AST).
 export class WgslParser
@@ -176,6 +176,15 @@ export class WgslParser
       return _var;
     }
 
+    if (this._check(TokenTypes.keywords.override))
+    {
+      const _override = this._global_override_decl();
+      if (_override !== null) _override.attributes = attrs;
+      this._consume(TokenTypes.tokens.semicolon, 'Expected \';\'.');
+
+      return _override;
+    }
+
     if (this._check(TokenTypes.keywords.let))
     {
       const _let = this._global_let_decl();
@@ -192,15 +201,6 @@ export class WgslParser
       this._consume(TokenTypes.tokens.semicolon, 'Expected \';\'.');
 
       return _const;
-    }
-
-    if (this._check(TokenTypes.keywords.override))
-    {
-      const _override = this._global_override_decl();
-      if (_override !== null) _override.attributes = attrs;
-      this._consume(TokenTypes.tokens.semicolon, 'Expected \';\'.');
-
-      return _override;
     }
 
     if (this._check(TokenTypes.keywords.struct))
@@ -590,7 +590,7 @@ export class WgslParser
     let statement = this._statement();
     while (statement !== null)
     {
-      if (statement instanceof Array)
+      if (Array.isArray(statement))
       {
         for (const s of statement)
         {
@@ -1224,6 +1224,16 @@ export class WgslParser
     return _var;
   }
 
+  _global_override_decl(): AST.Override | null
+  {
+    // attribute* override_decl (equal const_expression)?
+    const _override = this._override_decl();
+    if (_override && this._match(TokenTypes.tokens.equal))
+    { _override.value = this._const_expression(); }
+
+    return _override;
+  }
+
   _global_const_decl(): AST.Let | null
   {
     // attribute* const (ident variable_ident_decl) global_const_initializer?
@@ -1263,49 +1273,6 @@ export class WgslParser
     }
     const c = new AST.Const(name.toString(), type, '', '', value);
     this._context.constants.set(c.name, c);
-
-    return c;
-  }
-
-  _global_override_decl(): AST.Let | null
-  {
-    // attribute* const (ident variable_ident_decl) global_const_initializer?
-    if (!this._match(TokenTypes.keywords.override)) return null;
-
-    const name = this._consume(
-      TokenTypes.tokens.ident,
-      'Expected variable name'
-    );
-    let type: AST.Type | null = null;
-    if (this._match(TokenTypes.tokens.colon))
-    {
-      const attrs = this._attribute();
-      type = this._type_decl();
-      if (type !== null) type.attributes = attrs;
-    }
-    let value: AST.Expression | null = null;
-    if (this._match(TokenTypes.tokens.equal))
-    {
-      const valueExpr = this._short_circuit_or_expression();
-      if (valueExpr instanceof AST.CreateExpr)
-      {
-        value = valueExpr;
-      }
-      else if (
-        valueExpr instanceof AST.ConstExpr
-        && valueExpr.initializer instanceof AST.CreateExpr
-      )
-      {
-        value = valueExpr.initializer;
-      }
-      else
-      {
-        const constValue = valueExpr.evaluate(this._context);
-        value = new AST.LiteralExpr(constValue);
-      }
-    }
-    const c = new AST.Override(name.toString(), type, '', '', value);
-    this._context.overrides.set(c.name, c);
 
     return c;
   }
@@ -1396,6 +1363,26 @@ export class WgslParser
     }
 
     return new AST.Var(name.toString(), type, storage, access, null);
+  }
+
+  _override_decl(): AST.Override | null
+  {
+    // override (ident variable_ident_decl)
+    if (!this._match(TokenTypes.keywords.override)) return null;
+
+    const name = this._consume(
+      TokenTypes.tokens.ident,
+      'Expected variable name'
+    );
+    let type: AST.Type | null = null;
+    if (this._match(TokenTypes.tokens.colon))
+    {
+      const attrs = this._attribute();
+      type = this._type_decl();
+      if (type !== null) type.attributes = attrs;
+    }
+
+    return new AST.Override(name.toString(), type, null);
   }
 
   _enable_directive(): AST.Enable
