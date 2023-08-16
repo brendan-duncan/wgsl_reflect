@@ -281,4 +281,16 @@ struct S {
 
     test.equals(t[0].body.length, 2);
   });
+
+  test('if (foo < 0.33333) { } else if foo < 0.66667 {} else {}', function (test)
+  {
+      const t = parser.parse('fn test() { if (foo < 0.33333) { } else if foo < 0.66667 {} else {} }');
+
+      test.equals(t[0].body[0].elseif.length, 1);
+
+      const t1 = parser.parse('fn test() { if (foo < 0.33333) { } else if foo < 0.66667 {}  else if (foo < 0.86667) {} else {} }');
+
+      test.equals(t1[0].body[0].elseif.length, 2);
+  });
+  
 });
