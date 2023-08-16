@@ -202,13 +202,13 @@ export class Override extends Statement
 {
   name: string;
   type: Type | null;
-  value: Expression;
+  value: Expression | null;
   attributes: Array<Attribute> | null;
 
   constructor(
     name: string,
     type: Type | null,
-    value: Expression
+    value: Expression | null
   )
   {
     super();
