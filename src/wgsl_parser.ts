@@ -3,7 +3,7 @@
  */
 import { WgslScanner, Token, TokenType, TokenTypes } from "./wgsl_scanner.js";
 import * as AST from "./wgsl_ast.js";
-import {Override} from "./wgsl_ast.js";
+import { Override } from "./wgsl_ast.js";
 
 /// Parse a sequence of tokens from the WgslScanner into an Abstract Syntax Tree (AST).
 export class WgslParser {
@@ -628,8 +628,9 @@ export class WgslParser {
     const block = this._compound_statement();
 
     let elseif: Array<AST.ElseIf> | null = [];
-    if (this._match_elseif())
-    { elseif = this._elseif_statement(elseif); }
+    if (this._match_elseif()) {
+      elseif = this._elseif_statement(elseif);
+    }
 
     let _else: Array<AST.Statement> | null = null;
     if (this._match(TokenTypes.keywords.else))
@@ -638,13 +639,11 @@ export class WgslParser {
     return new AST.If(condition, block, elseif, _else);
   }
 
-  _match_elseif()
-  {
+  _match_elseif(): boolean {
     if (
-      this._tokens[this._current].type === TokenTypes.keywords.else
-      && this._tokens[this._current + 1].type === TokenTypes.keywords.if
-    )
-    {
+      this._tokens[this._current].type === TokenTypes.keywords.else &&
+      this._tokens[this._current + 1].type === TokenTypes.keywords.if
+    ) {
       this._advance();
       this._advance();
 
@@ -654,14 +653,12 @@ export class WgslParser {
     return false;
   }
 
-  _elseif_statement(elseif: Array<AST.ElseIf> = []): Array<AST.ElseIf>
-  {
+  _elseif_statement(elseif: Array<AST.ElseIf> = []): Array<AST.ElseIf> {
     // else_if optional_paren_expression compound_statement elseif_statement?
     const condition = this._optional_paren_expression();
     const block = this._compound_statement();
     elseif.push(new AST.ElseIf(condition, block));
-    if (this._match_elseif())
-    {
+    if (this._match_elseif()) {
       this._elseif_statement(elseif);
     }
     return elseif;
@@ -1172,8 +1169,8 @@ export class WgslParser {
     if (!this._match(TokenTypes.keywords.override)) return null;
 
     const name = this._consume(
-        TokenTypes.tokens.ident,
-        "Expected variable name"
+      TokenTypes.tokens.ident,
+      "Expected variable name"
     );
     let type: AST.Type | null = null;
     if (this._match(TokenTypes.tokens.colon)) {

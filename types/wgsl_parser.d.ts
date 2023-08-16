@@ -36,7 +36,8 @@ export declare class WgslParser {
     _case_selectors(): Array<string>;
     _case_body(): Array<AST.Statement>;
     _if_statement(): AST.If | null;
-    _elseif_statement(): Array<AST.ElseIf>;
+    _match_elseif(): boolean;
+    _elseif_statement(elseif?: Array<AST.ElseIf>): Array<AST.ElseIf>;
     _return_statement(): AST.Return | null;
     _short_circuit_or_expression(): AST.Expression;
     _short_circuit_and_expr(): AST.Expression;

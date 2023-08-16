@@ -1,8 +1,8 @@
 import { test, group } from "../test.js";
-import { WgslReflect } from "../../js/wgsl_reflect.js";
+import { WgslReflect } from "../../../wgsl_reflect.module.js";
 
-group("struct_layout", function() {
-    const shader = `
+group("struct_layout", function () {
+  const shader = `
 struct A {                                     //             align(8)  size(32)
     u: f32,                                    // offset(0)   align(4)  size(4)
     v: f32,                                    // offset(4)   align(4)  size(4)
@@ -28,28 +28,28 @@ struct B {                           //             align(16) size(208)
 @group(0) @binding(0)
 var<uniform> uniform_buffer: B;`;
 
-    let reflect = null;
+  let reflect = null;
 
-    test("reflect", function(test) {
-        reflect = new WgslReflect(shader);
-        test.equals(reflect.uniforms.length, 1);
-        test.equals(reflect.structs.length, 2);
-    });
+  test("reflect", function (test) {
+    reflect = new WgslReflect(shader);
+    test.equals(reflect.uniforms.length, 1);
+    test.equals(reflect.structs.length, 2);
+  });
 
-    test("getMemberInfo(A)", function(test) {
-        const info = reflect.getTypeInfo(reflect.structs[0]);
-        test.equals(info.align, 8);
-        test.equals(info.size, 32);
-    });
+  test("getMemberInfo(A)", function (test) {
+    const info = reflect.getTypeInfo(reflect.structs[0]);
+    test.equals(info.align, 8);
+    test.equals(info.size, 32);
+  });
 
-    test("getMemberInfo(B)", function(test) {
-        const info = reflect.getTypeInfo(reflect.structs[1]);
-        test.equals(info.align, 16);
-        test.equals(info.size, 208);
-    });
+  test("getMemberInfo(B)", function (test) {
+    const info = reflect.getTypeInfo(reflect.structs[1]);
+    test.equals(info.align, 16);
+    test.equals(info.size, 208);
+  });
 
-    test("member offset/size", function(test) {
-        const info = reflect.getUniformBufferInfo(reflect.uniforms[0]);
-        test.equals(info.size, 208);
-    });
+  test("member offset/size", function (test) {
+    const info = reflect.getUniformBufferInfo(reflect.uniforms[0]);
+    test.equals(info.size, 208);
+  });
 });

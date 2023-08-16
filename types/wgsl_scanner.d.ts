@@ -71,6 +71,7 @@ export declare class TokenTypes {
         texture_depth_cube: TokenType;
         texture_depth_cube_array: TokenType;
         texture_depth_multisampled_2d: TokenType;
+        texture_external: TokenType;
         u32: TokenType;
         vec2: TokenType;
         vec3: TokenType;
@@ -84,7 +85,6 @@ export declare class TokenTypes {
         default: TokenType;
         discard: TokenType;
         else: TokenType;
-        elseif: TokenType;
         enable: TokenType;
         fallthrough: TokenType;
         false: TokenType;
@@ -209,6 +209,7 @@ export declare class TokenTypes {
     static readonly multisampled_texture_type: TokenType[];
     static readonly storage_texture_type: TokenType[];
     static readonly depth_texture_type: TokenType[];
+    static readonly texture_external_type: TokenType[];
     static readonly any_texture_type: TokenType[];
     static readonly texel_format: TokenType[];
     static readonly const_literal: TokenType[];

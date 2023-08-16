@@ -1,8 +1,8 @@
 import { test, group } from "../test.js";
-import { WgslParser } from "../../js/wgsl_parser.js";
+import { WgslParser } from "../../../wgsl_reflect.module.js";
 
-group("struct", function() {
-    const shader = `
+group("struct", function () {
+  const shader = `
   struct S1 {
     a : i32,
     b : i32,
@@ -63,10 +63,9 @@ group("struct", function() {
       );
   }`;
 
-    test("type_constructor", function(test) {
-        const parser = new WgslParser();
-        const t = parser.parse(shader);
-        test.true(t.length > 0);
-    });
+  test("type_constructor", function (test) {
+    const parser = new WgslParser();
+    const t = parser.parse(shader);
+    test.true(t.length > 0);
+  });
 });
-

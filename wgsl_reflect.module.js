@@ -1047,6 +1047,7 @@ TokenTypes.keywords = {
     texture_depth_cube: new TokenType("texture_depth_cube", TokenClass.keyword, "texture_depth_cube"),
     texture_depth_cube_array: new TokenType("texture_depth_cube_array", TokenClass.keyword, "texture_depth_cube_array"),
     texture_depth_multisampled_2d: new TokenType("texture_depth_multisampled_2d", TokenClass.keyword, "texture_depth_multisampled_2d"),
+    texture_external: new TokenType('texture_external', TokenClass.keyword, 'texture_external'),
     u32: new TokenType("u32", TokenClass.keyword, "u32"),
     vec2: new TokenType("vec2", TokenClass.keyword, "vec2"),
     vec3: new TokenType("vec3", TokenClass.keyword, "vec3"),
@@ -1060,7 +1061,6 @@ TokenTypes.keywords = {
     default: new TokenType("default", TokenClass.keyword, "default"),
     discard: new TokenType("discard", TokenClass.keyword, "discard"),
     else: new TokenType("else", TokenClass.keyword, "else"),
-    elseif: new TokenType("elseif", TokenClass.keyword, "elseif"),
     enable: new TokenType("enable", TokenClass.keyword, "enable"),
     fallthrough: new TokenType("fallthrough", TokenClass.keyword, "fallthrough"),
     false: new TokenType("false", TokenClass.keyword, "false"),
@@ -1224,11 +1224,15 @@ TokenTypes.depth_texture_type = [
     _a.keywords.texture_depth_cube_array,
     _a.keywords.texture_depth_multisampled_2d,
 ];
+TokenTypes.texture_external_type = [
+    _a.keywords.texture_external,
+];
 TokenTypes.any_texture_type = [
     ..._a.sampled_texture_type,
     ..._a.multisampled_texture_type,
     ..._a.storage_texture_type,
     ..._a.depth_texture_type,
+    ..._a.texture_external_type,
 ];
 TokenTypes.texel_format = [
     _a.keywords.r8unorm,
@@ -2025,22 +2029,32 @@ class WgslParser {
             return null;
         const condition = this._optional_paren_expression();
         const block = this._compound_statement();
-        let elseif = null;
-        if (this._match(TokenTypes.keywords.elseif))
-            elseif = this._elseif_statement();
+        let elseif = [];
+        if (this._match_elseif()) {
+            elseif = this._elseif_statement(elseif);
+        }
         let _else = null;
         if (this._match(TokenTypes.keywords.else))
             _else = this._compound_statement();
         return new If(condition, block, elseif, _else);
     }
-    _elseif_statement() {
+    _match_elseif() {
+        if (this._tokens[this._current].type === TokenTypes.keywords.else &&
+            this._tokens[this._current + 1].type === TokenTypes.keywords.if) {
+            this._advance();
+            this._advance();
+            return true;
+        }
+        return false;
+    }
+    _elseif_statement(elseif = []) {
         // else_if optional_paren_expression compound_statement elseif_statement?
-        const elseif = [];
         const condition = this._optional_paren_expression();
         const block = this._compound_statement();
         elseif.push(new ElseIf(condition, block));
-        if (this._match(TokenTypes.keywords.elseif))
-            elseif.push(this._elseif_statement()[0]);
+        if (this._match_elseif()) {
+            this._elseif_statement(elseif);
+        }
         return elseif;
     }
     _return_statement() {
