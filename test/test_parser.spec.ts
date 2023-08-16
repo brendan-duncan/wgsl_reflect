@@ -1,7 +1,7 @@
 import { assert, describe, it } from 'vitest';
 const { ok, equal, deepEqual, strictEqual, notDeepEqual } = assert;
 
-import { Let, WgslParser, Function, For } from '../src';
+import { Function, If, WgslParser } from '../src';
 import { validateObject } from './common';
 
 describe('Parser', () =>
@@ -311,5 +311,16 @@ struct S {
       }`);
 
         equal(t[0].body.length, 2);
+    });
+
+    it('if (foo < 0.33333) { } else if foo < 0.66667 {} else {}', function (test)
+    {
+        const t = parser.parse('fn test() { if (foo < 0.33333) { } else if foo < 0.66667 {} else {} }');
+
+        equal(((t[0] as Function).body[0] as If).elseif.length, 1);
+
+        const t1 = parser.parse('fn test() { if (foo < 0.33333) { } else if foo < 0.66667 {}  else if (foo < 0.86667) {} else {} }');
+
+        equal(((t1[0] as Function).body[0] as If).elseif.length, 2);
     });
 });
