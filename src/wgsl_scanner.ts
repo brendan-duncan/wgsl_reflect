@@ -140,6 +140,11 @@ export class TokenTypes {
       TokenClass.keyword,
       "texture_depth_multisampled_2d"
     ),
+    texture_external: new TokenType(
+      'texture_external',
+      TokenClass.keyword,
+      'texture_external'
+    ),
     u32: new TokenType("u32", TokenClass.keyword, "u32"),
     vec2: new TokenType("vec2", TokenClass.keyword, "vec2"),
     vec3: new TokenType("vec3", TokenClass.keyword, "vec3"),
@@ -153,7 +158,6 @@ export class TokenTypes {
     default: new TokenType("default", TokenClass.keyword, "default"),
     discard: new TokenType("discard", TokenClass.keyword, "discard"),
     else: new TokenType("else", TokenClass.keyword, "else"),
-    elseif: new TokenType("elseif", TokenClass.keyword, "elseif"),
     enable: new TokenType("enable", TokenClass.keyword, "enable"),
     fallthrough: new TokenType(
       "fallthrough",
@@ -387,11 +391,16 @@ export class TokenTypes {
     this.keywords.texture_depth_multisampled_2d,
   ];
 
+  static readonly texture_external_type = [
+    this.keywords.texture_external,
+  ];
+
   static readonly any_texture_type = [
     ...this.sampled_texture_type,
     ...this.multisampled_texture_type,
     ...this.storage_texture_type,
     ...this.depth_texture_type,
+    ...this.texture_external_type,
   ];
 
   static readonly texel_format = [

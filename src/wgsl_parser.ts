@@ -627,9 +627,9 @@ export class WgslParser {
     const condition = this._optional_paren_expression();
     const block = this._compound_statement();
 
-    let elseif: Array<AST.ElseIf> | null = null;
-    if (this._match(TokenTypes.keywords.elseif))
-      elseif = this._elseif_statement();
+    let elseif: Array<AST.ElseIf> | null = [];
+    if (this._match_elseif())
+    { elseif = this._elseif_statement(elseif); }
 
     let _else: Array<AST.Statement> | null = null;
     if (this._match(TokenTypes.keywords.else))
@@ -638,14 +638,32 @@ export class WgslParser {
     return new AST.If(condition, block, elseif, _else);
   }
 
-  _elseif_statement(): Array<AST.ElseIf> {
+  _match_elseif()
+  {
+    if (
+      this._tokens[this._current].type === TokenTypes.keywords.else
+      && this._tokens[this._current + 1].type === TokenTypes.keywords.if
+    )
+    {
+      this._advance();
+      this._advance();
+
+      return true;
+    }
+
+    return false;
+  }
+
+  _elseif_statement(elseif: Array<AST.ElseIf> = []): Array<AST.ElseIf>
+  {
     // else_if optional_paren_expression compound_statement elseif_statement?
-    const elseif: Array<AST.ElseIf> = [];
     const condition = this._optional_paren_expression();
     const block = this._compound_statement();
     elseif.push(new AST.ElseIf(condition, block));
-    if (this._match(TokenTypes.keywords.elseif))
-      elseif.push(this._elseif_statement()[0]);
+    if (this._match_elseif())
+    {
+      this._elseif_statement(elseif);
+    }
     return elseif;
   }
 

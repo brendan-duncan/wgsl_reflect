@@ -661,4 +661,15 @@ fn shuffler() { }
         test.equals(override.type.name, 'f32');
         test.equals(override.declaration.toString(), '3.14');
     });
+
+    test("@group(0) @binding(2) var myTexture: texture_external;", function (test) {
+        const shader = `@group(0) @binding(2) var myTexture: texture_external;`;
+        const reflect = new WgslReflect(shader);
+
+        test.equals(reflect.textures.length, 1);
+        test.equals(reflect.textures[0].name, "myTexture");
+        test.equals(reflect.textures[0].type.name, "texture_external");
+        test.equals(reflect.textures[0].group, 0);
+        test.equals(reflect.textures[0].binding, 2);
+    });
 });

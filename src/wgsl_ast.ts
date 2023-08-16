@@ -639,7 +639,6 @@ export class PointerType extends Type {
  * @category AST
  */
 export class ArrayType extends Type {
-  name: string;
   attributes: Array<Attribute> | null;
   format: Type | null;
   count: number;
