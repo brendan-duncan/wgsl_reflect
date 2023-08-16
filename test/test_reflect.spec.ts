@@ -743,4 +743,16 @@ fn shuffler() { }
   //   equal(override.name, 'height');
   //   equal(override.declaration.toString(), '2 * depth');
   // });
+
+  it('@group(0) @binding(2) var myTexture: texture_external;', function (test)
+  {
+    const shader = `@group(0) @binding(2) var myTexture: texture_external;`;
+    const reflect = new WgslReflect(shader);
+
+    equal(reflect.textures.length, 1);
+    equal(reflect.textures[0].name, 'myTexture');
+    equal(reflect.textures[0].type.name, 'texture_external');
+    equal(reflect.textures[0].group, 0);
+    equal(reflect.textures[0].binding, 2);
+  });
 });
