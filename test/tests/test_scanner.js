@@ -105,6 +105,22 @@ group("Scanner", function () {
     test.equals(tokens[0].lexeme, "123u");
   });
 
+  test("123i", function (test) {
+    const scanner = new WgslScanner("123i");
+    const tokens = scanner.scanTokens();
+    test.equals(tokens.length, 2);
+    test.equals(tokens[0].type, TokenTypes.tokens.int_literal);
+    test.equals(tokens[0].lexeme, "123i");
+  });
+
+  test("123f", function (test) {
+    const scanner = new WgslScanner("123f");
+    const tokens = scanner.scanTokens();
+    test.equals(tokens.length, 2);
+    test.equals(tokens[0].type, TokenTypes.tokens.decimal_float_literal);
+    test.equals(tokens[0].lexeme, "123f");
+  });
+
   test("0x123u", function (test) {
     const scanner = new WgslScanner("0x123u");
     const tokens = scanner.scanTokens();

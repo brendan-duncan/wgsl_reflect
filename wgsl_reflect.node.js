@@ -1051,7 +1051,7 @@ TokenTypes.keywords = {
     texture_depth_cube: new TokenType("texture_depth_cube", exports.TokenClass.keyword, "texture_depth_cube"),
     texture_depth_cube_array: new TokenType("texture_depth_cube_array", exports.TokenClass.keyword, "texture_depth_cube_array"),
     texture_depth_multisampled_2d: new TokenType("texture_depth_multisampled_2d", exports.TokenClass.keyword, "texture_depth_multisampled_2d"),
-    texture_external: new TokenType('texture_external', exports.TokenClass.keyword, 'texture_external'),
+    texture_external: new TokenType("texture_external", exports.TokenClass.keyword, "texture_external"),
     u32: new TokenType("u32", exports.TokenClass.keyword, "u32"),
     vec2: new TokenType("vec2", exports.TokenClass.keyword, "vec2"),
     vec3: new TokenType("vec3", exports.TokenClass.keyword, "vec3"),
@@ -1134,9 +1134,9 @@ TokenTypes.keywords = {
         pointer: new TokenType("ptr", TokenClass.keyword, "ptr"),*/
 };
 TokenTypes.tokens = {
-    decimal_float_literal: new TokenType("decimal_float_literal", exports.TokenClass.token, /((-?[0-9]*\.[0-9]+|-?[0-9]+\.[0-9]*)((e|E)(\+|-)?[0-9]+)?f?)|(-?[0-9]+(e|E)(\+|-)?[0-9]+f?)/),
+    decimal_float_literal: new TokenType("decimal_float_literal", exports.TokenClass.token, /((-?[0-9]*\.[0-9]+|-?[0-9]+\.[0-9]*)((e|E)(\+|-)?[0-9]+)?f?)|(-?[0-9]+(e|E)(\+|-)?[0-9]+f?)|([0-9]+f)/),
     hex_float_literal: new TokenType("hex_float_literal", exports.TokenClass.token, /-?0x((([0-9a-fA-F]*\.[0-9a-fA-F]+|[0-9a-fA-F]+\.[0-9a-fA-F]*)((p|P)(\+|-)?[0-9]+f?)?)|([0-9a-fA-F]+(p|P)(\+|-)?[0-9]+f?))/),
-    int_literal: new TokenType("int_literal", exports.TokenClass.token, /-?0x[0-9a-fA-F]+|0|-?[1-9][0-9]*/),
+    int_literal: new TokenType("int_literal", exports.TokenClass.token, /-?0x[0-9a-fA-F]+|0|-?[1-9][0-9]*i?/),
     uint_literal: new TokenType("uint_literal", exports.TokenClass.token, /0x[0-9a-fA-F]+u|0u|[1-9][0-9]*u/),
     ident: new TokenType("ident", exports.TokenClass.token, /[a-zA-Z][0-9a-zA-Z_]*/),
     and: new TokenType("and", exports.TokenClass.token, "&"),
@@ -1228,9 +1228,7 @@ TokenTypes.depth_texture_type = [
     _a.keywords.texture_depth_cube_array,
     _a.keywords.texture_depth_multisampled_2d,
 ];
-TokenTypes.texture_external_type = [
-    _a.keywords.texture_external,
-];
+TokenTypes.texture_external_type = [_a.keywords.texture_external];
 TokenTypes.any_texture_type = [
     ..._a.sampled_texture_type,
     ..._a.multisampled_texture_type,

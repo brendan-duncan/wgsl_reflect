@@ -141,9 +141,9 @@ export class TokenTypes {
       "texture_depth_multisampled_2d"
     ),
     texture_external: new TokenType(
-      'texture_external',
+      "texture_external",
       TokenClass.keyword,
-      'texture_external'
+      "texture_external"
     ),
     u32: new TokenType("u32", TokenClass.keyword, "u32"),
     vec2: new TokenType("vec2", TokenClass.keyword, "vec2"),
@@ -264,7 +264,7 @@ export class TokenTypes {
     decimal_float_literal: new TokenType(
       "decimal_float_literal",
       TokenClass.token,
-      /((-?[0-9]*\.[0-9]+|-?[0-9]+\.[0-9]*)((e|E)(\+|-)?[0-9]+)?f?)|(-?[0-9]+(e|E)(\+|-)?[0-9]+f?)/
+      /((-?[0-9]*\.[0-9]+|-?[0-9]+\.[0-9]*)((e|E)(\+|-)?[0-9]+)?f?)|(-?[0-9]+(e|E)(\+|-)?[0-9]+f?)|([0-9]+f)/
     ),
     hex_float_literal: new TokenType(
       "hex_float_literal",
@@ -274,7 +274,7 @@ export class TokenTypes {
     int_literal: new TokenType(
       "int_literal",
       TokenClass.token,
-      /-?0x[0-9a-fA-F]+|0|-?[1-9][0-9]*/
+      /-?0x[0-9a-fA-F]+|0|-?[1-9][0-9]*i?/
     ),
     uint_literal: new TokenType(
       "uint_literal",
@@ -391,9 +391,7 @@ export class TokenTypes {
     this.keywords.texture_depth_multisampled_2d,
   ];
 
-  static readonly texture_external_type = [
-    this.keywords.texture_external,
-  ];
+  static readonly texture_external_type = [this.keywords.texture_external];
 
   static readonly any_texture_type = [
     ...this.sampled_texture_type,
