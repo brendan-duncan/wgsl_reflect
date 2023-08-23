@@ -274,7 +274,7 @@ export class TokenTypes {
     int_literal: new TokenType(
       "int_literal",
       TokenClass.token,
-      /-?0x[0-9a-fA-F]+|0|-?[1-9][0-9]*i?/
+      /-?0x[0-9a-fA-F]+|0i?|-?[1-9][0-9]*i?/
     ),
     uint_literal: new TokenType(
       "uint_literal",

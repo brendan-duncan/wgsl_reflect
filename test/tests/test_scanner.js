@@ -105,6 +105,30 @@ group("Scanner", function () {
     test.equals(tokens[0].lexeme, "123u");
   });
 
+  test("0i", function (test) {
+    const scanner = new WgslScanner("0i");
+    const tokens = scanner.scanTokens();
+    test.equals(tokens.length, 2);
+    test.equals(tokens[0].type, TokenTypes.tokens.int_literal);
+    test.equals(tokens[0].lexeme, "0i");
+  });
+
+  test("0u", function (test) {
+    const scanner = new WgslScanner("0u");
+    const tokens = scanner.scanTokens();
+    test.equals(tokens.length, 2);
+    test.equals(tokens[0].type, TokenTypes.tokens.uint_literal);
+    test.equals(tokens[0].lexeme, "0u");
+  });
+
+  test("0f", function (test) {
+    const scanner = new WgslScanner("0f");
+    const tokens = scanner.scanTokens();
+    test.equals(tokens.length, 2);
+    test.equals(tokens[0].type, TokenTypes.tokens.decimal_float_literal);
+    test.equals(tokens[0].lexeme, "0f");
+  });
+
   test("123i", function (test) {
     const scanner = new WgslScanner("123i");
     const tokens = scanner.scanTokens();
