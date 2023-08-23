@@ -256,6 +256,7 @@ export class WgslParser {
     // variable_statement semicolon
     // break_statement semicolon
     // continue_statement semicolon
+    // continuing_statement compound_statement
     // discard semicolon
     // assignment_statement semicolon
     // compound_statement
@@ -276,6 +277,9 @@ export class WgslParser {
     if (this._check(TokenTypes.keywords.for)) return this._for_statement();
 
     if (this._check(TokenTypes.keywords.while)) return this._while_statement();
+
+    if (this._check(TokenTypes.keywords.continuing))
+      return this._continuing_statement();
 
     if (this._check(TokenTypes.keywords.static_assert))
       return this._static_assert_statement();
@@ -325,6 +329,12 @@ export class WgslParser {
     let condition = this._optional_paren_expression();
     const block = this._compound_statement();
     return new AST.While(condition, block);
+  }
+
+  _continuing_statement(): AST.Continuing | null {
+    if (!this._match(TokenTypes.keywords.continuing)) return null;
+    const block = this._compound_statement();
+    return new AST.Continuing(block);
   }
 
   _for_statement(): AST.For | null {

@@ -86,6 +86,20 @@ class While extends Statement {
     }
 }
 /**
+ * @class Continuing
+ * @extends Statement
+ * @category AST
+ */
+class Continuing extends Statement {
+    constructor(body) {
+        super();
+        this.body = body;
+    }
+    get astNodeType() {
+        return "continuing";
+    }
+}
+/**
  * @class For
  * @extends Statement
  * @category AST
@@ -1758,6 +1772,7 @@ class WgslParser {
         // variable_statement semicolon
         // break_statement semicolon
         // continue_statement semicolon
+        // continuing_statement compound_statement
         // discard semicolon
         // assignment_statement semicolon
         // compound_statement
@@ -1777,6 +1792,8 @@ class WgslParser {
             return this._for_statement();
         if (this._check(TokenTypes.keywords.while))
             return this._while_statement();
+        if (this._check(TokenTypes.keywords.continuing))
+            return this._continuing_statement();
         if (this._check(TokenTypes.keywords.static_assert))
             return this._static_assert_statement();
         if (this._check(TokenTypes.tokens.brace_left))
@@ -1817,6 +1834,12 @@ class WgslParser {
         let condition = this._optional_paren_expression();
         const block = this._compound_statement();
         return new While(condition, block);
+    }
+    _continuing_statement() {
+        if (!this._match(TokenTypes.keywords.continuing))
+            return null;
+        const block = this._compound_statement();
+        return new Continuing(block);
     }
     _for_statement() {
         // for paren_left for_header paren_right compound_statement
@@ -3195,6 +3218,7 @@ exports.Case = Case;
 exports.Const = Const;
 exports.ConstExpr = ConstExpr;
 exports.Continue = Continue;
+exports.Continuing = Continuing;
 exports.CreateExpr = CreateExpr;
 exports.Default = Default;
 exports.Discard = Discard;

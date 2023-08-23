@@ -109,6 +109,24 @@ export class While extends Statement {
 }
 
 /**
+ * @class Continuing
+ * @extends Statement
+ * @category AST
+ */
+export class Continuing extends Statement {
+  body: Array<Statement>;
+
+  constructor(body: Array<Statement>) {
+    super();
+    this.body = body;
+  }
+
+  get astNodeType() {
+    return "continuing";
+  }
+}
+
+/**
  * @class For
  * @extends Statement
  * @category AST
@@ -181,11 +199,7 @@ export class Override extends Statement {
   value: Expression | null;
   attributes: Array<Attribute> | null;
 
-  constructor(
-      name: string,
-      type: Type | null,
-      value: Expression | null
-  ) {
+  constructor(name: string, type: Type | null, value: Expression | null) {
     super();
     this.name = name;
     this.type = type;

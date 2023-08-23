@@ -295,4 +295,21 @@ struct S {
 
     test.equals(t1[0].body[0].elseif.length, 2);
   });
+
+  test("continuing", function (test) {
+    const t = parser.parse(`fn test() {
+        var i: i32 = 0;
+        loop {
+          if i >= 4 { break; }
+          if i % 2 == 0 { continue; } // <3>
+        
+          let step: i32 = 2;
+        
+          continuing {
+            i = i + step;
+          }
+        }
+      }`);
+    test.equals(t[0].body[1].body[3].astNodeType, "continuing");
+  });
 });

@@ -59,6 +59,16 @@ export declare class While extends Statement {
     get astNodeType(): string;
 }
 /**
+ * @class Continuing
+ * @extends Statement
+ * @category AST
+ */
+export declare class Continuing extends Statement {
+    body: Array<Statement>;
+    constructor(body: Array<Statement>);
+    get astNodeType(): string;
+}
+/**
  * @class For
  * @extends Statement
  * @category AST

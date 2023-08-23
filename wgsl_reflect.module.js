@@ -82,6 +82,20 @@ class While extends Statement {
     }
 }
 /**
+ * @class Continuing
+ * @extends Statement
+ * @category AST
+ */
+class Continuing extends Statement {
+    constructor(body) {
+        super();
+        this.body = body;
+    }
+    get astNodeType() {
+        return "continuing";
+    }
+}
+/**
  * @class For
  * @extends Statement
  * @category AST
@@ -1754,6 +1768,7 @@ class WgslParser {
         // variable_statement semicolon
         // break_statement semicolon
         // continue_statement semicolon
+        // continuing_statement compound_statement
         // discard semicolon
         // assignment_statement semicolon
         // compound_statement
@@ -1773,6 +1788,8 @@ class WgslParser {
             return this._for_statement();
         if (this._check(TokenTypes.keywords.while))
             return this._while_statement();
+        if (this._check(TokenTypes.keywords.continuing))
+            return this._continuing_statement();
         if (this._check(TokenTypes.keywords.static_assert))
             return this._static_assert_statement();
         if (this._check(TokenTypes.tokens.brace_left))
@@ -1813,6 +1830,12 @@ class WgslParser {
         let condition = this._optional_paren_expression();
         const block = this._compound_statement();
         return new While(condition, block);
+    }
+    _continuing_statement() {
+        if (!this._match(TokenTypes.keywords.continuing))
+            return null;
+        const block = this._compound_statement();
+        return new Continuing(block);
     }
     _for_statement() {
         // for paren_left for_header paren_right compound_statement
@@ -3175,5 +3198,5 @@ WgslReflect.samplerTypes = TokenTypes.sampler_type.map((t) => {
     return t.name;
 });
 
-export { Alias, Argument, ArrayType, Assign, AssignOperator, Attribute, BinaryOperator, BindGropEntry, BitcastExpr, Break, BufferInfo, Call, CallExpr, Case, Const, ConstExpr, Continue, CreateExpr, Default, Discard, ElseIf, Enable, EntryFunctions, Expression, For, Function, FunctionInfo, GroupingExpr, If, Increment, IncrementOperator, InputInfo, Let, LiteralExpr, Loop, Member, MemberInfo, Node, Operator, Override, OverrideInfo, ParseContext, PointerType, Return, SamplerType, Statement, StaticAssert, StringExpr, Struct, StructInfo, Switch, SwitchCase, TemplateType, Token, TokenClass, TokenType, TokenTypes, Type, TypeInfo, TypecastExpr, UnaryOperator, Var, VariableExpr, VariableInfo, WgslParser, WgslReflect, WgslScanner, While };
+export { Alias, Argument, ArrayType, Assign, AssignOperator, Attribute, BinaryOperator, BindGropEntry, BitcastExpr, Break, BufferInfo, Call, CallExpr, Case, Const, ConstExpr, Continue, Continuing, CreateExpr, Default, Discard, ElseIf, Enable, EntryFunctions, Expression, For, Function, FunctionInfo, GroupingExpr, If, Increment, IncrementOperator, InputInfo, Let, LiteralExpr, Loop, Member, MemberInfo, Node, Operator, Override, OverrideInfo, ParseContext, PointerType, Return, SamplerType, Statement, StaticAssert, StringExpr, Struct, StructInfo, Switch, SwitchCase, TemplateType, Token, TokenClass, TokenType, TokenTypes, Type, TypeInfo, TypecastExpr, UnaryOperator, Var, VariableExpr, VariableInfo, WgslParser, WgslReflect, WgslScanner, While };
 //# sourceMappingURL=wgsl_reflect.module.js.map

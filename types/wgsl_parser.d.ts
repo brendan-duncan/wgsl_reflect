@@ -23,6 +23,7 @@ export declare class WgslParser {
     _statement(): AST.Statement | Array<AST.Statement> | null;
     _static_assert_statement(): AST.StaticAssert | null;
     _while_statement(): AST.While | null;
+    _continuing_statement(): AST.Continuing | null;
     _for_statement(): AST.For | null;
     _for_init(): AST.Statement | null;
     _for_increment(): AST.Statement | null;
