@@ -712,18 +712,44 @@ fn shuffler() { }
     @group(0) @binding(7) var<uniform> foo7: array<array<array<VSUniforms, 5>, 6>, 7>;
     `);
 
+    test.equals(reflect.uniforms.length, 8);
+
+    test.equals(reflect.uniforms[0].type.size, 12); // type is a AST.Type
+
+    test.equals(reflect.uniforms[1].type.isArray, true); // type is an AST.ArrayType
+    test.equals(reflect.uniforms[1].type.isStruct, false);
+    test.equals(reflect.uniforms[1].type.count, 5);
+    test.equals(reflect.uniforms[1].type.size, 80);
+
+    test.equals(reflect.uniforms[2].type.isArray, true); // type is an AST.ArrayType
+    test.equals(reflect.uniforms[2].type.isStruct, false);
+    test.equals(reflect.uniforms[2].type.count, 6);
+    test.equals(reflect.uniforms[2].type.size, 480);
+    test.equals(reflect.uniforms[2].type.format.isArray, true); // format is an AST.ArrayType
+    test.equals(reflect.uniforms[2].type.format.count, 5);
+    test.equals(reflect.uniforms[2].type.format.size, 80);
+
+    test.equals(reflect.uniforms[4].type.isStruct, true);
+    test.equals(reflect.uniforms[4].type.members.length, 2);
+    test.equals(reflect.uniforms[4].type.members[0].type.size, 4);
+    test.equals(reflect.uniforms[4].type.members[1].type.size, 4);
+    test.equals(reflect.uniforms[4].type.members[1].type.isStruct, true);
+    test.equals(reflect.uniforms[4].type.members[1].type.members.length, 1);
+
     function getTypeString(type) {
       if (type.isArray) {
-        return `array<${getTypeString(type.format)}, ${type.count}>`;
+        return `array<${getTypeString(type.format)}, ${type.count}>[size: ${
+          type.size
+        }, stride: ${type.stride}]`;
       } else if (type.isStruct) {
         return (
           type.name +
           " {\n" +
           type.members.map((m) => `  ${m.name}: ${getTypeString(m.type)}\n`) +
-          " }"
+          `}[size: ${type.size}, align: ${type.align}]`
         );
       }
-      return type.name;
+      return `${type.name}[size: ${type.size}]`;
     }
 
     reflect.uniforms.map((uniform) => {
