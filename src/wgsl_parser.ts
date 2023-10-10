@@ -1251,6 +1251,13 @@ export class WgslParser {
       ])
     ) {
       const type = this._advance();
+      const typeName = type.toString();
+      if (this._context.structs.has(typeName)) {
+        return this._context.structs.get(typeName);
+      }
+      if (this._context.aliases.has(typeName)) {
+        return this._context.aliases.get(typeName).type;
+      }
       return new AST.Type(type.toString());
     }
 

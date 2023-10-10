@@ -29,7 +29,6 @@ export class VariableInfo {
   }
 }
 
-
 export class OverrideInfo {
   node: AST.Override;
   id: number;
@@ -214,7 +213,9 @@ export class WgslReflect {
         const g = this.getAttributeNum(node, "group", 0);
         const b = this.getAttributeNum(node, "binding", 0);
         this.uniforms.push(new VariableInfo(v, g, b));
+        this._updateTypeInfo(v.type);
       }
+
       if (this.isOverride(node)) {
         const v = node as AST.Override;
         const id = this.getAttributeNum(node, "id", 0);
@@ -228,6 +229,7 @@ export class WgslReflect {
         const b = this.getAttributeNum(node, "binding", 0);
 
         this.storage.push(new VariableInfo(v, g, b));
+        this._updateTypeInfo(v.type);
       }
 
       if (this.isTextureVar(node)) {
@@ -337,7 +339,7 @@ export class WgslReflect {
     return inputs;
   }
 
-  _getInputInfo(node: AST.Member): InputInfo | null {
+  _getInputInfo(node: AST.Member | AST.Argument): InputInfo | null {
     const location =
       this.getAttribute(node, "location") || this.getAttribute(node, "builtin");
     if (location !== null) {
@@ -527,6 +529,9 @@ export class WgslReflect {
       u.isStruct = isStruct;
       u.members = members;
       buffer.members.push(u);
+
+      member.offset = offset;
+      member.size = size;
     }
 
     buffer.size = this._roundUp(structAlign, lastOffset + lastSize);
@@ -536,6 +541,51 @@ export class WgslReflect {
     buffer.arrayCount = 0;
 
     return buffer;
+  }
+
+  _updateTypeInfo(type: AST.Type) {
+    const typeInfo = this.getTypeInfo(type);
+    type.size = typeInfo?.size;
+
+    if (type instanceof AST.ArrayType) {
+      const formatInfo = this.getTypeInfo(type["format"]);
+      type.stride = formatInfo?.size;
+      this._updateTypeInfo(type["format"]);
+    }
+
+    if (type instanceof AST.Struct) {
+      this._updateStructInfo(type);
+    }
+  }
+
+  _updateStructInfo(struct: AST.Struct) {
+    let offset = 0;
+    let lastSize = 0;
+    let lastOffset = 0;
+    let structAlign = 0;
+
+    for (let mi = 0, ml = struct.members.length; mi < ml; ++mi) {
+      const member = struct.members[mi];
+
+      const info = this.getTypeInfo(member);
+      if (!info) continue;
+
+      const type = this.getAlias(member.type) || member.type;
+      const align = info.align;
+      const size = info.size;
+      offset = this._roundUp(align, offset + lastSize);
+      lastSize = size;
+      lastOffset = offset;
+      structAlign = Math.max(structAlign, align);
+
+      member.offset = offset;
+      member.size = size;
+
+      this._updateTypeInfo(member.type);
+    }
+
+    struct.size = this._roundUp(structAlign, lastOffset + lastSize);
+    struct.align = structAlign;
   }
 
   _getUniformInfo(node: AST.Var | AST.Struct): BufferInfo | null {
@@ -561,11 +611,16 @@ export class WgslReflect {
     info.members = info.isStruct ? si?.members : undefined;
     info.name = n.name;
     info.type = type;
-    info.arrayStride =
+
+    const stride =
       si?.size ?? info.isArray
         ? this.getTypeInfo(type["format"])?.size
         : this.getTypeInfo(type)?.size;
+
+    info.arrayStride = stride;
     info.arrayCount = parseInt(type["count"] ?? 0);
+
+    this._updateTypeInfo(type);
 
     return info;
   }
@@ -579,9 +634,7 @@ export class WgslReflect {
     return info;
   }
 
-
-
-  getTypeInfo(type: AST.Type | null | undefined): TypeInfo | null {
+  getTypeInfo(type: AST.Type | AST.Member | null | undefined): TypeInfo | null {
     if (type === null || type === undefined) return null;
 
     const explicitSize = this.getAttributeNum(type, "size", 0);

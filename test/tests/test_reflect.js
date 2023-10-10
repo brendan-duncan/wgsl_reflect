@@ -25,6 +25,8 @@ group("Reflect", function () {
     test.equals(reflect.uniforms.length, 1);
     const bufferInfo = reflect.getUniformBufferInfo(reflect.uniforms[0]);
     test.equals(bufferInfo.size, 64);
+
+    test.equals(reflect.uniforms[0].type.size, 64);
   });
 
   test("const", function (test) {
@@ -34,6 +36,8 @@ group("Reflect", function () {
     test.equals(reflect.uniforms.length, 1);
     const bufferInfo = reflect.getUniformBufferInfo(reflect.uniforms[0]);
     test.equals(bufferInfo.size, 16 * 12);
+
+    test.equals(reflect.uniforms[0].type.size, 16 * 12);
   });
 
   test("const2", function (test) {
@@ -45,6 +49,7 @@ group("Reflect", function () {
     test.equals(reflect.uniforms.length, 1);
     const bufferInfo = reflect.getUniformBufferInfo(reflect.uniforms[0]);
     test.equals(bufferInfo.size, 16 * 4);
+    test.equals(reflect.uniforms[0].type.size, 16 * 4);
   });
 
   test("alias", function (test) {
@@ -80,6 +85,11 @@ group("Reflect", function () {
     test.equals(info.isArray, false);
     test.equals(info.members.length, 2);
     test.equals(info.size, 8);
+
+    test.equals(reflect.storage[0].type.isArray, false);
+    test.equals(reflect.storage[0].type.isStruct, true);
+    test.equals(reflect.storage[0].type.members.length, 2);
+    test.equals(reflect.storage[0].type.size, 8);
   });
 
   test("nested-alias-array", function (test) {
@@ -100,6 +110,12 @@ group("Reflect", function () {
     test.equals(info.isArray, true);
     test.equals(info.members.length, 2);
     test.equals(info.size, 80);
+
+    test.equals(reflect.storage[0].type.isStruct, false);
+    test.equals(reflect.storage[0].type.isArray, true);
+    test.equals(reflect.storage[0].type.format.isStruct, true);
+    test.equals(reflect.storage[0].type.format.members.length, 2);
+    test.equals(reflect.storage[0].type.size, 80);
   });
 
   test("typedef", function (test) {
@@ -131,6 +147,8 @@ group("Reflect", function () {
     test.equals(reflect.uniforms[0].name, "x_75");
     const bufferInfo = reflect.getUniformBufferInfo(reflect.uniforms[0]);
     test.equals(bufferInfo.size, 560);
+
+    test.equals(reflect.uniforms[0].type.size, 560);
   });
 
   const shader = `
@@ -671,5 +689,48 @@ fn shuffler() { }
     test.equals(reflect.textures[0].type.name, "texture_external");
     test.equals(reflect.textures[0].group, 0);
     test.equals(reflect.textures[0].binding, 2);
+  });
+
+  test("array of structs", function (test) {
+    const reflect = new WgslReflect(`
+    struct InnerUniforms {
+        bar: u32,
+    };
+
+    struct VSUniforms {
+        foo: u32,
+        moo: InnerUniforms,
+    };
+    @group(0) @binding(0) var<uniform> foo0: vec3f;
+    @group(0) @binding(1) var<uniform> foo1: array<vec3f, 5>;
+    @group(0) @binding(2) var<uniform> foo2: array<array<vec3f, 5>, 6>;
+    @group(0) @binding(3) var<uniform> foo3: array<array<array<vec3f, 5>, 6>, 7>;
+
+    @group(0) @binding(4) var<uniform> foo4: VSUniforms;
+    @group(0) @binding(5) var<uniform> foo5: array<VSUniforms, 5>;
+    @group(0) @binding(6) var<uniform> foo6: array<array<VSUniforms, 5>, 6>;
+    @group(0) @binding(7) var<uniform> foo7: array<array<array<VSUniforms, 5>, 6>, 7>;
+    `);
+
+    function getTypeString(type) {
+      if (type.isArray) {
+        return `array<${getTypeString(type.format)}, ${type.count}>`;
+      } else if (type.isStruct) {
+        return (
+          type.name +
+          " {\n" +
+          type.members.map((m) => `  ${m.name}: ${getTypeString(m.type)}\n`) +
+          " }"
+        );
+      }
+      return type.name;
+    }
+
+    reflect.uniforms.map((uniform) => {
+      const info = reflect.getUniformBufferInfo(uniform);
+      console.log("---------:", uniform.name);
+      //console.log(JSON.stringify(info, null, 2));
+      console.log(getTypeString(uniform.type));
+    });
   });
 });

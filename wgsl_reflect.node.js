@@ -334,29 +334,6 @@ class Return extends Statement {
     }
 }
 /**
- * @class Struct
- * @extends Statement
- * @category AST
- */
-class Struct extends Statement {
-    constructor(name, members) {
-        super();
-        this.name = name;
-        this.members = members;
-    }
-    get astNodeType() {
-        return "struct";
-    }
-    /// Return the index of the member with the given name, or -1 if not found.
-    getMemberIndex(name) {
-        for (let i = 0; i < this.members.length; i++) {
-            if (this.members[i].name == name)
-                return i;
-        }
-        return -1;
-    }
-}
-/**
  * @class Enable
  * @extends Statement
  * @category AST
@@ -426,16 +403,49 @@ class Continue extends Statement {
 }
 /**
  * @class Type
- * @extends Node
+ * @extends Statement
  * @category AST
  */
-class Type extends Node {
+class Type extends Statement {
     constructor(name) {
         super();
         this.name = name;
+        this.size = 0;
     }
     get astNodeType() {
         return "type";
+    }
+    get isStruct() {
+        return false;
+    }
+    get isArray() {
+        return false;
+    }
+}
+/**
+ * @class StructType
+ * @extends Type
+ * @category AST
+ */
+class Struct extends Type {
+    constructor(name, members) {
+        super(name);
+        this.members = members;
+        this.align = 0;
+    }
+    get astNodeType() {
+        return "struct";
+    }
+    get isStruct() {
+        return true;
+    }
+    /// Return the index of the member with the given name, or -1 if not found.
+    getMemberIndex(name) {
+        for (let i = 0; i < this.members.length; i++) {
+            if (this.members[i].name == name)
+                return i;
+        }
+        return -1;
     }
 }
 /**
@@ -480,9 +490,13 @@ class ArrayType extends Type {
         this.attributes = attributes;
         this.format = format;
         this.count = count;
+        this.stride = 0;
     }
     get astNodeType() {
         return "array";
+    }
+    get isArray() {
+        return true;
     }
 }
 /**
@@ -963,6 +977,8 @@ class Member extends Node {
         this.name = name;
         this.type = type;
         this.attributes = attributes;
+        this.offset = 0;
+        this.size = 0;
     }
     get astNodeType() {
         return "member";
@@ -2517,6 +2533,13 @@ class WgslParser {
             TokenTypes.keywords.u32,
         ])) {
             const type = this._advance();
+            const typeName = type.toString();
+            if (this._context.structs.has(typeName)) {
+                return this._context.structs.get(typeName);
+            }
+            if (this._context.aliases.has(typeName)) {
+                return this._context.aliases.get(typeName).type;
+            }
             return new Type(type.toString());
         }
         if (this._check(TokenTypes.template_types)) {
@@ -2790,6 +2813,7 @@ class WgslReflect {
                 const g = this.getAttributeNum(node, "group", 0);
                 const b = this.getAttributeNum(node, "binding", 0);
                 this.uniforms.push(new VariableInfo(v, g, b));
+                this._updateTypeInfo(v.type);
             }
             if (this.isOverride(node)) {
                 const v = node;
@@ -2801,6 +2825,7 @@ class WgslReflect {
                 const g = this.getAttributeNum(node, "group", 0);
                 const b = this.getAttributeNum(node, "binding", 0);
                 this.storage.push(new VariableInfo(v, g, b));
+                this._updateTypeInfo(v.type);
             }
             if (this.isTextureVar(node)) {
                 const v = node;
@@ -3037,6 +3062,8 @@ class WgslReflect {
             u.isStruct = isStruct;
             u.members = members;
             buffer.members.push(u);
+            member.offset = offset;
+            member.size = size;
         }
         buffer.size = this._roundUp(structAlign, lastOffset + lastSize);
         buffer.align = structAlign;
@@ -3044,6 +3071,42 @@ class WgslReflect {
         buffer.isStruct = true;
         buffer.arrayCount = 0;
         return buffer;
+    }
+    _updateTypeInfo(type) {
+        const typeInfo = this.getTypeInfo(type);
+        type.size = typeInfo === null || typeInfo === void 0 ? void 0 : typeInfo.size;
+        if (type instanceof ArrayType) {
+            const formatInfo = this.getTypeInfo(type["format"]);
+            type.stride = formatInfo === null || formatInfo === void 0 ? void 0 : formatInfo.size;
+            this._updateTypeInfo(type["format"]);
+        }
+        if (type instanceof Struct) {
+            this._updateStructInfo(type);
+        }
+    }
+    _updateStructInfo(struct) {
+        let offset = 0;
+        let lastSize = 0;
+        let lastOffset = 0;
+        let structAlign = 0;
+        for (let mi = 0, ml = struct.members.length; mi < ml; ++mi) {
+            const member = struct.members[mi];
+            const info = this.getTypeInfo(member);
+            if (!info)
+                continue;
+            this.getAlias(member.type) || member.type;
+            const align = info.align;
+            const size = info.size;
+            offset = this._roundUp(align, offset + lastSize);
+            lastSize = size;
+            lastOffset = offset;
+            structAlign = Math.max(structAlign, align);
+            member.offset = offset;
+            member.size = size;
+            this._updateTypeInfo(member.type);
+        }
+        struct.size = this._roundUp(structAlign, lastOffset + lastSize);
+        struct.align = structAlign;
     }
     _getUniformInfo(node) {
         var _a, _b, _c, _d, _e;
@@ -3065,11 +3128,12 @@ class WgslReflect {
         info.members = info.isStruct ? si === null || si === void 0 ? void 0 : si.members : undefined;
         info.name = n.name;
         info.type = type;
-        info.arrayStride =
-            ((_b = si === null || si === void 0 ? void 0 : si.size) !== null && _b !== void 0 ? _b : info.isArray)
-                ? (_c = this.getTypeInfo(type["format"])) === null || _c === void 0 ? void 0 : _c.size
-                : (_d = this.getTypeInfo(type)) === null || _d === void 0 ? void 0 : _d.size;
+        const stride = ((_b = si === null || si === void 0 ? void 0 : si.size) !== null && _b !== void 0 ? _b : info.isArray)
+            ? (_c = this.getTypeInfo(type["format"])) === null || _c === void 0 ? void 0 : _c.size
+            : (_d = this.getTypeInfo(type)) === null || _d === void 0 ? void 0 : _d.size;
+        info.arrayStride = stride;
         info.arrayCount = parseInt((_e = type["count"]) !== null && _e !== void 0 ? _e : 0);
+        this._updateTypeInfo(type);
         return info;
     }
     getUniformBufferInfo(uniform) {

@@ -105,7 +105,7 @@ export declare class WgslReflect {
     getAttributeNum(node: AST.Node, name: string, defaultValue: number): number;
     getAttribute(node: AST.Node, name: string): AST.Attribute | null;
     _getInputs(args: Array<AST.Argument>, inputs?: Array<InputInfo> | undefined): Array<InputInfo>;
-    _getInputInfo(node: AST.Member): InputInfo | null;
+    _getInputInfo(node: AST.Member | AST.Argument): InputInfo | null;
     _parseString(s: string | string[]): string;
     _parseInt(s: string | string[]): number | string;
     getStruct(name: string | AST.Type | null): AST.Struct | null;
@@ -113,9 +113,11 @@ export declare class WgslReflect {
     getBindGroups(): Array<Array<BindGropEntry>>;
     getStorageBufferInfo(node: VariableInfo | AST.Struct | AST.Var): BufferInfo | null;
     getStructInfo(node: AST.Struct | AST.Var | null): BufferInfo | null;
+    _updateTypeInfo(type: AST.Type): void;
+    _updateStructInfo(struct: AST.Struct): void;
     _getUniformInfo(node: AST.Var | AST.Struct): BufferInfo | null;
     getUniformBufferInfo(uniform: VariableInfo): BufferInfo | null;
-    getTypeInfo(type: AST.Type | null | undefined): TypeInfo | null;
+    getTypeInfo(type: AST.Type | AST.Member | null | undefined): TypeInfo | null;
     _roundUp(k: number, n: number): number;
     static readonly typeInfo: {
         f16: {
