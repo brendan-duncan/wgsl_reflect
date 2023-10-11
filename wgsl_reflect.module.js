@@ -2689,6 +2689,9 @@ class TypeInfo {
     get isStruct() {
         return false;
     }
+    get isTemplate() {
+        return false;
+    }
 }
 class MemberInfo {
     constructor(name, type, attributes) {
@@ -2716,6 +2719,15 @@ class ArrayInfo extends TypeInfo {
         this.stride = 0;
     }
     get isArray() {
+        return true;
+    }
+}
+class TemplateInfo extends TypeInfo {
+    constructor(name, format, attributes) {
+        super(name, attributes);
+        this.format = format;
+    }
+    get isTemplate() {
         return true;
     }
 }
@@ -3029,6 +3041,14 @@ class WgslReflect {
             this._updateTypeInfo(info);
             return info;
         }
+        if (type instanceof TemplateType) {
+            const t = type;
+            const format = this._getTypeInfo(t.format, null);
+            const info = new TemplateInfo(t.name, format, attributes);
+            this._types.set(type, info);
+            this._updateTypeInfo(info);
+            return info;
+        }
         const info = new TypeInfo(type.name, attributes);
         this._types.set(type, info);
         this._updateTypeInfo(info);
@@ -3241,5 +3261,5 @@ WgslReflect._samplerTypes = TokenTypes.sampler_type.map((t) => {
     return t.name;
 });
 
-export { Alias, AliasInfo, Argument, ArrayInfo, ArrayType, Assign, AssignOperator, Attribute, BinaryOperator, BindGropEntry, BitcastExpr, Break, Call, CallExpr, Case, Const, ConstExpr, Continue, Continuing, CreateExpr, Default, Discard, ElseIf, Enable, EntryFunctions, Expression, For, Function, FunctionInfo, GroupingExpr, If, Increment, IncrementOperator, InputInfo, Let, LiteralExpr, Loop, Member, MemberInfo, Node, Operator, OutputInfo, Override, ParseContext, PointerType, ResourceType, Return, SamplerType, Statement, StaticAssert, StringExpr, Struct, StructInfo, Switch, SwitchCase, TemplateType, Token, TokenClass, TokenType, TokenTypes, Type, TypeInfo, TypecastExpr, UnaryOperator, Var, VariableExpr, VariableInfo, WgslParser, WgslReflect, WgslScanner, While };
+export { Alias, AliasInfo, Argument, ArrayInfo, ArrayType, Assign, AssignOperator, Attribute, BinaryOperator, BindGropEntry, BitcastExpr, Break, Call, CallExpr, Case, Const, ConstExpr, Continue, Continuing, CreateExpr, Default, Discard, ElseIf, Enable, EntryFunctions, Expression, For, Function, FunctionInfo, GroupingExpr, If, Increment, IncrementOperator, InputInfo, Let, LiteralExpr, Loop, Member, MemberInfo, Node, Operator, OutputInfo, Override, ParseContext, PointerType, ResourceType, Return, SamplerType, Statement, StaticAssert, StringExpr, Struct, StructInfo, Switch, SwitchCase, TemplateInfo, TemplateType, Token, TokenClass, TokenType, TokenTypes, Type, TypeInfo, TypecastExpr, UnaryOperator, Var, VariableExpr, VariableInfo, WgslParser, WgslReflect, WgslScanner, While };
 //# sourceMappingURL=wgsl_reflect.module.js.map

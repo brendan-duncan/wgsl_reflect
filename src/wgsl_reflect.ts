@@ -23,6 +23,10 @@ export class TypeInfo {
   get isStruct(): boolean {
     return false;
   }
+
+  get isTemplate(): boolean {
+    return false;
+  }
 }
 
 export class MemberInfo {
@@ -72,6 +76,22 @@ export class ArrayInfo extends TypeInfo {
   }
 
   get isArray(): boolean {
+    return true;
+  }
+}
+
+export class TemplateInfo extends TypeInfo {
+  format: TypeInfo;
+  constructor(
+    name: string,
+    format: TypeInfo,
+    attributes: Array<AST.Attribute> | null
+  ) {
+    super(name, attributes);
+    this.format = format;
+  }
+
+  get isTemplate(): boolean {
     return true;
   }
 }
@@ -503,6 +523,15 @@ export class WgslReflect {
         const t = this._getTypeInfo(m.type!, m.attributes);
         info.members.push(new MemberInfo(m.name, t, m.attributes));
       }
+      this._types.set(type, info);
+      this._updateTypeInfo(info);
+      return info;
+    }
+
+    if (type instanceof AST.TemplateType) {
+      const t = type as AST.TemplateType;
+      const format = this._getTypeInfo(t.format!, null);
+      const info = new TemplateInfo(t.name, format, attributes);
       this._types.set(type, info);
       this._updateTypeInfo(info);
       return info;

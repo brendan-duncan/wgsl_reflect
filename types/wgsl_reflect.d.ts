@@ -6,6 +6,7 @@ export declare class TypeInfo {
     constructor(name: string, attributes: Array<AST.Attribute> | null);
     get isArray(): boolean;
     get isStruct(): boolean;
+    get isTemplate(): boolean;
 }
 export declare class MemberInfo {
     name: string;
@@ -27,6 +28,11 @@ export declare class ArrayInfo extends TypeInfo {
     stride: number;
     constructor(name: string, attributes: Array<AST.Attribute> | null);
     get isArray(): boolean;
+}
+export declare class TemplateInfo extends TypeInfo {
+    format: TypeInfo;
+    constructor(name: string, format: TypeInfo, attributes: Array<AST.Attribute> | null);
+    get isTemplate(): boolean;
 }
 export declare enum ResourceType {
     Uniform = 0,

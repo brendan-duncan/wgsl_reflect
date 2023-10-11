@@ -2693,6 +2693,9 @@ class TypeInfo {
     get isStruct() {
         return false;
     }
+    get isTemplate() {
+        return false;
+    }
 }
 class MemberInfo {
     constructor(name, type, attributes) {
@@ -2720,6 +2723,15 @@ class ArrayInfo extends TypeInfo {
         this.stride = 0;
     }
     get isArray() {
+        return true;
+    }
+}
+class TemplateInfo extends TypeInfo {
+    constructor(name, format, attributes) {
+        super(name, attributes);
+        this.format = format;
+    }
+    get isTemplate() {
         return true;
     }
 }
@@ -3033,6 +3045,14 @@ class WgslReflect {
             this._updateTypeInfo(info);
             return info;
         }
+        if (type instanceof TemplateType) {
+            const t = type;
+            const format = this._getTypeInfo(t.format, null);
+            const info = new TemplateInfo(t.name, format, attributes);
+            this._types.set(type, info);
+            this._updateTypeInfo(info);
+            return info;
+        }
         const info = new TypeInfo(type.name, attributes);
         this._types.set(type, info);
         this._updateTypeInfo(info);
@@ -3297,6 +3317,7 @@ exports.Struct = Struct;
 exports.StructInfo = StructInfo;
 exports.Switch = Switch;
 exports.SwitchCase = SwitchCase;
+exports.TemplateInfo = TemplateInfo;
 exports.TemplateType = TemplateType;
 exports.Token = Token;
 exports.TokenType = TokenType;
