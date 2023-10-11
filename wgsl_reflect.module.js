@@ -2682,89 +2682,101 @@ class WgslParser {
 /**
  * @author Brendan Duncan / https://github.com/brendan-duncan
  */
-class VariableInfo {
-    constructor(node, group, binding) {
-        this.group = group;
-        this.binding = binding;
-        this.node = node;
-    }
-    get name() {
-        return this.node.name;
-    }
-    get type() {
-        return this.node.type;
-    }
-    get attributes() {
-        return this.node.attributes;
-    }
-}
-class OverrideInfo {
-    constructor(node, id) {
-        this.node = node;
-        this.id = id;
-    }
-    get name() {
-        return this.node.name;
-    }
-    get type() {
-        return this.node.type;
-    }
-    get attributes() {
-        return this.node.attributes;
-    }
-    get declaration() {
-        return this.node.value;
-    }
-}
-class FunctionInfo {
-    constructor(node) {
-        this.inputs = [];
-        this.node = node;
-    }
-    get name() {
-        return this.node.name;
-    }
-    get returnType() {
-        return this.node.returnType;
-    }
-    get args() {
-        return this.node.args;
-    }
-    get attributes() {
-        return this.node.attributes;
-    }
-}
-class InputInfo {
-    constructor(name, type, input, locationType, location) {
+class TypeInfo {
+    constructor(name, attributes) {
         this.name = name;
-        this.type = type;
-        this.input = input;
-        this.locationType = locationType;
-        this.location = location;
-        this.interpolation = this.interpolation;
+        this.attributes = attributes;
+        this.size = 0;
+    }
+    get isArray() {
+        return false;
+    }
+    get isStruct() {
+        return false;
     }
 }
 class MemberInfo {
+    constructor(name, type, attributes) {
+        this.name = name;
+        this.type = type;
+        this.attributes = attributes;
+        this.offset = 0;
+        this.size = 0;
+    }
 }
-class StructInfo {
+class StructInfo extends TypeInfo {
+    constructor(name, attributes) {
+        super(name, attributes);
+        this.members = [];
+        this.align = 0;
+    }
+    get isStruct() {
+        return true;
+    }
 }
-class TypeInfo {
+class ArrayInfo extends TypeInfo {
+    constructor(name, attributes) {
+        super(name, attributes);
+        this.count = 0;
+        this.stride = 0;
+    }
+    get isArray() {
+        return true;
+    }
+}
+var ResourceType;
+(function (ResourceType) {
+    ResourceType[ResourceType["Uniform"] = 0] = "Uniform";
+    ResourceType[ResourceType["Storage"] = 1] = "Storage";
+    ResourceType[ResourceType["Texture"] = 2] = "Texture";
+    ResourceType[ResourceType["Sampler"] = 3] = "Sampler";
+})(ResourceType || (ResourceType = {}));
+class VariableInfo {
+    constructor(name, type, group, binding, attributes, resourceType) {
+        this.name = name;
+        this.type = type;
+        this.group = group;
+        this.binding = binding;
+        this.attributes = attributes;
+        this.resourceType = resourceType;
+    }
+}
+class AliasInfo {
+    constructor(name, type) {
+        this.name = name;
+        this.type = type;
+    }
+}
+class _TypeSize {
     constructor(align, size) {
         this.align = align;
         this.size = size;
     }
 }
-class BufferInfo extends TypeInfo {
-    constructor(name, type) {
-        super(0, 0);
+class InputInfo {
+    constructor(name, type, locationType, location) {
         this.name = name;
         this.type = type;
+        this.locationType = locationType;
+        this.location = location;
+        this.interpolation = null;
     }
 }
-class BindGropEntry {
-    constructor(type, resource) {
+class OutputInfo {
+    constructor(name, type, locationType, location) {
+        this.name = name;
         this.type = type;
-        this.resource = resource;
+        this.locationType = locationType;
+        this.location = location;
+    }
+}
+class FunctionInfo {
+    constructor(name, stage = null) {
+        this.stage = null;
+        this.inputs = [];
+        this.outputs = [];
+        this.name = name;
+        this.stage = stage;
     }
 }
 class EntryFunctions {
@@ -2774,12 +2786,14 @@ class EntryFunctions {
         this.compute = [];
     }
 }
+class BindGropEntry {
+    constructor(type, resource) {
+        this.type = type;
+        this.resource = resource;
+    }
+}
 class WgslReflect {
     constructor(code) {
-        /// All top-level structs in the shader.
-        this.structs = [];
-        /// All top-level overrides in the shader.
-        this.overrides = [];
         /// All top-level uniform vars in the shader.
         this.uniforms = [];
         /// All top-level storage vars in the shader.
@@ -2788,111 +2802,145 @@ class WgslReflect {
         this.textures = [];
         // All top-level sampler vars in the shader.
         this.samplers = [];
-        /// All top-level functions in the shader.
-        this.functions = [];
         /// All top-level type aliases in the shader.
         this.aliases = [];
-        if (code)
-            this.initialize(code);
+        /// All top-level structs in the shader.
+        this.structs = [];
+        /// All entry functions in the shader: vertex, fragment, and/or compute.
+        this.entryPoints = new EntryFunctions();
+        this._types = new Map();
+        if (code) {
+            this.update(code);
+        }
     }
-    initialize(code) {
+    update(code) {
         const parser = new WgslParser();
-        this.ast = parser.parse(code);
-        this.entry = new EntryFunctions();
-        for (const node of this.ast) {
-            if (node.astNodeType == "struct")
-                this.structs.push(node);
-            if (node.astNodeType == "alias")
-                this.aliases.push(node);
-            if (this.isUniformVar(node)) {
-                const v = node;
-                const g = this.getAttributeNum(node, "group", 0);
-                const b = this.getAttributeNum(node, "binding", 0);
-                this.uniforms.push(new VariableInfo(v, g, b));
-                this._updateTypeInfo(v.type);
+        const ast = parser.parse(code);
+        for (const node of ast) {
+            if (node.astNodeType == "struct") {
+                const info = this._getTypeInfo(node, null);
+                if (info instanceof StructInfo) {
+                    this.structs.push(info);
+                }
             }
-            if (this.isOverride(node)) {
-                const v = node;
-                const id = this.getAttributeNum(node, "id", 0);
-                this.overrides.push(new OverrideInfo(v, id));
+            if (node.astNodeType == "alias") {
+                this.aliases.push(this._getAliasInfo(node));
             }
-            if (this.isStorageVar(node)) {
+            if (this._isUniformVar(node)) {
                 const v = node;
-                const g = this.getAttributeNum(node, "group", 0);
-                const b = this.getAttributeNum(node, "binding", 0);
-                this.storage.push(new VariableInfo(v, g, b));
-                this._updateTypeInfo(v.type);
+                const g = this._getAttributeNum(v.attributes, "group", 0);
+                const b = this._getAttributeNum(v.attributes, "binding", 0);
+                const type = this._getTypeInfo(v.type, v.attributes);
+                const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, ResourceType.Uniform);
+                this.uniforms.push(varInfo);
             }
-            if (this.isTextureVar(node)) {
+            if (this._isStorageVar(node)) {
                 const v = node;
-                const g = this.getAttributeNum(node, "group", 0);
-                const b = this.getAttributeNum(node, "binding", 0);
-                this.textures.push(new VariableInfo(v, g, b));
+                const g = this._getAttributeNum(v.attributes, "group", 0);
+                const b = this._getAttributeNum(v.attributes, "binding", 0);
+                const type = this._getTypeInfo(v.type, v.attributes);
+                const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, ResourceType.Storage);
+                this.storage.push(varInfo);
             }
-            if (this.isSamplerVar(node)) {
+            if (this._isTextureVar(node)) {
                 const v = node;
-                const g = this.getAttributeNum(node, "group", 0);
-                const b = this.getAttributeNum(node, "binding", 0);
-                this.samplers.push(new VariableInfo(v, g, b));
+                const g = this._getAttributeNum(v.attributes, "group", 0);
+                const b = this._getAttributeNum(v.attributes, "binding", 0);
+                const type = this._getTypeInfo(v.type, v.attributes);
+                const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, ResourceType.Texture);
+                this.textures.push(varInfo);
+            }
+            if (this._isSamplerVar(node)) {
+                const v = node;
+                const g = this._getAttributeNum(v.attributes, "group", 0);
+                const b = this._getAttributeNum(v.attributes, "binding", 0);
+                const type = this._getTypeInfo(v.type, v.attributes);
+                const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, ResourceType.Sampler);
+                this.samplers.push(varInfo);
             }
             if (node instanceof Function) {
-                const fn = new FunctionInfo(node);
-                fn.inputs = this._getInputs(node.args);
-                this.functions.push(fn);
-                const vertexStage = this.getAttribute(node, "vertex");
-                const fragmentStage = this.getAttribute(node, "fragment");
-                const computeStage = this.getAttribute(node, "compute");
+                const vertexStage = this._getAttribute(node, "vertex");
+                const fragmentStage = this._getAttribute(node, "fragment");
+                const computeStage = this._getAttribute(node, "compute");
                 const stage = vertexStage || fragmentStage || computeStage;
                 if (stage) {
-                    this.entry[stage.name].push(fn);
+                    const fn = new FunctionInfo(node.name, stage.name);
+                    fn.inputs = this._getInputs(node.args);
+                    fn.outputs = this._getOutputs(node.returnType);
+                    this.entryPoints[stage.name].push(fn);
                 }
             }
         }
     }
-    isTextureVar(node) {
-        return (node instanceof Var &&
-            node.type !== null &&
-            WgslReflect.textureTypes.indexOf(node.type.name) != -1);
-    }
-    isSamplerVar(node) {
-        return (node instanceof Var &&
-            node.type !== null &&
-            WgslReflect.samplerTypes.indexOf(node.type.name) != -1);
-    }
-    isUniformVar(node) {
-        return node instanceof Var && node.storage == "uniform";
-    }
-    isOverride(node) {
-        return node instanceof Override;
-    }
-    isStorageVar(node) {
-        return node instanceof Var && node.storage == "storage";
-    }
-    getAttributeNum(node, name, defaultValue) {
-        const a = this.getAttribute(node, name);
-        if (a == null) {
-            return defaultValue;
+    getBindGroups() {
+        const groups = [];
+        function _makeRoom(group, binding) {
+            if (group >= groups.length)
+                groups.length = group + 1;
+            if (groups[group] === undefined)
+                groups[group] = [];
+            if (binding >= groups[group].length)
+                groups[group].length = binding + 1;
         }
-        let v = a !== null && a.value !== null ? a.value : defaultValue;
-        if (v instanceof Array) {
-            v = v[0];
+        for (const u of this.uniforms) {
+            _makeRoom(u.group, u.binding);
+            const group = groups[u.group];
+            group[u.binding] = new BindGropEntry("uniform", u);
         }
-        if (typeof v === "number") {
-            return v;
+        for (const u of this.storage) {
+            _makeRoom(u.group, u.binding);
+            const group = groups[u.group];
+            group[u.binding] = new BindGropEntry("storage", u);
         }
-        if (typeof v === "string") {
-            return parseInt(v);
+        for (const t of this.textures) {
+            _makeRoom(t.group, t.binding);
+            const group = groups[t.group];
+            group[t.binding] = new BindGropEntry("texture", t);
         }
-        return defaultValue;
+        for (const t of this.samplers) {
+            _makeRoom(t.group, t.binding);
+            const group = groups[t.group];
+            group[t.binding] = new BindGropEntry("sampler", t);
+        }
+        return groups;
     }
-    getAttribute(node, name) {
-        const obj = node;
-        if (!obj || !obj["attributes"])
-            return null;
-        const attrs = obj["attributes"];
-        for (let a of attrs) {
-            if (a.name == name)
-                return a;
+    _getOutputs(type, outputs = undefined) {
+        if (outputs === undefined)
+            outputs = [];
+        if (type instanceof Struct) {
+            this._getStructOutputs(type, outputs);
+        }
+        else {
+            const output = this._getOutputInfo(type);
+            if (output !== null)
+                outputs.push(output);
+        }
+        return outputs;
+    }
+    _getStructOutputs(struct, outputs) {
+        for (const m of struct.members) {
+            if (m.type instanceof Struct) {
+                this._getStructOutputs(m.type, outputs);
+            }
+            else {
+                const location = this._getAttribute(m, "location") || this._getAttribute(m, "builtin");
+                if (location !== null) {
+                    const typeInfo = this._getTypeInfo(m.type, m.type.attributes);
+                    const locationValue = this._parseInt(location.value);
+                    const info = new OutputInfo(m.name, typeInfo, location.name, locationValue);
+                    outputs.push(info);
+                }
+            }
+        }
+    }
+    _getOutputInfo(type) {
+        const location = this._getAttribute(type, "location") ||
+            this._getAttribute(type, "builtin");
+        if (location !== null) {
+            const typeInfo = this._getTypeInfo(type, type.attributes);
+            const locationValue = this._parseInt(location.value);
+            const info = new OutputInfo("", typeInfo, location.name, locationValue);
+            return info;
         }
         return null;
     }
@@ -2900,20 +2948,37 @@ class WgslReflect {
         if (inputs === undefined)
             inputs = [];
         for (const arg of args) {
-            const input = this._getInputInfo(arg);
-            if (input !== null)
-                inputs.push(input);
-            const struct = this.getStruct(arg.type);
-            if (struct)
-                this._getInputs(struct.members, inputs);
+            if (arg.type instanceof Struct) {
+                this._getStructInputs(arg.type, inputs);
+            }
+            else {
+                const input = this._getInputInfo(arg);
+                if (input !== null)
+                    inputs.push(input);
+            }
         }
         return inputs;
     }
+    _getStructInputs(struct, inputs) {
+        for (const m of struct.members) {
+            if (m.type instanceof Struct) {
+                this._getStructInputs(m.type, inputs);
+            }
+            else {
+                const input = this._getInputInfo(m);
+                if (input !== null)
+                    inputs.push(input);
+            }
+        }
+    }
     _getInputInfo(node) {
-        const location = this.getAttribute(node, "location") || this.getAttribute(node, "builtin");
+        const location = this._getAttribute(node, "location") ||
+            this._getAttribute(node, "builtin");
         if (location !== null) {
-            const interpolation = this.getAttribute(node, "interpolation");
-            const info = new InputInfo(node.name, node.type, node, location.name, this._parseInt(location.value));
+            const interpolation = this._getAttribute(node, "interpolation");
+            const type = this._getTypeInfo(node.type, node.attributes);
+            const locationValue = this._parseInt(location.value);
+            const info = new InputInfo(node.name, type, location.name, locationValue);
             if (interpolation !== null) {
                 info.interpolation = this._parseString(interpolation.value);
             }
@@ -2934,165 +2999,74 @@ class WgslReflect {
         const n = parseInt(s);
         return isNaN(n) ? s : n;
     }
-    getStruct(name) {
-        if (name === null)
-            return null;
-        if (name instanceof Struct)
-            return name;
-        name = this.getAlias(name) || name;
-        if (name instanceof Type) {
-            name = name.name;
-        }
-        for (const u of this.structs) {
-            if (u.name == name)
-                return u;
+    _getAlias(name) {
+        for (const a of this.aliases) {
+            if (a.name == name)
+                return a.type;
         }
         return null;
     }
-    getAlias(type) {
-        if (type === null)
-            return null;
-        if (type instanceof Node) {
-            if (!(type instanceof Type)) {
-                return null;
-            }
-            type = type.name;
-        }
-        for (const u of this.aliases) {
-            if (u.name == type)
-                return this.getAlias(u.type) || u.type;
-        }
-        return null;
+    _getAliasInfo(node) {
+        return new AliasInfo(node.name, this._getTypeInfo(node.type, null));
     }
-    getBindGroups() {
-        const groups = [];
-        function _makeRoom(group, binding) {
-            if (group >= groups.length)
-                groups.length = group + 1;
-            if (groups[group] === undefined)
-                groups[group] = [];
-            if (binding >= groups[group].length)
-                groups[group].length = binding + 1;
+    _getTypeInfo(type, attributes) {
+        if (this._types.has(type)) {
+            return this._types.get(type);
         }
-        for (const u of this.uniforms) {
-            _makeRoom(u.group, u.binding);
-            const group = groups[u.group];
-            group[u.binding] = new BindGropEntry("buffer", this.getUniformBufferInfo(u));
-        }
-        for (const u of this.storage) {
-            _makeRoom(u.group, u.binding);
-            const group = groups[u.group];
-            group[u.binding] = new BindGropEntry("storage", this.getStorageBufferInfo(u));
-        }
-        for (const t of this.textures) {
-            _makeRoom(t.group, t.binding);
-            const group = groups[t.group];
-            group[t.binding] = new BindGropEntry("texture", t);
-        }
-        for (const t of this.samplers) {
-            _makeRoom(t.group, t.binding);
-            const group = groups[t.group];
-            group[t.binding] = new BindGropEntry("sampler", t);
-        }
-        return groups;
-    }
-    getStorageBufferInfo(node) {
-        if (node instanceof VariableInfo) {
-            node = node.node;
-        }
-        if (!this.isStorageVar(node))
-            return null;
-        const group = this.getAttributeNum(node, "group", 0);
-        const binding = this.getAttributeNum(node, "binding", 0);
-        const info = this._getUniformInfo(node);
-        info.group = group;
-        info.binding = binding;
-        return info;
-    }
-    /// Returns information about a struct type, null if the type is not a struct.
-    getStructInfo(node) {
-        var _a, _b, _c, _d, _e;
-        if (node === null)
-            return null;
-        const struct = node instanceof Struct ? node : this.getStruct(node.type);
-        if (!struct)
-            return null;
-        let offset = 0;
-        let lastSize = 0;
-        let lastOffset = 0;
-        let structAlign = 0;
-        let buffer = new BufferInfo(node.name, node instanceof Var ? node.type : null);
-        buffer.members = [];
-        for (let mi = 0, ml = struct.members.length; mi < ml; ++mi) {
-            const member = struct.members[mi];
-            const name = member.name;
-            const info = this.getTypeInfo(member);
-            if (!info)
-                continue;
-            const type = this.getAlias(member.type) || member.type;
-            const align = info.align;
-            const size = info.size;
-            offset = this._roundUp(align, offset + lastSize);
-            lastSize = size;
-            lastOffset = offset;
-            structAlign = Math.max(structAlign, align);
-            const isArray = member.type.astNodeType === "array";
-            const s = this.getStruct(type) ||
-                (isArray ? this.getStruct((_a = type["format"]) === null || _a === void 0 ? void 0 : _a.name) : null);
-            const isStruct = !!s;
-            const si = isStruct ? this.getStructInfo(s) : undefined;
-            const arrayStride = ((_b = si === null || si === void 0 ? void 0 : si.size) !== null && _b !== void 0 ? _b : isArray)
-                ? (_c = this.getTypeInfo(type["format"])) === null || _c === void 0 ? void 0 : _c.size
-                : (_d = this.getTypeInfo(member.type)) === null || _d === void 0 ? void 0 : _d.size;
-            const arrayCount = (_e = member.type["count"]) !== null && _e !== void 0 ? _e : 0;
-            const members = isStruct ? si === null || si === void 0 ? void 0 : si.members : undefined;
-            const u = new MemberInfo();
-            u.node = member;
-            u.name = name;
-            u.offset = offset;
-            u.size = size;
-            u.type = type;
-            u.isArray = isArray;
-            u.arrayCount = arrayCount;
-            u.arrayStride = arrayStride;
-            u.isStruct = isStruct;
-            u.members = members;
-            buffer.members.push(u);
-            member.offset = offset;
-            member.size = size;
-        }
-        buffer.size = this._roundUp(structAlign, lastOffset + lastSize);
-        buffer.align = structAlign;
-        buffer.isArray = false;
-        buffer.isStruct = true;
-        buffer.arrayCount = 0;
-        return buffer;
-    }
-    _updateTypeInfo(type) {
-        const typeInfo = this.getTypeInfo(type);
-        type.size = typeInfo === null || typeInfo === void 0 ? void 0 : typeInfo.size;
         if (type instanceof ArrayType) {
-            const formatInfo = this.getTypeInfo(type["format"]);
-            type.stride = formatInfo === null || formatInfo === void 0 ? void 0 : formatInfo.size;
-            this._updateTypeInfo(type["format"]);
+            const a = type;
+            const t = this._getTypeInfo(a.format, a.attributes);
+            const info = new ArrayInfo(a.name, attributes);
+            info.format = t;
+            info.count = a.count;
+            info.stride = a.stride;
+            this._types.set(type, info);
+            this._updateTypeInfo(info);
+            return info;
         }
         if (type instanceof Struct) {
+            const s = type;
+            const info = new StructInfo(s.name, attributes);
+            for (const m of s.members) {
+                const t = this._getTypeInfo(m.type, m.attributes);
+                info.members.push(new MemberInfo(m.name, t, m.attributes));
+            }
+            this._types.set(type, info);
+            this._updateTypeInfo(info);
+            return info;
+        }
+        const info = new TypeInfo(type.name, attributes);
+        this._types.set(type, info);
+        this._updateTypeInfo(info);
+        return info;
+    }
+    _updateTypeInfo(type) {
+        var _a, _b;
+        const typeSize = this._getTypeSize(type);
+        type.size = (_a = typeSize === null || typeSize === void 0 ? void 0 : typeSize.size) !== null && _a !== void 0 ? _a : 0;
+        if (type instanceof ArrayInfo) {
+            const formatInfo = this._getTypeSize(type["format"]);
+            type.stride = (_b = formatInfo === null || formatInfo === void 0 ? void 0 : formatInfo.size) !== null && _b !== void 0 ? _b : 0;
+            this._updateTypeInfo(type["format"]);
+        }
+        if (type instanceof StructInfo) {
             this._updateStructInfo(type);
         }
     }
     _updateStructInfo(struct) {
+        var _a;
         let offset = 0;
         let lastSize = 0;
         let lastOffset = 0;
         let structAlign = 0;
         for (let mi = 0, ml = struct.members.length; mi < ml; ++mi) {
             const member = struct.members[mi];
-            const info = this.getTypeInfo(member);
-            if (!info)
+            const sizeInfo = this._getTypeSize(member);
+            if (!sizeInfo)
                 continue;
-            this.getAlias(member.type) || member.type;
-            const align = info.align;
-            const size = info.size;
+            (_a = this._getAlias(member.type.name)) !== null && _a !== void 0 ? _a : member.type;
+            const align = sizeInfo.align;
+            const size = sizeInfo.size;
             offset = this._roundUp(align, offset + lastSize);
             lastSize = size;
             lastOffset = offset;
@@ -3104,74 +3078,36 @@ class WgslReflect {
         struct.size = this._roundUp(structAlign, lastOffset + lastSize);
         struct.align = structAlign;
     }
-    _getUniformInfo(node) {
-        var _a, _b, _c, _d, _e;
-        const structInfo = this.getStructInfo(node);
-        if (structInfo !== null)
-            return structInfo;
-        var n = node;
-        const typeInfo = this.getTypeInfo(n.type);
-        if (typeInfo === null)
-            return null;
-        const type = this.getAlias(n.type) || n.type;
-        const info = new BufferInfo(node.name, type);
-        info.align = typeInfo.align;
-        info.size = typeInfo.size;
-        let s = this.getStruct((_a = type["format"]) === null || _a === void 0 ? void 0 : _a.name);
-        let si = s ? this.getStructInfo(s) : undefined;
-        info.isArray = type.astNodeType === "array";
-        info.isStruct = !!s;
-        info.members = info.isStruct ? si === null || si === void 0 ? void 0 : si.members : undefined;
-        info.name = n.name;
-        info.type = type;
-        const stride = ((_b = si === null || si === void 0 ? void 0 : si.size) !== null && _b !== void 0 ? _b : info.isArray)
-            ? (_c = this.getTypeInfo(type["format"])) === null || _c === void 0 ? void 0 : _c.size
-            : (_d = this.getTypeInfo(type)) === null || _d === void 0 ? void 0 : _d.size;
-        info.arrayStride = stride;
-        info.arrayCount = parseInt((_e = type["count"]) !== null && _e !== void 0 ? _e : 0);
-        this._updateTypeInfo(type);
-        return info;
-    }
-    getUniformBufferInfo(uniform) {
-        if (!this.isUniformVar(uniform.node))
-            return null;
-        const info = this._getUniformInfo(uniform.node);
-        info.group = uniform.group;
-        info.binding = uniform.binding;
-        return info;
-    }
-    getTypeInfo(type) {
+    _getTypeSize(type) {
         var _a;
         if (type === null || type === undefined)
             return null;
-        const explicitSize = this.getAttributeNum(type, "size", 0);
-        const explicitAlign = this.getAttributeNum(type, "align", 0);
-        if (type instanceof Member)
+        const explicitSize = this._getAttributeNum(type.attributes, "size", 0);
+        const explicitAlign = this._getAttributeNum(type.attributes, "align", 0);
+        if (type instanceof MemberInfo)
             type = type.type;
-        if (type instanceof Type) {
-            const alias = this.getAlias(type.name);
+        if (type instanceof TypeInfo) {
+            const alias = this._getAlias(type.name);
             if (alias !== null) {
                 type = alias;
             }
-            const struct = this.getStruct(type.name);
-            if (struct !== null)
-                type = struct;
         }
         {
-            const info = WgslReflect.typeInfo[type.name];
+            const info = WgslReflect._typeInfo[type.name];
             if (info !== undefined) {
                 const divisor = type["format"] === "f16" ? 2 : 1;
-                return new TypeInfo(Math.max(explicitAlign, info.align / divisor), Math.max(explicitSize, info.size / divisor));
+                return new _TypeSize(Math.max(explicitAlign, info.align / divisor), Math.max(explicitSize, info.size / divisor));
             }
         }
         {
-            const info = WgslReflect.typeInfo[type.name.substring(0, type.name.length - 1)];
+            const info = WgslReflect._typeInfo[type.name.substring(0, type.name.length - 1)];
             if (info) {
                 const divisor = type.name[type.name.length - 1] === "h" ? 2 : 1;
-                return new TypeInfo(Math.max(explicitAlign, info.align / divisor), Math.max(explicitSize, info.size / divisor));
+                return new _TypeSize(Math.max(explicitAlign, info.align / divisor), Math.max(explicitSize, info.size / divisor));
             }
         }
-        if (type.name == "array") {
+        if (type instanceof ArrayInfo) {
+            let arrayType = type;
             let align = 8;
             let size = 8;
             // Type                 AlignOf(T)          Sizeof(T)
@@ -3184,19 +3120,19 @@ class WgslReflect {
             // @stride(Q)
             // array<E>             AlignOf(E)          Nruntime * Q
             //const E = type.format.name;
-            const E = this.getTypeInfo(type["format"]);
+            const E = this._getTypeSize(arrayType.format);
             if (E !== null) {
                 size = E.size;
                 align = E.align;
             }
-            const N = parseInt((_a = type["count"]) !== null && _a !== void 0 ? _a : 1);
-            const stride = this.getAttributeNum(type, "stride", this._roundUp(align, size));
+            const N = arrayType.count;
+            const stride = this._getAttributeNum((_a = type === null || type === void 0 ? void 0 : type.attributes) !== null && _a !== void 0 ? _a : null, "stride", this._roundUp(align, size));
             size = N * stride;
             if (explicitSize)
                 size = explicitSize;
-            return new TypeInfo(Math.max(explicitAlign, align), Math.max(explicitSize, size));
+            return new _TypeSize(Math.max(explicitAlign, align), Math.max(explicitSize, size));
         }
-        if (type instanceof Struct) {
+        if (type instanceof StructInfo) {
             let align = 0;
             let size = 0;
             // struct S     AlignOf:    max(AlignOfMember(S, M1), ... , AlignOfMember(S, MN))
@@ -3206,16 +3142,65 @@ class WgslReflect {
             let lastSize = 0;
             let lastOffset = 0;
             for (const m of type.members) {
-                const mi = this.getTypeInfo(m);
-                align = Math.max(mi.align, align);
-                offset = this._roundUp(mi.align, offset + lastSize);
-                lastSize = mi.size;
-                lastOffset = offset;
+                const mi = this._getTypeSize(m.type);
+                if (mi !== null) {
+                    align = Math.max(mi.align, align);
+                    offset = this._roundUp(mi.align, offset + lastSize);
+                    lastSize = mi.size;
+                    lastOffset = offset;
+                }
             }
             size = this._roundUp(align, lastOffset + lastSize);
-            return new TypeInfo(Math.max(explicitAlign, align), Math.max(explicitSize, size));
+            return new _TypeSize(Math.max(explicitAlign, align), Math.max(explicitSize, size));
         }
         return null;
+    }
+    _isUniformVar(node) {
+        return node instanceof Var && node.storage == "uniform";
+    }
+    _isStorageVar(node) {
+        return node instanceof Var && node.storage == "storage";
+    }
+    _isTextureVar(node) {
+        return (node instanceof Var &&
+            node.type !== null &&
+            WgslReflect._textureTypes.indexOf(node.type.name) != -1);
+    }
+    _isSamplerVar(node) {
+        return (node instanceof Var &&
+            node.type !== null &&
+            WgslReflect._samplerTypes.indexOf(node.type.name) != -1);
+    }
+    _getAttribute(node, name) {
+        const obj = node;
+        if (!obj || !obj["attributes"])
+            return null;
+        const attrs = obj["attributes"];
+        for (let a of attrs) {
+            if (a.name == name)
+                return a;
+        }
+        return null;
+    }
+    _getAttributeNum(attributes, name, defaultValue) {
+        if (attributes === null)
+            return defaultValue;
+        for (let a of attributes) {
+            if (a.name == name) {
+                let v = a !== null && a.value !== null ? a.value : defaultValue;
+                if (v instanceof Array) {
+                    v = v[0];
+                }
+                if (typeof v === "number") {
+                    return v;
+                }
+                if (typeof v === "string") {
+                    return parseInt(v);
+                }
+                return defaultValue;
+            }
+        }
+        return defaultValue;
     }
     _roundUp(k, n) {
         return Math.ceil(n / k) * k;
@@ -3236,7 +3221,7 @@ class WgslReflect {
 // mat2x4<f32>          16                  32
 // mat3x4<f32>          16                  48
 // mat4x4<f32>          16                  64
-WgslReflect.typeInfo = {
+WgslReflect._typeInfo = {
     f16: { align: 2, size: 2 },
     i32: { align: 4, size: 4 },
     u32: { align: 4, size: 4 },
@@ -3255,12 +3240,12 @@ WgslReflect.typeInfo = {
     mat3x4: { align: 16, size: 48 },
     mat4x4: { align: 16, size: 64 },
 };
-WgslReflect.textureTypes = TokenTypes.any_texture_type.map((t) => {
+WgslReflect._textureTypes = TokenTypes.any_texture_type.map((t) => {
     return t.name;
 });
-WgslReflect.samplerTypes = TokenTypes.sampler_type.map((t) => {
+WgslReflect._samplerTypes = TokenTypes.sampler_type.map((t) => {
     return t.name;
 });
 
-export { Alias, Argument, ArrayType, Assign, AssignOperator, Attribute, BinaryOperator, BindGropEntry, BitcastExpr, Break, BufferInfo, Call, CallExpr, Case, Const, ConstExpr, Continue, Continuing, CreateExpr, Default, Discard, ElseIf, Enable, EntryFunctions, Expression, For, Function, FunctionInfo, GroupingExpr, If, Increment, IncrementOperator, InputInfo, Let, LiteralExpr, Loop, Member, MemberInfo, Node, Operator, Override, OverrideInfo, ParseContext, PointerType, Return, SamplerType, Statement, StaticAssert, StringExpr, Struct, StructInfo, Switch, SwitchCase, TemplateType, Token, TokenClass, TokenType, TokenTypes, Type, TypeInfo, TypecastExpr, UnaryOperator, Var, VariableExpr, VariableInfo, WgslParser, WgslReflect, WgslScanner, While };
+export { Alias, AliasInfo, Argument, ArrayInfo, ArrayType, Assign, AssignOperator, Attribute, BinaryOperator, BindGropEntry, BitcastExpr, Break, Call, CallExpr, Case, Const, ConstExpr, Continue, Continuing, CreateExpr, Default, Discard, ElseIf, Enable, EntryFunctions, Expression, For, Function, FunctionInfo, GroupingExpr, If, Increment, IncrementOperator, InputInfo, Let, LiteralExpr, Loop, Member, MemberInfo, Node, Operator, OutputInfo, Override, ParseContext, PointerType, ResourceType, Return, SamplerType, Statement, StaticAssert, StringExpr, Struct, StructInfo, Switch, SwitchCase, TemplateType, Token, TokenClass, TokenType, TokenTypes, Type, TypeInfo, TypecastExpr, UnaryOperator, Var, VariableExpr, VariableInfo, WgslParser, WgslReflect, WgslScanner, While };
 //# sourceMappingURL=wgsl_reflect.module.js.map
