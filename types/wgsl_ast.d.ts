@@ -298,7 +298,6 @@ export declare class Continue extends Statement {
 export declare class Type extends Statement {
     name: string;
     attributes: Array<Attribute> | null;
-    size: number;
     constructor(name: string);
     get astNodeType(): string;
     get isStruct(): boolean;
@@ -311,7 +310,6 @@ export declare class Type extends Statement {
  */
 export declare class Struct extends Type {
     members: Array<Member>;
-    align: number;
     constructor(name: string, members: Array<Member>);
     get astNodeType(): string;
     get isStruct(): boolean;
@@ -349,7 +347,6 @@ export declare class ArrayType extends Type {
     attributes: Array<Attribute> | null;
     format: Type | null;
     count: number;
-    stride: number;
     constructor(name: string, attributes: Array<Attribute> | null, format: Type | null, count: number);
     get astNodeType(): string;
     get isArray(): boolean;
@@ -572,8 +569,6 @@ export declare class Member extends Node {
     name: string;
     type: Type | null;
     attributes: Array<Attribute> | null;
-    offset: number;
-    size: number;
     constructor(name: string, type: Type | null, attributes: Array<Attribute> | null);
     get astNodeType(): string;
 }

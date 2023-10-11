@@ -491,7 +491,6 @@ export class WgslReflect {
       const info = new ArrayInfo(a.name, attributes);
       info.format = t;
       info.count = a.count;
-      info.stride = a.stride;
       this._types.set(type, info);
       this._updateTypeInfo(info);
       return info;

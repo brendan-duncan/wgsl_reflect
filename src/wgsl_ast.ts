@@ -560,12 +560,10 @@ export class Continue extends Statement {
 export class Type extends Statement {
   name: string;
   attributes: Array<Attribute> | null;
-  size: number;
 
   constructor(name: string) {
     super();
     this.name = name;
-    this.size = 0;
   }
 
   get astNodeType() {
@@ -588,12 +586,10 @@ export class Type extends Statement {
  */
 export class Struct extends Type {
   members: Array<Member>;
-  align: number;
 
   constructor(name: string, members: Array<Member>) {
     super(name);
     this.members = members;
-    this.align = 0;
   }
 
   get astNodeType() {
@@ -669,7 +665,6 @@ export class ArrayType extends Type {
   attributes: Array<Attribute> | null;
   format: Type | null;
   count: number;
-  stride: number;
 
   constructor(
     name: string,
@@ -681,7 +676,6 @@ export class ArrayType extends Type {
     this.attributes = attributes;
     this.format = format;
     this.count = count;
-    this.stride = 0;
   }
 
   get astNodeType() {
@@ -1297,8 +1291,6 @@ export class Member extends Node {
   name: string;
   type: Type | null;
   attributes: Array<Attribute> | null;
-  offset: number;
-  size: number;
 
   constructor(
     name: string,
@@ -1309,8 +1301,6 @@ export class Member extends Node {
     this.name = name;
     this.type = type;
     this.attributes = attributes;
-    this.offset = 0;
-    this.size = 0;
   }
 
   get astNodeType() {

@@ -410,7 +410,6 @@ class Type extends Statement {
     constructor(name) {
         super();
         this.name = name;
-        this.size = 0;
     }
     get astNodeType() {
         return "type";
@@ -431,7 +430,6 @@ class Struct extends Type {
     constructor(name, members) {
         super(name);
         this.members = members;
-        this.align = 0;
     }
     get astNodeType() {
         return "struct";
@@ -490,7 +488,6 @@ class ArrayType extends Type {
         this.attributes = attributes;
         this.format = format;
         this.count = count;
-        this.stride = 0;
     }
     get astNodeType() {
         return "array";
@@ -977,8 +974,6 @@ class Member extends Node {
         this.name = name;
         this.type = type;
         this.attributes = attributes;
-        this.offset = 0;
-        this.size = 0;
     }
     get astNodeType() {
         return "member";
@@ -3023,7 +3018,6 @@ class WgslReflect {
             const info = new ArrayInfo(a.name, attributes);
             info.format = t;
             info.count = a.count;
-            info.stride = a.stride;
             this._types.set(type, info);
             this._updateTypeInfo(info);
             return info;
