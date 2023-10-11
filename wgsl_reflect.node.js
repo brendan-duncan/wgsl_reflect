@@ -2763,6 +2763,9 @@ class VariableInfo {
     get size() {
         return this.type.size;
     }
+    get align() {
+        return this.type.isStruct ? this.type.align : 0;
+    }
     get members() {
         return this.type.isStruct ? this.type.members : null;
     }

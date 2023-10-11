@@ -143,6 +143,10 @@ export class VariableInfo {
     return this.type.size;
   }
 
+  get align(): number {
+    return this.type.isStruct ? (this.type as StructInfo).align : 0;
+  }
+
   get members(): Array<MemberInfo> | null {
     return this.type.isStruct ? (this.type as StructInfo).members : null;
   }

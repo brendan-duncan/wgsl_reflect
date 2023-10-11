@@ -52,6 +52,7 @@ export declare class VariableInfo {
     get isStruct(): boolean;
     get isTemplate(): boolean;
     get size(): number;
+    get align(): number;
     get members(): Array<MemberInfo> | null;
     get format(): TypeInfo | null;
     get count(): number;

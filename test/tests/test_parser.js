@@ -312,4 +312,39 @@ struct S {
       }`);
     test.equals(t[0].body[1].body[3].astNodeType, "continuing");
   });
+
+  /*test("module scope value constructor", function (test) {
+    const t = parser.parse(`const v2 = vec2f(0.0f, 0.0f);
+      const v3 = vec3f(0.0f, 0.0f, 0.0f);
+      const v4 = vec4f(0.0f, 0.0f, 0.0f, 0.0f);
+      
+      const M3 = mat3x3f(v3, v3, v3);
+      const M4 = mat4x4f(v4, v4, v4, v4);
+      
+      fn fv2(outVar : ptr<function, vec2f>) {
+        *(outputValue) = v2;
+        return;
+      }
+      
+      fn fv3(outVar : ptr<function, vec3f>) {
+        *(outputValue) = v3;
+        return;
+      }
+      
+      fn fv4(outVar : ptr<function, vec4f>) {
+        *(outVar ) = v4;
+        return;
+      }
+      
+      fn fM3(outVar : ptr<function, mat3x3<f32>>) {
+        *(outVar) = M3;
+        return;
+      }
+      
+      fn fM4(outVar : ptr<function, mat4x4<f32>>) {
+        *(outVar) = M4;
+        return;
+      }`);
+    console.log(t);
+  });*/
 });
