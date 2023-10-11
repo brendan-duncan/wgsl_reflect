@@ -87,7 +87,7 @@ console.log(reflect.entry.vertex[0].inputs[0].locationType); // "location" (can 
 console.log(reflect.entry.vertex[0].inputs[0].type.name); // "vec3"
 console.log(reflect.entry.vertex[0].inputs[0].type.format.name); // "f32"
 
-// Bind groups
+// Gather the bind groups used by the shader.
 const groups = reflect.getBindGroups();
 console.log(groups.length); // 1
 console.log(groups[0].length); // 4, bindings in group(0)
@@ -145,20 +145,18 @@ var<uniform> uniform_buffer: B;`;
 
 const reflect = new WgslReflect(shader);
 
-// Get the buffer info for the uniform var 'uniform_buffer'.
-const info = reflect.getUniformBufferInfo(reflect.uniforms[0]);
+const u = reflect.uniforms[0];
+console.log(u.size); // 208, the size of the uniform buffer in bytes
+console.log(u.group); // 0
+console.log(u.binding); // 0
+console.log(u.members.length); // 7, members in B
+console.log(u.members[0].name); // "a"
+console.log(u.members[0].offset); // 0, the offset of 'a' in the buffer
+console.log(u.members[0].size); // 8, the size of 'a' in bytes
+console.log(u.members[0].type.name); // "vec2", the type of 'a'
+console.log(u.members[0].type.format.name); // "f32", the format of the vec2.
 
-console.log(info.size); // 208, the size of the uniform buffer in bytes
-console.log(info.group); // 0
-console.log(info.binding); // 0
-console.log(info.members.length); // 7, members in B
-console.log(info.members[0].name); // "a"
-console.log(info.members[0].offset); // 0, the offset of 'a' in the buffer
-console.log(info.members[0].size); // 8, the size of 'a' in bytes
-console.log(info.members[0].type.name); // "vec2", the type of 'a'
-console.log(info.members[0].type.format.name); // "f32", the format of the vec2.
-
-console.log(info.members[4].name); // "e"
-console.log(info.members[4].offset); // 48, the offset of 'e' in the buffer
-console.log(info.members[4].size); // 32, the size of 'e' in the buffer
+console.log(u.members[4].name); // "e"
+console.log(u.members[4].offset); // 48, the offset of 'e' in the buffer
+console.log(u.members[4].size); // 32, the size of 'e' in the buffer
 ```
