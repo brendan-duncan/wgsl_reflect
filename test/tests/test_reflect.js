@@ -188,20 +188,20 @@ group("Reflect", function () {
       
       @group(0) @binding(0)
       var<uniform> uniform_buffer: B;`);
-    test.equals(reflect.uniforms[0].type.size, 208);
+    test.equals(reflect.uniforms[0].size, 208);
     test.equals(reflect.uniforms[0].group, 0);
     test.equals(reflect.uniforms[0].binding, 0);
-    test.equals(reflect.uniforms[0].type.members.length, 8);
-    test.equals(reflect.uniforms[0].type.members[0].name, "a");
-    test.equals(reflect.uniforms[0].type.members[0].type.name, "vec2");
-    test.equals(reflect.uniforms[0].type.members[0].type.format.name, "f32");
-    test.equals(reflect.uniforms[0].type.members[0].offset, 0);
-    test.equals(reflect.uniforms[0].type.members[0].size, 8);
+    test.equals(reflect.uniforms[0].members.length, 8);
+    test.equals(reflect.uniforms[0].members[0].name, "a");
+    test.equals(reflect.uniforms[0].members[0].type.name, "vec2");
+    test.equals(reflect.uniforms[0].members[0].type.format.name, "f32");
+    test.equals(reflect.uniforms[0].members[0].offset, 0);
+    test.equals(reflect.uniforms[0].members[0].size, 8);
 
-    test.equals(reflect.uniforms[0].type.members[4].name, "e");
-    test.equals(reflect.uniforms[0].type.members[4].type.name, "A");
-    test.equals(reflect.uniforms[0].type.members[4].type.members.length, 4);
-    test.equals(reflect.uniforms[0].type.members[4].offset, 48);
-    test.equals(reflect.uniforms[0].type.members[4].size, 32);
+    test.equals(reflect.uniforms[0].members[4].name, "e");
+    test.equals(reflect.uniforms[0].members[4].type.name, "A");
+    test.equals(reflect.uniforms[0].members[4].type.members.length, 4);
+    test.equals(reflect.uniforms[0].members[4].offset, 48);
+    test.equals(reflect.uniforms[0].members[4].size, 32);
   });
 });

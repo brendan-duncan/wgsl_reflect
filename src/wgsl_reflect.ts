@@ -126,6 +126,38 @@ export class VariableInfo {
     this.attributes = attributes;
     this.resourceType = resourceType;
   }
+
+  get isArray(): boolean {
+    return this.type.isArray;
+  }
+
+  get isStruct(): boolean {
+    return this.type.isStruct;
+  }
+
+  get isTemplate(): boolean {
+    return this.type.isTemplate;
+  }
+
+  get size(): number {
+    return this.type.size;
+  }
+
+  get members(): Array<MemberInfo> | null {
+    return this.type.isStruct ? (this.type as StructInfo).members : null;
+  }
+
+  get format(): TypeInfo | null {
+    return this.type.isArray
+      ? (this.type as ArrayInfo).format
+      : this.type.isTemplate
+      ? (this.type as TemplateInfo).format
+      : null;
+  }
+
+  get count(): number {
+    return this.type.isArray ? (this.type as ArrayInfo).count : 0;
+  }
 }
 
 export class AliasInfo {

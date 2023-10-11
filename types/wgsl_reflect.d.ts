@@ -48,6 +48,13 @@ export declare class VariableInfo {
     binding: number;
     resourceType: ResourceType;
     constructor(name: string, type: TypeInfo, group: number, binding: number, attributes: Array<AST.Attribute> | null, resourceType: ResourceType);
+    get isArray(): boolean;
+    get isStruct(): boolean;
+    get isTemplate(): boolean;
+    get size(): number;
+    get members(): Array<MemberInfo> | null;
+    get format(): TypeInfo | null;
+    get count(): number;
 }
 export declare class AliasInfo {
     name: string;
