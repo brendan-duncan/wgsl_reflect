@@ -19,8 +19,6 @@ const reflect = new WgslReflect(shader_code);
 
 ## Documentation
 
-### WgslReflect
-
 ```javascript
 class WgslReflect {
   /// All top-level uniform vars in the shader.
