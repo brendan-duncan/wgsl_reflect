@@ -17,6 +17,114 @@ const reflect = new WgslReflect(shader_code);
 
 [WGSL Reflect Example](https://brendan-duncan.github.io/wgsl_reflect/example.html)
 
+## Documentation
+
+### WgslReflect
+
+```javascript
+class WgslReflect {
+  /// All top-level uniform vars in the shader.
+  uniforms: Array<VariableInfo>;
+  /// All top-level storage vars in the shader.
+  storage: Array<VariableInfo>;
+  /// All top-level texture vars in the shader;
+  textures: Array<VariableInfo>;
+  // All top-level sampler vars in the shader.
+  samplers: Array<VariableInfo>;
+  /// All top-level type aliases in the shader.
+  aliases: Array<AliasInfo>;
+  /// All top-level structs in the shader.
+  structs: Array<StructInfo>;
+  /// All entry functions in the shader: vertex, fragment, and/or compute.
+  entryPoints: EntryFunctions;
+
+  // Get the bind groups used by the shader, bindGroups[group][binding].
+  getBindGroups(): Array<Array<BindingInfo>>;
+}
+
+enum ResourceType {
+  Uniform,
+  Storage,
+  Texture,
+  Sampler,
+}
+
+class VariableInfo {
+  name: string;
+  type: TypeInfo;
+  group: number;
+  binding: number;
+  resourceType: ResourceType;
+
+  get isArray(): boolean;
+  get isStruct(): boolean;
+  get isTemplate(): boolean;
+  get size(): number; // Size of the data, in bytes
+  get align(): number;
+  get members(): Array<MemberInfo> | null;
+  get format(): TypeInfo | null;
+  get count(): number;
+}
+
+class TypeInfo {
+  name: string;
+  size: number; // Size of the data, in bytes
+
+  get isArray(): boolean;
+  get isStruct(): boolean;
+  get isTemplate(): boolean;
+}
+
+class StructInfo extends TypeInfo {
+  members: Array<MemberInfo>;
+  align: number;
+}
+
+class ArrayInfo extends TypeInfo {
+  format: TypeInfo;
+  count: number;
+  stride: number;
+}
+
+class TemplateInfo extends TypeInfo {
+  format: TypeInfo;
+}
+
+class MemberInfo {
+  name: string;
+  type: TypeInfo;
+  offset: number;
+  size: number;
+}
+
+class AliasInfo {
+  name: string;
+  type: TypeInfo;
+}
+
+class FunctionInfo {
+  name: string;
+  stage: string | null;
+  inputs: Array<InputInfo>;
+  outputs: Array<OutputInfo>;
+}
+
+class InputInfo {
+  name: string;
+  type: TypeInfo | null;
+  locationType: string;
+  location: number | string;
+  interpolation: string | null;
+}
+
+class OutputInfo {
+  name: string;
+  type: TypeInfo | null;
+  locationType: string;
+  location: number | string;
+}
+```
+
 ## Examples
 
 Calculate the bind group information in the shader:
