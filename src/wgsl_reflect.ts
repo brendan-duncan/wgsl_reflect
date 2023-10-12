@@ -242,28 +242,6 @@ export class EntryFunctions {
   compute: Array<FunctionInfo> = [];
 }
 
-export class BindingInfo {
-  type: string;
-  resource: VariableInfo;
-
-  constructor(type: string, resource: VariableInfo) {
-    this.type = type;
-    this.resource = resource;
-  }
-
-  get name(): string {
-    return this.resource.name;
-  }
-
-  get group(): number {
-    return this.resource.group;
-  }
-
-  get binding(): number {
-    return this.resource.binding;
-  }
-}
-
 export class WgslReflect {
   /// All top-level uniform vars in the shader.
   uniforms: Array<VariableInfo> = [];
@@ -384,8 +362,8 @@ export class WgslReflect {
     }
   }
 
-  getBindGroups(): Array<Array<BindingInfo>> {
-    const groups: Array<Array<BindingInfo>> = [];
+  getBindGroups(): Array<Array<VariableInfo>> {
+    const groups: Array<Array<VariableInfo>> = [];
 
     function _makeRoom(group: number, binding: number) {
       if (group >= groups.length) groups.length = group + 1;
@@ -398,25 +376,25 @@ export class WgslReflect {
     for (const u of this.uniforms) {
       _makeRoom(u.group, u.binding);
       const group = groups[u.group];
-      group[u.binding] = new BindingInfo("uniform", u);
+      group[u.binding] = u;
     }
 
     for (const u of this.storage) {
       _makeRoom(u.group, u.binding);
       const group = groups[u.group];
-      group[u.binding] = new BindingInfo("storage", u);
+      group[u.binding] = u;
     }
 
     for (const t of this.textures) {
       _makeRoom(t.group, t.binding);
       const group = groups[t.group];
-      group[t.binding] = new BindingInfo("texture", t);
+      group[t.binding] = t;
     }
 
     for (const t of this.samplers) {
       _makeRoom(t.group, t.binding);
       const group = groups[t.group];
-      group[t.binding] = new BindingInfo("sampler", t);
+      group[t.binding] = t;
     }
 
     return groups;

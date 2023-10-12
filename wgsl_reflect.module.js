@@ -2821,21 +2821,6 @@ class EntryFunctions {
         this.compute = [];
     }
 }
-class BindingInfo {
-    constructor(type, resource) {
-        this.type = type;
-        this.resource = resource;
-    }
-    get name() {
-        return this.resource.name;
-    }
-    get group() {
-        return this.resource.group;
-    }
-    get binding() {
-        return this.resource.binding;
-    }
-}
 class WgslReflect {
     constructor(code) {
         /// All top-level uniform vars in the shader.
@@ -2929,22 +2914,22 @@ class WgslReflect {
         for (const u of this.uniforms) {
             _makeRoom(u.group, u.binding);
             const group = groups[u.group];
-            group[u.binding] = new BindingInfo("uniform", u);
+            group[u.binding] = u;
         }
         for (const u of this.storage) {
             _makeRoom(u.group, u.binding);
             const group = groups[u.group];
-            group[u.binding] = new BindingInfo("storage", u);
+            group[u.binding] = u;
         }
         for (const t of this.textures) {
             _makeRoom(t.group, t.binding);
             const group = groups[t.group];
-            group[t.binding] = new BindingInfo("texture", t);
+            group[t.binding] = t;
         }
         for (const t of this.samplers) {
             _makeRoom(t.group, t.binding);
             const group = groups[t.group];
-            group[t.binding] = new BindingInfo("sampler", t);
+            group[t.binding] = t;
         }
         return groups;
     }
@@ -3298,5 +3283,5 @@ WgslReflect._samplerTypes = TokenTypes.sampler_type.map((t) => {
     return t.name;
 });
 
-export { Alias, AliasInfo, Argument, ArrayInfo, ArrayType, Assign, AssignOperator, Attribute, BinaryOperator, BindingInfo, BitcastExpr, Break, Call, CallExpr, Case, Const, ConstExpr, Continue, Continuing, CreateExpr, Default, Discard, ElseIf, Enable, EntryFunctions, Expression, For, Function, FunctionInfo, GroupingExpr, If, Increment, IncrementOperator, InputInfo, Let, LiteralExpr, Loop, Member, MemberInfo, Node, Operator, OutputInfo, Override, ParseContext, PointerType, ResourceType, Return, SamplerType, Statement, StaticAssert, StringExpr, Struct, StructInfo, Switch, SwitchCase, TemplateInfo, TemplateType, Token, TokenClass, TokenType, TokenTypes, Type, TypeInfo, TypecastExpr, UnaryOperator, Var, VariableExpr, VariableInfo, WgslParser, WgslReflect, WgslScanner, While };
+export { Alias, AliasInfo, Argument, ArrayInfo, ArrayType, Assign, AssignOperator, Attribute, BinaryOperator, BitcastExpr, Break, Call, CallExpr, Case, Const, ConstExpr, Continue, Continuing, CreateExpr, Default, Discard, ElseIf, Enable, EntryFunctions, Expression, For, Function, FunctionInfo, GroupingExpr, If, Increment, IncrementOperator, InputInfo, Let, LiteralExpr, Loop, Member, MemberInfo, Node, Operator, OutputInfo, Override, ParseContext, PointerType, ResourceType, Return, SamplerType, Statement, StaticAssert, StringExpr, Struct, StructInfo, Switch, SwitchCase, TemplateInfo, TemplateType, Token, TokenClass, TokenType, TokenTypes, Type, TypeInfo, TypecastExpr, UnaryOperator, Var, VariableExpr, VariableInfo, WgslParser, WgslReflect, WgslScanner, While };
 //# sourceMappingURL=wgsl_reflect.module.js.map

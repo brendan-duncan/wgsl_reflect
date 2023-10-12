@@ -37,7 +37,7 @@ class WgslReflect {
   entryPoints: EntryFunctions;
 
   // Get the bind groups used by the shader, bindGroups[group][binding].
-  getBindGroups(): Array<Array<BindingInfo>>;
+  getBindGroups(): Array<Array<VariableInfo>>;
 }
 
 enum ResourceType {
@@ -48,20 +48,20 @@ enum ResourceType {
 }
 
 class VariableInfo {
-  name: string;
-  type: TypeInfo;
-  group: number;
-  binding: number;
-  resourceType: ResourceType;
+  name: string; // The name of the variable
+  type: TypeInfo; // The type of the variable
+  group: number; // The binding group of the variable
+  binding: number; // The binding index of the variable
+  resourceType: ResourceType; // The resource type of the variable
 
-  get isArray(): boolean;
-  get isStruct(): boolean;
-  get isTemplate(): boolean;
+  get isArray(): boolean; // True if it's an array type
+  get isStruct(): boolean;  // True if it's a struct type
+  get isTemplate(): boolean; // True if it's a template type
   get size(): number; // Size of the data, in bytes
-  get align(): number;
-  get members(): Array<MemberInfo> | null;
-  get format(): TypeInfo | null;
-  get count(): number;
+  get align(): number; // The alignment size if it's a struct, otherwise 0
+  get members(): Array<MemberInfo> | null; // The list of members if it's a struct, otherwise null
+  get format(): TypeInfo | null; // The format if it's a template or array, otherwise null
+  get count(): number; // The array size if it's an array, otherwise 0
 }
 
 class TypeInfo {
@@ -120,15 +120,6 @@ class OutputInfo {
   type: TypeInfo | null;
   locationType: string;
   location: number | string;
-}
-
-class BindingInfo {
-  type: string;
-  resource: VariableInfo;
-
-  get name(): string;
-  get group(): number;
-  get binding(): number;
 }
 ```
 
@@ -207,20 +198,20 @@ const groups = reflect.getBindGroups();
 console.log(groups.length); // 1
 console.log(groups[0].length); // 4, bindings in group(0)
 
-console.log(groups[0][1].type); // "buffer", the type of resource at group(0) binding(1)
-console.log(groups[0][1].resource.size); // 108, the size of the uniform buffer.
-console.log(groups[0][1].resource.members.length); // 3, members in ModelUniforms.
-console.log(groups[0][1].resource.members[0].name); // "model", the name of the first member in the uniform buffer.
-console.log(groups[0][1].resource.members[0].offset); // 0, the offset of 'model' in the uniform buffer.
-console.log(groups[0][1].resource.members[0].size); // 64, the size of 'model'.
-console.log(groups[0][1].resource.members[0].type.name); // "mat4x4", the type of 'model'.
-console.log(groups[0][1].resource.members[0].type.format.name); // "f32", the format of the mat4x4.
+console.log(groups[0][1].resourceType); // ResourceType.Uniform, the type of resource at group(0) binding(1)
+console.log(groups[0][1].size); // 108, the size of the uniform buffer.
+console.log(groups[0][1].members.length); // 3, members in ModelUniforms.
+console.log(groups[0][1].members[0].name); // "model", the name of the first member in the uniform buffer.
+console.log(groups[0][1].members[0].offset); // 0, the offset of 'model' in the uniform buffer.
+console.log(groups[0][1].members[0].size); // 64, the size of 'model'.
+console.log(groups[0][1].members[0].type.name); // "mat4x4", the type of 'model'.
+console.log(groups[0][1].members[0].type.format.name); // "f32", the format of the mat4x4.
 
-console.log(groups[0][2].type); // "sampler"
+console.log(groups[0][2].resourceType); // ResourceType.Sampler
 
-console.log(groups[0][3].type); // "texture"
-console.log(groups[0][3].resource.type.name); // "texture_2d"
-console.log(groups[0][3].resource.type.format.name); // "f32"
+console.log(groups[0][3].resourceType); // ResourceType.Texture
+console.log(groups[0][3].type.name); // "texture_2d"
+console.log(groups[0][3].type.format.name); // "f32"
 ```
 
 ---

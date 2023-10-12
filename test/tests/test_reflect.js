@@ -1,5 +1,5 @@
 import { test, group } from "../test.js";
-import { WgslReflect } from "../../../wgsl_reflect.module.js";
+import { WgslReflect, ResourceType } from "../../../wgsl_reflect.module.js";
 
 group("Reflect", function () {
   test("uniform u32", function (test) {
@@ -154,12 +154,12 @@ group("Reflect", function () {
     const bindGroups = reflect.getBindGroups();
     test.equals(bindGroups.length, 2);
     test.equals(bindGroups[0].length, 2);
-    test.equals(bindGroups[0][0].type, "uniform");
-    test.equals(bindGroups[0][0].resource.type.isStruct, true);
-    test.equals(bindGroups[0][1].type, "uniform");
+    test.equals(bindGroups[0][0].resourceType, ResourceType.Uniform);
+    test.equals(bindGroups[0][0].type.isStruct, true);
+    test.equals(bindGroups[0][1].resourceType, ResourceType.Uniform);
     test.equals(bindGroups[1].length, 2);
-    test.equals(bindGroups[1][0].type, "sampler");
-    test.equals(bindGroups[1][1].type, "texture");
+    test.equals(bindGroups[1][0].resourceType, ResourceType.Sampler);
+    test.equals(bindGroups[1][1].resourceType, ResourceType.Texture);
   });
 
   test("uniform buffer info", function (test) {

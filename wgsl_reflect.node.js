@@ -2825,21 +2825,6 @@ class EntryFunctions {
         this.compute = [];
     }
 }
-class BindingInfo {
-    constructor(type, resource) {
-        this.type = type;
-        this.resource = resource;
-    }
-    get name() {
-        return this.resource.name;
-    }
-    get group() {
-        return this.resource.group;
-    }
-    get binding() {
-        return this.resource.binding;
-    }
-}
 class WgslReflect {
     constructor(code) {
         /// All top-level uniform vars in the shader.
@@ -2933,22 +2918,22 @@ class WgslReflect {
         for (const u of this.uniforms) {
             _makeRoom(u.group, u.binding);
             const group = groups[u.group];
-            group[u.binding] = new BindingInfo("uniform", u);
+            group[u.binding] = u;
         }
         for (const u of this.storage) {
             _makeRoom(u.group, u.binding);
             const group = groups[u.group];
-            group[u.binding] = new BindingInfo("storage", u);
+            group[u.binding] = u;
         }
         for (const t of this.textures) {
             _makeRoom(t.group, t.binding);
             const group = groups[t.group];
-            group[t.binding] = new BindingInfo("texture", t);
+            group[t.binding] = t;
         }
         for (const t of this.samplers) {
             _makeRoom(t.group, t.binding);
             const group = groups[t.group];
-            group[t.binding] = new BindingInfo("sampler", t);
+            group[t.binding] = t;
         }
         return groups;
     }
@@ -3310,7 +3295,6 @@ exports.ArrayType = ArrayType;
 exports.Assign = Assign;
 exports.Attribute = Attribute;
 exports.BinaryOperator = BinaryOperator;
-exports.BindingInfo = BindingInfo;
 exports.BitcastExpr = BitcastExpr;
 exports.Break = Break;
 exports.Call = Call;
