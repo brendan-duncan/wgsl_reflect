@@ -242,13 +242,25 @@ export class EntryFunctions {
   compute: Array<FunctionInfo> = [];
 }
 
-export class BindGropEntry {
+export class BindingInfo {
   type: string;
   resource: VariableInfo;
 
   constructor(type: string, resource: VariableInfo) {
     this.type = type;
     this.resource = resource;
+  }
+
+  get name(): string {
+    return this.resource.name;
+  }
+
+  get group(): number {
+    return this.resource.group;
+  }
+
+  get binding(): number {
+    return this.resource.binding;
   }
 }
 
@@ -372,8 +384,8 @@ export class WgslReflect {
     }
   }
 
-  getBindGroups(): Array<Array<BindGropEntry>> {
-    const groups: Array<Array<BindGropEntry>> = [];
+  getBindGroups(): Array<Array<BindingInfo>> {
+    const groups: Array<Array<BindingInfo>> = [];
 
     function _makeRoom(group: number, binding: number) {
       if (group >= groups.length) groups.length = group + 1;
@@ -386,25 +398,25 @@ export class WgslReflect {
     for (const u of this.uniforms) {
       _makeRoom(u.group, u.binding);
       const group = groups[u.group];
-      group[u.binding] = new BindGropEntry("uniform", u);
+      group[u.binding] = new BindingInfo("uniform", u);
     }
 
     for (const u of this.storage) {
       _makeRoom(u.group, u.binding);
       const group = groups[u.group];
-      group[u.binding] = new BindGropEntry("storage", u);
+      group[u.binding] = new BindingInfo("storage", u);
     }
 
     for (const t of this.textures) {
       _makeRoom(t.group, t.binding);
       const group = groups[t.group];
-      group[t.binding] = new BindGropEntry("texture", t);
+      group[t.binding] = new BindingInfo("texture", t);
     }
 
     for (const t of this.samplers) {
       _makeRoom(t.group, t.binding);
       const group = groups[t.group];
-      group[t.binding] = new BindGropEntry("sampler", t);
+      group[t.binding] = new BindingInfo("sampler", t);
     }
 
     return groups;

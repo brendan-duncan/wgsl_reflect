@@ -94,10 +94,13 @@ export declare class EntryFunctions {
     fragment: Array<FunctionInfo>;
     compute: Array<FunctionInfo>;
 }
-export declare class BindGropEntry {
+export declare class BindingInfo {
     type: string;
     resource: VariableInfo;
     constructor(type: string, resource: VariableInfo);
+    get name(): string;
+    get group(): number;
+    get binding(): number;
 }
 export declare class WgslReflect {
     uniforms: Array<VariableInfo>;
@@ -110,7 +113,7 @@ export declare class WgslReflect {
     _types: Map<AST.Type, TypeInfo>;
     constructor(code: string | undefined);
     update(code: string): void;
-    getBindGroups(): Array<Array<BindGropEntry>>;
+    getBindGroups(): Array<Array<BindingInfo>>;
     _getOutputs(type: AST.Type, outputs?: Array<OutputInfo> | undefined): Array<OutputInfo>;
     _getStructOutputs(struct: AST.Struct, outputs: Array<OutputInfo>): void;
     _getOutputInfo(type: AST.Type): OutputInfo | null;
