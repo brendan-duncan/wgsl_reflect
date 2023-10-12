@@ -121,6 +121,15 @@ class OutputInfo {
   locationType: string;
   location: number | string;
 }
+
+class BindingInfo {
+  type: string;
+  resource: VariableInfo;
+
+  get name(): string;
+  get group(): number;
+  get binding(): number;
+}
 ```
 
 ## Examples
