@@ -179,19 +179,19 @@ console.log(reflect.structs.length); // 4
 console.log(reflect.uniforms.length); // 2
 
 // Shader entry points
-console.log(reflect.entry.vertex.length); // 1, there is 1 vertex entry function.
-console.log(reflect.entry.fragment.length); // 0, there are no fragment entry functions.
-console.log(reflect.entry.compute.length); // 0, there are no compute entry functions.
+console.log(reflect.entryPoints.vertex.length); // 1, there is 1 vertex entry function.
+console.log(reflect.entryPoints.fragment.length); // 0, there are no fragment entry functions.
+console.log(reflect.entryPoints.compute.length); // 0, there are no compute entry functions.
 
-console.log(reflect.entry.vertex[0].name); // "main", the name of the vertex entry function.
+console.log(reflect.entryPoints.vertex[0].name); // "main", the name of the vertex entry function.
 
 // Vertex shader inputs
-console.log(reflect.entry.vertex[0].inputs.length); // 4, inputs to "main"
-console.log(reflect.entry.vertex[0].inputs[0].name); // "a_position"
-console.log(reflect.entry.vertex[0].inputs[0].location); // 0
-console.log(reflect.entry.vertex[0].inputs[0].locationType); // "location" (can be "builtin")
-console.log(reflect.entry.vertex[0].inputs[0].type.name); // "vec3"
-console.log(reflect.entry.vertex[0].inputs[0].type.format.name); // "f32"
+console.log(reflect.entryPoints.vertex[0].inputs.length); // 4, inputs to "main"
+console.log(reflect.entryPoints.vertex[0].inputs[0].name); // "a_position"
+console.log(reflect.entryPoints.vertex[0].inputs[0].location); // 0
+console.log(reflect.entryPoints.vertex[0].inputs[0].locationType); // "location" (can be "builtin")
+console.log(reflect.entryPoints.vertex[0].inputs[0].type.name); // "vec3"
+console.log(reflect.entryPoints.vertex[0].inputs[0].type.format.name); // "f32"
 
 // Gather the bind groups used by the shader.
 const groups = reflect.getBindGroups();
