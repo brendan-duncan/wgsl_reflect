@@ -1079,7 +1079,7 @@ export class WgslParser {
     }
     let value: AST.Expression | null = null;
     if (this._match(TokenTypes.tokens.equal)) {
-      let valueExpr = this._short_circuit_or_expression();
+      const valueExpr = this._short_circuit_or_expression();
       if (valueExpr instanceof AST.CreateExpr) {
         value = valueExpr;
       } else if (
@@ -1088,7 +1088,7 @@ export class WgslParser {
       ) {
         value = valueExpr.initializer;
       } else {
-        let constValue = valueExpr.evaluate(this._context);
+        const constValue = valueExpr.evaluate(this._context);
         value = new AST.LiteralExpr(constValue);
       }
     }

@@ -2388,7 +2388,7 @@ class WgslParser {
         }
         let value = null;
         if (this._match(TokenTypes.tokens.equal)) {
-            let valueExpr = this._short_circuit_or_expression();
+            const valueExpr = this._short_circuit_or_expression();
             if (valueExpr instanceof CreateExpr) {
                 value = valueExpr;
             }
@@ -2397,7 +2397,7 @@ class WgslParser {
                 value = valueExpr.initializer;
             }
             else {
-                let constValue = valueExpr.evaluate(this._context);
+                const constValue = valueExpr.evaluate(this._context);
                 value = new LiteralExpr(constValue);
             }
         }
@@ -2705,6 +2705,34 @@ class MemberInfo {
         this.offset = 0;
         this.size = 0;
     }
+    get isArray() {
+        return this.type.isArray;
+    }
+    get isStruct() {
+        return this.type.isStruct;
+    }
+    get isTemplate() {
+        return this.type.isTemplate;
+    }
+    get align() {
+        return this.type.isStruct ? this.type.align : 0;
+    }
+    get members() {
+        return this.type.isStruct ? this.type.members : null;
+    }
+    get format() {
+        return this.type.isArray
+            ? this.type.format
+            : this.type.isTemplate
+                ? this.type.format
+                : null;
+    }
+    get count() {
+        return this.type.isArray ? this.type.count : 0;
+    }
+    get stride() {
+        return this.type.isArray ? this.type.stride : this.size;
+    }
 }
 class StructInfo extends TypeInfo {
     constructor(name, attributes) {
@@ -2779,6 +2807,9 @@ class VariableInfo {
     get count() {
         return this.type.isArray ? this.type.count : 0;
     }
+    get stride() {
+        return this.type.isArray ? this.type.stride : this.size;
+    }
 }
 class AliasInfo {
     constructor(name, type) {
@@ -2825,6 +2856,14 @@ class EntryFunctions {
         this.compute = [];
     }
 }
+class OverrideInfo {
+    constructor(name, type, attributes, id) {
+        this.name = name;
+        this.type = type;
+        this.attributes = attributes;
+        this.id = id;
+    }
+}
 class WgslReflect {
     constructor(code) {
         /// All top-level uniform vars in the shader.
@@ -2837,10 +2876,12 @@ class WgslReflect {
         this.samplers = [];
         /// All top-level type aliases in the shader.
         this.aliases = [];
+        /// All top-level overrides in the shader.
+        this.overrides = [];
         /// All top-level structs in the shader.
         this.structs = [];
         /// All entry functions in the shader: vertex, fragment, and/or compute.
-        this.entryPoints = new EntryFunctions();
+        this.entry = new EntryFunctions();
         this._types = new Map();
         if (code) {
             this.update(code);
@@ -2850,14 +2891,20 @@ class WgslReflect {
         const parser = new WgslParser();
         const ast = parser.parse(code);
         for (const node of ast) {
-            if (node.astNodeType == "struct") {
+            if (node instanceof Struct) {
                 const info = this._getTypeInfo(node, null);
                 if (info instanceof StructInfo) {
                     this.structs.push(info);
                 }
             }
-            if (node.astNodeType == "alias") {
+            if (node instanceof Alias) {
                 this.aliases.push(this._getAliasInfo(node));
+            }
+            if (node instanceof Override) {
+                const v = node;
+                const id = this._getAttributeNum(v.attributes, "id", 0);
+                const type = v.type != null ? this._getTypeInfo(v.type, v.attributes) : null;
+                this.overrides.push(new OverrideInfo(v.name, type, v.attributes, id));
             }
             if (this._isUniformVar(node)) {
                 const v = node;
@@ -2900,7 +2947,7 @@ class WgslReflect {
                     const fn = new FunctionInfo(node.name, stage.name);
                     fn.inputs = this._getInputs(node.args);
                     fn.outputs = this._getOutputs(node.returnType);
-                    this.entryPoints[stage.name].push(fn);
+                    this.entry[stage.name].push(fn);
                 }
             }
         }
@@ -3069,7 +3116,7 @@ class WgslReflect {
         }
         if (type instanceof TemplateType) {
             const t = type;
-            const format = this._getTypeInfo(t.format, null);
+            const format = t.format ? this._getTypeInfo(t.format, null) : null;
             const info = new TemplateInfo(t.name, format, attributes);
             this._types.set(type, info);
             this._updateTypeInfo(info);
@@ -3327,6 +3374,7 @@ exports.Node = Node;
 exports.Operator = Operator;
 exports.OutputInfo = OutputInfo;
 exports.Override = Override;
+exports.OverrideInfo = OverrideInfo;
 exports.ParseContext = ParseContext;
 exports.PointerType = PointerType;
 exports.Return = Return;

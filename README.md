@@ -31,10 +31,12 @@ class WgslReflect {
   samplers: Array<VariableInfo>;
   /// All top-level type aliases in the shader.
   aliases: Array<AliasInfo>;
+  /// All top-level overrides in the shader.
+  overrides: Array<OverrideInfo> = [];
   /// All top-level structs in the shader.
   structs: Array<StructInfo>;
   /// All entry functions in the shader: vertex, fragment, and/or compute.
-  entryPoints: EntryFunctions;
+  entry: EntryFunctions;
 
   // Get the bind groups used by the shader, bindGroups[group][binding].
   getBindGroups(): Array<Array<VariableInfo>>;
@@ -62,6 +64,7 @@ class VariableInfo {
   get members(): Array<MemberInfo> | null; // The list of members if it's a struct, otherwise null
   get format(): TypeInfo | null; // The format if it's a template or array, otherwise null
   get count(): number; // The array size if it's an array, otherwise 0
+  get stride(): number; // The array stride if it's an array, otherwise 0
 }
 
 class TypeInfo {
@@ -93,6 +96,15 @@ class MemberInfo {
   type: TypeInfo;
   offset: number;
   size: number;
+
+  get isArray(): boolean;
+  get isStruct(): boolean;
+  get isTemplate(): boolean;
+  get align(): number;
+  get members(): Array<MemberInfo> | null;
+  get format(): TypeInfo | null;
+  get count(): number;
+  get stride(): number;
 }
 
 class AliasInfo {
@@ -120,6 +132,12 @@ class OutputInfo {
   type: TypeInfo | null;
   locationType: string;
   location: number | string;
+}
+
+class OverrideInfo {
+  name: string;
+  type: TypeInfo | null;
+  id: number;
 }
 ```
 
@@ -179,19 +197,19 @@ console.log(reflect.structs.length); // 4
 console.log(reflect.uniforms.length); // 2
 
 // Shader entry points
-console.log(reflect.entryPoints.vertex.length); // 1, there is 1 vertex entry function.
-console.log(reflect.entryPoints.fragment.length); // 0, there are no fragment entry functions.
-console.log(reflect.entryPoints.compute.length); // 0, there are no compute entry functions.
+console.log(reflect.entry.vertex.length); // 1, there is 1 vertex entry function.
+console.log(reflect.entry.fragment.length); // 0, there are no fragment entry functions.
+console.log(reflect.entry.compute.length); // 0, there are no compute entry functions.
 
-console.log(reflect.entryPoints.vertex[0].name); // "main", the name of the vertex entry function.
+console.log(reflect.entry.vertex[0].name); // "main", the name of the vertex entry function.
 
 // Vertex shader inputs
-console.log(reflect.entryPoints.vertex[0].inputs.length); // 4, inputs to "main"
-console.log(reflect.entryPoints.vertex[0].inputs[0].name); // "a_position"
-console.log(reflect.entryPoints.vertex[0].inputs[0].location); // 0
-console.log(reflect.entryPoints.vertex[0].inputs[0].locationType); // "location" (can be "builtin")
-console.log(reflect.entryPoints.vertex[0].inputs[0].type.name); // "vec3"
-console.log(reflect.entryPoints.vertex[0].inputs[0].type.format.name); // "f32"
+console.log(reflect.entry.vertex[0].inputs.length); // 4, inputs to "main"
+console.log(reflect.entry.vertex[0].inputs[0].name); // "a_position"
+console.log(reflect.entry.vertex[0].inputs[0].location); // 0
+console.log(reflect.entry.vertex[0].inputs[0].locationType); // "location" (can be "builtin")
+console.log(reflect.entry.vertex[0].inputs[0].type.name); // "vec3"
+console.log(reflect.entry.vertex[0].inputs[0].type.format.name); // "f32"
 
 // Gather the bind groups used by the shader.
 const groups = reflect.getBindGroups();

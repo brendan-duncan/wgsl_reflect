@@ -15,6 +15,14 @@ export declare class MemberInfo {
     offset: number;
     size: number;
     constructor(name: string, type: TypeInfo, attributes: Array<AST.Attribute> | null);
+    get isArray(): boolean;
+    get isStruct(): boolean;
+    get isTemplate(): boolean;
+    get align(): number;
+    get members(): Array<MemberInfo> | null;
+    get format(): TypeInfo | null;
+    get count(): number;
+    get stride(): number;
 }
 export declare class StructInfo extends TypeInfo {
     members: Array<MemberInfo>;
@@ -30,8 +38,8 @@ export declare class ArrayInfo extends TypeInfo {
     get isArray(): boolean;
 }
 export declare class TemplateInfo extends TypeInfo {
-    format: TypeInfo;
-    constructor(name: string, format: TypeInfo, attributes: Array<AST.Attribute> | null);
+    format: TypeInfo | null;
+    constructor(name: string, format: TypeInfo | null, attributes: Array<AST.Attribute> | null);
     get isTemplate(): boolean;
 }
 export declare enum ResourceType {
@@ -56,6 +64,7 @@ export declare class VariableInfo {
     get members(): Array<MemberInfo> | null;
     get format(): TypeInfo | null;
     get count(): number;
+    get stride(): number;
 }
 export declare class AliasInfo {
     name: string;
@@ -94,14 +103,22 @@ export declare class EntryFunctions {
     fragment: Array<FunctionInfo>;
     compute: Array<FunctionInfo>;
 }
+export declare class OverrideInfo {
+    name: string;
+    type: TypeInfo | null;
+    attributes: Array<AST.Attribute> | null;
+    id: number;
+    constructor(name: string, type: TypeInfo | null, attributes: Array<AST.Attribute> | null, id: number);
+}
 export declare class WgslReflect {
     uniforms: Array<VariableInfo>;
     storage: Array<VariableInfo>;
     textures: Array<VariableInfo>;
     samplers: Array<VariableInfo>;
     aliases: Array<AliasInfo>;
+    overrides: Array<OverrideInfo>;
     structs: Array<StructInfo>;
-    entryPoints: EntryFunctions;
+    entry: EntryFunctions;
     _types: Map<AST.Type, TypeInfo>;
     constructor(code: string | undefined);
     update(code: string): void;

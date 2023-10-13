@@ -47,6 +47,42 @@ export class MemberInfo {
     this.offset = 0;
     this.size = 0;
   }
+
+  get isArray(): boolean {
+    return this.type.isArray;
+  }
+
+  get isStruct(): boolean {
+    return this.type.isStruct;
+  }
+
+  get isTemplate(): boolean {
+    return this.type.isTemplate;
+  }
+
+  get align(): number {
+    return this.type.isStruct ? (this.type as StructInfo).align : 0;
+  }
+
+  get members(): Array<MemberInfo> | null {
+    return this.type.isStruct ? (this.type as StructInfo).members : null;
+  }
+
+  get format(): TypeInfo | null {
+    return this.type.isArray
+      ? (this.type as ArrayInfo).format
+      : this.type.isTemplate
+      ? (this.type as TemplateInfo).format
+      : null;
+  }
+
+  get count(): number {
+    return this.type.isArray ? (this.type as ArrayInfo).count : 0;
+  }
+
+  get stride(): number {
+    return this.type.isArray ? (this.type as ArrayInfo).stride : this.size;
+  }
 }
 
 export class StructInfo extends TypeInfo {
@@ -81,10 +117,10 @@ export class ArrayInfo extends TypeInfo {
 }
 
 export class TemplateInfo extends TypeInfo {
-  format: TypeInfo;
+  format: TypeInfo | null;
   constructor(
     name: string,
-    format: TypeInfo,
+    format: TypeInfo | null,
     attributes: Array<AST.Attribute> | null
   ) {
     super(name, attributes);
@@ -161,6 +197,10 @@ export class VariableInfo {
 
   get count(): number {
     return this.type.isArray ? (this.type as ArrayInfo).count : 0;
+  }
+
+  get stride(): number {
+    return this.type.isArray ? (this.type as ArrayInfo).stride : this.size;
   }
 }
 
@@ -242,6 +282,25 @@ export class EntryFunctions {
   compute: Array<FunctionInfo> = [];
 }
 
+export class OverrideInfo {
+  name: string;
+  type: TypeInfo | null;
+  attributes: Array<AST.Attribute> | null;
+  id: number;
+
+  constructor(
+    name: string,
+    type: TypeInfo | null,
+    attributes: Array<AST.Attribute> | null,
+    id: number
+  ) {
+    this.name = name;
+    this.type = type;
+    this.attributes = attributes;
+    this.id = id;
+  }
+}
+
 export class WgslReflect {
   /// All top-level uniform vars in the shader.
   uniforms: Array<VariableInfo> = [];
@@ -253,10 +312,12 @@ export class WgslReflect {
   samplers: Array<VariableInfo> = [];
   /// All top-level type aliases in the shader.
   aliases: Array<AliasInfo> = [];
+  /// All top-level overrides in the shader.
+  overrides: Array<OverrideInfo> = [];
   /// All top-level structs in the shader.
   structs: Array<StructInfo> = [];
   /// All entry functions in the shader: vertex, fragment, and/or compute.
-  entryPoints: EntryFunctions = new EntryFunctions();
+  entry: EntryFunctions = new EntryFunctions();
 
   _types: Map<AST.Type, TypeInfo> = new Map();
 
@@ -271,15 +332,23 @@ export class WgslReflect {
     const ast = parser.parse(code);
 
     for (const node of ast) {
-      if (node.astNodeType == "struct") {
+      if (node instanceof AST.Struct) {
         const info = this._getTypeInfo(node as AST.Struct, null);
         if (info instanceof StructInfo) {
           this.structs.push(info as StructInfo);
         }
       }
 
-      if (node.astNodeType == "alias") {
+      if (node instanceof AST.Alias) {
         this.aliases.push(this._getAliasInfo(node as AST.Alias));
+      }
+
+      if (node instanceof AST.Override) {
+        const v = node as AST.Override;
+        const id = this._getAttributeNum(v.attributes, "id", 0);
+        const type =
+          v.type != null ? this._getTypeInfo(v.type, v.attributes) : null;
+        this.overrides.push(new OverrideInfo(v.name, type, v.attributes, id));
       }
 
       if (this._isUniformVar(node)) {
@@ -356,7 +425,7 @@ export class WgslReflect {
           const fn = new FunctionInfo(node.name, stage.name);
           fn.inputs = this._getInputs(node.args);
           fn.outputs = this._getOutputs(node.returnType);
-          this.entryPoints[stage.name].push(fn);
+          this.entry[stage.name].push(fn);
         }
       }
     }
@@ -556,7 +625,7 @@ export class WgslReflect {
 
     if (type instanceof AST.TemplateType) {
       const t = type as AST.TemplateType;
-      const format = this._getTypeInfo(t.format!, null);
+      const format = t.format ? this._getTypeInfo(t.format!, null) : null;
       const info = new TemplateInfo(t.name, format, attributes);
       this._types.set(type, info);
       this._updateTypeInfo(info);
