@@ -1,7 +1,210 @@
 import { test, group } from "../test.js";
-import { WgslReflect } from "../../../wgsl_reflect.module.js";
+import { WgslReflect, ResourceType } from "../../../wgsl_reflect.module.js";
 
 group("Reflect", function () {
+  test("uniform u32", function (test) {
+    const reflect = new WgslReflect(`
+      @group(0) @binding(0) var<uniform> foo : u32;`);
+    test.equals(reflect.uniforms.length, 1);
+    test.equals(reflect.uniforms[0].name, "foo");
+    test.equals(reflect.uniforms[0].type.name, "u32");
+    test.equals(reflect.uniforms[0].type.size, 4);
+  });
+
+  test("uniform array<u32, 5>", function (test) {
+    const reflect = new WgslReflect(`
+      @group(0) @binding(0) var<uniform> foo : array<u32, 5>;`);
+    test.equals(reflect.uniforms.length, 1);
+    test.equals(reflect.uniforms[0].name, "foo");
+    test.equals(reflect.uniforms[0].type.isArray, true);
+    test.equals(reflect.uniforms[0].type.count, 5);
+    test.equals(reflect.uniforms[0].type.size, 20);
+    test.equals(reflect.uniforms[0].type.format.name, "u32");
+    test.equals(reflect.uniforms[0].type.format.size, 4);
+  });
+
+  test("uniform array<array<u32, 6>, 5>", function (test) {
+    const reflect = new WgslReflect(`
+      @group(0) @binding(0) var<uniform> foo : array<array<u32, 6u>, 5>;`);
+    test.equals(reflect.uniforms.length, 1);
+    test.equals(reflect.uniforms[0].name, "foo");
+    test.equals(reflect.uniforms[0].type.isArray, true);
+    test.equals(reflect.uniforms[0].type.count, 5);
+    test.equals(reflect.uniforms[0].type.stride, 24);
+    test.equals(reflect.uniforms[0].type.size, 120);
+    test.equals(reflect.uniforms[0].type.format.isArray, true);
+    test.equals(reflect.uniforms[0].type.format.size, 24);
+    test.equals(reflect.uniforms[0].type.format.stride, 4);
+  });
+
+  test("struct", function (test) {
+    const reflect = new WgslReflect(`
+      struct Bar {
+        a : u32,
+      };
+      alias Bar1 = Bar;
+      alias Bar2 = Bar1;
+      const count = 2 * 2;
+      struct Foo {
+        a: u32,
+        b: Bar,
+        c: array<Bar2, count>,
+      };
+      @group(0) @binding(0) var<uniform> foo : Foo;`);
+    test.equals(reflect.uniforms.length, 1);
+    test.equals(reflect.uniforms[0].type.size, 24);
+    test.equals(reflect.uniforms[0].type.members.length, 3);
+    test.equals(reflect.uniforms[0].type.members[0].name, "a");
+    test.equals(reflect.uniforms[0].type.members[0].offset, 0);
+    test.equals(reflect.uniforms[0].type.members[0].size, 4);
+    test.equals(reflect.uniforms[0].type.members[1].offset, 4);
+    test.equals(reflect.uniforms[0].type.members[1].size, 4);
+    test.equals(reflect.uniforms[0].type.members[2].type.format.name, "Bar");
+    test.equals(reflect.uniforms[0].type.members[2].type.count, 4);
+    test.equals(reflect.uniforms[0].type.members[2].offset, 8);
+    test.equals(reflect.uniforms[0].type.members[2].size, 16);
+  });
+
+  test("entry functions", function (test) {
+    const reflect = new WgslReflect(`
+      struct ViewUniforms {
+          viewProjection: mat4x4<f32>
+      };
+      
+      struct ModelUniforms {
+          model: mat4x4<f32>,
+          color: vec4<f32>,
+          intensity: f32
+      };
+      
+      @binding(0) @group(0) var<uniform> viewUniforms: ViewUniforms;
+      @binding(1) @group(0) var<uniform> modelUniforms: ModelUniforms;
+      @binding(0) @group(1) var u_sampler: sampler;
+      @binding(1) @group(1) var u_texture: texture_2d<f32>;
+      
+      struct VertexInput {
+          @builtin(position) a_position: vec3<f32>,
+          @location(1) a_normal: vec3<f32>,
+          @location(2) a_color: vec4<f32>,
+          @location(3) a_uv: vec2<f32>
+      };
+      
+      struct VertexOutput {
+          @builtin(position) Position: vec4<f32>,
+          @location(0) v_position: vec4<f32>,
+          @location(1) v_normal: vec3<f32>,
+          @location(2) v_color: vec4<f32>,
+          @location(3) v_uv: vec2<f32>,
+      };
+      
+      @vertex
+      fn vertex_main(input: VertexInput) -> VertexOutput {
+          var output: VertexOutput;
+          output.Position = viewUniforms.viewProjection * modelUniforms.model * vec4<f32>(input.a_position, 1.0);
+          output.v_position = output.Position;
+          output.v_normal = input.a_normal;
+          output.v_color = input.a_color * modelUniforms.color * modelUniforms.intensity;
+          output.v_uv = input.a_uv;
+          return output;
+      }
+      
+      @fragment
+      fn frag_main() {}
+      
+      @compute @workgroup_size(8,4,1)
+      fn sorter() { }
+      
+      @compute @workgroup_size(8u)
+      fn reverser() { }
+      
+      // Using an pipeline-overridable constant.
+      @id(42) override block_width = 12u;
+      @compute @workgroup_size(block_width)
+      fn shuffler() { }
+    `);
+
+    test.equals(reflect.entry.vertex.length, 1);
+    test.equals(reflect.entry.fragment.length, 1);
+    test.equals(reflect.entry.compute.length, 3);
+
+    test.equals(reflect.entry.vertex[0].name, "vertex_main");
+    test.equals(reflect.entry.vertex[0].stage, "vertex");
+    test.equals(reflect.entry.vertex[0].inputs.length, 4);
+    test.equals(reflect.entry.vertex[0].inputs[0].name, "a_position");
+    test.equals(reflect.entry.vertex[0].inputs[0].location, "position");
+    test.equals(reflect.entry.vertex[0].inputs[1].location, 1);
+    test.equals(reflect.entry.vertex[0].inputs[2].location, 2);
+    test.equals(reflect.entry.vertex[0].inputs[3].location, 3);
+    test.equals(reflect.entry.vertex[0].outputs.length, 5);
+    test.equals(reflect.entry.vertex[0].outputs[0].name, "Position");
+    test.equals(reflect.entry.vertex[0].outputs[0].location, "position");
+
+    test.equals(reflect.entry.fragment[0].name, "frag_main");
+    test.equals(reflect.entry.fragment[0].stage, "fragment");
+
+    test.equals(reflect.entry.compute[0].name, "sorter");
+    test.equals(reflect.entry.compute[0].stage, "compute");
+
+    test.equals(reflect.entry.compute[1].name, "reverser");
+    test.equals(reflect.entry.compute[1].stage, "compute");
+
+    test.equals(reflect.entry.compute[2].name, "shuffler");
+    test.equals(reflect.entry.compute[2].stage, "compute");
+
+    const bindGroups = reflect.getBindGroups();
+    test.equals(bindGroups.length, 2);
+    test.equals(bindGroups[0].length, 2);
+    test.equals(bindGroups[0][0].resourceType, ResourceType.Uniform);
+    test.equals(bindGroups[0][0].type.isStruct, true);
+    test.equals(bindGroups[0][1].resourceType, ResourceType.Uniform);
+    test.equals(bindGroups[1].length, 2);
+    test.equals(bindGroups[1][0].resourceType, ResourceType.Sampler);
+    test.equals(bindGroups[1][1].resourceType, ResourceType.Texture);
+  });
+
+  test("uniform buffer info", function (test) {
+    const reflect = new WgslReflect(`
+      struct A {                                     //             align(8)  size(32)
+          u: f32,                                    // offset(0)   align(4)  size(4)
+          v: f32,                                    // offset(4)   align(4)  size(4)
+          w: vec2<f32>,                              // offset(8)   align(8)  size(8)
+          @size(16) x: f32                          // offset(16)  align(4)  size(16)
+      }
+      
+      struct B {                                     //             align(16) size(208)
+          a: vec2<f32>,                              // offset(0)   align(8)  size(8)
+          // -- implicit member alignment padding -- // offset(8)             size(8)
+          b: vec3<f32>,                              // offset(16)  align(16) size(12)
+          c: f32,                                    // offset(28)  align(4)  size(4)
+          d: f32,                                    // offset(32)  align(4)  size(4)
+          // -- implicit member alignment padding -- // offset(36)            size(12)
+          @align(16) e: A,                           // offset(48)  align(16) size(32)
+          f: vec3<f32>,                              // offset(80)  align(16) size(12)
+          // -- implicit member alignment padding -- // offset(92)            size(4)
+          g: @stride(32) array<A, 3>,                // offset(96)  align(8)  size(96)
+          h: i32,                                    // offset(192) align(4)  size(4)
+          // -- implicit struct size padding --      // offset(196)           size(12)
+      }
+      
+      @group(0) @binding(0)
+      var<uniform> uniform_buffer: B;`);
+    test.equals(reflect.uniforms[0].size, 208);
+    test.equals(reflect.uniforms[0].group, 0);
+    test.equals(reflect.uniforms[0].binding, 0);
+    test.equals(reflect.uniforms[0].members.length, 8);
+    test.equals(reflect.uniforms[0].members[0].name, "a");
+    test.equals(reflect.uniforms[0].members[0].type.name, "vec2");
+    test.equals(reflect.uniforms[0].members[0].type.format.name, "f32");
+    test.equals(reflect.uniforms[0].members[0].offset, 0);
+    test.equals(reflect.uniforms[0].members[0].size, 8);
+
+    test.equals(reflect.uniforms[0].members[4].name, "e");
+    test.equals(reflect.uniforms[0].members[4].type.name, "A");
+    test.equals(reflect.uniforms[0].members[4].type.members.length, 4);
+    test.equals(reflect.uniforms[0].members[4].offset, 48);
+    test.equals(reflect.uniforms[0].members[4].size, 32);
+  });
+
   test("alias struct", function (test) {
     const shader = `alias foo = u32;
     alias bar = foo;
@@ -23,8 +226,7 @@ group("Reflect", function () {
 
     const reflect = new WgslReflect(shader);
     test.equals(reflect.uniforms.length, 1);
-    const bufferInfo = reflect.getUniformBufferInfo(reflect.uniforms[0]);
-    test.equals(bufferInfo.size, 64);
+    test.equals(reflect.uniforms[0].size, 64);
   });
 
   test("const", function (test) {
@@ -32,8 +234,7 @@ group("Reflect", function () {
     @group(0) @binding(0) var<uniform> uni: array<vec4f, NUM_COLORS>;`;
     const reflect = new WgslReflect(shader);
     test.equals(reflect.uniforms.length, 1);
-    const bufferInfo = reflect.getUniformBufferInfo(reflect.uniforms[0]);
-    test.equals(bufferInfo.size, 16 * 12);
+    test.equals(reflect.uniforms[0].size, 16 * 12);
   });
 
   test("const2", function (test) {
@@ -43,8 +244,7 @@ group("Reflect", function () {
     @group(0) @binding(0) var<uniform> uni: array<vec4f, NUM_COLORS>;`;
     const reflect = new WgslReflect(shader);
     test.equals(reflect.uniforms.length, 1);
-    const bufferInfo = reflect.getUniformBufferInfo(reflect.uniforms[0]);
-    test.equals(bufferInfo.size, 16 * 4);
+    test.equals(reflect.uniforms[0].type.size, 16 * 4);
   });
 
   test("alias", function (test) {
@@ -58,8 +258,6 @@ group("Reflect", function () {
 
     const reflect = new WgslReflect(shader);
     test.equals(reflect.aliases.length, 2);
-    const info = reflect.getStorageBufferInfo(reflect.storage[0]);
-    test.equals(!!info, true);
   });
 
   test("nested-alias", function (test) {
@@ -75,11 +273,10 @@ group("Reflect", function () {
     `;
     const reflect = new WgslReflect(shader);
     test.equals(reflect.aliases.length, 3);
-    const info = reflect.getStorageBufferInfo(reflect.storage[0]);
-    test.equals(info.isStruct, true);
-    test.equals(info.isArray, false);
-    test.equals(info.members.length, 2);
-    test.equals(info.size, 8);
+    test.equals(reflect.storage[0].type.isArray, false);
+    test.equals(reflect.storage[0].type.isStruct, true);
+    test.equals(reflect.storage[0].type.members.length, 2);
+    test.equals(reflect.storage[0].type.size, 8);
   });
 
   test("nested-alias-array", function (test) {
@@ -95,11 +292,11 @@ group("Reflect", function () {
     `;
     const reflect = new WgslReflect(shader);
     test.equals(reflect.aliases.length, 3);
-    const info = reflect.getStorageBufferInfo(reflect.storage[0]);
-    test.equals(info.isStruct, true);
-    test.equals(info.isArray, true);
-    test.equals(info.members.length, 2);
-    test.equals(info.size, 80);
+    test.equals(reflect.storage[0].type.isStruct, false);
+    test.equals(reflect.storage[0].type.isArray, true);
+    test.equals(reflect.storage[0].type.format.isStruct, true);
+    test.equals(reflect.storage[0].type.format.members.length, 2);
+    test.equals(reflect.storage[0].type.size, 80);
   });
 
   test("typedef", function (test) {
@@ -129,8 +326,7 @@ group("Reflect", function () {
 
     test.equals(reflect.uniforms.length, 1);
     test.equals(reflect.uniforms[0].name, "x_75");
-    const bufferInfo = reflect.getUniformBufferInfo(reflect.uniforms[0]);
-    test.equals(bufferInfo.size, 560);
+    test.equals(reflect.uniforms[0].type.size, 560);
   });
 
   const shader = `
@@ -200,18 +396,12 @@ fn shuffler() { }
     test.true(names.includes("ModelUniforms"));
     test.true(names.includes("VertexInput"));
     test.true(names.includes("VertexOutput"));
-
-    test.notNull(reflect.getStructInfo(reflect.structs[0]));
-    test.notNull(reflect.getStructInfo(reflect.structs[1]));
-    test.notNull(reflect.getStructInfo(reflect.structs[2]));
-    test.notNull(reflect.getStructInfo(reflect.structs[3]));
   });
 
   test("uniforms", function (test) {
     test.equals(reflect.uniforms.length, 2);
     test.equals(reflect.uniforms[0].name, "viewUniforms");
     test.equals(reflect.uniforms[0].type.name, "ViewUniforms");
-    test.notNull(reflect.getStruct(reflect.uniforms[0].type));
   });
 
   test("textures", function (test) {
@@ -232,37 +422,38 @@ fn shuffler() { }
   });
 
   test("uniformBufferInfo", function (test) {
-    const buffer = reflect.getUniformBufferInfo(reflect.uniforms[1]);
-    test.notNull(buffer);
-    test.equals(buffer.type.name, "ModelUniforms", "buffer.type");
-    test.equals(buffer.size, 96, "buffer.size");
-    test.equals(buffer.group, "0", "buffer.group.value");
-    test.equals(buffer.binding, "1", "buffer.binding.value");
-    test.equals(buffer.members.length, 3, "buffer.members.length");
-    test.equals(buffer.members[0].name, "model", "buffer.members[0].name");
-    test.equals(buffer.members[1].name, "color", "buffer.members[1].name");
-    test.equals(buffer.members[2].name, "intensity", "buffer.members[1].name");
+    test.equals(reflect.uniforms[1].type.name, "ModelUniforms", "buffer.type");
+    test.equals(reflect.uniforms[1].size, 96, "buffer.size");
+    test.equals(reflect.uniforms[1].group, 0, "buffer.group.value");
+    test.equals(reflect.uniforms[1].binding, 1, "buffer.binding.value");
+    test.equals(reflect.uniforms[1].members.length, 3, "buffer.members.length");
+    test.equals(
+      reflect.uniforms[1].members[0].name,
+      "model",
+      "buffer.members[0].name"
+    );
+    test.equals(
+      reflect.uniforms[1].members[1].name,
+      "color",
+      "buffer.members[1].name"
+    );
+    test.equals(
+      reflect.uniforms[1].members[2].name,
+      "intensity",
+      "buffer.members[1].name"
+    );
   });
 
   test("getBindingGroups", function (test) {
     const groups = reflect.getBindGroups();
     test.equals(groups.length, 1);
     test.equals(groups[0].length, 4);
-    test.equals(groups[0][0].type, "buffer");
-    test.equals(groups[0][1].type, "buffer");
-    test.equals(groups[0][2].type, "sampler");
-    test.equals(groups[0][3].type, "texture");
-    test.equals(groups[0][3].resource.type.name, "texture_2d");
-    test.equals(groups[0][3].resource.type.format.name, "f32");
-  });
-
-  test("function", function (test) {
-    test.equals(reflect.functions.length, 5);
-    test.equals(reflect.functions[0].name, "vertex_main");
-    test.equals(reflect.functions[1].name, "frag_main");
-    test.equals(reflect.functions[2].name, "sorter");
-    test.equals(reflect.functions[3].name, "reverser");
-    test.equals(reflect.functions[4].name, "shuffler");
+    test.equals(groups[0][0].resourceType, ResourceType.Uniform);
+    test.equals(groups[0][1].resourceType, ResourceType.Uniform);
+    test.equals(groups[0][2].resourceType, ResourceType.Sampler);
+    test.equals(groups[0][3].resourceType, ResourceType.Texture);
+    test.equals(groups[0][3].type.name, "texture_2d");
+    test.equals(groups[0][3].type.format.name, "f32");
   });
 
   test("entry", function (test) {
@@ -307,18 +498,18 @@ fn shuffler() { }
     test.equals(reflect.storage.length, 3);
     test.equals(groups.length, 1);
     test.equals(groups[0].length, 3);
-    test.equals(groups[0][0].type, "storage");
-    test.equals(groups[0][0].resource.name, "x");
-    test.equals(groups[0][0].resource.type.name, "array");
-    test.equals(groups[0][0].resource.type.format.name, "f32");
-    test.equals(groups[0][1].type, "storage");
-    test.equals(groups[0][1].resource.name, "y");
-    test.equals(groups[0][1].resource.type.name, "array");
-    test.equals(groups[0][1].resource.type.format.name, "f32");
-    test.equals(groups[0][2].type, "storage");
-    test.equals(groups[0][2].resource.name, "z");
-    test.equals(groups[0][2].resource.type.name, "array");
-    test.equals(groups[0][2].resource.type.format.name, "f32");
+    test.equals(groups[0][0].resourceType, ResourceType.Storage);
+    test.equals(groups[0][0].name, "x");
+    test.equals(groups[0][0].type.name, "array");
+    test.equals(groups[0][0].type.format.name, "f32");
+    test.equals(groups[0][1].resourceType, ResourceType.Storage);
+    test.equals(groups[0][1].name, "y");
+    test.equals(groups[0][1].type.name, "array");
+    test.equals(groups[0][1].type.format.name, "f32");
+    test.equals(groups[0][2].resourceType, ResourceType.Storage);
+    test.equals(groups[0][2].name, "z");
+    test.equals(groups[0][2].type.name, "array");
+    test.equals(groups[0][2].type.format.name, "f32");
   });
 
   test("nested structs", function (test) {
@@ -340,60 +531,55 @@ fn shuffler() { }
 
     test.equals(reflect.uniforms.length, 3);
 
-    const info = reflect.getStructInfo(reflect.structs[1]);
-    test.equals(info.members.length, 5);
-    test.equals(info.members[0].name, "model");
-    test.equals(info.members[0].isStruct, false);
-    test.equals(info.members[0].offset, 0);
-    test.equals(info.members[0].size, 64);
-    test.equals(info.members[0].arrayStride, 64);
-    test.equals(info.members[1].name, "color");
-    test.equals(info.members[1].offset, 64);
-    test.equals(info.members[1].size, 16);
-    test.equals(info.members[2].name, "intensity");
-    test.equals(info.members[2].offset, 80);
-    test.equals(info.members[2].size, 4);
-    test.equals(info.members[3].name, "view");
-    test.equals(info.members[3].type.name, "array");
-    test.equals(info.members[3].type.format.name, "ViewUniforms");
-    test.equals(info.members[3].isStruct, true);
-    test.equals(info.members[3].isArray, true);
-    test.equals(info.members[3].arrayCount, 2);
-    test.equals(info.members[3].offset, 96);
-    test.equals(info.members[3].size, 128);
-    test.equals(info.members[3].arrayStride, 64);
-    test.equals(info.members[3].members.length, 1);
-    test.equals(info.members[3].members[0].name, "viewProjection");
-    test.equals(info.members[3].members[0].offset, 0);
-    test.equals(info.members[3].members[0].size, 64);
-    test.equals(info.members[4].name, "f32Array");
-    test.equals(info.members[4].arrayCount, 2);
-    test.equals(info.members[4].offset, 224);
-    test.equals(info.members[4].size, 8);
-    test.equals(info.members[4].arrayStride, 4);
+    const s1 = reflect.structs[1];
+    test.equals(s1.members.length, 5);
+    test.equals(s1.members[0].name, "model");
+    test.equals(s1.members[0].isStruct, false);
+    test.equals(s1.members[0].offset, 0);
+    test.equals(s1.members[0].size, 64);
+    test.equals(s1.members[0].stride, 64);
+    test.equals(s1.members[1].name, "color");
+    test.equals(s1.members[1].offset, 64);
+    test.equals(s1.members[1].size, 16);
+    test.equals(s1.members[2].name, "intensity");
+    test.equals(s1.members[2].offset, 80);
+    test.equals(s1.members[2].size, 4);
+    test.equals(s1.members[3].name, "view");
+    test.equals(s1.members[3].type.name, "array");
+    test.equals(s1.members[3].type.format.name, "ViewUniforms");
+    test.equals(s1.members[3].isStruct, false);
+    test.equals(s1.members[3].isArray, true);
+    test.equals(s1.members[3].count, 2);
+    test.equals(s1.members[3].offset, 96);
+    test.equals(s1.members[3].size, 128);
+    test.equals(s1.members[3].stride, 64);
+    test.equals(s1.members[3].format.members.length, 1);
+    test.equals(s1.members[3].format.members[0].name, "viewProjection");
+    test.equals(s1.members[3].format.members[0].offset, 0);
+    test.equals(s1.members[3].format.members[0].size, 64);
+    test.equals(s1.members[4].name, "f32Array");
+    test.equals(s1.members[4].count, 2);
+    test.equals(s1.members[4].offset, 224);
+    test.equals(s1.members[4].size, 8);
+    test.equals(s1.members[4].stride, 4);
 
-    const u0 = reflect.getUniformBufferInfo(reflect.uniforms[0]);
-    test.equals(u0.name, "model");
-    test.equals(u0.type.name, "ModelUniforms");
-    test.equals(u0.members.length, 5);
-    test.equals(u0.size, 240);
+    test.equals(reflect.uniforms[0].name, "model");
+    test.equals(reflect.uniforms[0].type.name, "ModelUniforms");
+    test.equals(reflect.uniforms[0].members.length, 5);
+    test.equals(reflect.uniforms[0].size, 240);
 
-    const u1 = reflect.getUniformBufferInfo(reflect.uniforms[1]);
-    test.equals(u1.name, "uArray");
-    test.equals(u1.type.name, "array");
-    test.equals(u1.type.format.name, "vec4");
-    test.equals(u1.type.format.format.name, "f32");
-    test.equals(u1.size, 112);
-    test.equals(u1.align, 16);
-    test.equals(u1.isArray, true);
-    test.equals(u1.arrayStride, 16);
-    test.equals(u1.arrayCount, 7);
+    test.equals(reflect.uniforms[1].name, "uArray");
+    test.equals(reflect.uniforms[1].type.name, "array");
+    test.equals(reflect.uniforms[1].type.format.name, "vec4");
+    test.equals(reflect.uniforms[1].type.format.format.name, "f32");
+    test.equals(reflect.uniforms[1].size, 112);
+    test.equals(reflect.uniforms[1].isArray, true);
+    test.equals(reflect.uniforms[1].stride, 16);
+    test.equals(reflect.uniforms[1].count, 7);
 
-    const u2 = reflect.getUniformBufferInfo(reflect.uniforms[2]);
-    test.equals(u2.name, "uFloat");
-    test.equals(u2.type.name, "f32");
-    test.equals(u2.size, 4);
-    test.equals(u2.align, 4);
+    test.equals(reflect.uniforms[2].name, "uFloat");
+    test.equals(reflect.uniforms[2].type.name, "f32");
+    test.equals(reflect.uniforms[2].size, 4);
   });
 
   test("nested structs", function (test) {
@@ -428,18 +614,15 @@ fn shuffler() { }
       reflect.storage.map((s) => [s.name, s])
     );
 
-    const someOtherStruct = reflect.getStructInfo(structs.SomeOtherStruct);
     const members = Object.fromEntries(
-      someOtherStruct.members.map((m) => [m.name, m])
+      structs.SomeOtherStruct.members.map((m) => [m.name, m])
     );
 
     const compare = (uniName, memberName, storageName) => {
-      const uni = uniforms[uniName];
+      const uniInfo = uniforms[uniName];
       const member = members[memberName];
-      const storage = storages[storageName];
+      const storageInfo = storages[storageName];
 
-      const uniInfo = reflect.getUniformBufferInfo(uni);
-      const storageInfo = reflect.getStorageBufferInfo(storage);
       //console.log(uniInfo, member);
       test.equals(
         uniInfo.size,
@@ -537,12 +720,11 @@ fn shuffler() { }
             m_mat3x4: mat3x4<${type}>,
             m_mat4x4: mat4x4<${type}>,
         };
-        @group(0) @binding(0) var<uniform> u: Types;
-        `;
-    console.log(shader);
+        @group(0) @binding(0) var<uniform> u: Types;`;
+    //console.log(shader);
     const reflect = new WgslReflect(shader);
 
-    const info = reflect.getStructInfo(reflect.structs[0]);
+    const info = reflect.structs[0];
 
     const fields = [
       { name: "m_base", align: 4, size: 4 },
@@ -568,10 +750,10 @@ fn shuffler() { }
       offset = roundUp(align / divisor, offset);
 
       const member = info.members[i];
-      test.equals(member.name, name);
-      test.equals(member.isStruct, false);
-      test.equals(member.offset, offset);
-      test.equals(member.size, size / divisor);
+      test.equals(member.name, name, `name ${i}`);
+      test.equals(member.isStruct, false, `isStruct ${i}`);
+      test.equals(member.offset, offset, `offset ${i}`);
+      test.equals(member.size, size / divisor, `size ${i}`);
       offset += size;
     }
   }
@@ -602,7 +784,7 @@ fn shuffler() { }
     console.log(shader);
     const reflect = new WgslReflect(shader);
 
-    const info = reflect.getStructInfo(reflect.structs[0]);
+    const info = reflect.structs[0];
 
     const fields = [
       { name: "m_vec2", align: 8, size: 8 },
@@ -653,23 +835,91 @@ fn shuffler() { }
     test.equals(override.name, "workgroupSize");
     test.equals(override.id, 0);
     test.equals(override.type.name, "u32");
-    test.equals(override.declaration.toString(), "42");
+    //test.equals(override.declaration.toString(), "42");
 
     override = reflect.overrides[1];
     test.equals(override.name, "PI");
     test.equals(override.id, 1);
     test.equals(override.type.name, "f32");
-    test.equals(override.declaration.toString(), "3.14");
+    //test.equals(override.declaration.toString(), "3.14");
   });
 
-  test("@group(0) @binding(2) var myTexture: texture_external;", function (test) {
-    const shader = `@group(0) @binding(2) var myTexture: texture_external;`;
-    const reflect = new WgslReflect(shader);
+  test("texture_external", function (test) {
+    const reflect = new WgslReflect(
+      `@group(0) @binding(2) var myTexture: texture_external;`
+    );
 
     test.equals(reflect.textures.length, 1);
     test.equals(reflect.textures[0].name, "myTexture");
     test.equals(reflect.textures[0].type.name, "texture_external");
     test.equals(reflect.textures[0].group, 0);
     test.equals(reflect.textures[0].binding, 2);
+  });
+
+  test("array of structs", function (test) {
+    const reflect = new WgslReflect(`
+    struct InnerUniforms {
+        bar: u32,
+    };
+
+    struct VSUniforms {
+        foo: u32,
+        moo: InnerUniforms,
+    };
+    @group(0) @binding(0) var<uniform> foo0: vec3f;
+    @group(0) @binding(1) var<uniform> foo1: array<vec3f, 5>;
+    @group(0) @binding(2) var<uniform> foo2: array<array<vec3f, 5>, 6>;
+    @group(0) @binding(3) var<uniform> foo3: array<array<array<vec3f, 5>, 6>, 7>;
+
+    @group(0) @binding(4) var<uniform> foo4: VSUniforms;
+    @group(0) @binding(5) var<uniform> foo5: array<VSUniforms, 5>;
+    @group(0) @binding(6) var<uniform> foo6: array<array<VSUniforms, 5>, 6>;
+    @group(0) @binding(7) var<uniform> foo7: array<array<array<VSUniforms, 5>, 6>, 7>;
+    `);
+
+    test.equals(reflect.uniforms.length, 8);
+
+    test.equals(reflect.uniforms[0].type.size, 12); // type is a AST.Type
+
+    test.equals(reflect.uniforms[1].type.isArray, true); // type is an AST.ArrayType
+    test.equals(reflect.uniforms[1].type.isStruct, false);
+    test.equals(reflect.uniforms[1].type.count, 5);
+    test.equals(reflect.uniforms[1].type.size, 80);
+
+    test.equals(reflect.uniforms[2].type.isArray, true); // type is an AST.ArrayType
+    test.equals(reflect.uniforms[2].type.isStruct, false);
+    test.equals(reflect.uniforms[2].type.count, 6);
+    test.equals(reflect.uniforms[2].type.size, 480);
+    test.equals(reflect.uniforms[2].type.format.isArray, true); // format is an AST.ArrayType
+    test.equals(reflect.uniforms[2].type.format.count, 5);
+    test.equals(reflect.uniforms[2].type.format.size, 80);
+
+    test.equals(reflect.uniforms[4].type.isStruct, true);
+    test.equals(reflect.uniforms[4].type.members.length, 2);
+    test.equals(reflect.uniforms[4].type.members[0].type.size, 4);
+    test.equals(reflect.uniforms[4].type.members[1].type.size, 4);
+    test.equals(reflect.uniforms[4].type.members[1].type.isStruct, true);
+    test.equals(reflect.uniforms[4].type.members[1].type.members.length, 1);
+
+    function getTypeString(type) {
+      if (type.isArray) {
+        return `array<${getTypeString(type.format)}, ${type.count}>[size: ${
+          type.size
+        }, stride: ${type.stride}]`;
+      } else if (type.isStruct) {
+        return (
+          type.name +
+          " {\n" +
+          type.members.map((m) => `  ${m.name}: ${getTypeString(m.type)}\n`) +
+          `}[size: ${type.size}, align: ${type.align}]`
+        );
+      }
+      return `${type.name}[size: ${type.size}]`;
+    }
+
+    reflect.uniforms.map((uniform) => {
+      console.log("---------:", uniform.name);
+      console.log(getTypeString(uniform.type));
+    });
   });
 });

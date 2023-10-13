@@ -1,123 +1,150 @@
 import * as AST from "./wgsl_ast.js";
-export declare class VariableInfo {
-    node: AST.Var;
-    group: number;
-    binding: number;
-    constructor(node: AST.Var, group: number, binding: number);
-    get name(): string;
-    get type(): AST.Type | null;
-    get attributes(): Array<AST.Attribute> | null;
-}
-export declare class OverrideInfo {
-    node: AST.Override;
-    id: number;
-    constructor(node: AST.Override, id: number);
-    get name(): string;
-    get type(): AST.Type | null;
-    get attributes(): Array<AST.Attribute> | null;
-    get declaration(): AST.Expression | null;
-}
-export declare class FunctionInfo {
-    node: AST.Function;
-    inputs: Array<InputInfo>;
-    constructor(node: AST.Function);
-    get name(): string;
-    get returnType(): AST.Type | null;
-    get args(): Array<AST.Argument>;
-    get attributes(): Array<AST.Attribute> | null;
-}
-export declare class InputInfo {
+export declare class TypeInfo {
     name: string;
-    type: AST.Type | null;
-    input: AST.Node;
-    locationType: string;
-    location: number | string;
-    interpolation: string | null;
-    constructor(name: string, type: AST.Type | null, input: AST.Node, locationType: string, location: number | string);
+    attributes: Array<AST.Attribute> | null;
+    size: number;
+    constructor(name: string, attributes: Array<AST.Attribute> | null);
+    get isArray(): boolean;
+    get isStruct(): boolean;
+    get isTemplate(): boolean;
 }
 export declare class MemberInfo {
-    node: AST.Member;
     name: string;
+    type: TypeInfo;
+    attributes: Array<AST.Attribute> | null;
     offset: number;
     size: number;
-    type: AST.Type;
-    isArray: boolean;
-    arrayCount: number;
-    arrayStride: number;
-    isStruct: boolean;
-    members: Array<MemberInfo>;
+    constructor(name: string, type: TypeInfo, attributes: Array<AST.Attribute> | null);
+    get isArray(): boolean;
+    get isStruct(): boolean;
+    get isTemplate(): boolean;
+    get align(): number;
+    get members(): Array<MemberInfo> | null;
+    get format(): TypeInfo | null;
+    get count(): number;
+    get stride(): number;
 }
-export declare class StructInfo {
-    node: AST.Struct;
-    name: String;
-    type: Object;
+export declare class StructInfo extends TypeInfo {
+    members: Array<MemberInfo>;
     align: number;
-    size: number;
-    members: Array<MemberInfo>;
-    isArray: boolean;
-    isStruct: boolean;
+    constructor(name: string, attributes: Array<AST.Attribute> | null);
+    get isStruct(): boolean;
 }
-export declare class TypeInfo {
+export declare class ArrayInfo extends TypeInfo {
+    format: TypeInfo;
+    count: number;
+    stride: number;
+    constructor(name: string, attributes: Array<AST.Attribute> | null);
+    get isArray(): boolean;
+}
+export declare class TemplateInfo extends TypeInfo {
+    format: TypeInfo | null;
+    constructor(name: string, format: TypeInfo | null, attributes: Array<AST.Attribute> | null);
+    get isTemplate(): boolean;
+}
+export declare enum ResourceType {
+    Uniform = 0,
+    Storage = 1,
+    Texture = 2,
+    Sampler = 3
+}
+export declare class VariableInfo {
+    attributes: Array<AST.Attribute> | null;
+    name: string;
+    type: TypeInfo;
+    group: number;
+    binding: number;
+    resourceType: ResourceType;
+    constructor(name: string, type: TypeInfo, group: number, binding: number, attributes: Array<AST.Attribute> | null, resourceType: ResourceType);
+    get isArray(): boolean;
+    get isStruct(): boolean;
+    get isTemplate(): boolean;
+    get size(): number;
+    get align(): number;
+    get members(): Array<MemberInfo> | null;
+    get format(): TypeInfo | null;
+    get count(): number;
+    get stride(): number;
+}
+export declare class AliasInfo {
+    name: string;
+    type: TypeInfo;
+    constructor(name: string, type: TypeInfo);
+}
+declare class _TypeSize {
     align: number;
     size: number;
     constructor(align: number, size: number);
 }
-export declare class BufferInfo extends TypeInfo {
+export declare class InputInfo {
     name: string;
-    isArray: boolean;
-    isStruct: boolean;
-    members: Array<MemberInfo> | null;
-    type: AST.Type | null;
-    arrayStride: number;
-    arrayCount: number;
-    group: number;
-    binding: number;
-    constructor(name: string, type: AST.Type | null);
+    type: TypeInfo | null;
+    locationType: string;
+    location: number | string;
+    interpolation: string | null;
+    constructor(name: string, type: TypeInfo | null, locationType: string, location: number | string);
 }
-export declare class BindGropEntry {
-    type: string;
-    resource: any;
-    constructor(type: string, resource: any);
+export declare class OutputInfo {
+    name: string;
+    type: TypeInfo | null;
+    locationType: string;
+    location: number | string;
+    constructor(name: string, type: TypeInfo | null, locationType: string, location: number | string);
+}
+export declare class FunctionInfo {
+    name: string;
+    stage: string | null;
+    inputs: Array<InputInfo>;
+    outputs: Array<OutputInfo>;
+    constructor(name: string, stage?: string | null);
 }
 export declare class EntryFunctions {
     vertex: Array<FunctionInfo>;
     fragment: Array<FunctionInfo>;
     compute: Array<FunctionInfo>;
 }
+export declare class OverrideInfo {
+    name: string;
+    type: TypeInfo | null;
+    attributes: Array<AST.Attribute> | null;
+    id: number;
+    constructor(name: string, type: TypeInfo | null, attributes: Array<AST.Attribute> | null, id: number);
+}
 export declare class WgslReflect {
-    ast: Array<AST.Statement> | null;
-    structs: Array<AST.Struct>;
-    overrides: Array<OverrideInfo>;
     uniforms: Array<VariableInfo>;
     storage: Array<VariableInfo>;
     textures: Array<VariableInfo>;
     samplers: Array<VariableInfo>;
-    functions: Array<FunctionInfo>;
-    aliases: Array<AST.Alias>;
+    aliases: Array<AliasInfo>;
+    overrides: Array<OverrideInfo>;
+    structs: Array<StructInfo>;
     entry: EntryFunctions;
+    _types: Map<AST.Type, TypeInfo>;
     constructor(code: string | undefined);
-    initialize(code: string): void;
-    isTextureVar(node: AST.Node): boolean;
-    isSamplerVar(node: AST.Node): boolean;
-    isUniformVar(node: AST.Node): boolean;
-    isOverride(node: AST.Node): boolean;
-    isStorageVar(node: AST.Node): boolean;
-    getAttributeNum(node: AST.Node, name: string, defaultValue: number): number;
-    getAttribute(node: AST.Node, name: string): AST.Attribute | null;
+    update(code: string): void;
+    getBindGroups(): Array<Array<VariableInfo>>;
+    _getOutputs(type: AST.Type, outputs?: Array<OutputInfo> | undefined): Array<OutputInfo>;
+    _getStructOutputs(struct: AST.Struct, outputs: Array<OutputInfo>): void;
+    _getOutputInfo(type: AST.Type): OutputInfo | null;
     _getInputs(args: Array<AST.Argument>, inputs?: Array<InputInfo> | undefined): Array<InputInfo>;
-    _getInputInfo(node: AST.Member): InputInfo | null;
+    _getStructInputs(struct: AST.Struct, inputs: Array<InputInfo>): void;
+    _getInputInfo(node: AST.Member | AST.Argument): InputInfo | null;
     _parseString(s: string | string[]): string;
     _parseInt(s: string | string[]): number | string;
-    getStruct(name: string | AST.Type | null): AST.Struct | null;
-    getAlias(type: string | AST.Node | null): AST.Type | null;
-    getBindGroups(): Array<Array<BindGropEntry>>;
-    getStorageBufferInfo(node: VariableInfo | AST.Struct | AST.Var): BufferInfo | null;
-    getStructInfo(node: AST.Struct | AST.Var | null): BufferInfo | null;
-    _getUniformInfo(node: AST.Var | AST.Struct): BufferInfo | null;
-    getUniformBufferInfo(uniform: VariableInfo): BufferInfo | null;
-    getTypeInfo(type: AST.Type | null | undefined): TypeInfo | null;
+    _getAlias(name: string): TypeInfo | null;
+    _getAliasInfo(node: AST.Alias): AliasInfo;
+    _getTypeInfo(type: AST.Type, attributes: Array<AST.Attribute> | null): TypeInfo;
+    _updateTypeInfo(type: TypeInfo): void;
+    _updateStructInfo(struct: StructInfo): void;
+    _getTypeSize(type: TypeInfo | MemberInfo | null | undefined): _TypeSize | null;
+    _isUniformVar(node: AST.Node): boolean;
+    _isStorageVar(node: AST.Node): boolean;
+    _isTextureVar(node: AST.Node): boolean;
+    _isSamplerVar(node: AST.Node): boolean;
+    _getAttribute(node: AST.Node, name: string): AST.Attribute | null;
+    _getAttributeNum(attributes: Array<AST.Attribute> | null, name: string, defaultValue: number): number;
     _roundUp(k: number, n: number): number;
-    static readonly typeInfo: {
+    static readonly _typeInfo: {
         f16: {
             align: number;
             size: number;
@@ -187,6 +214,7 @@ export declare class WgslReflect {
             size: number;
         };
     };
-    static readonly textureTypes: string[];
-    static readonly samplerTypes: string[];
+    static readonly _textureTypes: string[];
+    static readonly _samplerTypes: string[];
 }
+export {};

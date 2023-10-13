@@ -36,20 +36,8 @@ var<uniform> uniform_buffer: B;`;
     test.equals(reflect.structs.length, 2);
   });
 
-  test("getMemberInfo(A)", function (test) {
-    const info = reflect.getTypeInfo(reflect.structs[0]);
-    test.equals(info.align, 8);
-    test.equals(info.size, 32);
-  });
-
   test("getMemberInfo(B)", function (test) {
-    const info = reflect.getTypeInfo(reflect.structs[1]);
-    test.equals(info.align, 16);
-    test.equals(info.size, 208);
-  });
-
-  test("member offset/size", function (test) {
-    const info = reflect.getUniformBufferInfo(reflect.uniforms[0]);
-    test.equals(info.size, 208);
+    test.equals(reflect.uniforms[0].align, 16);
+    test.equals(reflect.uniforms[0].size, 208);
   });
 });

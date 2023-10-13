@@ -470,35 +470,6 @@ export class Return extends Statement {
 }
 
 /**
- * @class Struct
- * @extends Statement
- * @category AST
- */
-export class Struct extends Statement {
-  name: string;
-  members: Array<Member>;
-  attributes: Array<Attribute> | null;
-
-  constructor(name: string, members: Array<Member>) {
-    super();
-    this.name = name;
-    this.members = members;
-  }
-
-  get astNodeType() {
-    return "struct";
-  }
-
-  /// Return the index of the member with the given name, or -1 if not found.
-  getMemberIndex(name: string): number {
-    for (let i = 0; i < this.members.length; i++) {
-      if (this.members[i].name == name) return i;
-    }
-    return -1;
-  }
-}
-
-/**
  * @class Enable
  * @extends Statement
  * @category AST
@@ -583,10 +554,10 @@ export class Continue extends Statement {
 
 /**
  * @class Type
- * @extends Node
+ * @extends Statement
  * @category AST
  */
-export class Type extends Node {
+export class Type extends Statement {
   name: string;
   attributes: Array<Attribute> | null;
 
@@ -597,6 +568,44 @@ export class Type extends Node {
 
   get astNodeType() {
     return "type";
+  }
+
+  get isStruct(): boolean {
+    return false;
+  }
+
+  get isArray(): boolean {
+    return false;
+  }
+}
+
+/**
+ * @class StructType
+ * @extends Type
+ * @category AST
+ */
+export class Struct extends Type {
+  members: Array<Member>;
+
+  constructor(name: string, members: Array<Member>) {
+    super(name);
+    this.members = members;
+  }
+
+  get astNodeType() {
+    return "struct";
+  }
+
+  get isStruct(): boolean {
+    return true;
+  }
+
+  /// Return the index of the member with the given name, or -1 if not found.
+  getMemberIndex(name: string): number {
+    for (let i = 0; i < this.members.length; i++) {
+      if (this.members[i].name == name) return i;
+    }
+    return -1;
   }
 }
 
@@ -671,6 +680,10 @@ export class ArrayType extends Type {
 
   get astNodeType() {
     return "array";
+  }
+
+  get isArray(): boolean {
+    return true;
   }
 }
 

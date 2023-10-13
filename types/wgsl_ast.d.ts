@@ -243,19 +243,6 @@ export declare class Return extends Statement {
     get astNodeType(): string;
 }
 /**
- * @class Struct
- * @extends Statement
- * @category AST
- */
-export declare class Struct extends Statement {
-    name: string;
-    members: Array<Member>;
-    attributes: Array<Attribute> | null;
-    constructor(name: string, members: Array<Member>);
-    get astNodeType(): string;
-    getMemberIndex(name: string): number;
-}
-/**
  * @class Enable
  * @extends Statement
  * @category AST
@@ -305,14 +292,28 @@ export declare class Continue extends Statement {
 }
 /**
  * @class Type
- * @extends Node
+ * @extends Statement
  * @category AST
  */
-export declare class Type extends Node {
+export declare class Type extends Statement {
     name: string;
     attributes: Array<Attribute> | null;
     constructor(name: string);
     get astNodeType(): string;
+    get isStruct(): boolean;
+    get isArray(): boolean;
+}
+/**
+ * @class StructType
+ * @extends Type
+ * @category AST
+ */
+export declare class Struct extends Type {
+    members: Array<Member>;
+    constructor(name: string, members: Array<Member>);
+    get astNodeType(): string;
+    get isStruct(): boolean;
+    getMemberIndex(name: string): number;
 }
 /**
  * @class TemplateType
@@ -348,6 +349,7 @@ export declare class ArrayType extends Type {
     count: number;
     constructor(name: string, attributes: Array<Attribute> | null, format: Type | null, count: number);
     get astNodeType(): string;
+    get isArray(): boolean;
 }
 /**
  * @class SamplerType

@@ -1,16 +1,29 @@
 <html>
-    <body>
-        <h1>WGSL Reflection Library</h1>
-        <h1>Shader</h1>
-        <textarea id="shader" style="width: 100%; height: 300px;"></textarea>
-        <button id="parse" style="margin-top: 10px; width: 100px; background-color: #afa;">COMPILE</button>
-        <h1>Reflection Info</h1>
-        <div id="shader_info" style="width: 100%; background-color: #eee; padding: 10px; border: 1px solid #888;"></div>
+  <body>
+    <h1>WGSL Reflection Library</h1>
+    <h1>Shader</h1>
+    <textarea id="shader" style="width: 100%; height: 300px"></textarea>
+    <button
+      id="parse"
+      style="margin-top: 10px; width: 100px; background-color: #afa"
+    >
+      COMPILE
+    </button>
+    <h1>Reflection Info</h1>
+    <div
+      id="shader_info"
+      style="
+        width: 100%;
+        background-color: #eee;
+        padding: 10px;
+        border: 1px solid #888;
+      "
+    ></div>
 
-        <script type="module">
-            import * as wgsl from "./wgsl_reflect.module.js";
+    <script type="module">
+      import * as wgsl from "./wgsl_reflect.module.js";
 
-            const shader = `
+      const shader = `
 struct ViewUniforms {
     viewProjection: mat4x4<f32>
 }
@@ -52,74 +65,75 @@ fn main(input: VertexInput) -> VertexOutput {
     return output;
 }`;
 
-            const shadercode = document.getElementById("shader");
-            shadercode.value = shader;
-            
-            const shaderInfo = document.getElementById("shader_info");
+      const shadercode = document.getElementById("shader");
+      shadercode.value = shader;
 
-            function getTypeName(type) {
-                let name = type.name;
-                if (type.format)
-                    name += `&lt;${type.format.name}&gt;`;
-                return name;
+      const shaderInfo = document.getElementById("shader_info");
+
+      function getTypeName(type) {
+        let name = type.name;
+        if (type.format) name += `&lt;${type.format.name}&gt;`;
+        return name;
+      }
+
+      function parse() {
+        let info = "";
+        const reflect = new wgsl.WgslReflect(shadercode.value);
+
+        info += "<b>Entry Points</b>";
+        info += "<ul>";
+        for (let s in reflect.entry) {
+          for (let e of reflect.entry[s]) {
+            info += `<li><b>${e.name}</b>: ${s}</li>`;
+            if (e.inputs.length) {
+              info += "<ul>";
+              info += "<li><b>Inputs</b></li>";
+              info += "<ul>";
+              for (let ei of e.inputs) {
+                info += `<li><b>${ei.name}</b>: <b>${getTypeName(
+                  ei.type
+                )}</b>  location:<b> ${ei.location}</b></li>`;
+              }
+              info += "</ul>";
+              info += "</ul>";
             }
+          }
+        }
+        info += "</ul>";
 
-            function parse() {
-                let info = "";
-                const reflect = new wgsl.WgslReflect(shadercode.value);
+        info += `<b>Uniforms</b><p>`;
+        info += "<ul>";
+        for (let s of reflect.uniforms) {
+          info += `<li><b>${s.name}</b>: <b>${s.type.name}</b></li>`;
 
-                info += "<b>Entry Points</b>";
-                info += "<ul>";
-                for (let s in reflect.entry) {
-                    for (let e of reflect.entry[s]) {
-                        info += `<li><b>${e.name}</b>: ${s}</li>`;
-                        if (e.inputs.length) {
-                            info += "<ul>";
-                            info += "<li><b>Inputs</b></li>";
-                            info += "<ul>";
-                            for (let ei of e.inputs) {
-                                info += `<li><b>${ei.name}</b>: <b>${getTypeName(ei.type)}</b>  location:<b> ${ei.location}</b></li>`;
-                            }
-                            info += "</ul>";
-                            info += "</ul>";
-                        }
-                    }
-                }
-                info += "</ul>";
+          info += "<ul>";
+          info += `<li><b>Buffer Size:</b> ${s.type.size}</li>`;
+          info += `<li><b>Bind Group:</b> ${s.group}</li>`;
+          info += `<li><b>Bind Index:</b> ${s.binding}</li>`;
+          info += `<li><b>Members:</b></li>`;
+          info += "<ul>";
+          for (let m in s.type.members) {
+            info += `<li><b>${s.type.members[m].name}</b> : <b>${getTypeName(
+              s.type.members[m].type
+            )}</b></li>`;
+            info += "<ul>";
+            info += `<li><b>Offset:</b>${s.type.members[m].offset}</li>`;
+            info += `<li><b>Size:</b>${s.type.members[m].size}</li>`;
+            info += "</ul>";
+          }
+          info += "</ul>";
+          info += "</ul>";
+        }
+        info += "</ul>";
 
-                info += `<b>Uniforms</b><p>`;
-                info += "<ul>"
-                for (let s of reflect.uniforms) {
-                    info += `<li><b>${s.name}</b>: <b>${s.type.name}</b></li>`
+        shaderInfo.innerHTML = info;
+      }
+      parse();
 
-                    const bufferInfo = reflect.getUniformBufferInfo(s);
-
-                    info += "<ul>";
-                    info += `<li><b>Buffer Size:</b> ${bufferInfo.size}</li>`;
-                    info += `<li><b>Bind Group:</b> ${bufferInfo.group}</li>`;
-                    info += `<li><b>Bind Index:</b> ${bufferInfo.binding}</li>`;
-                    info += `<li><b>Members:</b></li>`;
-                    info += "<ul>";
-                    for (let m in bufferInfo.members) {
-                        info += `<li><b>${bufferInfo.members[m].name}</b> : <b>${getTypeName(bufferInfo.members[m].type)}</b></li>`;
-                        info += "<ul>";
-                        info += `<li><b>Offset:</b>${bufferInfo.members[m].offset}</li>`;
-                        info += `<li><b>Size:</b>${bufferInfo.members[m].size}</li>`;
-                        info += "</ul>";
-                    }
-                    info += "</ul>";
-                    info += "</ul>";                   
-                }
-                info += "</ul>";
-
-                shaderInfo.innerHTML = info;
-            }
-            parse();
-
-            const parseButton = document.getElementById("parse");
-            parseButton.addEventListener("click", function() {
-                parse();
-            });
-        </script>
-    </body>
+      const parseButton = document.getElementById("parse");
+      parseButton.addEventListener("click", function () {
+        parse();
+      });
+    </script>
+  </body>
 </html>

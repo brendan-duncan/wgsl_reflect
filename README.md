@@ -17,6 +17,130 @@ const reflect = new WgslReflect(shader_code);
 
 [WGSL Reflect Example](https://brendan-duncan.github.io/wgsl_reflect/example.html)
 
+## Documentation
+
+```javascript
+class WgslReflect {
+  /// All top-level uniform vars in the shader.
+  uniforms: Array<VariableInfo>;
+  /// All top-level storage vars in the shader.
+  storage: Array<VariableInfo>;
+  /// All top-level texture vars in the shader;
+  textures: Array<VariableInfo>;
+  // All top-level sampler vars in the shader.
+  samplers: Array<VariableInfo>;
+  /// All top-level type aliases in the shader.
+  aliases: Array<AliasInfo>;
+  /// All top-level overrides in the shader.
+  overrides: Array<OverrideInfo> = [];
+  /// All top-level structs in the shader.
+  structs: Array<StructInfo>;
+  /// All entry functions in the shader: vertex, fragment, and/or compute.
+  entry: EntryFunctions;
+
+  // Get the bind groups used by the shader, bindGroups[group][binding].
+  getBindGroups(): Array<Array<VariableInfo>>;
+}
+
+enum ResourceType {
+  Uniform,
+  Storage,
+  Texture,
+  Sampler,
+}
+
+class VariableInfo {
+  name: string; // The name of the variable
+  type: TypeInfo; // The type of the variable
+  group: number; // The binding group of the variable
+  binding: number; // The binding index of the variable
+  resourceType: ResourceType; // The resource type of the variable
+
+  get isArray(): boolean; // True if it's an array type
+  get isStruct(): boolean;  // True if it's a struct type
+  get isTemplate(): boolean; // True if it's a template type
+  get size(): number; // Size of the data, in bytes
+  get align(): number; // The alignment size if it's a struct, otherwise 0
+  get members(): Array<MemberInfo> | null; // The list of members if it's a struct, otherwise null
+  get format(): TypeInfo | null; // The format if it's a template or array, otherwise null
+  get count(): number; // The array size if it's an array, otherwise 0
+  get stride(): number; // The array stride if it's an array, otherwise 0
+}
+
+class TypeInfo {
+  name: string;
+  size: number; // Size of the data, in bytes
+
+  get isArray(): boolean;
+  get isStruct(): boolean;
+  get isTemplate(): boolean;
+}
+
+class StructInfo extends TypeInfo {
+  members: Array<MemberInfo>;
+  align: number;
+}
+
+class ArrayInfo extends TypeInfo {
+  format: TypeInfo;
+  count: number;
+  stride: number;
+}
+
+class TemplateInfo extends TypeInfo {
+  format: TypeInfo;
+}
+
+class MemberInfo {
+  name: string;
+  type: TypeInfo;
+  offset: number;
+  size: number;
+
+  get isArray(): boolean;
+  get isStruct(): boolean;
+  get isTemplate(): boolean;
+  get align(): number;
+  get members(): Array<MemberInfo> | null;
+  get format(): TypeInfo | null;
+  get count(): number;
+  get stride(): number;
+}
+
+class AliasInfo {
+  name: string;
+  type: TypeInfo;
+}
+
+class FunctionInfo {
+  name: string;
+  stage: string | null;
+  inputs: Array<InputInfo>;
+  outputs: Array<OutputInfo>;
+}
+
+class InputInfo {
+  name: string;
+  type: TypeInfo | null;
+  locationType: string;
+  location: number | string;
+  interpolation: string | null;
+}
+
+class OutputInfo {
+  name: string;
+  type: TypeInfo | null;
+  locationType: string;
+  location: number | string;
+}
+
+class OverrideInfo {
+  name: string;
+  type: TypeInfo | null;
+  id: number;
+}
+```
+
 ## Examples
 
 Calculate the bind group information in the shader:
@@ -87,25 +211,25 @@ console.log(reflect.entry.vertex[0].inputs[0].locationType); // "location" (can 
 console.log(reflect.entry.vertex[0].inputs[0].type.name); // "vec3"
 console.log(reflect.entry.vertex[0].inputs[0].type.format.name); // "f32"
 
-// Bind groups
+// Gather the bind groups used by the shader.
 const groups = reflect.getBindGroups();
 console.log(groups.length); // 1
 console.log(groups[0].length); // 4, bindings in group(0)
 
-console.log(groups[0][1].type); // "buffer", the type of resource at group(0) binding(1)
-console.log(groups[0][1].resource.size); // 108, the size of the uniform buffer.
-console.log(groups[0][1].resource.members.length); // 3, members in ModelUniforms.
-console.log(groups[0][1].resource.members[0].name); // "model", the name of the first member in the uniform buffer.
-console.log(groups[0][1].resource.members[0].offset); // 0, the offset of 'model' in the uniform buffer.
-console.log(groups[0][1].resource.members[0].size); // 64, the size of 'model'.
-console.log(groups[0][1].resource.members[0].type.name); // "mat4x4", the type of 'model'.
-console.log(groups[0][1].resource.members[0].type.format.name); // "f32", the format of the mat4x4.
+console.log(groups[0][1].resourceType); // ResourceType.Uniform, the type of resource at group(0) binding(1)
+console.log(groups[0][1].size); // 108, the size of the uniform buffer.
+console.log(groups[0][1].members.length); // 3, members in ModelUniforms.
+console.log(groups[0][1].members[0].name); // "model", the name of the first member in the uniform buffer.
+console.log(groups[0][1].members[0].offset); // 0, the offset of 'model' in the uniform buffer.
+console.log(groups[0][1].members[0].size); // 64, the size of 'model'.
+console.log(groups[0][1].members[0].type.name); // "mat4x4", the type of 'model'.
+console.log(groups[0][1].members[0].type.format.name); // "f32", the format of the mat4x4.
 
-console.log(groups[0][2].type); // "sampler"
+console.log(groups[0][2].resourceType); // ResourceType.Sampler
 
-console.log(groups[0][3].type); // "texture"
-console.log(groups[0][3].resource.type.name); // "texture_2d"
-console.log(groups[0][3].resource.type.format.name); // "f32"
+console.log(groups[0][3].resourceType); // ResourceType.Texture
+console.log(groups[0][3].type.name); // "texture_2d"
+console.log(groups[0][3].type.format.name); // "f32"
 ```
 
 ---
@@ -145,20 +269,18 @@ var<uniform> uniform_buffer: B;`;
 
 const reflect = new WgslReflect(shader);
 
-// Get the buffer info for the uniform var 'uniform_buffer'.
-const info = reflect.getUniformBufferInfo(reflect.uniforms[0]);
+const u = reflect.uniforms[0];
+console.log(u.size); // 208, the size of the uniform buffer in bytes
+console.log(u.group); // 0
+console.log(u.binding); // 0
+console.log(u.members.length); // 7, members in B
+console.log(u.members[0].name); // "a"
+console.log(u.members[0].offset); // 0, the offset of 'a' in the buffer
+console.log(u.members[0].size); // 8, the size of 'a' in bytes
+console.log(u.members[0].type.name); // "vec2", the type of 'a'
+console.log(u.members[0].type.format.name); // "f32", the format of the vec2.
 
-console.log(info.size); // 208, the size of the uniform buffer in bytes
-console.log(info.group); // 0
-console.log(info.binding); // 0
-console.log(info.members.length); // 7, members in B
-console.log(info.members[0].name); // "a"
-console.log(info.members[0].offset); // 0, the offset of 'a' in the buffer
-console.log(info.members[0].size); // 8, the size of 'a' in bytes
-console.log(info.members[0].type.name); // "vec2", the type of 'a'
-console.log(info.members[0].type.format.name); // "f32", the format of the vec2.
-
-console.log(info.members[4].name); // "e"
-console.log(info.members[4].offset); // 48, the offset of 'e' in the buffer
-console.log(info.members[4].size); // 32, the size of 'e' in the buffer
+console.log(u.members[4].name); // "e"
+console.log(u.members[4].offset); // 48, the offset of 'e' in the buffer
+console.log(u.members[4].size); // 32, the size of 'e' in the buffer
 ```
