@@ -313,7 +313,7 @@ struct S {
     test.equals(t[0].body[1].body[3].astNodeType, "continuing");
   });
 
-  /*test("module scope value constructor", function (test) {
+  test("module scope value constructor", function (test) {
     const t = parser.parse(`const v2 = vec2f(0.0f, 0.0f);
       const v3 = vec3f(0.0f, 0.0f, 0.0f);
       const v4 = vec4f(0.0f, 0.0f, 0.0f, 0.0f);
@@ -346,5 +346,5 @@ struct S {
         return;
       }`);
     console.log(t);
-  });*/
+  });
 });

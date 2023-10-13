@@ -2393,8 +2393,13 @@ class WgslParser {
                 value = valueExpr.initializer;
             }
             else {
-                const constValue = valueExpr.evaluate(this._context);
-                value = new LiteralExpr(constValue);
+                try {
+                    const constValue = valueExpr.evaluate(this._context);
+                    value = new LiteralExpr(constValue);
+                }
+                catch (_a) {
+                    value = valueExpr;
+                }
             }
         }
         const c = new Const(name.toString(), type, "", "", value);

@@ -1088,8 +1088,12 @@ export class WgslParser {
       ) {
         value = valueExpr.initializer;
       } else {
-        const constValue = valueExpr.evaluate(this._context);
-        value = new AST.LiteralExpr(constValue);
+        try {
+          const constValue = valueExpr.evaluate(this._context);
+          value = new AST.LiteralExpr(constValue);
+        } catch {
+          value = valueExpr;
+        }
       }
     }
     const c = new AST.Const(name.toString(), type, "", "", value);
