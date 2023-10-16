@@ -555,7 +555,7 @@ export class WgslParser {
     const cases: Array<AST.Statement> = [];
     if (this._match(TokenTypes.keywords.case)) {
       const selector = this._case_selectors();
-      this._consume(TokenTypes.tokens.colon, "Exected ':' for switch case.");
+      this._match(TokenTypes.tokens.colon); // colon is optional
       this._consume(
         TokenTypes.tokens.brace_left,
         "Exected '{' for switch case."
@@ -569,7 +569,7 @@ export class WgslParser {
     }
 
     if (this._match(TokenTypes.keywords.default)) {
-      this._consume(TokenTypes.tokens.colon, "Exected ':' for switch default.");
+      this._match(TokenTypes.tokens.colon); // colon is optional
       this._consume(
         TokenTypes.tokens.brace_left,
         "Exected '{' for switch default."
@@ -593,17 +593,11 @@ export class WgslParser {
   _case_selectors(): Array<string> {
     // const_literal (comma const_literal)* comma?
     const selectors = [
-      this._consume(
-        TokenTypes.const_literal,
-        "Expected constant literal"
-      ).toString(),
+      this._shift_expression()?.evaluate(this._context).toString() ?? "",
     ];
     while (this._match(TokenTypes.tokens.comma)) {
       selectors.push(
-        this._consume(
-          TokenTypes.const_literal,
-          "Expected constant literal"
-        ).toString()
+        this._shift_expression()?.evaluate(this._context).toString() ?? ""
       );
     }
     return selectors;

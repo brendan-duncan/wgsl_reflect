@@ -2008,14 +2008,14 @@ class WgslParser {
         const cases = [];
         if (this._match(TokenTypes.keywords.case)) {
             const selector = this._case_selectors();
-            this._consume(TokenTypes.tokens.colon, "Exected ':' for switch case.");
+            this._match(TokenTypes.tokens.colon); // colon is optional
             this._consume(TokenTypes.tokens.brace_left, "Exected '{' for switch case.");
             const body = this._case_body();
             this._consume(TokenTypes.tokens.brace_right, "Exected '}' for switch case.");
             cases.push(new Case(selector, body));
         }
         if (this._match(TokenTypes.keywords.default)) {
-            this._consume(TokenTypes.tokens.colon, "Exected ':' for switch default.");
+            this._match(TokenTypes.tokens.colon); // colon is optional
             this._consume(TokenTypes.tokens.brace_left, "Exected '{' for switch default.");
             const body = this._case_body();
             this._consume(TokenTypes.tokens.brace_right, "Exected '}' for switch default.");
@@ -2028,12 +2028,13 @@ class WgslParser {
         return cases;
     }
     _case_selectors() {
+        var _a, _b, _c, _d;
         // const_literal (comma const_literal)* comma?
         const selectors = [
-            this._consume(TokenTypes.const_literal, "Expected constant literal").toString(),
+            (_b = (_a = this._shift_expression()) === null || _a === void 0 ? void 0 : _a.evaluate(this._context).toString()) !== null && _b !== void 0 ? _b : "",
         ];
         while (this._match(TokenTypes.tokens.comma)) {
-            selectors.push(this._consume(TokenTypes.const_literal, "Expected constant literal").toString());
+            selectors.push((_d = (_c = this._shift_expression()) === null || _c === void 0 ? void 0 : _c.evaluate(this._context).toString()) !== null && _d !== void 0 ? _d : "");
         }
         return selectors;
     }

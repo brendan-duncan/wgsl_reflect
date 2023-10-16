@@ -347,4 +347,17 @@ struct S {
       }`);
     console.log(t);
   });
+
+  test("const switch", function (test) {
+    const t = parser.parse(`alias material_type = u32;
+      const MATERIAL_TYPE_LAMBERTIAN : material_type = 0;
+      fn scatter(ty: material_type) -> bool {
+          switch (ty) {
+              case MATERIAL_TYPE_LAMBERTIAN {
+                  return true;
+              }
+          }
+      }`);
+    console.log(t);
+  });
 });
