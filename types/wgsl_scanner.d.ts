@@ -228,6 +228,7 @@ export declare class Token {
     toString(): string;
     isTemplateType(): boolean;
     isArrayType(): boolean;
+    isArrayOrTemplateType(): boolean;
 }
 export declare class WgslScanner {
     private _source;

@@ -1371,6 +1371,9 @@ class Token {
     isArrayType() {
         return this.type == TokenTypes.keywords.array;
     }
+    isArrayOrTemplateType() {
+        return this.isArrayType() || this.isTemplateType();
+    }
 }
 /// Lexical scanner for the WGSL language. This takes an input source text and generates a list
 /// of Token objects, which can then be fed into the WgslParser to generate an AST.
@@ -1451,22 +1454,24 @@ class WgslScanner {
         let matchType = TokenTypes.none;
         for (;;) {
             let matchedType = this._findType(lexeme);
-            // The exception to "longest lexeme" rule is '>>'. In the case of 1>>2, it's a
+            // An exception to "longest lexeme" rule is '>>'. In the case of 1>>2, it's a
             // shift_right.
             // In the case of array<vec4<f32>>, it's two greater_than's (one to close the vec4,
             // and one to close the array).
-            // I don't know of a great way to resolve this, so '>>' is special-cased and if
-            // there was a less_than up to some number of tokens previously, and the token prior to
-            // that is a keyword that requires a '<', then it will be split into two greater_than's;
-            // otherwise it's a shift_right.
-            if (lexeme == ">" && this._peekAhead() == ">") {
+            // Another ambiguity is '>='. In the case of vec2<i32>=vec2(1,2),
+            // it's a greather_than and an equal, not a greater_than_equal.
+            // WGSL requires context sensitive parsing to resolve these ambiguities. Both of these cases
+            // are predicated on it the > either closing a template, or being part of an operator.
+            // The solution here is to check if there was a less_than up to some number of tokens
+            // previously, and the token prior to that is a keyword that requires a '<', then it will be
+            // split into two operators; otherwise it's a single operator.
+            const nextLexeme = this._peekAhead();
+            if (lexeme == ">" && (nextLexeme == ">" || nextLexeme == "=")) {
                 let foundLessThan = false;
                 let ti = this._tokens.length - 1;
                 for (let count = 0; count < 4 && ti >= 0; ++count, --ti) {
                     if (this._tokens[ti].type === TokenTypes.tokens.less_than) {
-                        if (ti > 0 &&
-                            (this._tokens[ti - 1].isArrayType() ||
-                                this._tokens[ti - 1].isTemplateType())) {
+                        if (ti > 0 && this._tokens[ti - 1].isArrayOrTemplateType()) {
                             foundLessThan = true;
                         }
                         break;

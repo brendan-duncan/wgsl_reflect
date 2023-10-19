@@ -209,6 +209,15 @@ group("Scanner", function () {
     test.equals(tokens[7].type, TokenTypes.tokens.greater_than);
   });
 
+  test("let v: vec2<i32>= vec2(1,2);", function (test) {
+    // Syntatical ambiguity case for <vec2<i32>=. Here, >= should be a greater_than and an equal.
+    const scanner = new WgslScanner("let v: vec2<i32>= vec2(1,2);");
+    const tokens = scanner.scanTokens();
+    test.equals(tokens.length, 16);
+    test.equals(tokens[6].type, TokenTypes.tokens.greater_than);
+    test.equals(tokens[7].type, TokenTypes.tokens.equal);
+  });
+
   test("fn foo(a, b) -> d { return; }", function (test) {
     const scanner = new WgslScanner(`fn foo(a, b) -> d {
             // skip this comment
