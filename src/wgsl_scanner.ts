@@ -519,6 +519,14 @@ export class Token {
   toString(): string {
     return this.lexeme;
   }
+
+  isTemplateType(): boolean {
+    return TokenTypes.template_types.indexOf(this.type) != -1;
+  }
+
+  isArrayType(): boolean {
+    return this.type == TokenTypes.keywords.array;
+  }
 }
 
 /// Lexical scanner for the WGSL language. This takes an input source text and generates a list
@@ -620,7 +628,8 @@ export class WgslScanner {
           if (this._tokens[ti].type === TokenTypes.tokens.less_than) {
             if (
               ti > 0 &&
-              TokenTypes.template_types.indexOf(this._tokens[ti - 1].type) != -1
+              (this._tokens[ti - 1].isArrayType() ||
+                this._tokens[ti - 1].isTemplateType())
             ) {
               foundLessThan = true;
             }

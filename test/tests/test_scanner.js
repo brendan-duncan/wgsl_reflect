@@ -1,6 +1,5 @@
 import { test, group } from "../test.js";
 import { WgslScanner, TokenTypes } from "../../../wgsl_reflect.module.js";
-//import { WgslScanner, TokenTypes } from "../../js/wgsl_scanner.js";
 
 group("Scanner", function () {
   test("default", function (test) {
@@ -187,12 +186,27 @@ group("Scanner", function () {
     test.equals(tokens[5].type, TokenTypes.tokens.shift_right);
   });
 
+  test("array<f32, 5>", function (test) {
+    const scanner = new WgslScanner("array<f32, 5>");
+    const tokens = scanner.scanTokens();
+    test.equals(tokens.length, 7);
+    test.equals(tokens[5].type, TokenTypes.tokens.greater_than);
+  });
+
   test("array<vec4<f32>>", function (test) {
     // Syntatical ambiguity case for > vs >>. Here, >> should be two greater_than tokens.
     const scanner = new WgslScanner("array<vec4<f32>>");
     const tokens = scanner.scanTokens();
     test.equals(tokens.length, 8);
     test.equals(tokens[6].type, TokenTypes.tokens.greater_than);
+  });
+
+  test("array<array<vec4f, 20>>", function (test) {
+    // Syntatical ambiguity case for > vs >>. Here, >> should be two greater_than tokens.
+    const scanner = new WgslScanner("array<array<vec4f, 20>>");
+    const tokens = scanner.scanTokens();
+    test.equals(tokens.length, 10);
+    test.equals(tokens[7].type, TokenTypes.tokens.greater_than);
   });
 
   test("fn foo(a, b) -> d { return; }", function (test) {

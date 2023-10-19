@@ -226,6 +226,8 @@ export declare class Token {
     readonly line: number;
     constructor(type: TokenType, lexeme: string, line: number);
     toString(): string;
+    isTemplateType(): boolean;
+    isArrayType(): boolean;
 }
 export declare class WgslScanner {
     private _source;

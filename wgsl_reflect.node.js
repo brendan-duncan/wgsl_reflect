@@ -1365,6 +1365,12 @@ class Token {
     toString() {
         return this.lexeme;
     }
+    isTemplateType() {
+        return TokenTypes.template_types.indexOf(this.type) != -1;
+    }
+    isArrayType() {
+        return this.type == TokenTypes.keywords.array;
+    }
 }
 /// Lexical scanner for the WGSL language. This takes an input source text and generates a list
 /// of Token objects, which can then be fed into the WgslParser to generate an AST.
@@ -1459,7 +1465,8 @@ class WgslScanner {
                 for (let count = 0; count < 4 && ti >= 0; ++count, --ti) {
                     if (this._tokens[ti].type === TokenTypes.tokens.less_than) {
                         if (ti > 0 &&
-                            TokenTypes.template_types.indexOf(this._tokens[ti - 1].type) != -1) {
+                            (this._tokens[ti - 1].isArrayType() ||
+                                this._tokens[ti - 1].isTemplateType())) {
                             foundLessThan = true;
                         }
                         break;
