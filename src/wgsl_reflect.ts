@@ -118,13 +118,16 @@ export class ArrayInfo extends TypeInfo {
 
 export class TemplateInfo extends TypeInfo {
   format: TypeInfo | null;
+  access: string
   constructor(
     name: string,
     format: TypeInfo | null,
-    attributes: Array<AST.Attribute> | null
+    attributes: Array<AST.Attribute> | null,
+    access: string
   ) {
     super(name, attributes);
     this.format = format;
+    this.access = access;
   }
 
   get isTemplate(): boolean {
@@ -146,6 +149,7 @@ export class VariableInfo {
   group: number;
   binding: number;
   resourceType: ResourceType;
+  access: string;
 
   constructor(
     name: string,
@@ -153,7 +157,8 @@ export class VariableInfo {
     group: number,
     binding: number,
     attributes: Array<AST.Attribute> | null,
-    resourceType: ResourceType
+    resourceType: ResourceType,
+    access: string
   ) {
     this.name = name;
     this.type = type;
@@ -161,6 +166,7 @@ export class VariableInfo {
     this.binding = binding;
     this.attributes = attributes;
     this.resourceType = resourceType;
+    this.access = access;
   }
 
   get isArray(): boolean {
@@ -362,7 +368,8 @@ export class WgslReflect {
           g,
           b,
           v.attributes,
-          ResourceType.Uniform
+          ResourceType.Uniform,
+          v.access
         );
         this.uniforms.push(varInfo);
       }
@@ -378,7 +385,8 @@ export class WgslReflect {
           g,
           b,
           v.attributes,
-          ResourceType.Storage
+          ResourceType.Storage,
+          v.access
         );
         this.storage.push(varInfo);
       }
@@ -394,7 +402,8 @@ export class WgslReflect {
           g,
           b,
           v.attributes,
-          ResourceType.Texture
+          ResourceType.Texture,
+          v.access
         );
         this.textures.push(varInfo);
       }
@@ -410,7 +419,8 @@ export class WgslReflect {
           g,
           b,
           v.attributes,
-          ResourceType.Sampler
+          ResourceType.Sampler,
+          v.access
         );
         this.samplers.push(varInfo);
       }
@@ -626,7 +636,7 @@ export class WgslReflect {
     if (type instanceof AST.TemplateType) {
       const t = type as AST.TemplateType;
       const format = t.format ? this._getTypeInfo(t.format!, null) : null;
-      const info = new TemplateInfo(t.name, format, attributes);
+      const info = new TemplateInfo(t.name, format, attributes, t.access);
       this._types.set(type, info);
       this._updateTypeInfo(info);
       return info;

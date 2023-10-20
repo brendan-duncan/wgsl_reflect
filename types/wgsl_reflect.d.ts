@@ -39,7 +39,8 @@ export declare class ArrayInfo extends TypeInfo {
 }
 export declare class TemplateInfo extends TypeInfo {
     format: TypeInfo | null;
-    constructor(name: string, format: TypeInfo | null, attributes: Array<AST.Attribute> | null);
+    access: string;
+    constructor(name: string, format: TypeInfo | null, attributes: Array<AST.Attribute> | null, access: string);
     get isTemplate(): boolean;
 }
 export declare enum ResourceType {
@@ -55,7 +56,8 @@ export declare class VariableInfo {
     group: number;
     binding: number;
     resourceType: ResourceType;
-    constructor(name: string, type: TypeInfo, group: number, binding: number, attributes: Array<AST.Attribute> | null, resourceType: ResourceType);
+    access: string;
+    constructor(name: string, type: TypeInfo, group: number, binding: number, attributes: Array<AST.Attribute> | null, resourceType: ResourceType, access: string);
     get isArray(): boolean;
     get isStruct(): boolean;
     get isTemplate(): boolean;
