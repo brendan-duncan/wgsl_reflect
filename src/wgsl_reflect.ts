@@ -158,7 +158,7 @@ export class VariableInfo {
     binding: number,
     attributes: Array<AST.Attribute> | null,
     resourceType: ResourceType,
-    access?: string
+    access: string
   ) {
     this.name = name;
     this.type = type;

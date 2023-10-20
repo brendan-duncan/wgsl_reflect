@@ -57,7 +57,7 @@ export declare class VariableInfo {
     binding: number;
     resourceType: ResourceType;
     access: string;
-    constructor(name: string, type: TypeInfo, group: number, binding: number, attributes: Array<AST.Attribute> | null, resourceType: ResourceType, access?: string);
+    constructor(name: string, type: TypeInfo, group: number, binding: number, attributes: Array<AST.Attribute> | null, resourceType: ResourceType, access: string);
     get isArray(): boolean;
     get isStruct(): boolean;
     get isTemplate(): boolean;
