@@ -254,4 +254,20 @@ group("Scanner", function () {
     const tokens = scanner.scanTokens();
     test.equals(tokens.length, 19);
   });
+
+  test('fn foo(value_1 : ptr<function, vec4<f32>>) {}', (test) =>
+  {
+      const scanner = new WgslScanner(`fn foo(value_1 : ptr<function, vec4<f32>>) {}`);
+      const tokens = scanner.scanTokens();
+      test.equals(tokens.length, 18);
+  });
+
+  test('fn foo(p : ptr<function, array<vec2<f32>, 4u>>) {}', (test) =>
+  {
+      const scanner = new WgslScanner(`fn foo(p : ptr<function, array<vec2<f32>, 4u>>) {}`);
+      const tokens = scanner.scanTokens();
+      test.equals(tokens.length, 23);
+      test.equals(tokens[17].lexeme, '>');
+      test.equals(tokens[18].lexeme, '>');
+  });
 });
