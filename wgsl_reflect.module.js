@@ -2769,9 +2769,10 @@ class ArrayInfo extends TypeInfo {
     }
 }
 class TemplateInfo extends TypeInfo {
-    constructor(name, format, attributes) {
+    constructor(name, format, attributes, access) {
         super(name, attributes);
         this.format = format;
+        this.access = access;
     }
     get isTemplate() {
         return true;
@@ -2785,13 +2786,14 @@ var ResourceType;
     ResourceType[ResourceType["Sampler"] = 3] = "Sampler";
 })(ResourceType || (ResourceType = {}));
 class VariableInfo {
-    constructor(name, type, group, binding, attributes, resourceType) {
+    constructor(name, type, group, binding, attributes, resourceType, access) {
         this.name = name;
         this.type = type;
         this.group = group;
         this.binding = binding;
         this.attributes = attributes;
         this.resourceType = resourceType;
+        this.access = access;
     }
     get isArray() {
         return this.type.isArray;
@@ -2925,7 +2927,7 @@ class WgslReflect {
                 const g = this._getAttributeNum(v.attributes, "group", 0);
                 const b = this._getAttributeNum(v.attributes, "binding", 0);
                 const type = this._getTypeInfo(v.type, v.attributes);
-                const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, ResourceType.Uniform);
+                const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, ResourceType.Uniform, v.access);
                 this.uniforms.push(varInfo);
             }
             if (this._isStorageVar(node)) {
@@ -2933,7 +2935,7 @@ class WgslReflect {
                 const g = this._getAttributeNum(v.attributes, "group", 0);
                 const b = this._getAttributeNum(v.attributes, "binding", 0);
                 const type = this._getTypeInfo(v.type, v.attributes);
-                const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, ResourceType.Storage);
+                const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, ResourceType.Storage, v.access);
                 this.storage.push(varInfo);
             }
             if (this._isTextureVar(node)) {
@@ -2941,7 +2943,7 @@ class WgslReflect {
                 const g = this._getAttributeNum(v.attributes, "group", 0);
                 const b = this._getAttributeNum(v.attributes, "binding", 0);
                 const type = this._getTypeInfo(v.type, v.attributes);
-                const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, ResourceType.Texture);
+                const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, ResourceType.Texture, v.access);
                 this.textures.push(varInfo);
             }
             if (this._isSamplerVar(node)) {
@@ -2949,7 +2951,7 @@ class WgslReflect {
                 const g = this._getAttributeNum(v.attributes, "group", 0);
                 const b = this._getAttributeNum(v.attributes, "binding", 0);
                 const type = this._getTypeInfo(v.type, v.attributes);
-                const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, ResourceType.Sampler);
+                const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, ResourceType.Sampler, v.access);
                 this.samplers.push(varInfo);
             }
             if (node instanceof Function) {
@@ -3131,7 +3133,7 @@ class WgslReflect {
         if (type instanceof TemplateType) {
             const t = type;
             const format = t.format ? this._getTypeInfo(t.format, null) : null;
-            const info = new TemplateInfo(t.name, format, attributes);
+            const info = new TemplateInfo(t.name, format, attributes, t.access);
             this._types.set(type, info);
             this._updateTypeInfo(info);
             return info;
