@@ -2,6 +2,27 @@ import { test, group } from "../test.js";
 import { WgslReflect, ResourceType } from "../../../wgsl_reflect.module.js";
 
 group("Reflect", function () {
+  test("access mode", function (test) {
+    const reflect = new WgslReflect(`
+    struct ReadonlyStorageBufferBlockName {
+      a : f32,
+    }   
+    struct ReadWriteStorageBufferBlockName {
+      b : f32,
+    }    
+    @group(3) @binding(1) var<storage, read> readonlyStorageBuffer : ReadonlyStorageBufferBlockName;
+    @group(3) @binding(2) var<storage, read_write> readWriteStorageBuffer : ReadWriteStorageBufferBlockName;
+    @compute @workgroup_size(1,1,1)
+    fn main() {}`);
+    const groups = reflect.getBindGroups();
+    test.equals(groups.length, 4);
+    test.equals(groups[3].length, 3);
+    test.equals(groups[3][1].name, "readonlyStorageBuffer");
+    test.equals(groups[3][1].access, "read");
+    test.equals(groups[3][2].name, "readWriteStorageBuffer");
+    test.equals(groups[3][2].access, "read_write");
+  });
+
   test("uniform u32", function (test) {
     const reflect = new WgslReflect(`
       @group(0) @binding(0) var<uniform> foo : u32;`);
