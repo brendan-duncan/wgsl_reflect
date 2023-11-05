@@ -118,7 +118,7 @@ export class ArrayInfo extends TypeInfo {
 
 export class TemplateInfo extends TypeInfo {
   format: TypeInfo | null;
-  access: string
+  access: string;
   constructor(
     name: string,
     format: TypeInfo | null,
@@ -140,6 +140,7 @@ export enum ResourceType {
   Storage,
   Texture,
   Sampler,
+  StorageTexture,
 }
 
 export class VariableInfo {
@@ -333,6 +334,15 @@ export class WgslReflect {
     }
   }
 
+  _isStorageTexture(type: TypeInfo): boolean {
+    return (
+      type.name == "texture_storage_1d" ||
+      type.name == "texture_storage_2d" ||
+      type.name == "texture_storage_2d_array" ||
+      type.name == "texture_storage_3d"
+    );
+  }
+
   update(code: string) {
     const parser = new WgslParser();
     const ast = parser.parse(code);
@@ -343,10 +353,12 @@ export class WgslReflect {
         if (info instanceof StructInfo) {
           this.structs.push(info as StructInfo);
         }
+        continue;
       }
 
       if (node instanceof AST.Alias) {
         this.aliases.push(this._getAliasInfo(node as AST.Alias));
+        continue;
       }
 
       if (node instanceof AST.Override) {
@@ -355,6 +367,7 @@ export class WgslReflect {
         const type =
           v.type != null ? this._getTypeInfo(v.type, v.attributes) : null;
         this.overrides.push(new OverrideInfo(v.name, type, v.attributes, id));
+        continue;
       }
 
       if (this._isUniformVar(node)) {
@@ -372,6 +385,7 @@ export class WgslReflect {
           v.access
         );
         this.uniforms.push(varInfo);
+        continue;
       }
 
       if (this._isStorageVar(node)) {
@@ -379,16 +393,18 @@ export class WgslReflect {
         const g = this._getAttributeNum(v.attributes, "group", 0);
         const b = this._getAttributeNum(v.attributes, "binding", 0);
         const type = this._getTypeInfo(v.type!, v.attributes);
+        const isStorageTexture = this._isStorageTexture(type);
         const varInfo = new VariableInfo(
           v.name,
           type,
           g,
           b,
           v.attributes,
-          ResourceType.Storage,
+          isStorageTexture ? ResourceType.StorageTexture : ResourceType.Storage,
           v.access
         );
         this.storage.push(varInfo);
+        continue;
       }
 
       if (this._isTextureVar(node)) {
@@ -396,16 +412,22 @@ export class WgslReflect {
         const g = this._getAttributeNum(v.attributes, "group", 0);
         const b = this._getAttributeNum(v.attributes, "binding", 0);
         const type = this._getTypeInfo(v.type!, v.attributes);
+        const isStorageTexture = this._isStorageTexture(type);
         const varInfo = new VariableInfo(
           v.name,
           type,
           g,
           b,
           v.attributes,
-          ResourceType.Texture,
+          isStorageTexture ? ResourceType.StorageTexture : ResourceType.Texture,
           v.access
         );
-        this.textures.push(varInfo);
+        if (isStorageTexture) {
+          this.storage.push(varInfo);
+        } else {
+          this.textures.push(varInfo);
+        }
+        continue;
       }
 
       if (this._isSamplerVar(node)) {
@@ -423,6 +445,7 @@ export class WgslReflect {
           v.access
         );
         this.samplers.push(varInfo);
+        continue;
       }
 
       if (node instanceof AST.Function) {
@@ -437,6 +460,7 @@ export class WgslReflect {
           fn.outputs = this._getOutputs(node.returnType);
           this.entry[stage.name].push(fn);
         }
+        continue;
       }
     }
   }
@@ -628,6 +652,20 @@ export class WgslReflect {
         const t = this._getTypeInfo(m.type!, m.attributes);
         info.members.push(new MemberInfo(m.name, t, m.attributes));
       }
+      this._types.set(type, info);
+      this._updateTypeInfo(info);
+      return info;
+    }
+
+    if (type instanceof AST.SamplerType) {
+      const s = type as AST.SamplerType;
+      const formatIsType = s.format instanceof AST.Type;
+      const format = s.format
+        ? formatIsType
+          ? this._getTypeInfo(s.format! as AST.Type, null)
+          : new TypeInfo(s.format! as string, null)
+        : null;
+      const info = new TemplateInfo(s.name, format, attributes, s.access);
       this._types.set(type, info);
       this._updateTypeInfo(info);
       return info;

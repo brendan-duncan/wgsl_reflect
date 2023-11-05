@@ -1259,6 +1259,10 @@ export class WgslParser {
       return new AST.Type(type.toString());
     }
 
+    // texture_sampler_types
+    let type = this._texture_sampler_types();
+    if (type) return type;
+
     if (this._check(TokenTypes.template_types)) {
       let type = this._advance().toString();
       let format: AST.Type | null = null;
@@ -1298,10 +1302,6 @@ export class WgslParser {
       );
       return new AST.PointerType(pointer, storage.toString(), decl, access);
     }
-
-    // texture_sampler_types
-    let type = this._texture_sampler_types();
-    if (type) return type;
 
     // The following type_decl's have an optional attribyte_list*
     const attrs = this._attribute();

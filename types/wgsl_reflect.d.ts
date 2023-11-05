@@ -47,7 +47,8 @@ export declare enum ResourceType {
     Uniform = 0,
     Storage = 1,
     Texture = 2,
-    Sampler = 3
+    Sampler = 3,
+    StorageTexture = 4
 }
 export declare class VariableInfo {
     attributes: Array<AST.Attribute> | null;
@@ -123,6 +124,7 @@ export declare class WgslReflect {
     entry: EntryFunctions;
     _types: Map<AST.Type, TypeInfo>;
     constructor(code: string | undefined);
+    _isStorageTexture(type: TypeInfo): boolean;
     update(code: string): void;
     getBindGroups(): Array<Array<VariableInfo>>;
     _getOutputs(type: AST.Type, outputs?: Array<OutputInfo> | undefined): Array<OutputInfo>;

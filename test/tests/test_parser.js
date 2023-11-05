@@ -345,7 +345,7 @@ struct S {
         *(outVar) = M4;
         return;
       }`);
-    console.log(t);
+    //console.log(t);
   });
 
   test("const switch", function (test) {
@@ -358,6 +358,16 @@ struct S {
               }
           }
       }`);
-    console.log(t);
+    //console.log(t);
+  });
+
+  test("storage texture", function (test) {
+    const t = parser.parse(
+      `var<storage> tex: texture_storage_2d<rgba8unorm, read_write>;`
+    );
+    test.equals(t[0].name, "tex");
+    test.equals(t[0].type.name, "texture_storage_2d");
+    test.equals(t[0].type.format, "rgba8unorm");
+    test.equals(t[0].type.access, "read_write");
   });
 });

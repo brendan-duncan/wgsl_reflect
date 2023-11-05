@@ -2,27 +2,6 @@ import { test, group } from "../test.js";
 import { WgslReflect, ResourceType } from "../../../wgsl_reflect.module.js";
 
 group("Reflect", function () {
-  test("access mode", function (test) {
-    const reflect = new WgslReflect(`
-    struct ReadonlyStorageBufferBlockName {
-      a : f32,
-    }   
-    struct ReadWriteStorageBufferBlockName {
-      b : f32,
-    }    
-    @group(3) @binding(1) var<storage, read> readonlyStorageBuffer : ReadonlyStorageBufferBlockName;
-    @group(3) @binding(2) var<storage, read_write> readWriteStorageBuffer : ReadWriteStorageBufferBlockName;
-    @compute @workgroup_size(1,1,1)
-    fn main() {}`);
-    const groups = reflect.getBindGroups();
-    test.equals(groups.length, 4);
-    test.equals(groups[3].length, 3);
-    test.equals(groups[3][1].name, "readonlyStorageBuffer");
-    test.equals(groups[3][1].access, "read");
-    test.equals(groups[3][2].name, "readWriteStorageBuffer");
-    test.equals(groups[3][2].access, "read_write");
-  });
-
   test("uniform u32", function (test) {
     const reflect = new WgslReflect(`
       @group(0) @binding(0) var<uniform> foo : u32;`);
@@ -802,7 +781,7 @@ fn shuffler() { }
         };
         @group(0) @binding(0) var<uniform> u: Types;
         `;
-    console.log(shader);
+    //console.log(shader);
     const reflect = new WgslReflect(shader);
 
     const info = reflect.structs[0];
@@ -939,8 +918,47 @@ fn shuffler() { }
     }
 
     reflect.uniforms.map((uniform) => {
-      console.log("---------:", uniform.name);
-      console.log(getTypeString(uniform.type));
+      //console.log("---------:", uniform.name);
+      //console.log(getTypeString(uniform.type));
     });
+  });
+
+  test("storage texture", function (test) {
+    const reflect = new WgslReflect(
+      `@binding(0) @group(0) var<storage> storage_tex: texture_storage_2d<rgba8unorm, read_write>;`
+    );
+
+    // storage textures are reflected as storage and not textures
+    test.equals(reflect.storage.length, 1);
+    test.equals(reflect.textures.length, 0);
+
+    const groups = reflect.getBindGroups();
+    test.equals(groups.length, 1);
+    test.equals(groups[0][0].name, "storage_tex");
+    test.equals(groups[0][0].resourceType, ResourceType.StorageTexture);
+    test.equals(groups[0][0].type.name, "texture_storage_2d");
+    test.equals(groups[0][0].type.format.name, "rgba8unorm");
+    test.equals(groups[0][0].type.access, "read_write");
+  });
+
+  test("access mode", function (test) {
+    const reflect = new WgslReflect(`
+    struct ReadonlyStorageBufferBlockName {
+      a : f32,
+    }   
+    struct ReadWriteStorageBufferBlockName {
+      b : f32,
+    }    
+    @group(3) @binding(1) var<storage, read> readonlyStorageBuffer : ReadonlyStorageBufferBlockName;
+    @group(3) @binding(2) var<storage, read_write> readWriteStorageBuffer : ReadWriteStorageBufferBlockName;
+    @compute @workgroup_size(1,1,1)
+    fn main() {}`);
+    const groups = reflect.getBindGroups();
+    test.equals(groups.length, 4);
+    test.equals(groups[3].length, 3);
+    test.equals(groups[3][1].name, "readonlyStorageBuffer");
+    test.equals(groups[3][1].access, "read");
+    test.equals(groups[3][2].name, "readWriteStorageBuffer");
+    test.equals(groups[3][2].access, "read_write");
   });
 });
