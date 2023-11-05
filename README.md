@@ -23,7 +23,7 @@ const reflect = new WgslReflect(shader_code);
 class WgslReflect {
   /// All top-level uniform vars in the shader.
   uniforms: Array<VariableInfo>;
-  /// All top-level storage vars in the shader.
+  /// All top-level storage vars in the shader, including storage buffers and textures.
   storage: Array<VariableInfo>;
   /// All top-level texture vars in the shader;
   textures: Array<VariableInfo>;
@@ -47,6 +47,7 @@ enum ResourceType {
   Storage,
   Texture,
   Sampler,
+  StorageTexture
 }
 
 class VariableInfo {
@@ -55,6 +56,7 @@ class VariableInfo {
   group: number; // The binding group of the variable
   binding: number; // The binding index of the variable
   resourceType: ResourceType; // The resource type of the variable
+  access: string; // "", read, write, read_write
 
   get isArray(): boolean; // True if it's an array type
   get isStruct(): boolean;  // True if it's a struct type
@@ -89,6 +91,7 @@ class ArrayInfo extends TypeInfo {
 
 class TemplateInfo extends TypeInfo {
   format: TypeInfo;
+  access: string; // "", read, write, read_write
 }
 
 class MemberInfo {
