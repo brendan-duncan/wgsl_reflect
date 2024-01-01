@@ -14,6 +14,14 @@ export declare class Node {
     get astNodeType(): string;
     evaluate(context: ParseContext): number;
     evaluateString(context: ParseContext): string;
+    search(callback: (node: Node) => void): void;
+    searchBlock(block: Array<Node> | null, callback: (node: Node) => void): void;
+}
+export declare class _BlockStart extends Node {
+    static instance: _BlockStart;
+}
+export declare class _BlockEnd extends Node {
+    static instance: _BlockEnd;
 }
 /**
  * @class Statement
@@ -36,6 +44,7 @@ export declare class Function extends Statement {
     attributes: Array<Attribute> | null;
     constructor(name: string, args: Array<Argument>, returnType: Type | null, body: Array<Statement>);
     get astNodeType(): string;
+    search(callback: (node: Node) => void): void;
 }
 /**
  * @class StaticAssert
@@ -46,6 +55,7 @@ export declare class StaticAssert extends Statement {
     expression: Expression;
     constructor(expression: Expression);
     get astNodeType(): string;
+    search(callback: (node: Node) => void): void;
 }
 /**
  * @class While
@@ -57,6 +67,7 @@ export declare class While extends Statement {
     body: Array<Statement>;
     constructor(condition: Expression, body: Array<Statement>);
     get astNodeType(): string;
+    search(callback: (node: Node) => void): void;
 }
 /**
  * @class Continuing
@@ -67,6 +78,7 @@ export declare class Continuing extends Statement {
     body: Array<Statement>;
     constructor(body: Array<Statement>);
     get astNodeType(): string;
+    search(callback: (node: Node) => void): void;
 }
 /**
  * @class For
@@ -80,6 +92,7 @@ export declare class For extends Statement {
     body: Array<Statement>;
     constructor(init: Statement | null, condition: Expression | null, increment: Statement | null, body: Array<Statement>);
     get astNodeType(): string;
+    search(callback: (node: Node) => void): void;
 }
 /**
  * @class Var
@@ -95,6 +108,7 @@ export declare class Var extends Statement {
     attributes: Array<Attribute> | null;
     constructor(name: string, type: Type | null, storage: string | null, access: string | null, value: Expression | null);
     get astNodeType(): string;
+    search(callback: (node: Node) => void): void;
 }
 /**
  * @class Override
@@ -108,6 +122,7 @@ export declare class Override extends Statement {
     attributes: Array<Attribute> | null;
     constructor(name: string, type: Type | null, value: Expression | null);
     get astNodeType(): string;
+    search(callback: (node: Node) => void): void;
 }
 /**
  * @class Let
@@ -123,6 +138,7 @@ export declare class Let extends Statement {
     attributes: Array<Attribute> | null;
     constructor(name: string, type: Type | null, storage: string | null, access: string | null, value: Expression | null);
     get astNodeType(): string;
+    search(callback: (node: Node) => void): void;
 }
 /**
  * @class Const
@@ -139,6 +155,7 @@ export declare class Const extends Statement {
     constructor(name: string, type: Type | null, storage: string | null, access: string | null, value: Expression);
     get astNodeType(): string;
     evaluate(context: ParseContext): number;
+    search(callback: (node: Node) => void): void;
 }
 export declare enum IncrementOperator {
     increment = "++",
@@ -157,6 +174,7 @@ export declare class Increment extends Statement {
     variable: Expression;
     constructor(operator: IncrementOperator, variable: Expression);
     get astNodeType(): string;
+    search(callback: (node: Node) => void): void;
 }
 export declare enum AssignOperator {
     assign = "=",
@@ -185,6 +203,7 @@ export declare class Assign extends Statement {
     value: Expression;
     constructor(operator: AssignOperator, variable: Expression, value: Expression);
     get astNodeType(): string;
+    search(callback: (node: Node) => void): void;
 }
 /**
  * @class Call
@@ -231,6 +250,7 @@ export declare class If extends Statement {
     else: Array<Statement> | null;
     constructor(condition: Expression, body: Array<Statement>, elseif: Array<ElseIf> | null, _else: Array<Statement> | null);
     get astNodeType(): string;
+    search(callback: (node: Node) => void): void;
 }
 /**
  * @class Return
@@ -241,6 +261,7 @@ export declare class Return extends Statement {
     value: Expression;
     constructor(value: Expression);
     get astNodeType(): string;
+    search(callback: (node: Node) => void): void;
 }
 /**
  * @class Enable
@@ -405,6 +426,7 @@ export declare class CallExpr extends Expression {
     constructor(name: string, args: Array<Expression> | null);
     get astNodeType(): string;
     evaluate(context: ParseContext): number;
+    search(callback: (node: Node) => void): void;
 }
 /**
  * @class VariableExpr
@@ -415,6 +437,7 @@ export declare class VariableExpr extends Expression {
     name: string;
     constructor(name: string);
     get astNodeType(): string;
+    search(callback: (node: Node) => void): void;
 }
 /**
  * @class ConstExpr
@@ -427,6 +450,7 @@ export declare class ConstExpr extends Expression {
     constructor(name: string, initializer: Expression);
     get astNodeType(): string;
     evaluate(context: ParseContext): number;
+    search(callback: (node: Node) => void): void;
 }
 /**
  * @class LiteralExpr
@@ -449,6 +473,7 @@ export declare class BitcastExpr extends Expression {
     value: Expression;
     constructor(type: Type | null, value: Expression);
     get astNodeType(): string;
+    search(callback: (node: Node) => void): void;
 }
 /**
  * @class TypecastExpr
@@ -461,6 +486,7 @@ export declare class TypecastExpr extends Expression {
     constructor(type: Type | null, args: Array<Expression> | null);
     get astNodeType(): string;
     evaluate(context: ParseContext): number;
+    search(callback: (node: Node) => void): void;
 }
 /**
  * @class GroupingExpr
@@ -472,6 +498,7 @@ export declare class GroupingExpr extends Expression {
     constructor(contents: Array<Expression>);
     get astNodeType(): string;
     evaluate(context: ParseContext): number;
+    search(callback: (node: Node) => void): void;
 }
 /**
  * @class Operator
@@ -493,6 +520,7 @@ export declare class UnaryOperator extends Operator {
     constructor(operator: string, right: Expression);
     get astNodeType(): string;
     evaluate(context: ParseContext): number;
+    search(callback: (node: Node) => void): void;
 }
 /**
  * @class BinaryOperator
@@ -507,6 +535,7 @@ export declare class BinaryOperator extends Operator {
     constructor(operator: string, left: Expression, right: Expression);
     get astNodeType(): string;
     evaluate(context: ParseContext): number;
+    search(callback: (node: Node) => void): void;
 }
 /**
  * @class SwitchCase
@@ -526,6 +555,7 @@ export declare class Case extends SwitchCase {
     body: Array<Statement>;
     constructor(selector: Array<string>, body: Array<Statement>);
     get astNodeType(): string;
+    search(callback: (node: Node) => void): void;
 }
 /**
  * @class Default
@@ -536,6 +566,7 @@ export declare class Default extends SwitchCase {
     body: Array<Statement>;
     constructor(body: Array<Statement>);
     get astNodeType(): string;
+    search(callback: (node: Node) => void): void;
 }
 /**
  * @class Argument
@@ -559,6 +590,7 @@ export declare class ElseIf extends Node {
     body: Array<Statement>;
     constructor(condition: Expression, body: Array<Statement>);
     get astNodeType(): string;
+    search(callback: (node: Node) => void): void;
 }
 /**
  * @class Member

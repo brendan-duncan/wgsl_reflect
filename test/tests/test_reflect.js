@@ -961,4 +961,80 @@ fn shuffler() { }
     test.equals(groups[3][2].name, "readWriteStorageBuffer");
     test.equals(groups[3][2].access, "read_write");
   });
+
+  test("entry resources", function (test) {
+    const reflect = new WgslReflect(`
+      @group(0) @binding(0) var<uniform> u1: vec4f;
+      @group(0) @binding(1) var<uniform> u2: vec4f;
+      @group(0) @binding(1) var<uniform> u3: vec4f;
+
+      // resources [u1]
+      @vertex fn vs1() -> @builtin(position) vec4f {
+        return u1;
+      }
+
+      // resources [u1, u2]
+      @vertex fn vs2() -> @builtin(position) vec4f {
+        var v1 = u1 + u2;
+        return v1;
+      }
+
+      fn getU3() -> vec4f {
+        return u3;
+      }
+      
+      // resources [u1, u2, u3]
+      @vertex fn vs3() -> @builtin(position) vec4f {
+        return u1 + u2 + getU3();
+      }
+
+      // resources [u1, u3]. u2 is shadowed by a local variable.
+      @vertex fn vs4() -> @builtin(position) vec4f {
+        var u2 = vec4f(0);
+        return u1 + u2 + getU3();
+      }
+
+      // resources [u1, u3]. u2 is shadowed by a local variable.
+      @vertex fn vs5() -> @builtin(position) vec4f {
+        var u2 = u1;
+        return u2 + getU3();
+      }
+      
+      // resources [u1, u2]
+      @vertex fn vs6() -> @builtin(position) vec4f {
+        {
+          var u1 = vec4f(0);
+        }
+        _ = u1;
+        _ = u2;
+        return vec4f(0);
+      }`);
+    test.equals(reflect.entry.vertex.length, 6);
+    
+    test.equals(reflect.entry.vertex[0].resources.length, 1);
+    test.equals(reflect.entry.vertex[0].resources[0].name, "u1");
+    test.equals(reflect.entry.vertex[0].resources[0].type.name, "vec4f");
+    test.equals(reflect.entry.vertex[0].resources[0].size, 16);
+
+    test.equals(reflect.entry.vertex[1].resources.length, 2);
+    test.equals(reflect.entry.vertex[1].resources[0].name, "u1");
+    test.equals(reflect.entry.vertex[1].resources[1].name, "u2");
+
+    test.equals(reflect.entry.vertex[2].resources.length, 3);
+    test.equals(reflect.entry.vertex[2].resources[0].name, "u1");
+    test.equals(reflect.entry.vertex[2].resources[1].name, "u2");
+    test.equals(reflect.entry.vertex[2].resources[2].name, "u3");
+
+    test.equals(reflect.entry.vertex[3].resources.length, 2);
+    test.equals(reflect.entry.vertex[3].resources[0].name, "u1");
+    test.equals(reflect.entry.vertex[3].resources[1].name, "u3");
+
+    test.equals(reflect.entry.vertex[4].resources.length, 2);
+    test.equals(reflect.entry.vertex[4].resources[0].name, "u1");
+    test.equals(reflect.entry.vertex[4].resources[1].name, "u3");
+
+    test.equals(reflect.entry.vertex[5].resources.length, 2);
+    test.equals(reflect.entry.vertex[5].resources[0].name, "u1");
+    test.equals(reflect.entry.vertex[5].resources[1].name, "u2");
+  });
 });

@@ -120,6 +120,7 @@ class FunctionInfo {
   stage: string | null;
   inputs: Array<InputInfo>;
   outputs: Array<OutputInfo>;
+  resources: Array<VariableInfo>;
 }
 
 class InputInfo {
@@ -205,6 +206,10 @@ console.log(reflect.entry.fragment.length); // 0, there are no fragment entry fu
 console.log(reflect.entry.compute.length); // 0, there are no compute entry functions.
 
 console.log(reflect.entry.vertex[0].name); // "main", the name of the vertex entry function.
+
+console.log(reflect.entry.vertex[0].resources.length); // 2, main uses modelUniforms and viewUniforms resource bindings.
+console.log(reflect.entry.vertex[0].resources[0].name); // viewUniforms
+console.log(reflect.entry.vertex[0].resources[1].name); // modelUniforms
 
 // Vertex shader inputs
 console.log(reflect.entry.vertex[0].inputs.length); // 4, inputs to "main"

@@ -20,7 +20,7 @@
     "types"
   ],
   "directories": {
-      "test": "test"
+    "test": "test"
   },
   "scripts": {
     "build": "rollup -c rollup.config.js",
@@ -40,18 +40,19 @@
   },
   "homepage": "https://github.com/brendan-duncan/wgsl_reflect",
   "devDependencies": {
-    "rollup": "^2.60.0",
     "@rollup/plugin-typescript": "^11.1.2",
-    "tslib": "^2.6.1"
+    "rollup": "^2.60.0",
+    "tslib": "^2.6.1",
+    "typescript": "^5.3.3"
   },
   "jspm": {
-      "files": [
-          "package.json",
-          "LICENSE.md",
-          "README.md",
-          "wgsl_reflect.module.js",
-          "wgsl_reflect.node.js",
-          "types"
-      ]
+    "files": [
+      "package.json",
+      "LICENSE.md",
+      "README.md",
+      "wgsl_reflect.module.js",
+      "wgsl_reflect.node.js",
+      "types"
+    ]
   }
 }

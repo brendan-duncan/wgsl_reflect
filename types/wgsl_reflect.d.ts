@@ -99,6 +99,7 @@ export declare class FunctionInfo {
     stage: string | null;
     inputs: Array<InputInfo>;
     outputs: Array<OutputInfo>;
+    resources: Array<VariableInfo>;
     constructor(name: string, stage?: string | null);
 }
 export declare class EntryFunctions {
@@ -113,6 +114,11 @@ export declare class OverrideInfo {
     id: number;
     constructor(name: string, type: TypeInfo | null, attributes: Array<AST.Attribute> | null, id: number);
 }
+declare class _FunctionResources {
+    node: AST.Function;
+    resources: Array<VariableInfo> | null;
+    constructor(node: AST.Function);
+}
 export declare class WgslReflect {
     uniforms: Array<VariableInfo>;
     storage: Array<VariableInfo>;
@@ -123,9 +129,12 @@ export declare class WgslReflect {
     structs: Array<StructInfo>;
     entry: EntryFunctions;
     _types: Map<AST.Type, TypeInfo>;
+    _functions: Map<string, _FunctionResources>;
     constructor(code: string | undefined);
     _isStorageTexture(type: TypeInfo): boolean;
     update(code: string): void;
+    _findResource(name: string): VariableInfo | null;
+    _findResources(fn: AST.Node): Array<VariableInfo>;
     getBindGroups(): Array<Array<VariableInfo>>;
     _getOutputs(type: AST.Type, outputs?: Array<OutputInfo> | undefined): Array<OutputInfo>;
     _getStructOutputs(struct: AST.Struct, outputs: Array<OutputInfo>): void;

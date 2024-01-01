@@ -27,6 +27,32 @@ export class Node {
   evaluateString(context: ParseContext): string {
     return this.evaluate(context).toString();
   }
+
+  search(callback: (node: Node) => void) {}
+
+  searchBlock(block: Array<Node> | null, callback: (node: Node) => void) {
+    if (block) {
+      callback(_BlockStart.instance);
+      for (const node of block) {
+        if (node instanceof Array) {
+          this.searchBlock(node as Array<Node>, callback);
+        } else {
+          node.search(callback);
+        }
+      }
+      callback(_BlockEnd.instance);
+    }
+  }
+}
+
+// For internal use only
+export class _BlockStart extends Node {
+  static instance = new _BlockStart();
+}
+
+ // For internal use only
+export class _BlockEnd extends Node { 
+  static instance = new _BlockEnd();
 }
 
 /**
@@ -68,6 +94,10 @@ export class Function extends Statement {
   get astNodeType(): string {
     return "function";
   }
+
+  search(callback: (node: Node) => void) {
+    this.searchBlock(this.body, callback);
+  }
 }
 
 /**
@@ -85,6 +115,10 @@ export class StaticAssert extends Statement {
 
   get astNodeType() {
     return "staticAssert";
+  }
+
+  search(callback: (node: Node) => void) {
+    this.expression.search(callback);
   }
 }
 
@@ -106,6 +140,11 @@ export class While extends Statement {
   get astNodeType() {
     return "while";
   }
+
+  search(callback: (node: Node) => void) {
+    this.condition.search(callback);
+    this.searchBlock(this.body, callback);
+  }
 }
 
 /**
@@ -123,6 +162,10 @@ export class Continuing extends Statement {
 
   get astNodeType() {
     return "continuing";
+  }
+
+  search(callback: (node: Node) => void) {
+    this.searchBlock(this.body, callback);
   }
 }
 
@@ -152,6 +195,13 @@ export class For extends Statement {
 
   get astNodeType() {
     return "for";
+  }
+
+  search(callback: (node: Node) => void) {
+    this.init?.search(callback);
+    this.condition?.search(callback);
+    this.increment?.search(callback);
+    this.searchBlock(this.body, callback);
   }
 }
 
@@ -186,6 +236,11 @@ export class Var extends Statement {
   get astNodeType() {
     return "var";
   }
+
+  search(callback: (node: Node) => void) {
+    callback(this);
+    this.value?.search(callback);
+  }
 }
 
 /**
@@ -208,6 +263,10 @@ export class Override extends Statement {
 
   get astNodeType() {
     return "override";
+  }
+
+  search(callback: (node: Node) => void) {
+    this.value?.search(callback);
   }
 }
 
@@ -241,6 +300,10 @@ export class Let extends Statement {
 
   get astNodeType() {
     return "let";
+  }
+
+  search(callback: (node: Node) => void) {
+    this.value?.search(callback);
   }
 }
 
@@ -279,6 +342,10 @@ export class Const extends Statement {
   evaluate(context: ParseContext): number {
     return this.value.evaluate(context);
   }
+
+  search(callback: (node: Node) => void) {
+    this.value?.search(callback);
+  }
 }
 
 export enum IncrementOperator {
@@ -312,6 +379,10 @@ export class Increment extends Statement {
   get astNodeType() {
     return "increment";
   }
+
+  search(callback: (node: Node) => void) {
+    this.variable.search(callback);
+  }
 }
 
 export enum AssignOperator {
@@ -331,8 +402,11 @@ export enum AssignOperator {
 export namespace AssignOperator {
   export function parse(val: string): AssignOperator {
     const key = val as keyof typeof AssignOperator;
-    if (key == "parse") throw new Error("Invalid value for AssignOperator");
-    return AssignOperator[key];
+    if (key == "parse") {
+      throw new Error("Invalid value for AssignOperator");
+    }
+    //return AssignOperator[key];
+    return key as AssignOperator;
   }
 }
 
@@ -359,6 +433,10 @@ export class Assign extends Statement {
 
   get astNodeType() {
     return "assign";
+  }
+
+  search(callback: (node: Node) => void): void {
+    this.value.search(callback);
   }
 }
 
@@ -449,6 +527,13 @@ export class If extends Statement {
   get astNodeType() {
     return "if";
   }
+
+  search(callback: (node: Node) => void) {
+    this.condition.search(callback);
+    this.searchBlock(this.body, callback);
+    this.searchBlock(this.elseif, callback);
+    this.searchBlock(this.else, callback);
+  }
 }
 
 /**
@@ -466,6 +551,10 @@ export class Return extends Statement {
 
   get astNodeType() {
     return "return";
+  }
+
+  search(callback: (node: Node) => void) {
+    this.value?.search(callback);
   }
 }
 
@@ -927,6 +1016,13 @@ export class CallExpr extends Expression {
         throw new Error("Non const function: " + this.name);
     }
   }
+
+  search(callback: (node: Node) => void) {
+    for (const node of this.args) {
+      node.search(callback);
+    }
+    callback(this);
+  }
 }
 
 /**
@@ -944,6 +1040,10 @@ export class VariableExpr extends Expression {
 
   get astNodeType() {
     return "varExpr";
+  }
+
+  search(callback: (node: Node) => void) {
+    callback(this);
   }
 }
 
@@ -981,6 +1081,10 @@ export class ConstExpr extends Expression {
     }
 
     return this.initializer.evaluate(context);
+  }
+
+  search(callback: (node: Node) => void) {
+    this.initializer.search(callback);
   }
 }
 
@@ -1024,6 +1128,10 @@ export class BitcastExpr extends Expression {
   get astNodeType() {
     return "bitcastExpr";
   }
+
+  search(callback: (node: Node) => void): void {
+    this.value.search(callback);
+  }
 }
 
 /**
@@ -1048,6 +1156,10 @@ export class TypecastExpr extends Expression {
   evaluate(context: ParseContext): number {
     return this.args[0].evaluate(context);
   }
+
+  search(callback: (node: Node) => void) {
+    this.searchBlock(this.args, callback);
+  }
 }
 
 /**
@@ -1069,6 +1181,10 @@ export class GroupingExpr extends Expression {
 
   evaluate(context: ParseContext): number {
     return this.contents[0].evaluate(context);
+  }
+
+  search(callback: (node: Node) => void): void {
+    this.searchBlock(this.contents, callback);
   }
 }
 
@@ -1116,6 +1232,10 @@ export class UnaryOperator extends Operator {
       default:
         throw new Error("Unknown unary operator: " + this.operator);
     }
+  }
+
+  search(callback: (node: Node) => void): void {
+    this.right.search(callback);
   }
 }
 
@@ -1189,6 +1309,11 @@ export class BinaryOperator extends Operator {
         throw new Error(`Unknown operator ${this.operator}`);
     }
   }
+
+  search(callback: (node: Node) => void) {
+    this.left.search(callback);
+    this.right.search(callback);
+  }
 }
 
 /**
@@ -1220,6 +1345,10 @@ export class Case extends SwitchCase {
   get astNodeType() {
     return "case";
   }
+
+  search(callback: (node: Node) => void): void {
+    this.searchBlock(this.body, callback);
+  }
 }
 
 /**
@@ -1237,6 +1366,10 @@ export class Default extends SwitchCase {
 
   get astNodeType() {
     return "default";
+  }
+
+  search(callback: (node: Node) => void): void {
+    this.searchBlock(this.body, callback);
   }
 }
 
@@ -1279,6 +1412,11 @@ export class ElseIf extends Node {
 
   get astNodeType() {
     return "elseif";
+  }
+
+  search(callback: (node: Node) => void): void {
+    this.condition.search(callback);
+    this.searchBlock(this.body, callback);
   }
 }
 

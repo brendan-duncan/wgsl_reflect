@@ -466,12 +466,18 @@ export class WgslParser {
     // (unary_expression underscore) equal short_circuit_or_expression
     let _var: AST.Expression | null = null;
 
-    if (this._check(TokenTypes.tokens.brace_right)) return null;
+    if (this._check(TokenTypes.tokens.brace_right)) {
+      return null;
+    }
 
     let isUnderscore = this._match(TokenTypes.tokens.underscore);
-    if (!isUnderscore) _var = this._unary_expression();
+    if (!isUnderscore) {
+      _var = this._unary_expression();
+    }
 
-    if (!isUnderscore && _var == null) return null;
+    if (!isUnderscore && _var == null) {
+      return null;
+    }
 
     const type = this._consume(
       TokenTypes.assignment_operators,

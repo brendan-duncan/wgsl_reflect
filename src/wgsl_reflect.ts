@@ -276,6 +276,7 @@ export class FunctionInfo {
   stage: string | null = null;
   inputs: Array<InputInfo> = [];
   outputs: Array<OutputInfo> = [];
+  resources: Array<VariableInfo> = [];
 
   constructor(name: string, stage: string | null = null) {
     this.name = name;
@@ -308,6 +309,14 @@ export class OverrideInfo {
   }
 }
 
+class _FunctionResources {
+  node: AST.Function;
+  resources: Array<VariableInfo> | null = null;
+  constructor(node: AST.Function) {
+    this.node = node;
+  }
+}
+
 export class WgslReflect {
   /// All top-level uniform vars in the shader.
   uniforms: Array<VariableInfo> = [];
@@ -327,6 +336,7 @@ export class WgslReflect {
   entry: EntryFunctions = new EntryFunctions();
 
   _types: Map<AST.Type, TypeInfo> = new Map();
+  _functions: Map<string, _FunctionResources> = new Map();
 
   constructor(code: string | undefined) {
     if (code) {
@@ -346,6 +356,12 @@ export class WgslReflect {
   update(code: string) {
     const parser = new WgslParser();
     const ast = parser.parse(code);
+
+    for (const node of ast) {
+      if (node instanceof AST.Function) {
+        this._functions.set(node.name, new _FunctionResources(node as AST.Function));
+      }
+    }
 
     for (const node of ast) {
       if (node instanceof AST.Struct) {
@@ -455,14 +471,86 @@ export class WgslReflect {
         const stage = vertexStage || fragmentStage || computeStage;
 
         if (stage) {
-          const fn = new FunctionInfo(node.name, stage.name);
+          const fn = new FunctionInfo(node.name, stage?.name);
           fn.inputs = this._getInputs(node.args);
           fn.outputs = this._getOutputs(node.returnType);
+          fn.resources = this._findResources(node);
           this.entry[stage.name].push(fn);
         }
         continue;
       }
     }
+  }
+
+  _findResource(name: string): VariableInfo | null {
+    for (const u of this.uniforms) {
+      if (u.name == name) {
+        return u;
+      }
+    }
+    for (const s of this.storage) {
+      if (s.name == name) {
+        return s;
+      }
+    }
+    for (const t of this.textures) {
+      if (t.name == name) {
+        return t;
+      }
+    }
+    for (const s of this.samplers) {
+      if (s.name == name) {
+        return s;
+      }
+    }
+    return null;
+  }
+
+  _findResources(fn: AST.Node): Array<VariableInfo> {
+    const resources = [];
+    const self = this;
+    const varStack = [];
+    fn.search((node) => {
+      if (node instanceof AST._BlockStart) {
+        varStack.push({});
+      } else if (node instanceof AST._BlockEnd) {
+        varStack.pop();
+      } else if (node instanceof AST.Var) {
+        if (varStack.length > 0) {
+          const v = node as AST.Var;
+          varStack[varStack.length - 1][v.name] = v;
+        }
+      } else if (node instanceof AST.Let) {
+        if (varStack.length > 0) {
+          const v = node as AST.Let;
+          varStack[varStack.length - 1][v.name] = v;
+        }
+      } else if (node instanceof AST.VariableExpr) {
+        const v = node as AST.VariableExpr;
+        // Check to see if the variable is a local variable before checking to see if it's
+        // a resource.
+        if (varStack.length > 0) {
+          const varInfo = varStack[varStack.length - 1][v.name];
+          if (varInfo) {
+            return;
+          }
+        }
+        const varInfo = self._findResource(v.name);
+        if (varInfo) {
+          resources.push(varInfo);
+        }
+      } else if (node instanceof AST.CallExpr) {
+        const c = node as AST.CallExpr;
+        const fn = self._functions.get(c.name);
+        if (fn) {
+          if (fn.resources === null) {
+            fn.resources = self._findResources(fn.node);
+          }
+          resources.push(...fn.resources);
+        }
+      }
+    });
+    return resources;
   }
 
   getBindGroups(): Array<Array<VariableInfo>> {

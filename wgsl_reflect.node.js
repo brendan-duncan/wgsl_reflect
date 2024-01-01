@@ -28,7 +28,30 @@ class Node {
     evaluateString(context) {
         return this.evaluate(context).toString();
     }
+    search(callback) { }
+    searchBlock(block, callback) {
+        if (block) {
+            callback(_BlockStart.instance);
+            for (const node of block) {
+                if (node instanceof Array) {
+                    this.searchBlock(node, callback);
+                }
+                else {
+                    node.search(callback);
+                }
+            }
+            callback(_BlockEnd.instance);
+        }
+    }
 }
+// For internal use only
+class _BlockStart extends Node {
+}
+_BlockStart.instance = new _BlockStart();
+// For internal use only
+class _BlockEnd extends Node {
+}
+_BlockEnd.instance = new _BlockEnd();
 /**
  * @class Statement
  * @extends Node
@@ -55,6 +78,9 @@ class Function extends Statement {
     get astNodeType() {
         return "function";
     }
+    search(callback) {
+        this.searchBlock(this.body, callback);
+    }
 }
 /**
  * @class StaticAssert
@@ -68,6 +94,9 @@ class StaticAssert extends Statement {
     }
     get astNodeType() {
         return "staticAssert";
+    }
+    search(callback) {
+        this.expression.search(callback);
     }
 }
 /**
@@ -84,6 +113,10 @@ class While extends Statement {
     get astNodeType() {
         return "while";
     }
+    search(callback) {
+        this.condition.search(callback);
+        this.searchBlock(this.body, callback);
+    }
 }
 /**
  * @class Continuing
@@ -97,6 +130,9 @@ class Continuing extends Statement {
     }
     get astNodeType() {
         return "continuing";
+    }
+    search(callback) {
+        this.searchBlock(this.body, callback);
     }
 }
 /**
@@ -114,6 +150,13 @@ class For extends Statement {
     }
     get astNodeType() {
         return "for";
+    }
+    search(callback) {
+        var _a, _b, _c;
+        (_a = this.init) === null || _a === void 0 ? void 0 : _a.search(callback);
+        (_b = this.condition) === null || _b === void 0 ? void 0 : _b.search(callback);
+        (_c = this.increment) === null || _c === void 0 ? void 0 : _c.search(callback);
+        this.searchBlock(this.body, callback);
     }
 }
 /**
@@ -133,6 +176,11 @@ class Var extends Statement {
     get astNodeType() {
         return "var";
     }
+    search(callback) {
+        var _a;
+        callback(this);
+        (_a = this.value) === null || _a === void 0 ? void 0 : _a.search(callback);
+    }
 }
 /**
  * @class Override
@@ -148,6 +196,10 @@ class Override extends Statement {
     }
     get astNodeType() {
         return "override";
+    }
+    search(callback) {
+        var _a;
+        (_a = this.value) === null || _a === void 0 ? void 0 : _a.search(callback);
     }
 }
 /**
@@ -166,6 +218,10 @@ class Let extends Statement {
     }
     get astNodeType() {
         return "let";
+    }
+    search(callback) {
+        var _a;
+        (_a = this.value) === null || _a === void 0 ? void 0 : _a.search(callback);
     }
 }
 /**
@@ -187,6 +243,10 @@ class Const extends Statement {
     }
     evaluate(context) {
         return this.value.evaluate(context);
+    }
+    search(callback) {
+        var _a;
+        (_a = this.value) === null || _a === void 0 ? void 0 : _a.search(callback);
     }
 }
 exports.IncrementOperator = void 0;
@@ -217,6 +277,9 @@ class Increment extends Statement {
     get astNodeType() {
         return "increment";
     }
+    search(callback) {
+        this.variable.search(callback);
+    }
 }
 exports.AssignOperator = void 0;
 (function (AssignOperator) {
@@ -235,9 +298,11 @@ exports.AssignOperator = void 0;
 (function (AssignOperator) {
     function parse(val) {
         const key = val;
-        if (key == "parse")
+        if (key == "parse") {
             throw new Error("Invalid value for AssignOperator");
-        return AssignOperator[key];
+        }
+        //return AssignOperator[key];
+        return key;
     }
     AssignOperator.parse = parse;
 })(exports.AssignOperator || (exports.AssignOperator = {}));
@@ -255,6 +320,9 @@ class Assign extends Statement {
     }
     get astNodeType() {
         return "assign";
+    }
+    search(callback) {
+        this.value.search(callback);
     }
 }
 /**
@@ -318,6 +386,12 @@ class If extends Statement {
     get astNodeType() {
         return "if";
     }
+    search(callback) {
+        this.condition.search(callback);
+        this.searchBlock(this.body, callback);
+        this.searchBlock(this.elseif, callback);
+        this.searchBlock(this.else, callback);
+    }
 }
 /**
  * @class Return
@@ -331,6 +405,10 @@ class Return extends Statement {
     }
     get astNodeType() {
         return "return";
+    }
+    search(callback) {
+        var _a;
+        (_a = this.value) === null || _a === void 0 ? void 0 : _a.search(callback);
     }
 }
 /**
@@ -675,6 +753,12 @@ class CallExpr extends Expression {
                 throw new Error("Non const function: " + this.name);
         }
     }
+    search(callback) {
+        for (const node of this.args) {
+            node.search(callback);
+        }
+        callback(this);
+    }
 }
 /**
  * @class VariableExpr
@@ -688,6 +772,9 @@ class VariableExpr extends Expression {
     }
     get astNodeType() {
         return "varExpr";
+    }
+    search(callback) {
+        callback(this);
     }
 }
 /**
@@ -719,6 +806,9 @@ class ConstExpr extends Expression {
             console.log(memberIndex);
         }
         return this.initializer.evaluate(context);
+    }
+    search(callback) {
+        this.initializer.search(callback);
     }
 }
 /**
@@ -752,6 +842,9 @@ class BitcastExpr extends Expression {
     get astNodeType() {
         return "bitcastExpr";
     }
+    search(callback) {
+        this.value.search(callback);
+    }
 }
 /**
  * @class TypecastExpr
@@ -770,6 +863,9 @@ class TypecastExpr extends Expression {
     evaluate(context) {
         return this.args[0].evaluate(context);
     }
+    search(callback) {
+        this.searchBlock(this.args, callback);
+    }
 }
 /**
  * @class GroupingExpr
@@ -786,6 +882,9 @@ class GroupingExpr extends Expression {
     }
     evaluate(context) {
         return this.contents[0].evaluate(context);
+    }
+    search(callback) {
+        this.searchBlock(this.contents, callback);
     }
 }
 /**
@@ -826,6 +925,9 @@ class UnaryOperator extends Operator {
             default:
                 throw new Error("Unknown unary operator: " + this.operator);
         }
+    }
+    search(callback) {
+        this.right.search(callback);
     }
 }
 /**
@@ -892,6 +994,10 @@ class BinaryOperator extends Operator {
                 throw new Error(`Unknown operator ${this.operator}`);
         }
     }
+    search(callback) {
+        this.left.search(callback);
+        this.right.search(callback);
+    }
 }
 /**
  * @class SwitchCase
@@ -917,6 +1023,9 @@ class Case extends SwitchCase {
     get astNodeType() {
         return "case";
     }
+    search(callback) {
+        this.searchBlock(this.body, callback);
+    }
 }
 /**
  * @class Default
@@ -930,6 +1039,9 @@ class Default extends SwitchCase {
     }
     get astNodeType() {
         return "default";
+    }
+    search(callback) {
+        this.searchBlock(this.body, callback);
     }
 }
 /**
@@ -961,6 +1073,10 @@ class ElseIf extends Node {
     }
     get astNodeType() {
         return "elseif";
+    }
+    search(callback) {
+        this.condition.search(callback);
+        this.searchBlock(this.body, callback);
     }
 }
 /**
@@ -1956,13 +2072,16 @@ class WgslParser {
     _assignment_statement() {
         // (unary_expression underscore) equal short_circuit_or_expression
         let _var = null;
-        if (this._check(TokenTypes.tokens.brace_right))
+        if (this._check(TokenTypes.tokens.brace_right)) {
             return null;
+        }
         let isUnderscore = this._match(TokenTypes.tokens.underscore);
-        if (!isUnderscore)
+        if (!isUnderscore) {
             _var = this._unary_expression();
-        if (!isUnderscore && _var == null)
+        }
+        if (!isUnderscore && _var == null) {
             return null;
+        }
         const type = this._consume(TokenTypes.assignment_operators, "Expected assignment operator.");
         const value = this._short_circuit_or_expression();
         return new Assign(exports.AssignOperator.parse(type.lexeme), _var, value);
@@ -2866,6 +2985,7 @@ class FunctionInfo {
         this.stage = null;
         this.inputs = [];
         this.outputs = [];
+        this.resources = [];
         this.name = name;
         this.stage = stage;
     }
@@ -2883,6 +3003,12 @@ class OverrideInfo {
         this.type = type;
         this.attributes = attributes;
         this.id = id;
+    }
+}
+class _FunctionResources {
+    constructor(node) {
+        this.resources = null;
+        this.node = node;
     }
 }
 class WgslReflect {
@@ -2904,6 +3030,7 @@ class WgslReflect {
         /// All entry functions in the shader: vertex, fragment, and/or compute.
         this.entry = new EntryFunctions();
         this._types = new Map();
+        this._functions = new Map();
         if (code) {
             this.update(code);
         }
@@ -2917,6 +3044,11 @@ class WgslReflect {
     update(code) {
         const parser = new WgslParser();
         const ast = parser.parse(code);
+        for (const node of ast) {
+            if (node instanceof Function) {
+                this._functions.set(node.name, new _FunctionResources(node));
+            }
+        }
         for (const node of ast) {
             if (node instanceof Struct) {
                 const info = this._getTypeInfo(node, null);
@@ -2985,14 +3117,89 @@ class WgslReflect {
                 const computeStage = this._getAttribute(node, "compute");
                 const stage = vertexStage || fragmentStage || computeStage;
                 if (stage) {
-                    const fn = new FunctionInfo(node.name, stage.name);
+                    const fn = new FunctionInfo(node.name, stage === null || stage === void 0 ? void 0 : stage.name);
                     fn.inputs = this._getInputs(node.args);
                     fn.outputs = this._getOutputs(node.returnType);
+                    fn.resources = this._findResources(node);
                     this.entry[stage.name].push(fn);
                 }
                 continue;
             }
         }
+    }
+    _findResource(name) {
+        for (const u of this.uniforms) {
+            if (u.name == name) {
+                return u;
+            }
+        }
+        for (const s of this.storage) {
+            if (s.name == name) {
+                return s;
+            }
+        }
+        for (const t of this.textures) {
+            if (t.name == name) {
+                return t;
+            }
+        }
+        for (const s of this.samplers) {
+            if (s.name == name) {
+                return s;
+            }
+        }
+        return null;
+    }
+    _findResources(fn) {
+        const resources = [];
+        const self = this;
+        const varStack = [];
+        fn.search((node) => {
+            if (node instanceof _BlockStart) {
+                varStack.push({});
+            }
+            else if (node instanceof _BlockEnd) {
+                varStack.pop();
+            }
+            else if (node instanceof Var) {
+                if (varStack.length > 0) {
+                    const v = node;
+                    varStack[varStack.length - 1][v.name] = v;
+                }
+            }
+            else if (node instanceof Let) {
+                if (varStack.length > 0) {
+                    const v = node;
+                    varStack[varStack.length - 1][v.name] = v;
+                }
+            }
+            else if (node instanceof VariableExpr) {
+                const v = node;
+                // Check to see if the variable is a local variable before checking to see if it's
+                // a resource.
+                if (varStack.length > 0) {
+                    const varInfo = varStack[varStack.length - 1][v.name];
+                    if (varInfo) {
+                        return;
+                    }
+                }
+                const varInfo = self._findResource(v.name);
+                if (varInfo) {
+                    resources.push(varInfo);
+                }
+            }
+            else if (node instanceof CallExpr) {
+                const c = node;
+                const fn = self._functions.get(c.name);
+                if (fn) {
+                    if (fn.resources === null) {
+                        fn.resources = self._findResources(fn.node);
+                    }
+                    resources.push(...fn.resources);
+                }
+            }
+        });
+        return resources;
     }
     getBindGroups() {
         const groups = [];
@@ -3457,4 +3664,6 @@ exports.WgslParser = WgslParser;
 exports.WgslReflect = WgslReflect;
 exports.WgslScanner = WgslScanner;
 exports.While = While;
+exports._BlockEnd = _BlockEnd;
+exports._BlockStart = _BlockStart;
 //# sourceMappingURL=wgsl_reflect.node.js.map
