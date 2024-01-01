@@ -550,7 +550,7 @@ export class WgslReflect {
         }
       }
     });
-    return resources;
+    return [...new Map(resources.map(r => [r.name, r])).values()];
   }
 
   getBindGroups(): Array<Array<VariableInfo>> {
