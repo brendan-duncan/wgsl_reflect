@@ -970,6 +970,7 @@ fn shuffler() { }
 
       // resources [u1]
       @vertex fn vs1() -> @builtin(position) vec4f {
+        _ = u1;
         return u1;
       }
 
@@ -1008,7 +1009,8 @@ fn shuffler() { }
         _ = u1;
         _ = u2;
         return vec4f(0);
-      }`);
+      }
+      `);
     test.equals(reflect.entry.vertex.length, 6);
     
     test.equals(reflect.entry.vertex[0].resources.length, 1);
