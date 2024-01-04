@@ -274,6 +274,17 @@ export declare class Enable extends Statement {
     get astNodeType(): string;
 }
 /**
+ * @class Diagnostic
+ * @extends Statement
+ * @category AST
+ */
+export declare class Diagnostic extends Statement {
+    severity: string;
+    rule: string;
+    constructor(severity: string, rule: string);
+    get astNodeType(): string;
+}
+/**
  * @class Alias
  * @extends Statement
  * @category AST

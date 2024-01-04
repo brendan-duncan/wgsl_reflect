@@ -426,6 +426,21 @@ class Enable extends Statement {
     }
 }
 /**
+ * @class Diagnostic
+ * @extends Statement
+ * @category AST
+ */
+class Diagnostic extends Statement {
+    constructor(severity, rule) {
+        super();
+        this.severity = severity;
+        this.rule = rule;
+    }
+    get astNodeType() {
+        return "diagnostic";
+    }
+}
+/**
  * @class Alias
  * @extends Statement
  * @category AST
@@ -1207,6 +1222,7 @@ TokenTypes.keywords = {
     discard: new TokenType("discard", exports.TokenClass.keyword, "discard"),
     else: new TokenType("else", exports.TokenClass.keyword, "else"),
     enable: new TokenType("enable", exports.TokenClass.keyword, "enable"),
+    diagnostic: new TokenType("diagnostic", exports.TokenClass.keyword, "diagnostic"),
     fallthrough: new TokenType("fallthrough", exports.TokenClass.keyword, "fallthrough"),
     false: new TokenType("false", exports.TokenClass.keyword, "false"),
     fn: new TokenType("fn", exports.TokenClass.keyword, "fn"),
@@ -1804,6 +1820,11 @@ class WgslParser {
             const type = this._type_alias();
             this._consume(TokenTypes.tokens.semicolon, "Expected ';'");
             return type;
+        }
+        if (this._match(TokenTypes.keywords.diagnostic)) {
+            const directive = this._diagnostic();
+            this._consume(TokenTypes.tokens.semicolon, "Expected ';'");
+            return directive;
         }
         if (this._match(TokenTypes.keywords.enable)) {
             const enable = this._enable_directive();
@@ -2613,6 +2634,15 @@ class WgslParser {
                 type.attributes = attrs;
         }
         return new Override(name.toString(), type, null);
+    }
+    _diagnostic() {
+        // diagnostic(severity_control_name, diagnostic_rule_name)
+        this._consume(TokenTypes.tokens.paren_left, "Expected '('");
+        const severity = this._consume(TokenTypes.tokens.ident, "Expected severity control name.");
+        this._consume(TokenTypes.tokens.comma, "Expected ','");
+        const rule = this._consume(TokenTypes.tokens.ident, "Expected diagnostic rule name.");
+        this._consume(TokenTypes.tokens.paren_right, "Expected ')'");
+        return new Diagnostic(severity.toString(), rule.toString());
     }
     _enable_directive() {
         // enable ident semicolon
@@ -3615,6 +3645,7 @@ exports.Continue = Continue;
 exports.Continuing = Continuing;
 exports.CreateExpr = CreateExpr;
 exports.Default = Default;
+exports.Diagnostic = Diagnostic;
 exports.Discard = Discard;
 exports.ElseIf = ElseIf;
 exports.Enable = Enable;

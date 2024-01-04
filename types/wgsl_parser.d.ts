@@ -66,6 +66,7 @@ export declare class WgslParser {
     _const_expression(): AST.Expression;
     _variable_decl(): AST.Var | null;
     _override_decl(): AST.Override | null;
+    _diagnostic(): AST.Diagnostic | null;
     _enable_directive(): AST.Enable;
     _type_alias(): AST.Alias;
     _type_decl(): AST.Type | null;

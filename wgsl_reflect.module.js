@@ -422,6 +422,21 @@ class Enable extends Statement {
     }
 }
 /**
+ * @class Diagnostic
+ * @extends Statement
+ * @category AST
+ */
+class Diagnostic extends Statement {
+    constructor(severity, rule) {
+        super();
+        this.severity = severity;
+        this.rule = rule;
+    }
+    get astNodeType() {
+        return "diagnostic";
+    }
+}
+/**
  * @class Alias
  * @extends Statement
  * @category AST
@@ -1203,6 +1218,7 @@ TokenTypes.keywords = {
     discard: new TokenType("discard", TokenClass.keyword, "discard"),
     else: new TokenType("else", TokenClass.keyword, "else"),
     enable: new TokenType("enable", TokenClass.keyword, "enable"),
+    diagnostic: new TokenType("diagnostic", TokenClass.keyword, "diagnostic"),
     fallthrough: new TokenType("fallthrough", TokenClass.keyword, "fallthrough"),
     false: new TokenType("false", TokenClass.keyword, "false"),
     fn: new TokenType("fn", TokenClass.keyword, "fn"),
@@ -1800,6 +1816,11 @@ class WgslParser {
             const type = this._type_alias();
             this._consume(TokenTypes.tokens.semicolon, "Expected ';'");
             return type;
+        }
+        if (this._match(TokenTypes.keywords.diagnostic)) {
+            const directive = this._diagnostic();
+            this._consume(TokenTypes.tokens.semicolon, "Expected ';'");
+            return directive;
         }
         if (this._match(TokenTypes.keywords.enable)) {
             const enable = this._enable_directive();
@@ -2609,6 +2630,15 @@ class WgslParser {
                 type.attributes = attrs;
         }
         return new Override(name.toString(), type, null);
+    }
+    _diagnostic() {
+        // diagnostic(severity_control_name, diagnostic_rule_name)
+        this._consume(TokenTypes.tokens.paren_left, "Expected '('");
+        const severity = this._consume(TokenTypes.tokens.ident, "Expected severity control name.");
+        this._consume(TokenTypes.tokens.comma, "Expected ','");
+        const rule = this._consume(TokenTypes.tokens.ident, "Expected diagnostic rule name.");
+        this._consume(TokenTypes.tokens.paren_right, "Expected ')'");
+        return new Diagnostic(severity.toString(), rule.toString());
     }
     _enable_directive() {
         // enable ident semicolon
@@ -3592,5 +3622,5 @@ WgslReflect._samplerTypes = TokenTypes.sampler_type.map((t) => {
     return t.name;
 });
 
-export { Alias, AliasInfo, Argument, ArrayInfo, ArrayType, Assign, AssignOperator, Attribute, BinaryOperator, BitcastExpr, Break, Call, CallExpr, Case, Const, ConstExpr, Continue, Continuing, CreateExpr, Default, Discard, ElseIf, Enable, EntryFunctions, Expression, For, Function, FunctionInfo, GroupingExpr, If, Increment, IncrementOperator, InputInfo, Let, LiteralExpr, Loop, Member, MemberInfo, Node, Operator, OutputInfo, Override, OverrideInfo, ParseContext, PointerType, ResourceType, Return, SamplerType, Statement, StaticAssert, StringExpr, Struct, StructInfo, Switch, SwitchCase, TemplateInfo, TemplateType, Token, TokenClass, TokenType, TokenTypes, Type, TypeInfo, TypecastExpr, UnaryOperator, Var, VariableExpr, VariableInfo, WgslParser, WgslReflect, WgslScanner, While, _BlockEnd, _BlockStart };
+export { Alias, AliasInfo, Argument, ArrayInfo, ArrayType, Assign, AssignOperator, Attribute, BinaryOperator, BitcastExpr, Break, Call, CallExpr, Case, Const, ConstExpr, Continue, Continuing, CreateExpr, Default, Diagnostic, Discard, ElseIf, Enable, EntryFunctions, Expression, For, Function, FunctionInfo, GroupingExpr, If, Increment, IncrementOperator, InputInfo, Let, LiteralExpr, Loop, Member, MemberInfo, Node, Operator, OutputInfo, Override, OverrideInfo, ParseContext, PointerType, ResourceType, Return, SamplerType, Statement, StaticAssert, StringExpr, Struct, StructInfo, Switch, SwitchCase, TemplateInfo, TemplateType, Token, TokenClass, TokenType, TokenTypes, Type, TypeInfo, TypecastExpr, UnaryOperator, Var, VariableExpr, VariableInfo, WgslParser, WgslReflect, WgslScanner, While, _BlockEnd, _BlockStart };
 //# sourceMappingURL=wgsl_reflect.module.js.map

@@ -25,6 +25,18 @@ group("Parser", function () {
     ]);
   });
 
+  // enable:
+  test("diagnostic", function (test) {
+    const t = parser.parse("diagnostic(off, derivative_uniformity);");
+    test.validateObject(t, [
+      {
+        astNodeType: "diagnostic",
+        severity: "off",
+        rule: "derivative_uniformity",
+      },
+    ]);
+  });
+
   // alias:
   test("alias", function (test) {
     const t = parser.parse("alias foo = i32;");

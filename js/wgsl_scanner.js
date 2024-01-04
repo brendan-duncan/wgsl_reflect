@@ -94,6 +94,7 @@ TokenTypes.keywords = {
     discard: new TokenType("discard", TokenClass.keyword, "discard"),
     else: new TokenType("else", TokenClass.keyword, "else"),
     enable: new TokenType("enable", TokenClass.keyword, "enable"),
+    diagnostic: new TokenType("diagnostic", TokenClass.keyword, "diagnostic"),
     fallthrough: new TokenType("fallthrough", TokenClass.keyword, "fallthrough"),
     false: new TokenType("false", TokenClass.keyword, "false"),
     fn: new TokenType("fn", TokenClass.keyword, "fn"),

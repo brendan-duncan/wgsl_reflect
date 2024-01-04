@@ -577,6 +577,26 @@ export class Enable extends Statement {
 }
 
 /**
+ * @class Diagnostic
+ * @extends Statement
+ * @category AST
+ */
+export class Diagnostic extends Statement {
+  severity: string;
+  rule: string;
+
+  constructor(severity: string, rule: string) {
+    super();
+    this.severity = severity;
+    this.rule = rule;
+  }
+
+  get astNodeType() {
+    return "diagnostic";
+  }
+}
+
+/**
  * @class Alias
  * @extends Statement
  * @category AST

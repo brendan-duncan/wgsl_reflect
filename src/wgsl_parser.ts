@@ -122,6 +122,12 @@ export class WgslParser {
       return type;
     }
 
+    if (this._match(TokenTypes.keywords.diagnostic)) {
+      const directive = this._diagnostic();
+      this._consume(TokenTypes.tokens.semicolon, "Expected ';'");
+      return directive;
+    }
+
     if (this._match(TokenTypes.keywords.enable)) {
       const enable = this._enable_directive();
       this._consume(TokenTypes.tokens.semicolon, "Expected ';'");
@@ -1194,6 +1200,22 @@ export class WgslParser {
     }
 
     return new AST.Override(name.toString(), type, null);
+  }
+
+  _diagnostic(): AST.Diagnostic | null {
+    // diagnostic(severity_control_name, diagnostic_rule_name)
+    this._consume(TokenTypes.tokens.paren_left, "Expected '('");
+    const severity = this._consume(
+      TokenTypes.tokens.ident,
+      "Expected severity control name."
+    );
+    this._consume(TokenTypes.tokens.comma, "Expected ','");
+    const rule = this._consume(
+      TokenTypes.tokens.ident,
+      "Expected diagnostic rule name."
+    );
+    this._consume(TokenTypes.tokens.paren_right, "Expected ')'");
+    return new AST.Diagnostic(severity.toString(), rule.toString());
   }
 
   _enable_directive(): AST.Enable {

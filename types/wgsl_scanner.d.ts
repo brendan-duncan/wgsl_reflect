@@ -86,6 +86,7 @@ export declare class TokenTypes {
         discard: TokenType;
         else: TokenType;
         enable: TokenType;
+        diagnostic: TokenType;
         fallthrough: TokenType;
         false: TokenType;
         fn: TokenType;
