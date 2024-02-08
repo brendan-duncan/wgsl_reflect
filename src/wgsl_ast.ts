@@ -1065,6 +1065,14 @@ export class VariableExpr extends Expression {
   search(callback: (node: Node) => void) {
     callback(this);
   }
+
+  evaluate(context: ParseContext): number {
+    const constant = context.constants.get(this.name);
+    if (!constant) {
+      throw new Error("Cannot evaluate node");
+    }
+    return constant.evaluate(context);
+  }
 }
 
 /**
@@ -1353,10 +1361,10 @@ export class SwitchCase extends Node {
  * @category AST
  */
 export class Case extends SwitchCase {
-  selector: Array<string>;
+  selector: Array<Expression>;
   body: Array<Statement>;
 
-  constructor(selector: Array<string>, body: Array<Statement>) {
+  constructor(selector: Array<Expression>, body: Array<Statement>) {
     super();
     this.selector = selector;
     this.body = body;

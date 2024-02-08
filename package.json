@@ -24,7 +24,8 @@
   },
   "scripts": {
     "build": "rollup -c rollup.config.js",
-    "test": "tsc --project test/tsconfig.json"
+    "test": "tsc --project test/tsconfig.json",
+    "watch": "tsc --watch"
   },
   "keywords": [
     "wgsl_reflect",

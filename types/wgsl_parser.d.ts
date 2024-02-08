@@ -7,6 +7,7 @@ export declare class WgslParser {
     _tokens: Array<Token>;
     _current: number;
     _context: AST.ParseContext;
+    _deferArrayCountEval: Array<Object>;
     parse(tokensOrCode: Array<Token> | string): Array<AST.Statement>;
     _initialize(tokensOrCode: Array<Token> | string): void;
     _error(token: Token, message: string | null): Object;
@@ -34,7 +35,7 @@ export declare class WgslParser {
     _loop_statement(): AST.Loop | null;
     _switch_statement(): AST.Switch | null;
     _switch_body(): Array<AST.Statement>;
-    _case_selectors(): Array<string>;
+    _case_selectors(): Array<AST.Expression>;
     _case_body(): Array<AST.Statement>;
     _if_statement(): AST.If | null;
     _match_elseif(): boolean;

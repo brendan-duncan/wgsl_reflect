@@ -382,4 +382,29 @@ struct S {
     test.equals(t[0].type.format, "rgba8unorm");
     test.equals(t[0].type.access, "read_write");
   });
+
+  test("post const array count", function (test) {
+    const t = parser.parse(`alias Arr = array<f32, SIZE>;
+      const SIZE = 3u + FOO;
+      const FOO = 2u;`);
+      test.validateObject(t, [
+        {
+          astNodeType: "alias",
+          name: "Arr",
+          type: {
+            name: "array",
+            format: {
+              name: "f32",
+            },
+            count: 5,
+          },
+        },
+        {
+          astNodeType: "const",
+        },
+        {
+          astNodeType: "const",
+        }
+      ]);
+  });
 });

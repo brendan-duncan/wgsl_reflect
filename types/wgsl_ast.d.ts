@@ -449,6 +449,7 @@ export declare class VariableExpr extends Expression {
     constructor(name: string);
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;
+    evaluate(context: ParseContext): number;
 }
 /**
  * @class ConstExpr
@@ -562,9 +563,9 @@ export declare class SwitchCase extends Node {
  * @category AST
  */
 export declare class Case extends SwitchCase {
-    selector: Array<string>;
+    selector: Array<Expression>;
     body: Array<Statement>;
-    constructor(selector: Array<string>, body: Array<Statement>);
+    constructor(selector: Array<Expression>, body: Array<Statement>);
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;
 }
