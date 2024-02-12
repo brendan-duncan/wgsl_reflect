@@ -115,6 +115,12 @@ class AliasInfo {
   type: TypeInfo;
 }
 
+class EntryFunctions {
+  vertex: Array<FunctionInfo>;
+  fragment: Array<FunctionInfo>;
+  compute: Array<FunctionInfo>;
+}
+
 class FunctionInfo {
   name: string;
   stage: string | null;
