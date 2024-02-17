@@ -67,7 +67,7 @@ export class WgslParser {
   }
 
   _error(token: Token, message: string | null): Object {
-    console.error(token, message);
+    //console.error(token, message);
     return {
       token,
       message,

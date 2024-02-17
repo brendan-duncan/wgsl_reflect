@@ -9,10 +9,11 @@ export class WgslParser {
         this._tokens = [];
         this._current = 0;
         this._context = new AST.ParseContext();
+        this._deferArrayCountEval = [];
     }
     parse(tokensOrCode) {
         this._initialize(tokensOrCode);
-        console.log("!!!!!!!!!!!!!");
+        this._deferArrayCountEval.length = 0;
         const statements = [];
         while (!this._isAtEnd()) {
             const statement = this._global_decl_or_directive();
@@ -20,6 +21,29 @@ export class WgslParser {
                 break;
             }
             statements.push(statement);
+        }
+        // Since constants can be declared after they are used, and
+        // constants can be used to size arrays, defer calculating the
+        // size until after the shader has finished parsing.
+        if (this._deferArrayCountEval.length > 0) {
+            for (const arrayDecl of this._deferArrayCountEval) {
+                const arrayType = arrayDecl["arrayType"];
+                const countNode = arrayDecl["countNode"];
+                if (countNode instanceof AST.VariableExpr) {
+                    const variable = countNode;
+                    const name = variable.name;
+                    const constant = this._context.constants.get(name);
+                    if (constant) {
+                        try {
+                            const count = constant.evaluate(this._context);
+                            arrayType.count = count;
+                        }
+                        catch (e) {
+                        }
+                    }
+                }
+            }
+            this._deferArrayCountEval.length = 0;
         }
         return statements;
     }
@@ -39,7 +63,7 @@ export class WgslParser {
         this._current = 0;
     }
     _error(token, message) {
-        console.error(token, message);
+        //console.error(token, message);
         return {
             token,
             message,
@@ -514,13 +538,12 @@ export class WgslParser {
         return cases;
     }
     _case_selectors() {
-        var _a, _b, _c, _d;
         // const_literal (comma const_literal)* comma?
         const selectors = [
-            (_b = (_a = this._shift_expression()) === null || _a === void 0 ? void 0 : _a.evaluate(this._context).toString()) !== null && _b !== void 0 ? _b : "",
+            this._shift_expression(), //?.evaluate(this._context).toString() ?? "",
         ];
         while (this._match(TokenTypes.tokens.comma)) {
-            selectors.push((_d = (_c = this._shift_expression()) === null || _c === void 0 ? void 0 : _c.evaluate(this._context).toString()) !== null && _d !== void 0 ? _d : "");
+            selectors.push(this._shift_expression());
         }
         return selectors;
     }
@@ -878,8 +901,9 @@ export class WgslParser {
         if (this._match(TokenTypes.tokens.colon)) {
             const attrs = this._attribute();
             type = this._type_decl();
-            if (type != null)
+            if (type != null) {
                 type.attributes = attrs;
+            }
         }
         let value = null;
         if (this._match(TokenTypes.tokens.equal)) {
@@ -1095,6 +1119,7 @@ export class WgslParser {
             let format = null;
             let countInt = -1;
             const array = this._previous();
+            let countNode = null;
             if (this._match(TokenTypes.tokens.less_than)) {
                 format = this._type_decl();
                 if (this._context.aliases.has(format.name)) {
@@ -1102,13 +1127,26 @@ export class WgslParser {
                 }
                 let count = "";
                 if (this._match(TokenTypes.tokens.comma)) {
-                    const c = this._shift_expression();
-                    count = c.evaluate(this._context).toString();
+                    countNode = this._shift_expression();
+                    // If we can't evaluate the node, defer evaluating it until after the shader has
+                    // finished being parsed, because const statements can be declared **after** they
+                    // are used.
+                    try {
+                        count = countNode.evaluate(this._context).toString();
+                        countNode = null;
+                    }
+                    catch (e) {
+                        count = "1";
+                    }
                 }
                 this._consume(TokenTypes.tokens.greater_than, "Expected '>' for array.");
                 countInt = count ? parseInt(count) : 0;
             }
-            return new AST.ArrayType(array.toString(), attrs, format, countInt);
+            const arrayType = new AST.ArrayType(array.toString(), attrs, format, countInt);
+            if (countNode) {
+                this._deferArrayCountEval.push({ arrayType, countNode });
+            }
+            return arrayType;
         }
         return null;
     }

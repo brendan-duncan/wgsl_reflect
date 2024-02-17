@@ -787,6 +787,13 @@ export class VariableExpr extends Expression {
     search(callback) {
         callback(this);
     }
+    evaluate(context) {
+        const constant = context.constants.get(this.name);
+        if (!constant) {
+            throw new Error("Cannot evaluate node");
+        }
+        return constant.evaluate(context);
+    }
 }
 /**
  * @class ConstExpr
