@@ -282,7 +282,7 @@ export class TokenTypes {
       TokenClass.token,
       /0x[0-9a-fA-F]+u|0u|[1-9][0-9]*u/
     ),
-    ident: new TokenType("ident", TokenClass.token, /[a-zA-Z][0-9a-zA-Z_]*/),
+    ident: new TokenType("ident", TokenClass.token, /[_a-zA-Z][0-9a-zA-Z_]*/),
     and: new TokenType("and", TokenClass.token, "&"),
     and_and: new TokenType("and_and", TokenClass.token, "&&"),
     arrow: new TokenType("arrow ", TokenClass.token, "->"),

@@ -4,6 +4,11 @@ import { WgslParser } from "../../../wgsl_reflect.module.js";
 group("Parser", function () {
   const parser = new WgslParser();
 
+  test("_", function (test) {
+    const t = parser.parse("fn foo(_point : vec3<f32>) {}");
+    test.equals(t.length, 1);
+  });
+
   test("empty", function (test) {
     test.equals(parser.parse().length, 0);
     test.equals(parser.parse("").length, 0);
