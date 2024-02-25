@@ -482,6 +482,31 @@ export class WgslReflect {
     }
   }
 
+  /// Find a resource by its group and binding.
+  findResource(group: number, binding: number) {
+    for (const u of this.uniforms) {
+      if (u.group == group && u.binding == binding) {
+        return u;
+      }
+    }
+    for (const s of this.storage) {
+      if (s.group == group && s.binding == binding) {
+        return s;
+      }
+    }
+    for (const t of this.textures) {
+      if (t.group == group && t.binding == binding) {
+        return t;
+      }
+    }
+    for (const s of this.samplers) {
+      if (s.group == group && s.binding == binding) {
+        return s;
+      }
+    }
+    return null;
+  }
+
   _findResource(name: string): VariableInfo | null {
     for (const u of this.uniforms) {
       if (u.name == name) {

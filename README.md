@@ -38,6 +38,9 @@ class WgslReflect {
   /// All entry functions in the shader: vertex, fragment, and/or compute.
   entry: EntryFunctions;
 
+  // Find a resource by its group and binding.
+  findResource(group: number, binding: number): VariableInfo | null;
+
   // Get the bind groups used by the shader, bindGroups[group][binding].
   getBindGroups(): Array<Array<VariableInfo>>;
 }
