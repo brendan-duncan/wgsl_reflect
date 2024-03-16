@@ -88,15 +88,14 @@ export class MemberInfo {
 export class StructInfo extends TypeInfo {
   members: Array<MemberInfo>;
   align: number;
-  startLine: number;
-  endLine: number;
+  startLine: number = -1;
+  endLine: number = -1;
+  inUse: boolean = false;
 
   constructor(name: string, attributes: Array<AST.Attribute> | null) {
     super(name, attributes);
     this.members = [];
     this.align = 0;
-    this.startLine = -1;
-    this.endLine = -1;
   }
 
   get isStruct(): boolean {
@@ -283,6 +282,8 @@ export class FunctionInfo {
   resources: Array<VariableInfo> = [];
   startLine: number = -1;
   endLine: number = -1;
+  inUse: boolean = false;
+  calls: Set<FunctionInfo> = new Set();
 
   constructor(name: string, stage: string | null = null) {
     this.name = name;
@@ -318,6 +319,8 @@ export class OverrideInfo {
 class _FunctionResources {
   node: AST.Function;
   resources: Array<VariableInfo> | null = null;
+  inUse: boolean = false;
+  info: FunctionInfo | null = null;
   constructor(node: AST.Function) {
     this.node = node;
   }
@@ -482,16 +485,36 @@ export class WgslReflect {
         const fn = new FunctionInfo(node.name, stage?.name);
         fn.startLine = node.startLine;
         fn.endLine = node.endLine;
-        fn.resources = this._findResources(node);
         this.functions.push(fn);
+        this._functions.get(node.name)!.info = fn;
 
-        if (stage) {          
+        if (stage) {
+          this._functions.get(node.name)!.inUse = true;
+          fn.inUse = true;
+          fn.resources = this._findResources(node, !!stage);
           fn.inputs = this._getInputs(node.args);
           fn.outputs = this._getOutputs(node.returnType);
           this.entry[stage.name].push(fn);
         }
         continue;
       }
+    }
+
+    for (const fn of this._functions.values()) {
+      if (fn.info) {
+        fn.info.inUse = fn.inUse;
+        this._addCalls(fn.node, fn.info.calls);
+      }
+    }
+  }
+
+  _addCalls(fn: AST.Function, calls: Set<FunctionInfo>, ) {
+    for (const call of fn.calls) {
+      const info = this._functions.get(call.name)?.info;
+      if (info) {
+        calls.add(info);
+      }
+      this._addCalls(call, calls);
     }
   }
 
@@ -544,7 +567,7 @@ export class WgslReflect {
     return null;
   }
 
-  _findResources(fn: AST.Node): Array<VariableInfo> {
+  _findResources(fn: AST.Node, isEntry: boolean): Array<VariableInfo> {
     const resources = [];
     const self = this;
     const varStack = [];
@@ -579,12 +602,29 @@ export class WgslReflect {
         }
       } else if (node instanceof AST.CallExpr) {
         const c = node as AST.CallExpr;
-        const fn = self._functions.get(c.name);
-        if (fn) {
-          if (fn.resources === null) {
-            fn.resources = self._findResources(fn.node);
+        const callFn = self._functions.get(c.name);
+        if (callFn) {
+          if (isEntry) {
+            callFn.inUse = true;
           }
-          resources.push(...fn.resources);
+          (fn as AST.Function).calls.add(callFn.node);
+          if (callFn.resources === null) {
+            callFn.resources = self._findResources(callFn.node, isEntry);
+          }
+          resources.push(...callFn.resources);
+        }
+      } else if (node instanceof AST.Call) {
+        const c = node as AST.Call;
+        const callFn = self._functions.get(c.name);
+        if (callFn) {
+          if (isEntry) {
+            callFn.inUse = true;
+          }
+          (fn as AST.Function).calls.add(callFn.node);
+          if (callFn.resources === null) {
+            callFn.resources = self._findResources(callFn.node, isEntry);
+          }
+          resources.push(...callFn.resources);
         }
       }
     });

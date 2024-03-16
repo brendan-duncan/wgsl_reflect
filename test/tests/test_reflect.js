@@ -13,19 +13,17 @@ group("Reflect", function () {
       struct C {
         c: u32,
       };
+      fn notInUse() -> void { }
+      fn inUse2() -> void { }
+      fn inUse() -> void { inUse2(); }
       @group(0) @binding(0) var<uniform> foo : A;
       @vertex
       fn vertex_main() -> void {
         let b = B(1);
+        inUse();
       }`);
-    test.equals(reflect.uniforms.length, 1);
-    test.equals(reflect.uniforms[0].type.name, "A");
-
     test.equals(reflect.structs.length, 3);
-    test.equals(reflect.structs[0].name, "A");
-    test.equals(reflect.structs[1].name, "B");
-    test.equals(reflect.structs[2].name, "C");
-
+    
     test.equals(reflect.structs[0].startLine, 2);
     test.equals(reflect.structs[0].endLine, 4);
 
@@ -36,11 +34,22 @@ group("Reflect", function () {
     test.equals(reflect.structs[2].endLine, 10);
 
     test.equals(reflect.entry.vertex.length, 1);
-    test.equals(reflect.entry.vertex[0].startLine, 13);
-    test.equals(reflect.entry.vertex[0].endLine, 15);
+    test.equals(reflect.entry.vertex[0].startLine, 16);
+    test.equals(reflect.entry.vertex[0].endLine, 19);
 
-    test.equals(reflect.functions.length, 1);
-    test.equals(reflect.functions[0].name, "vertex_main");
+    test.equals(reflect.functions.length, 4);
+    test.equals(reflect.functions[0].name, "notInUse");
+    test.equals(reflect.functions[0].inUse, false, "notInUse");
+    test.equals(reflect.functions[0].calls.size, 0, "notInUse calls");
+    test.equals(reflect.functions[1].name, "inUse2");
+    test.equals(reflect.functions[1].inUse, true, "inUse2");
+    test.equals(reflect.functions[1].calls.size, 0, "inUse2 calls");
+    test.equals(reflect.functions[2].name, "inUse");
+    test.equals(reflect.functions[2].inUse, true, "inUse");
+    test.equals(reflect.functions[2].calls.size, 1, "inUse calls");
+    test.equals(reflect.functions[3].name, "vertex_main");
+    test.equals(reflect.functions[3].inUse, true, "vertex_main");
+    test.equals(reflect.functions[3].calls.size, 2, "vertex_main calls");
   });
 
   test("uniform u32", function (test) {

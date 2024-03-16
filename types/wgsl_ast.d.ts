@@ -44,6 +44,7 @@ export declare class Function extends Statement {
     attributes: Array<Attribute> | null;
     startLine: number;
     endLine: number;
+    calls: Set<Function>;
     constructor(name: string, args: Array<Argument>, returnType: Type | null, body: Array<Statement>, startLine: number, endLine: number);
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;
@@ -217,6 +218,7 @@ export declare class Call extends Statement {
     args: Array<Expression>;
     constructor(name: string, args: Array<Expression>);
     get astNodeType(): string;
+    search(callback: (node: Node) => void): void;
 }
 /**
  * @class Loop

@@ -79,6 +79,7 @@ export class Function extends Statement {
   attributes: Array<Attribute> | null;
   startLine: number;
   endLine: number;
+  calls: Set<Function> = new Set();
 
   constructor(
     name: string,
@@ -463,6 +464,13 @@ export class Call extends Statement {
 
   get astNodeType() {
     return "call";
+  }
+
+  search(callback: (node: Node) => void) {
+    for (const node of this.args) {
+      node.search(callback);
+    }
+    callback(this);
   }
 }
 

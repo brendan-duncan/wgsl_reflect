@@ -29,6 +29,7 @@ export declare class StructInfo extends TypeInfo {
     align: number;
     startLine: number;
     endLine: number;
+    inUse: boolean;
     constructor(name: string, attributes: Array<AST.Attribute> | null);
     get isStruct(): boolean;
 }
@@ -104,6 +105,8 @@ export declare class FunctionInfo {
     resources: Array<VariableInfo>;
     startLine: number;
     endLine: number;
+    inUse: boolean;
+    calls: Set<FunctionInfo>;
     constructor(name: string, stage?: string | null);
 }
 export declare class EntryFunctions {
@@ -121,6 +124,8 @@ export declare class OverrideInfo {
 declare class _FunctionResources {
     node: AST.Function;
     resources: Array<VariableInfo> | null;
+    inUse: boolean;
+    info: FunctionInfo | null;
     constructor(node: AST.Function);
 }
 export declare class WgslReflect {
@@ -138,9 +143,10 @@ export declare class WgslReflect {
     constructor(code: string | undefined);
     _isStorageTexture(type: TypeInfo): boolean;
     update(code: string): void;
+    _addCalls(fn: AST.Function, calls: Set<FunctionInfo>): void;
     findResource(group: number, binding: number): VariableInfo;
     _findResource(name: string): VariableInfo | null;
-    _findResources(fn: AST.Node): Array<VariableInfo>;
+    _findResources(fn: AST.Node, isEntry: boolean): Array<VariableInfo>;
     getBindGroups(): Array<Array<VariableInfo>>;
     _getOutputs(type: AST.Type, outputs?: Array<OutputInfo> | undefined): Array<OutputInfo>;
     _getStructOutputs(struct: AST.Struct, outputs: Array<OutputInfo>): void;
