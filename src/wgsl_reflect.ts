@@ -88,11 +88,15 @@ export class MemberInfo {
 export class StructInfo extends TypeInfo {
   members: Array<MemberInfo>;
   align: number;
+  startLine: number;
+  endLine: number;
 
   constructor(name: string, attributes: Array<AST.Attribute> | null) {
     super(name, attributes);
     this.members = [];
     this.align = 0;
+    this.startLine = -1;
+    this.endLine = -1;
   }
 
   get isStruct(): boolean {
@@ -277,6 +281,8 @@ export class FunctionInfo {
   inputs: Array<InputInfo> = [];
   outputs: Array<OutputInfo> = [];
   resources: Array<VariableInfo> = [];
+  startLine: number = -1;
+  endLine: number = -1;
 
   constructor(name: string, stage: string | null = null) {
     this.name = name;
@@ -334,6 +340,8 @@ export class WgslReflect {
   structs: Array<StructInfo> = [];
   /// All entry functions in the shader: vertex, fragment, and/or compute.
   entry: EntryFunctions = new EntryFunctions();
+  /// All functions in the shader, including entry functions.
+  functions: Array<FunctionInfo> = [];
 
   _types: Map<AST.Type, TypeInfo> = new Map();
   _functions: Map<string, _FunctionResources> = new Map();
@@ -369,9 +377,10 @@ export class WgslReflect {
         if (info instanceof StructInfo) {
           this.structs.push(info as StructInfo);
         }
-        continue;
       }
+    }
 
+    for (const node of ast) {
       if (node instanceof AST.Alias) {
         this.aliases.push(this._getAliasInfo(node as AST.Alias));
         continue;
@@ -470,11 +479,15 @@ export class WgslReflect {
         const computeStage = this._getAttribute(node, "compute");
         const stage = vertexStage || fragmentStage || computeStage;
 
-        if (stage) {
-          const fn = new FunctionInfo(node.name, stage?.name);
+        const fn = new FunctionInfo(node.name, stage?.name);
+        fn.startLine = node.startLine;
+        fn.endLine = node.endLine;
+        fn.resources = this._findResources(node);
+        this.functions.push(fn);
+
+        if (stage) {          
           fn.inputs = this._getInputs(node.args);
           fn.outputs = this._getOutputs(node.returnType);
-          fn.resources = this._findResources(node);
           this.entry[stage.name].push(fn);
         }
         continue;
@@ -582,11 +595,17 @@ export class WgslReflect {
     const groups: Array<Array<VariableInfo>> = [];
 
     function _makeRoom(group: number, binding: number) {
-      if (group >= groups.length) groups.length = group + 1;
+      if (group >= groups.length) {
+        groups.length = group + 1;
+      }
 
-      if (groups[group] === undefined) groups[group] = [];
+      if (groups[group] === undefined) {
+        groups[group] = [];
+      }
 
-      if (binding >= groups[group].length) groups[group].length = binding + 1;
+      if (binding >= groups[group].length) {
+        groups[group].length = binding + 1;
+      }
     }
 
     for (const u of this.uniforms) {
@@ -620,13 +639,17 @@ export class WgslReflect {
     type: AST.Type,
     outputs: Array<OutputInfo> | undefined = undefined
   ): Array<OutputInfo> {
-    if (outputs === undefined) outputs = [];
+    if (outputs === undefined) {
+      outputs = [];
+    }
 
     if (type instanceof AST.Struct) {
       this._getStructOutputs(type, outputs);
     } else {
       const output = this._getOutputInfo(type);
-      if (output !== null) outputs.push(output);
+      if (output !== null) {
+        outputs.push(output);
+      }
     }
 
     return outputs;
@@ -671,14 +694,18 @@ export class WgslReflect {
     args: Array<AST.Argument>,
     inputs: Array<InputInfo> | undefined = undefined
   ): Array<InputInfo> {
-    if (inputs === undefined) inputs = [];
+    if (inputs === undefined) {
+      inputs = [];
+    }
 
     for (const arg of args) {
       if (arg.type instanceof AST.Struct) {
         this._getStructInputs(arg.type, inputs);
       } else {
         const input = this._getInputInfo(arg);
-        if (input !== null) inputs.push(input);
+        if (input !== null) {
+          inputs.push(input);
+        }
       }
     }
 
@@ -691,7 +718,9 @@ export class WgslReflect {
         this._getStructInputs(m.type, inputs);
       } else {
         const input = this._getInputInfo(m);
-        if (input !== null) inputs.push(input);
+        if (input !== null) {
+          inputs.push(input);
+        }
       }
     }
   }
@@ -730,7 +759,9 @@ export class WgslReflect {
 
   _getAlias(name: string): TypeInfo | null {
     for (const a of this.aliases) {
-      if (a.name == name) return a.type;
+      if (a.name == name) {
+        return a.type;
+      }
     }
     return null;
   }
@@ -761,6 +792,8 @@ export class WgslReflect {
     if (type instanceof AST.Struct) {
       const s = type as AST.Struct;
       const info = new StructInfo(s.name, attributes);
+      info.startLine = s.startLine;
+      info.endLine = s.endLine;
       for (const m of s.members) {
         const t = this._getTypeInfo(m.type!, m.attributes);
         info.members.push(new MemberInfo(m.name, t, m.attributes));
@@ -824,7 +857,9 @@ export class WgslReflect {
       const member = struct.members[mi];
 
       const sizeInfo = this._getTypeSize(member);
-      if (!sizeInfo) continue;
+      if (!sizeInfo) {
+        continue;
+      }
 
       const type = this._getAlias(member.type.name) ?? member.type;
       const align = sizeInfo.align;
@@ -847,12 +882,16 @@ export class WgslReflect {
   _getTypeSize(
     type: TypeInfo | MemberInfo | null | undefined
   ): _TypeSize | null {
-    if (type === null || type === undefined) return null;
+    if (type === null || type === undefined) {
+      return null;
+    }
 
     const explicitSize = this._getAttributeNum(type.attributes, "size", 0);
     const explicitAlign = this._getAttributeNum(type.attributes, "align", 0);
 
-    if (type instanceof MemberInfo) type = type.type;
+    if (type instanceof MemberInfo) {
+      type = type.type;
+    }
 
     if (type instanceof TypeInfo) {
       const alias = this._getAlias(type.name);
@@ -913,7 +952,9 @@ export class WgslReflect {
       );
       size = N * stride;
 
-      if (explicitSize) size = explicitSize;
+      if (explicitSize) {
+        size = explicitSize;
+      }
 
       return new _TypeSize(
         Math.max(explicitAlign, align),
@@ -976,10 +1017,14 @@ export class WgslReflect {
 
   _getAttribute(node: AST.Node, name: string): AST.Attribute | null {
     const obj = node as Object;
-    if (!obj || !obj["attributes"]) return null;
+    if (!obj || !obj["attributes"]) {
+      return null;
+    }
     const attrs = obj["attributes"];
     for (let a of attrs) {
-      if (a.name == name) return a;
+      if (a.name == name) {
+        return a;
+      }
     }
     return null;
   }
@@ -989,7 +1034,9 @@ export class WgslReflect {
     name: string,
     defaultValue: number
   ): number {
-    if (attributes === null) return defaultValue;
+    if (attributes === null) {
+      return defaultValue;
+    }
     for (let a of attributes) {
       if (a.name == name) {
         let v = a !== null && a.value !== null ? a.value : defaultValue;

@@ -6,6 +6,7 @@ import * as AST from "./wgsl_ast.js";
 export declare class WgslParser {
     _tokens: Array<Token>;
     _current: number;
+    _currentLine: number;
     _context: AST.ParseContext;
     _deferArrayCountEval: Array<Object>;
     parse(tokensOrCode: Array<Token> | string): Array<AST.Statement>;

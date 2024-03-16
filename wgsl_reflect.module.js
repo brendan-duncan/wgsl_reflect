@@ -64,12 +64,14 @@ class Statement extends Node {
  * @category AST
  */
 class Function extends Statement {
-    constructor(name, args, returnType, body) {
+    constructor(name, args, returnType, body, startLine, endLine) {
         super();
         this.name = name;
         this.args = args;
         this.returnType = returnType;
         this.body = body;
+        this.startLine = startLine;
+        this.endLine = endLine;
     }
     get astNodeType() {
         return "function";
@@ -516,9 +518,11 @@ class Type extends Statement {
  * @category AST
  */
 class Struct extends Type {
-    constructor(name, members) {
+    constructor(name, members, startLine, endLine) {
         super(name);
         this.members = members;
+        this.startLine = startLine;
+        this.endLine = endLine;
     }
     get astNodeType() {
         return "struct";
@@ -1524,8 +1528,9 @@ class WgslScanner {
     scanTokens() {
         while (!this._isAtEnd()) {
             this._start = this._current;
-            if (!this.scanToken())
+            if (!this.scanToken()) {
                 throw `Invalid syntax at line ${this._line}`;
+            }
         }
         this._tokens.push(new Token(TokenTypes.eof, "", this._line));
         return this._tokens;
@@ -1547,8 +1552,9 @@ class WgslScanner {
             // If it's a // comment, skip everything until the next line-feed.
             if (this._peekAhead() == "/") {
                 while (lexeme != "\n") {
-                    if (this._isAtEnd())
+                    if (this._isAtEnd()) {
                         return true;
+                    }
                     lexeme = this._advance();
                 }
                 // skip the linefeed
@@ -1561,8 +1567,9 @@ class WgslScanner {
                 this._advance();
                 let commentLevel = 1;
                 while (commentLevel > 0) {
-                    if (this._isAtEnd())
+                    if (this._isAtEnd()) {
                         return true;
+                    }
                     lexeme = this._advance();
                     if (lexeme == "\n") {
                         this._line++;
@@ -1640,8 +1647,9 @@ class WgslScanner {
                     }
                 }
                 if (matchedType === TokenTypes.none) {
-                    if (matchType === TokenTypes.none)
+                    if (matchType === TokenTypes.none) {
                         return false;
+                    }
                     this._current--;
                     this._addToken(matchType);
                     return true;
@@ -1650,13 +1658,15 @@ class WgslScanner {
                 this._current += lookAhead + 1;
             }
             matchType = matchedType;
-            if (this._isAtEnd())
+            if (this._isAtEnd()) {
                 break;
+            }
             lexeme += this._advance();
         }
         // We got to the end of the input stream. Then the token we've ready so far is it.
-        if (matchType === TokenTypes.none)
+        if (matchType === TokenTypes.none) {
             return false;
+        }
         this._addToken(matchType);
         return true;
     }
@@ -1684,8 +1694,9 @@ class WgslScanner {
         else {
             // regex
             const match = rule.exec(lexeme);
-            if (match && match.index == 0 && match[0] == lexeme)
+            if (match && match.index == 0 && match[0] == lexeme) {
                 return true;
+            }
         }
         return false;
     }
@@ -1704,8 +1715,9 @@ class WgslScanner {
     }
     _peekAhead(offset = 0) {
         offset = offset || 0;
-        if (this._current + offset >= this._source.length)
+        if (this._current + offset >= this._source.length) {
             return "\0";
+        }
         return this._source[this._current + offset];
     }
     _addToken(type) {
@@ -1722,6 +1734,7 @@ class WgslParser {
     constructor() {
         this._tokens = [];
         this._current = 0;
+        this._currentLine = 0;
         this._context = new ParseContext();
         this._deferArrayCountEval = [];
     }
@@ -1777,7 +1790,6 @@ class WgslParser {
         this._current = 0;
     }
     _error(token, message) {
-        //console.error(token, message);
         return {
             token,
             message,
@@ -1826,6 +1838,8 @@ class WgslParser {
         return tk.type == types;
     }
     _advance() {
+        var _a, _b;
+        this._currentLine = (_b = (_a = this._peek()) === null || _a === void 0 ? void 0 : _a.line) !== null && _b !== void 0 ? _b : -1;
         if (!this._isAtEnd()) {
             this._current++;
         }
@@ -1899,14 +1913,16 @@ class WgslParser {
         }
         if (this._check(TokenTypes.keywords.struct)) {
             const _struct = this._struct_decl();
-            if (_struct != null)
+            if (_struct != null) {
                 _struct.attributes = attrs;
+            }
             return _struct;
         }
         if (this._check(TokenTypes.keywords.fn)) {
             const _fn = this._function_decl();
-            if (_fn != null)
+            if (_fn != null) {
                 _fn.attributes = attrs;
+            }
             return _fn;
         }
         return null;
@@ -1914,8 +1930,10 @@ class WgslParser {
     _function_decl() {
         // attribute* function_header compound_statement
         // function_header: fn ident paren_left param_list? paren_right (arrow attribute* type_decl)?
-        if (!this._match(TokenTypes.keywords.fn))
+        if (!this._match(TokenTypes.keywords.fn)) {
             return null;
+        }
+        const startLine = this._currentLine;
         const name = this._consume(TokenTypes.tokens.ident, "Expected function name.").toString();
         this._consume(TokenTypes.tokens.paren_left, "Expected '(' for function arguments.");
         const args = [];
@@ -1945,7 +1963,8 @@ class WgslParser {
             }
         }
         const body = this._compound_statement();
-        return new Function(name, args, _return, body);
+        const endLine = this._currentLine;
+        return new Function(name, args, _return, body, startLine, endLine);
     }
     _compound_statement() {
         // brace_left statement* brace_right
@@ -2564,6 +2583,7 @@ class WgslParser {
         if (!this._match(TokenTypes.keywords.struct)) {
             return null;
         }
+        const startLine = this._currentLine;
         const name = this._consume(TokenTypes.tokens.ident, "Expected name for struct.").toString();
         // struct_body_decl: brace_left (struct_member comma)* struct_member comma? brace_right
         this._consume(TokenTypes.tokens.brace_left, "Expected '{' for struct body.");
@@ -2585,7 +2605,8 @@ class WgslParser {
             members.push(new Member(memberName, memberType, memberAttrs));
         }
         this._consume(TokenTypes.tokens.brace_right, "Expected '}' after struct body.");
-        const structNode = new Struct(name, members);
+        const endLine = this._currentLine;
+        const structNode = new Struct(name, members, startLine, endLine);
         this._context.structs.set(name, structNode);
         return structNode;
     }
@@ -3014,6 +3035,8 @@ class StructInfo extends TypeInfo {
         super(name, attributes);
         this.members = [];
         this.align = 0;
+        this.startLine = -1;
+        this.endLine = -1;
     }
     get isStruct() {
         return true;
@@ -3124,6 +3147,8 @@ class FunctionInfo {
         this.inputs = [];
         this.outputs = [];
         this.resources = [];
+        this.startLine = -1;
+        this.endLine = -1;
         this.name = name;
         this.stage = stage;
     }
@@ -3167,6 +3192,8 @@ class WgslReflect {
         this.structs = [];
         /// All entry functions in the shader: vertex, fragment, and/or compute.
         this.entry = new EntryFunctions();
+        /// All functions in the shader, including entry functions.
+        this.functions = [];
         this._types = new Map();
         this._functions = new Map();
         if (code) {
@@ -3193,8 +3220,9 @@ class WgslReflect {
                 if (info instanceof StructInfo) {
                     this.structs.push(info);
                 }
-                continue;
             }
+        }
+        for (const node of ast) {
             if (node instanceof Alias) {
                 this.aliases.push(this._getAliasInfo(node));
                 continue;
@@ -3254,11 +3282,14 @@ class WgslReflect {
                 const fragmentStage = this._getAttribute(node, "fragment");
                 const computeStage = this._getAttribute(node, "compute");
                 const stage = vertexStage || fragmentStage || computeStage;
+                const fn = new FunctionInfo(node.name, stage === null || stage === void 0 ? void 0 : stage.name);
+                fn.startLine = node.startLine;
+                fn.endLine = node.endLine;
+                fn.resources = this._findResources(node);
+                this.functions.push(fn);
                 if (stage) {
-                    const fn = new FunctionInfo(node.name, stage === null || stage === void 0 ? void 0 : stage.name);
                     fn.inputs = this._getInputs(node.args);
                     fn.outputs = this._getOutputs(node.returnType);
-                    fn.resources = this._findResources(node);
                     this.entry[stage.name].push(fn);
                 }
                 continue;
@@ -3366,12 +3397,15 @@ class WgslReflect {
     getBindGroups() {
         const groups = [];
         function _makeRoom(group, binding) {
-            if (group >= groups.length)
+            if (group >= groups.length) {
                 groups.length = group + 1;
-            if (groups[group] === undefined)
+            }
+            if (groups[group] === undefined) {
                 groups[group] = [];
-            if (binding >= groups[group].length)
+            }
+            if (binding >= groups[group].length) {
                 groups[group].length = binding + 1;
+            }
         }
         for (const u of this.uniforms) {
             _makeRoom(u.group, u.binding);
@@ -3396,15 +3430,17 @@ class WgslReflect {
         return groups;
     }
     _getOutputs(type, outputs = undefined) {
-        if (outputs === undefined)
+        if (outputs === undefined) {
             outputs = [];
+        }
         if (type instanceof Struct) {
             this._getStructOutputs(type, outputs);
         }
         else {
             const output = this._getOutputInfo(type);
-            if (output !== null)
+            if (output !== null) {
                 outputs.push(output);
+            }
         }
         return outputs;
     }
@@ -3436,16 +3472,18 @@ class WgslReflect {
         return null;
     }
     _getInputs(args, inputs = undefined) {
-        if (inputs === undefined)
+        if (inputs === undefined) {
             inputs = [];
+        }
         for (const arg of args) {
             if (arg.type instanceof Struct) {
                 this._getStructInputs(arg.type, inputs);
             }
             else {
                 const input = this._getInputInfo(arg);
-                if (input !== null)
+                if (input !== null) {
                     inputs.push(input);
+                }
             }
         }
         return inputs;
@@ -3457,8 +3495,9 @@ class WgslReflect {
             }
             else {
                 const input = this._getInputInfo(m);
-                if (input !== null)
+                if (input !== null) {
                     inputs.push(input);
+                }
             }
         }
     }
@@ -3492,8 +3531,9 @@ class WgslReflect {
     }
     _getAlias(name) {
         for (const a of this.aliases) {
-            if (a.name == name)
+            if (a.name == name) {
                 return a.type;
+            }
         }
         return null;
     }
@@ -3517,6 +3557,8 @@ class WgslReflect {
         if (type instanceof Struct) {
             const s = type;
             const info = new StructInfo(s.name, attributes);
+            info.startLine = s.startLine;
+            info.endLine = s.endLine;
             for (const m of s.members) {
                 const t = this._getTypeInfo(m.type, m.attributes);
                 info.members.push(new MemberInfo(m.name, t, m.attributes));
@@ -3573,8 +3615,9 @@ class WgslReflect {
         for (let mi = 0, ml = struct.members.length; mi < ml; ++mi) {
             const member = struct.members[mi];
             const sizeInfo = this._getTypeSize(member);
-            if (!sizeInfo)
+            if (!sizeInfo) {
                 continue;
+            }
             (_a = this._getAlias(member.type.name)) !== null && _a !== void 0 ? _a : member.type;
             const align = sizeInfo.align;
             const size = sizeInfo.size;
@@ -3591,12 +3634,14 @@ class WgslReflect {
     }
     _getTypeSize(type) {
         var _a;
-        if (type === null || type === undefined)
+        if (type === null || type === undefined) {
             return null;
+        }
         const explicitSize = this._getAttributeNum(type.attributes, "size", 0);
         const explicitAlign = this._getAttributeNum(type.attributes, "align", 0);
-        if (type instanceof MemberInfo)
+        if (type instanceof MemberInfo) {
             type = type.type;
+        }
         if (type instanceof TypeInfo) {
             const alias = this._getAlias(type.name);
             if (alias !== null) {
@@ -3639,8 +3684,9 @@ class WgslReflect {
             const N = arrayType.count;
             const stride = this._getAttributeNum((_a = type === null || type === void 0 ? void 0 : type.attributes) !== null && _a !== void 0 ? _a : null, "stride", this._roundUp(align, size));
             size = N * stride;
-            if (explicitSize)
+            if (explicitSize) {
                 size = explicitSize;
+            }
             return new _TypeSize(Math.max(explicitAlign, align), Math.max(explicitSize, size));
         }
         if (type instanceof StructInfo) {
@@ -3684,18 +3730,21 @@ class WgslReflect {
     }
     _getAttribute(node, name) {
         const obj = node;
-        if (!obj || !obj["attributes"])
+        if (!obj || !obj["attributes"]) {
             return null;
+        }
         const attrs = obj["attributes"];
         for (let a of attrs) {
-            if (a.name == name)
+            if (a.name == name) {
                 return a;
+            }
         }
         return null;
     }
     _getAttributeNum(attributes, name, defaultValue) {
-        if (attributes === null)
+        if (attributes === null) {
             return defaultValue;
+        }
         for (let a of attributes) {
             if (a.name == name) {
                 let v = a !== null && a.value !== null ? a.value : defaultValue;

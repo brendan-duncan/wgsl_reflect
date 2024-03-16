@@ -8,6 +8,7 @@ import * as AST from "./wgsl_ast.js";
 export class WgslParser {
   _tokens: Array<Token> = [];
   _current: number = 0;
+  _currentLine: number = 0;
   _context: AST.ParseContext = new AST.ParseContext();
   _deferArrayCountEval: Array<Object> = [];
 
@@ -67,7 +68,6 @@ export class WgslParser {
   }
 
   _error(token: Token, message: string | null): Object {
-    //console.error(token, message);
     return {
       token,
       message,
@@ -125,6 +125,7 @@ export class WgslParser {
   }
 
   _advance(): Token {
+    this._currentLine = this._peek()?.line ?? -1;
     if (!this._isAtEnd()) {
       this._current++;
     }
@@ -210,13 +211,17 @@ export class WgslParser {
 
     if (this._check(TokenTypes.keywords.struct)) {
       const _struct = this._struct_decl();
-      if (_struct != null) _struct.attributes = attrs;
+      if (_struct != null) {
+        _struct.attributes = attrs;
+      }
       return _struct;
     }
 
     if (this._check(TokenTypes.keywords.fn)) {
       const _fn = this._function_decl();
-      if (_fn != null) _fn.attributes = attrs;
+      if (_fn != null) {
+        _fn.attributes = attrs;
+      }
       return _fn;
     }
 
@@ -226,7 +231,11 @@ export class WgslParser {
   _function_decl(): AST.Function | null {
     // attribute* function_header compound_statement
     // function_header: fn ident paren_left param_list? paren_right (arrow attribute* type_decl)?
-    if (!this._match(TokenTypes.keywords.fn)) return null;
+    if (!this._match(TokenTypes.keywords.fn)) {
+      return null;
+    }
+
+    const startLine = this._currentLine;
 
     const name = this._consume(
       TokenTypes.tokens.ident,
@@ -282,7 +291,9 @@ export class WgslParser {
 
     const body = this._compound_statement();
 
-    return new AST.Function(name, args, _return, body);
+    const endLine = this._currentLine;
+
+    return new AST.Function(name, args, _return, body, startLine, endLine);
   }
 
   _compound_statement(): Array<AST.Statement> {
@@ -1106,6 +1117,8 @@ export class WgslParser {
       return null;
     }
 
+    const startLine = this._currentLine;
+
     const name = this._consume(
       TokenTypes.tokens.ident,
       "Expected name for struct."
@@ -1152,7 +1165,9 @@ export class WgslParser {
       "Expected '}' after struct body."
     );
 
-    const structNode = new AST.Struct(name, members);
+    const endLine = this._currentLine;
+
+    const structNode = new AST.Struct(name, members, startLine, endLine);
     this._context.structs.set(name, structNode);
     return structNode;
   }

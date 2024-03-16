@@ -77,18 +77,24 @@ export class Function extends Statement {
   returnType: Type | null;
   body: Array<Statement>;
   attributes: Array<Attribute> | null;
+  startLine: number;
+  endLine: number;
 
   constructor(
     name: string,
     args: Array<Argument>,
     returnType: Type | null,
-    body: Array<Statement>
+    body: Array<Statement>,
+    startLine: number,
+    endLine: number
   ) {
     super();
     this.name = name;
     this.args = args;
     this.returnType = returnType;
     this.body = body;
+    this.startLine = startLine;
+    this.endLine = endLine;
   }
 
   get astNodeType(): string {
@@ -695,10 +701,14 @@ export class Type extends Statement {
  */
 export class Struct extends Type {
   members: Array<Member>;
+  startLine: number;
+  endLine: number;
 
-  constructor(name: string, members: Array<Member>) {
+  constructor(name: string, members: Array<Member>, startLine: number, endLine: number) {
     super(name);
     this.members = members;
+    this.startLine = startLine;
+    this.endLine = endLine;
   }
 
   get astNodeType() {

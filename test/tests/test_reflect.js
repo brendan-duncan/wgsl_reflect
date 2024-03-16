@@ -2,6 +2,47 @@ import { test, group } from "../test.js";
 import { WgslReflect, ResourceType } from "../../../wgsl_reflect.module.js";
 
 group("Reflect", function () {
+  test("unused structs", function (test) {
+    const reflect = new WgslReflect(`
+      struct A {
+        a: u32,
+      };
+      struct B {
+        b: u32,
+      };
+      struct C {
+        c: u32,
+      };
+      @group(0) @binding(0) var<uniform> foo : A;
+      @vertex
+      fn vertex_main() -> void {
+        let b = B(1);
+      }`);
+    test.equals(reflect.uniforms.length, 1);
+    test.equals(reflect.uniforms[0].type.name, "A");
+
+    test.equals(reflect.structs.length, 3);
+    test.equals(reflect.structs[0].name, "A");
+    test.equals(reflect.structs[1].name, "B");
+    test.equals(reflect.structs[2].name, "C");
+
+    test.equals(reflect.structs[0].startLine, 2);
+    test.equals(reflect.structs[0].endLine, 4);
+
+    test.equals(reflect.structs[1].startLine, 5);
+    test.equals(reflect.structs[1].endLine, 7);
+
+    test.equals(reflect.structs[2].startLine, 8);
+    test.equals(reflect.structs[2].endLine, 10);
+
+    test.equals(reflect.entry.vertex.length, 1);
+    test.equals(reflect.entry.vertex[0].startLine, 13);
+    test.equals(reflect.entry.vertex[0].endLine, 15);
+
+    test.equals(reflect.functions.length, 1);
+    test.equals(reflect.functions[0].name, "vertex_main");
+  });
+
   test("uniform u32", function (test) {
     const reflect = new WgslReflect(`
       @group(0) @binding(0) var<uniform> foo : u32;`);

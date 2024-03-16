@@ -13,7 +13,7 @@ import { WgslReflect } from "./wgsl_reflect.module.js";
 const reflect = new WgslReflect(shader_code);
 ```
 
-## Try It Out
+## Example
 
 [WGSL Reflect Example](https://brendan-duncan.github.io/wgsl_reflect/example.html)
 

@@ -25,7 +25,8 @@
   "scripts": {
     "build": "rollup -c rollup.config.js",
     "test": "tsc --project test/tsconfig.json",
-    "watch": "tsc --watch"
+    "watch": "npm run watch:js",
+    "watch:js": "rollup -c rollup.config.js --watch"
   },
   "keywords": [
     "wgsl_reflect",

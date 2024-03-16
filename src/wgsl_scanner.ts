@@ -551,7 +551,9 @@ export class WgslScanner {
   scanTokens(): Array<Token> {
     while (!this._isAtEnd()) {
       this._start = this._current;
-      if (!this.scanToken()) throw `Invalid syntax at line ${this._line}`;
+      if (!this.scanToken()) {
+        throw `Invalid syntax at line ${this._line}`;
+      }
     }
 
     this._tokens.push(new Token(TokenTypes.eof, "", this._line));
@@ -578,7 +580,9 @@ export class WgslScanner {
       // If it's a // comment, skip everything until the next line-feed.
       if (this._peekAhead() == "/") {
         while (lexeme != "\n") {
-          if (this._isAtEnd()) return true;
+          if (this._isAtEnd()) {
+            return true;
+          }
           lexeme = this._advance();
         }
         // skip the linefeed
@@ -590,7 +594,9 @@ export class WgslScanner {
         this._advance();
         let commentLevel = 1;
         while (commentLevel > 0) {
-          if (this._isAtEnd()) return true;
+          if (this._isAtEnd()) {
+            return true;
+          }
           lexeme = this._advance();
           if (lexeme == "\n") {
             this._line++;
@@ -672,7 +678,9 @@ export class WgslScanner {
         }
 
         if (matchedType === TokenTypes.none) {
-          if (matchType === TokenTypes.none) return false;
+          if (matchType === TokenTypes.none) {
+            return false;
+          }
           this._current--;
           this._addToken(matchType);
           return true;
@@ -684,13 +692,17 @@ export class WgslScanner {
 
       matchType = matchedType;
 
-      if (this._isAtEnd()) break;
+      if (this._isAtEnd()) {
+        break;
+      }
 
       lexeme += this._advance();
     }
 
     // We got to the end of the input stream. Then the token we've ready so far is it.
-    if (matchType === TokenTypes.none) return false;
+    if (matchType === TokenTypes.none) {
+      return false;
+    }
 
     this._addToken(matchType);
     return true;
@@ -720,7 +732,9 @@ export class WgslScanner {
     } else {
       // regex
       const match = rule.exec(lexeme);
-      if (match && match.index == 0 && match[0] == lexeme) return true;
+      if (match && match.index == 0 && match[0] == lexeme) {
+        return true;
+      }
     }
     return false;
   }
@@ -743,7 +757,9 @@ export class WgslScanner {
 
   _peekAhead(offset: number = 0): string {
     offset = offset || 0;
-    if (this._current + offset >= this._source.length) return "\0";
+    if (this._current + offset >= this._source.length) {
+      return "\0";
+    }
     return this._source[this._current + offset];
   }
 

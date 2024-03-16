@@ -27,6 +27,8 @@ export declare class MemberInfo {
 export declare class StructInfo extends TypeInfo {
     members: Array<MemberInfo>;
     align: number;
+    startLine: number;
+    endLine: number;
     constructor(name: string, attributes: Array<AST.Attribute> | null);
     get isStruct(): boolean;
 }
@@ -100,6 +102,8 @@ export declare class FunctionInfo {
     inputs: Array<InputInfo>;
     outputs: Array<OutputInfo>;
     resources: Array<VariableInfo>;
+    startLine: number;
+    endLine: number;
     constructor(name: string, stage?: string | null);
 }
 export declare class EntryFunctions {
@@ -128,6 +132,7 @@ export declare class WgslReflect {
     overrides: Array<OverrideInfo>;
     structs: Array<StructInfo>;
     entry: EntryFunctions;
+    functions: Array<FunctionInfo>;
     _types: Map<AST.Type, TypeInfo>;
     _functions: Map<string, _FunctionResources>;
     constructor(code: string | undefined);

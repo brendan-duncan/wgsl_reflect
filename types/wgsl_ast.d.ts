@@ -42,7 +42,9 @@ export declare class Function extends Statement {
     returnType: Type | null;
     body: Array<Statement>;
     attributes: Array<Attribute> | null;
-    constructor(name: string, args: Array<Argument>, returnType: Type | null, body: Array<Statement>);
+    startLine: number;
+    endLine: number;
+    constructor(name: string, args: Array<Argument>, returnType: Type | null, body: Array<Statement>, startLine: number, endLine: number);
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;
 }
@@ -342,7 +344,9 @@ export declare class Type extends Statement {
  */
 export declare class Struct extends Type {
     members: Array<Member>;
-    constructor(name: string, members: Array<Member>);
+    startLine: number;
+    endLine: number;
+    constructor(name: string, members: Array<Member>, startLine: number, endLine: number);
     get astNodeType(): string;
     get isStruct(): boolean;
     getMemberIndex(name: string): number;
