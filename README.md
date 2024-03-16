@@ -37,6 +37,8 @@ class WgslReflect {
   structs: Array<StructInfo>;
   /// All entry functions in the shader: vertex, fragment, and/or compute.
   entry: EntryFunctions;
+  /// All functions in the shader, including entry functions.
+  functions: Array<FunctionInfo>;
 
   // Find a resource by its group and binding.
   findResource(group: number, binding: number): VariableInfo | null;
@@ -84,6 +86,8 @@ class TypeInfo {
 class StructInfo extends TypeInfo {
   members: Array<MemberInfo>;
   align: number;
+  startLine: number;
+  endLine: number;
 }
 
 class ArrayInfo extends TypeInfo {
@@ -130,6 +134,8 @@ class FunctionInfo {
   inputs: Array<InputInfo>;
   outputs: Array<OutputInfo>;
   resources: Array<VariableInfo>;
+  startLine: number;
+  endLine: number;
 }
 
 class InputInfo {
