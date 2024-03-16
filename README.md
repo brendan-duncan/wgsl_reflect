@@ -88,6 +88,7 @@ class StructInfo extends TypeInfo {
   align: number;
   startLine: number;
   endLine: number;
+  inUse: boolean; // true if the struct is used by a uniform, storage, or directly or indirectly by an entry function.
 }
 
 class ArrayInfo extends TypeInfo {
@@ -136,8 +137,8 @@ class FunctionInfo {
   resources: Array<VariableInfo>;
   startLine: number;
   endLine: number;
-  inUse: boolean;
-  calls: Set<FunctionInfo>;
+  inUse: boolean;  // true if called directly or indirectly by an entry function.
+  calls: Set<FunctionInfo>; // All custom functions called directly or indirectly by this function.
 }
 
 class InputInfo {

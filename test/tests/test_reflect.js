@@ -14,12 +14,13 @@ group("Reflect", function () {
         c: u32,
       };
       fn notInUse() -> void { }
-      fn inUse2() -> void { }
+      fn inUse2() -> void {
+        let b = B(1);
+      }
       fn inUse() -> void { inUse2(); }
       @group(0) @binding(0) var<uniform> foo : A;
       @vertex
       fn vertex_main() -> void {
-        let b = B(1);
         inUse();
       }`);
     test.equals(reflect.structs.length, 3);
@@ -34,8 +35,12 @@ group("Reflect", function () {
     test.equals(reflect.structs[2].endLine, 10);
 
     test.equals(reflect.entry.vertex.length, 1);
-    test.equals(reflect.entry.vertex[0].startLine, 16);
-    test.equals(reflect.entry.vertex[0].endLine, 19);
+    test.equals(reflect.entry.vertex[0].startLine, 18);
+    test.equals(reflect.entry.vertex[0].endLine, 20);
+
+    test.equals(reflect.structs[0].inUse, true, "A inUse"); // A, used by uniform
+    test.equals(reflect.structs[1].inUse, true, "B inUse"); // B, used by inUse2
+    test.equals(reflect.structs[2].inUse, false, "C inUse"); // C is not used
 
     test.equals(reflect.functions.length, 4);
     test.equals(reflect.functions[0].name, "notInUse");
@@ -46,10 +51,10 @@ group("Reflect", function () {
     test.equals(reflect.functions[1].calls.size, 0, "inUse2 calls");
     test.equals(reflect.functions[2].name, "inUse");
     test.equals(reflect.functions[2].inUse, true, "inUse");
-    test.equals(reflect.functions[2].calls.size, 1, "inUse calls");
+    test.equals(reflect.functions[2].calls.size, 1, "inUse calls"); // inUse2
     test.equals(reflect.functions[3].name, "vertex_main");
     test.equals(reflect.functions[3].inUse, true, "vertex_main");
-    test.equals(reflect.functions[3].calls.size, 2, "vertex_main calls");
+    test.equals(reflect.functions[3].calls.size, 2, "vertex_main calls"); // inUse, inUse2
   });
 
   test("uniform u32", function (test) {

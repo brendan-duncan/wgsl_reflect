@@ -86,16 +86,14 @@ export class MemberInfo {
 }
 
 export class StructInfo extends TypeInfo {
-  members: Array<MemberInfo>;
-  align: number;
+  members: Array<MemberInfo> = [];
+  align: number = 0;
   startLine: number = -1;
   endLine: number = -1;
   inUse: boolean = false;
 
   constructor(name: string, attributes: Array<AST.Attribute> | null) {
     super(name, attributes);
-    this.members = [];
-    this.align = 0;
   }
 
   get isStruct(): boolean {
@@ -506,6 +504,31 @@ export class WgslReflect {
         this._addCalls(fn.node, fn.info.calls);
       }
     }
+
+    for (const u of this.uniforms) {
+      this._markStructsInUse(u.type);
+    }
+    for (const s of this.storage) {
+      this._markStructsInUse(s.type);
+    }
+  }
+
+  _markStructsInUse(type: TypeInfo) {
+    if (type.isStruct) {
+      (type as StructInfo).inUse = true;
+      for (const m of (type as StructInfo).members) {
+        this._markStructsInUse(m.type);
+      }
+    } else if (type.isArray) {
+      this._markStructsInUse((type as ArrayInfo).format);
+    } else if (type.isTemplate) {
+      this._markStructsInUse((type as TemplateInfo).format!);
+    } else {
+      const alias = this._getAlias(type.name);
+      if (alias) {
+        this._markStructsInUse(alias);
+      }
+    }
   }
 
   _addCalls(fn: AST.Function, calls: Set<FunctionInfo>, ) {
@@ -566,6 +589,11 @@ export class WgslReflect {
     }
     return null;
   }
+  
+  _markStructsFromAST(type: AST.Type) {
+    const info = this._getTypeInfo(type, null);
+    this._markStructsInUse(info);
+  }
 
   _findResources(fn: AST.Node, isEntry: boolean): Array<VariableInfo> {
     const resources = [];
@@ -577,13 +605,24 @@ export class WgslReflect {
       } else if (node instanceof AST._BlockEnd) {
         varStack.pop();
       } else if (node instanceof AST.Var) {
+        const v = node as AST.Var;
+        if (isEntry && v.type !== null) {
+          this._markStructsFromAST(v.type);
+        }
         if (varStack.length > 0) {
-          const v = node as AST.Var;
           varStack[varStack.length - 1][v.name] = v;
         }
+      } else if (node instanceof AST.CreateExpr) {
+        const c = node as AST.CreateExpr;
+        if (isEntry && c.type !== null) {
+          this._markStructsFromAST(c.type);
+        }
       } else if (node instanceof AST.Let) {
+        const v = node as AST.Let;
+        if (isEntry && v.type !== null) {
+          this._markStructsFromAST(v.type);
+        }
         if (varStack.length > 0) {
-          const v = node as AST.Let;
           varStack[varStack.length - 1][v.name] = v;
         }
       } else if (node instanceof AST.VariableExpr) {

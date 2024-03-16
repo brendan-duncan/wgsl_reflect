@@ -431,6 +431,7 @@ export declare class CreateExpr extends Expression {
     args: Array<Expression> | null;
     constructor(type: Type | null, args: Array<Expression> | null);
     get astNodeType(): string;
+    search(callback: (node: Node) => void): void;
 }
 /**
  * @class CallExpr

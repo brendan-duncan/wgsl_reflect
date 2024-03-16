@@ -310,6 +310,7 @@ export class Let extends Statement {
   }
 
   search(callback: (node: Node) => void) {
+    callback(this);
     this.value?.search(callback);
   }
 }
@@ -351,6 +352,7 @@ export class Const extends Statement {
   }
 
   search(callback: (node: Node) => void) {
+    callback(this);
     this.value?.search(callback);
   }
 }
@@ -894,6 +896,13 @@ export class CreateExpr extends Expression {
 
   get astNodeType() {
     return "createExpr";
+  }
+
+  search(callback: (node: Node) => void) {
+    callback(this);
+    for (const node of this.args) {
+      node.search(callback);
+    }
   }
 }
 

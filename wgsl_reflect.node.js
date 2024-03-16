@@ -224,6 +224,7 @@ class Let extends Statement {
     }
     search(callback) {
         var _a;
+        callback(this);
         (_a = this.value) === null || _a === void 0 ? void 0 : _a.search(callback);
     }
 }
@@ -249,6 +250,7 @@ class Const extends Statement {
     }
     search(callback) {
         var _a;
+        callback(this);
         (_a = this.value) === null || _a === void 0 ? void 0 : _a.search(callback);
     }
 }
@@ -658,6 +660,12 @@ class CreateExpr extends Expression {
     }
     get astNodeType() {
         return "createExpr";
+    }
+    search(callback) {
+        callback(this);
+        for (const node of this.args) {
+            node.search(callback);
+        }
     }
 }
 /**
@@ -3044,11 +3052,11 @@ class MemberInfo {
 class StructInfo extends TypeInfo {
     constructor(name, attributes) {
         super(name, attributes);
+        this.members = [];
+        this.align = 0;
         this.startLine = -1;
         this.endLine = -1;
         this.inUse = false;
-        this.members = [];
-        this.align = 0;
     }
     get isStruct() {
         return true;
@@ -3320,6 +3328,32 @@ class WgslReflect {
                 this._addCalls(fn.node, fn.info.calls);
             }
         }
+        for (const u of this.uniforms) {
+            this._markStructsInUse(u.type);
+        }
+        for (const s of this.storage) {
+            this._markStructsInUse(s.type);
+        }
+    }
+    _markStructsInUse(type) {
+        if (type.isStruct) {
+            type.inUse = true;
+            for (const m of type.members) {
+                this._markStructsInUse(m.type);
+            }
+        }
+        else if (type.isArray) {
+            this._markStructsInUse(type.format);
+        }
+        else if (type.isTemplate) {
+            this._markStructsInUse(type.format);
+        }
+        else {
+            const alias = this._getAlias(type.name);
+            if (alias) {
+                this._markStructsInUse(alias);
+            }
+        }
     }
     _addCalls(fn, calls) {
         var _a;
@@ -3378,6 +3412,10 @@ class WgslReflect {
         }
         return null;
     }
+    _markStructsFromAST(type) {
+        const info = this._getTypeInfo(type, null);
+        this._markStructsInUse(info);
+    }
     _findResources(fn, isEntry) {
         const resources = [];
         const self = this;
@@ -3390,14 +3428,26 @@ class WgslReflect {
                 varStack.pop();
             }
             else if (node instanceof Var) {
+                const v = node;
+                if (isEntry && v.type !== null) {
+                    this._markStructsFromAST(v.type);
+                }
                 if (varStack.length > 0) {
-                    const v = node;
                     varStack[varStack.length - 1][v.name] = v;
                 }
             }
+            else if (node instanceof CreateExpr) {
+                const c = node;
+                if (isEntry && c.type !== null) {
+                    this._markStructsFromAST(c.type);
+                }
+            }
             else if (node instanceof Let) {
+                const v = node;
+                if (isEntry && v.type !== null) {
+                    this._markStructsFromAST(v.type);
+                }
                 if (varStack.length > 0) {
-                    const v = node;
                     varStack[varStack.length - 1][v.name] = v;
                 }
             }
