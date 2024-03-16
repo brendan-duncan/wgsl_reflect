@@ -136,6 +136,8 @@ class FunctionInfo {
   resources: Array<VariableInfo>;
   startLine: number;
   endLine: number;
+  inUse: boolean;
+  calls: Set<FunctionInfo>;
 }
 
 class InputInfo {
