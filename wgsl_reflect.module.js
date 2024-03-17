@@ -3358,7 +3358,6 @@ class WgslReflect {
             if (info) {
                 calls.add(info);
             }
-            this._addCalls(call, calls);
         }
     }
     /// Find a resource by its group and binding.

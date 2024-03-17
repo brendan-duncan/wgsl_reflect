@@ -54,7 +54,7 @@ group("Reflect", function () {
     test.equals(reflect.functions[2].calls.size, 1, "inUse calls"); // inUse2
     test.equals(reflect.functions[3].name, "vertex_main");
     test.equals(reflect.functions[3].inUse, true, "vertex_main");
-    test.equals(reflect.functions[3].calls.size, 2, "vertex_main calls"); // inUse, inUse2
+    test.equals(reflect.functions[3].calls.size, 1, "vertex_main calls"); // inUse
   });
 
   test("uniform u32", function (test) {

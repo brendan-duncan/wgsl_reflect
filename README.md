@@ -143,7 +143,7 @@ class FunctionInfo {
   startLine: number;
   endLine: number;
   inUse: boolean;  // true if called directly or indirectly by an entry function.
-  calls: Set<FunctionInfo>; // All custom functions called directly or indirectly by this function.
+  calls: Set<FunctionInfo>; // All custom functions called directly by this function.
 }
 
 class InputInfo {
