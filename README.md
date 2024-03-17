@@ -6,6 +6,11 @@ A WebGPU Shading Language parser and reflection library for Typescript and Javas
 
 ## Usage
 
+From NPM
+```
+npm install wgsl_reflect
+```
+
 The _wgsl_reflect.module.js_ file is a self-contained roll-up of the library that can be included in your project and imported with:
 
 ```javascript
