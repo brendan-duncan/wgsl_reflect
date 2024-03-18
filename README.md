@@ -14,7 +14,7 @@ npm install wgsl_reflect
 The _wgsl_reflect.module.js_ file is a self-contained roll-up of the library that can be included in your project and imported with:
 
 ```javascript
-import { WgslReflect } from "./wgsl_reflect.module.js";
+import { WgslReflect } from "wgsl_reflect/wgsl_reflect.module.js";
 const reflect = new WgslReflect(shader_code);
 ```
 
