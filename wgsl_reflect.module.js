@@ -323,6 +323,7 @@ class Assign extends Statement {
         return "assign";
     }
     search(callback) {
+        this.variable.search(callback);
         this.value.search(callback);
     }
 }

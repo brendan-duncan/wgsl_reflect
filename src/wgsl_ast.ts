@@ -445,6 +445,7 @@ export class Assign extends Statement {
   }
 
   search(callback: (node: Node) => void): void {
+    this.variable.search(callback);
     this.value.search(callback);
   }
 }

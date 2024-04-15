@@ -2,6 +2,33 @@ import { test, group } from "../test.js";
 import { WgslReflect, ResourceType } from "../../../wgsl_reflect.module.js";
 
 group("Reflect", function () {
+  test("read_write storage buffer", function (test) {
+    const reflect = new WgslReflect(`
+      struct Particle {
+        pos : vec2<f32>,
+        vel : vec2<f32>,
+      }
+      
+      struct Particles {
+        particles : array<Particle>,
+      }
+      
+      @binding(0) @group(0) var<storage, read> particlesA: Particles;
+      @binding(1) @group(0) var<storage, read_write> particlesB : Particles;
+      
+      @compute @workgroup_size(64)
+      fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>) {
+        var index = GlobalInvocationID.x;
+        var vPos = particlesA.particles[index].pos;
+        particlesB.particles[index].pos = vPos;
+      }`);
+    test.equals(reflect.storage.length, 2);
+    test.equals(reflect.functions.length, 1);
+    test.equals(reflect.functions[0].resources.length, 2);
+    test.equals(reflect.functions[0].resources[0].name, "particlesA");
+    test.equals(reflect.functions[0].resources[1].name, "particlesB");
+  });
+
   test("unused structs", function (test) {
     const reflect = new WgslReflect(`
       struct A {
