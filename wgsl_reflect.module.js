@@ -1368,6 +1368,63 @@ TokenTypes.tokens = {
     shift_right_equal: new TokenType("shift_right_equal", TokenClass.token, ">>="),
     shift_left_equal: new TokenType("shift_left_equal", TokenClass.token, "<<="),
 };
+TokenTypes.literalTokens = {
+    "&": _a.tokens.and,
+    "&&": _a.tokens.and_and,
+    "->": _a.tokens.arrow,
+    "@": _a.tokens.attr,
+    "[[": _a.tokens.attr_left,
+    "]]": _a.tokens.attr_right,
+    "/": _a.tokens.forward_slash,
+    "!": _a.tokens.bang,
+    "[": _a.tokens.bracket_left,
+    "]": _a.tokens.bracket_right,
+    "{": _a.tokens.brace_left,
+    "}": _a.tokens.brace_right,
+    ":": _a.tokens.colon,
+    ",": _a.tokens.comma,
+    "=": _a.tokens.equal,
+    "==": _a.tokens.equal_equal,
+    "!=": _a.tokens.not_equal,
+    ">": _a.tokens.greater_than,
+    ">=": _a.tokens.greater_than_equal,
+    ">>": _a.tokens.shift_right,
+    "<": _a.tokens.less_than,
+    "<=": _a.tokens.less_than_equal,
+    "<<": _a.tokens.shift_left,
+    "%": _a.tokens.modulo,
+    "-": _a.tokens.minus,
+    "--": _a.tokens.minus_minus,
+    ".": _a.tokens.period,
+    "+": _a.tokens.plus,
+    "++": _a.tokens.plus_plus,
+    "|": _a.tokens.or,
+    "||": _a.tokens.or_or,
+    "(": _a.tokens.paren_left,
+    ")": _a.tokens.paren_right,
+    ";": _a.tokens.semicolon,
+    "*": _a.tokens.star,
+    "~": _a.tokens.tilde,
+    "_": _a.tokens.underscore,
+    "^": _a.tokens.xor,
+    "+=": _a.tokens.plus_equal,
+    "-=": _a.tokens.minus_equal,
+    "*=": _a.tokens.times_equal,
+    "/=": _a.tokens.division_equal,
+    "%=": _a.tokens.modulo_equal,
+    "&=": _a.tokens.and_equal,
+    "|=": _a.tokens.or_equal,
+    "^=": _a.tokens.xor_equal,
+    ">>=": _a.tokens.shift_right_equal,
+    "<<=": _a.tokens.shift_left_equal,
+};
+TokenTypes.regexTokens = {
+    decimal_float_literal: _a.tokens.decimal_float_literal,
+    hex_float_literal: _a.tokens.hex_float_literal,
+    int_literal: _a.tokens.int_literal,
+    uint_literal: _a.tokens.uint_literal,
+    ident: _a.tokens.ident,
+};
 TokenTypes.storage_class = [
     _a.keywords.function,
     _a.keywords.private,
@@ -1687,34 +1744,25 @@ class WgslScanner {
         return true;
     }
     _findType(lexeme) {
-        for (const name in TokenTypes.keywords) {
-            const type = TokenTypes.keywords[name];
+        let type = TokenTypes.keywords[lexeme];
+        if (type) {
+            return type;
+        }
+        for (const name in TokenTypes.regexTokens) {
+            const type = TokenTypes.regexTokens[name];
             if (this._match(lexeme, type.rule)) {
                 return type;
             }
         }
-        for (const name in TokenTypes.tokens) {
-            const type = TokenTypes.tokens[name];
-            if (this._match(lexeme, type.rule)) {
-                return type;
-            }
+        type = TokenTypes.literalTokens[lexeme];
+        if (type) {
+            return type;
         }
         return TokenTypes.none;
     }
     _match(lexeme, rule) {
-        if (typeof rule === "string") {
-            if (rule == lexeme) {
-                return true;
-            }
-        }
-        else {
-            // regex
-            const match = rule.exec(lexeme);
-            if (match && match.index == 0 && match[0] == lexeme) {
-                return true;
-            }
-        }
-        return false;
+        const match = rule.exec(lexeme);
+        return match && match.index == 0 && match[0] == lexeme;
     }
     _isAtEnd() {
         return this._current >= this._source.length;

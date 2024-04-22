@@ -345,6 +345,65 @@ export class TokenTypes {
     ),
   };
 
+  static readonly literalTokens = {
+    "&": this.tokens.and,
+    "&&": this.tokens.and_and,
+    "->": this.tokens.arrow ,
+    "@": this.tokens.attr,
+    "[[": this.tokens.attr_left,
+    "]]": this.tokens.attr_right,
+    "/": this.tokens.forward_slash,
+    "!": this.tokens.bang,
+    "[": this.tokens.bracket_left,
+    "]": this.tokens.bracket_right,
+    "{": this.tokens.brace_left,
+    "}": this.tokens.brace_right,
+    ":": this.tokens.colon,
+    ",": this.tokens.comma,
+    "=": this.tokens.equal,
+    "==": this.tokens.equal_equal,
+    "!=": this.tokens.not_equal,
+    ">": this.tokens.greater_than,
+    ">=": this.tokens.greater_than_equal,
+    ">>": this.tokens.shift_right,
+    "<": this.tokens.less_than,
+    "<=": this.tokens.less_than_equal,
+    "<<": this.tokens.shift_left,
+    "%": this.tokens.modulo,
+    "-": this.tokens.minus,
+    "--": this.tokens.minus_minus,
+    ".": this.tokens.period,
+    "+": this.tokens.plus,
+    "++": this.tokens.plus_plus,
+    "|": this.tokens.or,
+    "||": this.tokens.or_or,
+    "(": this.tokens.paren_left,
+    ")": this.tokens.paren_right,
+    ";": this.tokens.semicolon,
+    "*": this.tokens.star,
+    "~": this.tokens.tilde,
+    "_": this.tokens.underscore,
+    "^": this.tokens.xor,
+    "+=": this.tokens.plus_equal,
+    "-=": this.tokens.minus_equal,
+    "*=": this.tokens.times_equal,
+    "/=": this.tokens.division_equal,
+    "%=": this.tokens.modulo_equal,
+    "&=": this.tokens.and_equal,
+    "|=": this.tokens.or_equal,
+    "^=": this.tokens.xor_equal,
+    ">>=": this.tokens.shift_right_equal,
+    "<<=": this.tokens.shift_left_equal,
+  };
+
+  static readonly regexTokens = {
+    decimal_float_literal: this.tokens.decimal_float_literal,
+    hex_float_literal: this.tokens.hex_float_literal,
+    int_literal: this.tokens.int_literal,
+    uint_literal: this.tokens.uint_literal,
+    ident: this.tokens.ident,
+  };
+
   static readonly storage_class = [
     this.keywords.function,
     this.keywords.private,
@@ -709,34 +768,28 @@ export class WgslScanner {
   }
 
   _findType(lexeme: string): TokenType {
-    for (const name in TokenTypes.keywords) {
-      const type = TokenTypes.keywords[name];
+    let type = TokenTypes.keywords[lexeme];
+    if (type) {
+      return type;
+    }
+
+    for (const name in TokenTypes.regexTokens) {
+      const type = TokenTypes.regexTokens[name];
       if (this._match(lexeme, type.rule)) {
         return type;
       }
     }
-    for (const name in TokenTypes.tokens) {
-      const type = TokenTypes.tokens[name];
-      if (this._match(lexeme, type.rule)) {
-        return type;
-      }
+
+    type = TokenTypes.literalTokens[lexeme];
+    if (type) {
+      return type;
     }
     return TokenTypes.none;
   }
 
-  _match(lexeme: string, rule: string | RegExp): boolean {
-    if (typeof rule === "string") {
-      if (rule == lexeme) {
-        return true;
-      }
-    } else {
-      // regex
-      const match = rule.exec(lexeme);
-      if (match && match.index == 0 && match[0] == lexeme) {
-        return true;
-      }
-    }
-    return false;
+  _match(lexeme: string, rule: RegExp): boolean {
+    const match = rule.exec(lexeme);
+    return match && match.index == 0 && match[0] == lexeme;
   }
 
   _isAtEnd(): boolean {

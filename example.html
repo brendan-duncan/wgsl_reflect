@@ -78,8 +78,10 @@ fn main(input: VertexInput) -> VertexOutput {
 
       function parse() {
         let info = "";
+        const t1 = performance.now();
         const reflect = new wgsl.WgslReflect(shadercode.value);
-
+        const t2 = performance.now();
+        info += `<b>TIME: ${t2 - t1}ms</b><br>`;
         info += "<b>Entry Points</b>";
         info += "<ul>";
         for (let s in reflect.entry) {
