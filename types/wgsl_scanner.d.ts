@@ -203,21 +203,26 @@ export declare class TokenTypes {
         shift_right_equal: TokenType;
         shift_left_equal: TokenType;
     };
+    static readonly simpleTokens: {
+        "@": TokenType;
+        "{": TokenType;
+        "}": TokenType;
+        ":": TokenType;
+        ",": TokenType;
+        "(": TokenType;
+        ")": TokenType;
+        ";": TokenType;
+    };
     static readonly literalTokens: {
         "&": TokenType;
         "&&": TokenType;
         "->": TokenType;
-        "@": TokenType;
         "[[": TokenType;
         "]]": TokenType;
         "/": TokenType;
         "!": TokenType;
         "[": TokenType;
         "]": TokenType;
-        "{": TokenType;
-        "}": TokenType;
-        ":": TokenType;
-        ",": TokenType;
         "=": TokenType;
         "==": TokenType;
         "!=": TokenType;
@@ -235,9 +240,6 @@ export declare class TokenTypes {
         "++": TokenType;
         "|": TokenType;
         "||": TokenType;
-        "(": TokenType;
-        ")": TokenType;
-        ";": TokenType;
         "*": TokenType;
         "~": TokenType;
         _: TokenType;
@@ -300,6 +302,8 @@ export declare class WgslScanner {
     _findType(lexeme: string): TokenType;
     _match(lexeme: string, rule: RegExp): boolean;
     _isAtEnd(): boolean;
+    _isAlpha(c: string): boolean;
+    _isAlphaNumeric(c: string): boolean;
     _isWhitespace(c: string): boolean;
     _advance(amount?: number): string;
     _peekAhead(offset?: number): string;

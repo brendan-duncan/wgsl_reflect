@@ -1372,21 +1372,26 @@ TokenTypes.tokens = {
     shift_right_equal: new TokenType("shift_right_equal", exports.TokenClass.token, ">>="),
     shift_left_equal: new TokenType("shift_left_equal", exports.TokenClass.token, "<<="),
 };
+TokenTypes.simpleTokens = {
+    "@": _a.tokens.attr,
+    "{": _a.tokens.brace_left,
+    "}": _a.tokens.brace_right,
+    ":": _a.tokens.colon,
+    ",": _a.tokens.comma,
+    "(": _a.tokens.paren_left,
+    ")": _a.tokens.paren_right,
+    ";": _a.tokens.semicolon,
+};
 TokenTypes.literalTokens = {
     "&": _a.tokens.and,
     "&&": _a.tokens.and_and,
     "->": _a.tokens.arrow,
-    "@": _a.tokens.attr,
     "[[": _a.tokens.attr_left,
     "]]": _a.tokens.attr_right,
     "/": _a.tokens.forward_slash,
     "!": _a.tokens.bang,
     "[": _a.tokens.bracket_left,
     "]": _a.tokens.bracket_right,
-    "{": _a.tokens.brace_left,
-    "}": _a.tokens.brace_right,
-    ":": _a.tokens.colon,
-    ",": _a.tokens.comma,
     "=": _a.tokens.equal,
     "==": _a.tokens.equal_equal,
     "!=": _a.tokens.not_equal,
@@ -1404,9 +1409,6 @@ TokenTypes.literalTokens = {
     "++": _a.tokens.plus_plus,
     "|": _a.tokens.or,
     "||": _a.tokens.or_or,
-    "(": _a.tokens.paren_left,
-    ")": _a.tokens.paren_right,
-    ";": _a.tokens.semicolon,
     "*": _a.tokens.star,
     "~": _a.tokens.tilde,
     "_": _a.tokens.underscore,
@@ -1670,7 +1672,35 @@ class WgslScanner {
                 return true;
             }
         }
+        // Shortcut single character tokens
+        const simpleToken = TokenTypes.simpleTokens[lexeme];
+        if (simpleToken) {
+            this._addToken(simpleToken);
+            return true;
+        }
+        // Shortcut keywords and identifiers
         let matchType = TokenTypes.none;
+        const isAlpha = this._isAlpha(lexeme);
+        const isUnderscore = lexeme === "_";
+        if (this._isAlphaNumeric(lexeme)) {
+            let nextChar = this._peekAhead();
+            while (this._isAlphaNumeric(nextChar)) {
+                lexeme += this._advance();
+                nextChar = this._peekAhead();
+            }
+        }
+        if (isAlpha) {
+            const matchedType = TokenTypes.keywords[lexeme];
+            if (matchedType) {
+                this._addToken(matchedType);
+                return true;
+            }
+        }
+        if (isAlpha || isUnderscore) {
+            this._addToken(TokenTypes.tokens.ident);
+            return true;
+        }
+        // Scan for the next valid token type
         for (;;) {
             let matchedType = this._findType(lexeme);
             // An exception to "longest lexeme" rule is '>>'. In the case of 1>>2, it's a
@@ -1748,17 +1778,13 @@ class WgslScanner {
         return true;
     }
     _findType(lexeme) {
-        let type = TokenTypes.keywords[lexeme];
-        if (type) {
-            return type;
-        }
         for (const name in TokenTypes.regexTokens) {
             const type = TokenTypes.regexTokens[name];
             if (this._match(lexeme, type.rule)) {
                 return type;
             }
         }
-        type = TokenTypes.literalTokens[lexeme];
+        const type = TokenTypes.literalTokens[lexeme];
         if (type) {
             return type;
         }
@@ -1770,6 +1796,12 @@ class WgslScanner {
     }
     _isAtEnd() {
         return this._current >= this._source.length;
+    }
+    _isAlpha(c) {
+        return (c >= "a" && c <= "z") || (c >= "A" && c <= "Z");
+    }
+    _isAlphaNumeric(c) {
+        return (c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || c == "_" || (c >= "0" && c <= "9");
     }
     _isWhitespace(c) {
         return c == " " || c == "\t" || c == "\r";
