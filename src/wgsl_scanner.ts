@@ -545,7 +545,7 @@ export class TokenTypes {
 
   // The grammar calls out 'block', but attribute grammar is defined to use a 'ident'.
   // The attribute grammar should be ident | block.
-  static readonly attribute_name = [this.tokens.ident, this.keywords.block];
+  static readonly attribute_name = [this.tokens.ident, this.keywords.block, this.keywords.diagnostic];
 
   static readonly assignment_operators = [
     this.tokens.equal,

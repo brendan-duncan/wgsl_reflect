@@ -1555,7 +1555,7 @@ TokenTypes.template_types = [
 ];
 // The grammar calls out 'block', but attribute grammar is defined to use a 'ident'.
 // The attribute grammar should be ident | block.
-TokenTypes.attribute_name = [_a.tokens.ident, _a.keywords.block];
+TokenTypes.attribute_name = [_a.tokens.ident, _a.keywords.block, _a.keywords.diagnostic];
 TokenTypes.assignment_operators = [
     _a.tokens.equal,
     _a.tokens.plus_equal,
@@ -2100,6 +2100,9 @@ class WgslParser {
         // Ignore any stand-alone semicolons
         while (this._match(TokenTypes.tokens.semicolon) && !this._isAtEnd())
             ;
+        if (this._check(TokenTypes.tokens.attr)) {
+            this._attribute();
+        }
         if (this._check(TokenTypes.keywords.if)) {
             return this._if_statement();
         }
@@ -2167,6 +2170,9 @@ class WgslParser {
             return null;
         }
         const condition = this._optional_paren_expression();
+        if (this._check(TokenTypes.tokens.attr)) {
+            this._attribute();
+        }
         const block = this._compound_statement();
         return new While(condition, block);
     }
@@ -2196,6 +2202,9 @@ class WgslParser {
             ? this._for_increment()
             : null;
         this._consume(TokenTypes.tokens.paren_right, "Expected ')'.");
+        if (this._check(TokenTypes.tokens.attr)) {
+            this._attribute();
+        }
         const body = this._compound_statement();
         return new For(init, condition, increment, body);
     }
@@ -2308,6 +2317,9 @@ class WgslParser {
         if (!this._match(TokenTypes.keywords.loop)) {
             return null;
         }
+        if (this._check(TokenTypes.tokens.attr)) {
+            this._attribute();
+        }
         this._consume(TokenTypes.tokens.brace_left, "Expected '{' for loop.");
         // statement*
         const statements = [];
@@ -2337,6 +2349,9 @@ class WgslParser {
             return null;
         }
         const condition = this._optional_paren_expression();
+        if (this._check(TokenTypes.tokens.attr)) {
+            this._attribute();
+        }
         this._consume(TokenTypes.tokens.brace_left, "Expected '{' for switch.");
         const body = this._switch_body();
         if (body == null || body.length == 0) {
@@ -2352,6 +2367,9 @@ class WgslParser {
         if (this._match(TokenTypes.keywords.case)) {
             const selector = this._case_selectors();
             this._match(TokenTypes.tokens.colon); // colon is optional
+            if (this._check(TokenTypes.tokens.attr)) {
+                this._attribute();
+            }
             this._consume(TokenTypes.tokens.brace_left, "Exected '{' for switch case.");
             const body = this._case_body();
             this._consume(TokenTypes.tokens.brace_right, "Exected '}' for switch case.");
@@ -2359,6 +2377,9 @@ class WgslParser {
         }
         if (this._match(TokenTypes.keywords.default)) {
             this._match(TokenTypes.tokens.colon); // colon is optional
+            if (this._check(TokenTypes.tokens.attr)) {
+                this._attribute();
+            }
             this._consume(TokenTypes.tokens.brace_left, "Exected '{' for switch default.");
             const body = this._case_body();
             this._consume(TokenTypes.tokens.brace_right, "Exected '}' for switch default.");
@@ -2406,13 +2427,22 @@ class WgslParser {
             return null;
         }
         const condition = this._optional_paren_expression();
+        if (this._check(TokenTypes.tokens.attr)) {
+            this._attribute();
+        }
         const block = this._compound_statement();
         let elseif = [];
         if (this._match_elseif()) {
+            if (this._check(TokenTypes.tokens.attr)) {
+                this._attribute();
+            }
             elseif = this._elseif_statement(elseif);
         }
         let _else = null;
         if (this._match(TokenTypes.keywords.else)) {
+            if (this._check(TokenTypes.tokens.attr)) {
+                this._attribute();
+            }
             _else = this._compound_statement();
         }
         return new If(condition, block, elseif, _else);
@@ -2432,6 +2462,9 @@ class WgslParser {
         const block = this._compound_statement();
         elseif.push(new ElseIf(condition, block));
         if (this._match_elseif()) {
+            if (this._check(TokenTypes.tokens.attr)) {
+                this._attribute();
+            }
             this._elseif_statement(elseif);
         }
         return elseif;

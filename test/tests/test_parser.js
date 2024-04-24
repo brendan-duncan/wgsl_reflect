@@ -4,6 +4,26 @@ import { WgslParser } from "../../../wgsl_reflect.module.js";
 group("Parser", function () {
   const parser = new WgslParser();
 
+  test("diagnostic if", function () {
+    const t = parser.parse(`fn helper() -> vec4<f32> {
+      if (d < 0.5) @diagnostic(off,derivative_uniformity) {
+        return textureSample(t,s,vec2(0,0));
+      }
+      return vec4(0.0);
+    }`);
+    console.log(t);
+  });
+
+  test("diagnostic block", function () {
+    const t = parser.parse(`fn helper() -> vec4<f32> {
+      // The derivative_uniformity diagnostic is set to 'warning' severity.
+      @diagnostic(warning,derivative_uniformity) {
+        return textureSample(t,s,vec2(0,0));
+      }
+    }`);
+    console.log(t);
+  });
+
   test("_", function (test) {
     const t = parser.parse("fn foo(_point : vec3<f32>) {}");
     test.equals(t.length, 1);

@@ -299,6 +299,7 @@ export class WgslParser {
   _compound_statement(): Array<AST.Statement> {
     // brace_left statement* brace_right
     const statements: Array<AST.Statement> = [];
+
     this._consume(TokenTypes.tokens.brace_left, "Expected '{' for block.");
     while (!this._check(TokenTypes.tokens.brace_right)) {
       const statement = this._statement();
@@ -332,6 +333,11 @@ export class WgslParser {
 
     // Ignore any stand-alone semicolons
     while (this._match(TokenTypes.tokens.semicolon) && !this._isAtEnd());
+
+    let attributes = null;
+    if (this._check(TokenTypes.tokens.attr)) {
+      attributes = this._attribute();
+    }
 
     if (this._check(TokenTypes.keywords.if)) {
       return this._if_statement();
@@ -412,6 +418,12 @@ export class WgslParser {
       return null;
     }
     const condition = this._optional_paren_expression();
+
+    let attributes = null;
+    if (this._check(TokenTypes.tokens.attr)) {
+      attributes = this._attribute();
+    }
+
     const block = this._compound_statement();
     return new AST.While(condition, block);
   }
@@ -446,6 +458,11 @@ export class WgslParser {
       : null;
 
     this._consume(TokenTypes.tokens.paren_right, "Expected ')'.");
+
+    let attributes = null;
+    if (this._check(TokenTypes.tokens.attr)) {
+      attributes = this._attribute();
+    }
 
     const body = this._compound_statement();
 
@@ -617,6 +634,11 @@ export class WgslParser {
       return null;
     }
 
+    let attributes = null;
+    if (this._check(TokenTypes.tokens.attr)) {
+      attributes = this._attribute();
+    }
+
     this._consume(TokenTypes.tokens.brace_left, "Expected '{' for loop.");
 
     // statement*
@@ -651,6 +673,12 @@ export class WgslParser {
     }
 
     const condition = this._optional_paren_expression();
+
+    let attributes = null;
+    if (this._check(TokenTypes.tokens.attr)) {
+      attributes = this._attribute();
+    }
+
     this._consume(TokenTypes.tokens.brace_left, "Expected '{' for switch.");
     const body = this._switch_body();
     if (body == null || body.length == 0) {
@@ -667,6 +695,12 @@ export class WgslParser {
     if (this._match(TokenTypes.keywords.case)) {
       const selector = this._case_selectors();
       this._match(TokenTypes.tokens.colon); // colon is optional
+
+      let attributes = null;
+      if (this._check(TokenTypes.tokens.attr)) {
+        attributes = this._attribute();
+      }
+
       this._consume(
         TokenTypes.tokens.brace_left,
         "Exected '{' for switch case."
@@ -681,6 +715,12 @@ export class WgslParser {
 
     if (this._match(TokenTypes.keywords.default)) {
       this._match(TokenTypes.tokens.colon); // colon is optional
+      
+      let attributes = null;
+      if (this._check(TokenTypes.tokens.attr)) {
+        attributes = this._attribute();
+      }
+      
       this._consume(
         TokenTypes.tokens.brace_left,
         "Exected '{' for switch default."
@@ -746,15 +786,29 @@ export class WgslParser {
     }
 
     const condition = this._optional_paren_expression();
+
+    let attributes = null;
+    if (this._check(TokenTypes.tokens.attr)) {
+      attributes = this._attribute();
+    }
+
     const block = this._compound_statement();
 
     let elseif: Array<AST.ElseIf> | null = [];
     if (this._match_elseif()) {
+      let attributes = null;
+      if (this._check(TokenTypes.tokens.attr)) {
+        attributes = this._attribute();
+      }
       elseif = this._elseif_statement(elseif);
     }
 
     let _else: Array<AST.Statement> | null = null;
     if (this._match(TokenTypes.keywords.else)) {
+      let attributes = null;
+      if (this._check(TokenTypes.tokens.attr)) {
+        attributes = this._attribute();
+      }
       _else = this._compound_statement();
     }
 
@@ -781,6 +835,10 @@ export class WgslParser {
     const block = this._compound_statement();
     elseif.push(new AST.ElseIf(condition, block));
     if (this._match_elseif()) {
+      let attributes = null;
+      if (this._check(TokenTypes.tokens.attr)) {
+        attributes = this._attribute();
+      }
       this._elseif_statement(elseif);
     }
     return elseif;
