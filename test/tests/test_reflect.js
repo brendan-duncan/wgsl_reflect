@@ -2,6 +2,16 @@ import { test, group } from "../test.js";
 import { WgslReflect, ResourceType } from "../../../wgsl_reflect.module.js";
 
 group("Reflect", function () {
+  test("enable", function (test) {
+    const reflect = new WgslReflect(`enable chromium_experimental_subgroups;
+      @compute @workgroup_size(64) fn main(
+          @builtin(global_invocation_id) global_id : vec3u,
+          @builtin(subgroup_size) sg_size : u32,
+          @builtin(subgroup_invocation_id) sg_id : u32) {
+      }`);
+    test.equals(reflect.functions.length, 1);
+  });
+
   test("requires", function(test) {
     const reflect = new WgslReflect(`requires readonly_and_readwrite_storage_textures;
       @group(0) @binding(0) var tex : texture_storage_2d<r32uint, read_write>;
