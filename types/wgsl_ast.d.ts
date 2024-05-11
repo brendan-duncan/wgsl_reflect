@@ -278,6 +278,16 @@ export declare class Enable extends Statement {
     get astNodeType(): string;
 }
 /**
+ * @class Requires
+ * @extends Statement
+ * @category AST
+ */
+export declare class Requires extends Statement {
+    extensions: string[];
+    constructor(extensions: string[]);
+    get astNodeType(): string;
+}
+/**
  * @class Diagnostic
  * @extends Statement
  * @category AST

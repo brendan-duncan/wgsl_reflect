@@ -594,6 +594,24 @@ export class Enable extends Statement {
 }
 
 /**
+ * @class Requires
+ * @extends Statement
+ * @category AST
+ */
+export class Requires extends Statement {
+  extensions: string[];
+
+  constructor(extensions: string[]) {
+    super();
+    this.extensions = extensions;
+  }
+
+  get astNodeType() {
+    return "requires";
+  }
+}
+
+/**
  * @class Diagnostic
  * @extends Statement
  * @category AST

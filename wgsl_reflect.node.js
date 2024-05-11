@@ -438,6 +438,20 @@ class Enable extends Statement {
     }
 }
 /**
+ * @class Requires
+ * @extends Statement
+ * @category AST
+ */
+class Requires extends Statement {
+    constructor(extensions) {
+        super();
+        this.extensions = extensions;
+    }
+    get astNodeType() {
+        return "requires";
+    }
+}
+/**
  * @class Diagnostic
  * @extends Statement
  * @category AST
@@ -1246,10 +1260,10 @@ TokenTypes.keywords = {
     continue: new TokenType("continue", exports.TokenClass.keyword, "continue"),
     continuing: new TokenType("continuing", exports.TokenClass.keyword, "continuing"),
     default: new TokenType("default", exports.TokenClass.keyword, "default"),
+    diagnostic: new TokenType("diagnostic", exports.TokenClass.keyword, "diagnostic"),
     discard: new TokenType("discard", exports.TokenClass.keyword, "discard"),
     else: new TokenType("else", exports.TokenClass.keyword, "else"),
     enable: new TokenType("enable", exports.TokenClass.keyword, "enable"),
-    diagnostic: new TokenType("diagnostic", exports.TokenClass.keyword, "diagnostic"),
     fallthrough: new TokenType("fallthrough", exports.TokenClass.keyword, "fallthrough"),
     false: new TokenType("false", exports.TokenClass.keyword, "false"),
     fn: new TokenType("fn", exports.TokenClass.keyword, "fn"),
@@ -1264,6 +1278,7 @@ TokenTypes.keywords = {
     read: new TokenType("read", exports.TokenClass.keyword, "read"),
     read_write: new TokenType("read_write", exports.TokenClass.keyword, "read_write"),
     return: new TokenType("return", exports.TokenClass.keyword, "return"),
+    requires: new TokenType("requires", exports.TokenClass.keyword, "requires"),
     storage: new TokenType("storage", exports.TokenClass.keyword, "storage"),
     switch: new TokenType("switch", exports.TokenClass.keyword, "switch"),
     true: new TokenType("true", exports.TokenClass.keyword, "true"),
@@ -1971,6 +1986,11 @@ class WgslParser {
             const directive = this._diagnostic();
             this._consume(TokenTypes.tokens.semicolon, "Expected ';'");
             return directive;
+        }
+        if (this._match(TokenTypes.keywords.requires)) {
+            const requires = this._requires_directive();
+            this._consume(TokenTypes.tokens.semicolon, "Expected ';'");
+            return requires;
         }
         if (this._match(TokenTypes.keywords.enable)) {
             const enable = this._enable_directive();
@@ -2890,6 +2910,15 @@ class WgslParser {
         // enable ident semicolon
         const name = this._consume(TokenTypes.tokens.ident, "identity expected.");
         return new Enable(name.toString());
+    }
+    _requires_directive() {
+        // requires extension [, extension]* semicolon
+        const extensions = [this._consume(TokenTypes.tokens.ident, "identity expected.").toString()];
+        while (this._match(TokenTypes.tokens.comma)) {
+            const name = this._consume(TokenTypes.tokens.ident, "identity expected.");
+            extensions.push(name.toString());
+        }
+        return new Requires(extensions);
     }
     _type_alias() {
         // type ident equal type_decl
@@ -4067,6 +4096,7 @@ exports.Override = Override;
 exports.OverrideInfo = OverrideInfo;
 exports.ParseContext = ParseContext;
 exports.PointerType = PointerType;
+exports.Requires = Requires;
 exports.Return = Return;
 exports.SamplerType = SamplerType;
 exports.Statement = Statement;

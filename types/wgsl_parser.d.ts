@@ -70,6 +70,7 @@ export declare class WgslParser {
     _override_decl(): AST.Override | null;
     _diagnostic(): AST.Diagnostic | null;
     _enable_directive(): AST.Enable;
+    _requires_directive(): AST.Requires;
     _type_alias(): AST.Alias;
     _type_decl(): AST.Type | null;
     _texture_sampler_types(): AST.SamplerType | null;

@@ -83,10 +83,10 @@ export declare class TokenTypes {
         continue: TokenType;
         continuing: TokenType;
         default: TokenType;
+        diagnostic: TokenType;
         discard: TokenType;
         else: TokenType;
         enable: TokenType;
-        diagnostic: TokenType;
         fallthrough: TokenType;
         false: TokenType;
         fn: TokenType;
@@ -101,6 +101,7 @@ export declare class TokenTypes {
         read: TokenType;
         read_write: TokenType;
         return: TokenType;
+        requires: TokenType;
         storage: TokenType;
         switch: TokenType;
         true: TokenType;

@@ -4,6 +4,11 @@ import { WgslParser } from "../../../wgsl_reflect.module.js";
 group("Parser", function () {
   const parser = new WgslParser();
 
+  test("requires", function(test) {
+    const t = parser.parse(`requires readonly_and_readwrite_storage_textures;`);
+      test.equals(t.length, 1);
+  });
+
   test("diagnostic if", function () {
     const t = parser.parse(`fn helper() -> vec4<f32> {
       if (d < 0.5) @diagnostic(off,derivative_uniformity) {
@@ -11,7 +16,6 @@ group("Parser", function () {
       }
       return vec4(0.0);
     }`);
-    console.log(t);
   });
 
   test("diagnostic block", function () {
@@ -21,7 +25,6 @@ group("Parser", function () {
         return textureSample(t,s,vec2(0,0));
       }
     }`);
-    console.log(t);
   });
 
   test("_", function (test) {

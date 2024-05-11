@@ -434,6 +434,20 @@ class Enable extends Statement {
     }
 }
 /**
+ * @class Requires
+ * @extends Statement
+ * @category AST
+ */
+class Requires extends Statement {
+    constructor(extensions) {
+        super();
+        this.extensions = extensions;
+    }
+    get astNodeType() {
+        return "requires";
+    }
+}
+/**
  * @class Diagnostic
  * @extends Statement
  * @category AST
@@ -1242,10 +1256,10 @@ TokenTypes.keywords = {
     continue: new TokenType("continue", TokenClass.keyword, "continue"),
     continuing: new TokenType("continuing", TokenClass.keyword, "continuing"),
     default: new TokenType("default", TokenClass.keyword, "default"),
+    diagnostic: new TokenType("diagnostic", TokenClass.keyword, "diagnostic"),
     discard: new TokenType("discard", TokenClass.keyword, "discard"),
     else: new TokenType("else", TokenClass.keyword, "else"),
     enable: new TokenType("enable", TokenClass.keyword, "enable"),
-    diagnostic: new TokenType("diagnostic", TokenClass.keyword, "diagnostic"),
     fallthrough: new TokenType("fallthrough", TokenClass.keyword, "fallthrough"),
     false: new TokenType("false", TokenClass.keyword, "false"),
     fn: new TokenType("fn", TokenClass.keyword, "fn"),
@@ -1260,6 +1274,7 @@ TokenTypes.keywords = {
     read: new TokenType("read", TokenClass.keyword, "read"),
     read_write: new TokenType("read_write", TokenClass.keyword, "read_write"),
     return: new TokenType("return", TokenClass.keyword, "return"),
+    requires: new TokenType("requires", TokenClass.keyword, "requires"),
     storage: new TokenType("storage", TokenClass.keyword, "storage"),
     switch: new TokenType("switch", TokenClass.keyword, "switch"),
     true: new TokenType("true", TokenClass.keyword, "true"),
@@ -1967,6 +1982,11 @@ class WgslParser {
             const directive = this._diagnostic();
             this._consume(TokenTypes.tokens.semicolon, "Expected ';'");
             return directive;
+        }
+        if (this._match(TokenTypes.keywords.requires)) {
+            const requires = this._requires_directive();
+            this._consume(TokenTypes.tokens.semicolon, "Expected ';'");
+            return requires;
         }
         if (this._match(TokenTypes.keywords.enable)) {
             const enable = this._enable_directive();
@@ -2886,6 +2906,15 @@ class WgslParser {
         // enable ident semicolon
         const name = this._consume(TokenTypes.tokens.ident, "identity expected.");
         return new Enable(name.toString());
+    }
+    _requires_directive() {
+        // requires extension [, extension]* semicolon
+        const extensions = [this._consume(TokenTypes.tokens.ident, "identity expected.").toString()];
+        while (this._match(TokenTypes.tokens.comma)) {
+            const name = this._consume(TokenTypes.tokens.ident, "identity expected.");
+            extensions.push(name.toString());
+        }
+        return new Requires(extensions);
     }
     _type_alias() {
         // type ident equal type_decl
@@ -4019,5 +4048,5 @@ WgslReflect._samplerTypes = TokenTypes.sampler_type.map((t) => {
     return t.name;
 });
 
-export { Alias, AliasInfo, Argument, ArrayInfo, ArrayType, Assign, AssignOperator, Attribute, BinaryOperator, BitcastExpr, Break, Call, CallExpr, Case, Const, ConstExpr, Continue, Continuing, CreateExpr, Default, Diagnostic, Discard, ElseIf, Enable, EntryFunctions, Expression, For, Function, FunctionInfo, GroupingExpr, If, Increment, IncrementOperator, InputInfo, Let, LiteralExpr, Loop, Member, MemberInfo, Node, Operator, OutputInfo, Override, OverrideInfo, ParseContext, PointerType, ResourceType, Return, SamplerType, Statement, StaticAssert, StringExpr, Struct, StructInfo, Switch, SwitchCase, TemplateInfo, TemplateType, Token, TokenClass, TokenType, TokenTypes, Type, TypeInfo, TypecastExpr, UnaryOperator, Var, VariableExpr, VariableInfo, WgslParser, WgslReflect, WgslScanner, While, _BlockEnd, _BlockStart };
+export { Alias, AliasInfo, Argument, ArrayInfo, ArrayType, Assign, AssignOperator, Attribute, BinaryOperator, BitcastExpr, Break, Call, CallExpr, Case, Const, ConstExpr, Continue, Continuing, CreateExpr, Default, Diagnostic, Discard, ElseIf, Enable, EntryFunctions, Expression, For, Function, FunctionInfo, GroupingExpr, If, Increment, IncrementOperator, InputInfo, Let, LiteralExpr, Loop, Member, MemberInfo, Node, Operator, OutputInfo, Override, OverrideInfo, ParseContext, PointerType, Requires, ResourceType, Return, SamplerType, Statement, StaticAssert, StringExpr, Struct, StructInfo, Switch, SwitchCase, TemplateInfo, TemplateType, Token, TokenClass, TokenType, TokenTypes, Type, TypeInfo, TypecastExpr, UnaryOperator, Var, VariableExpr, VariableInfo, WgslParser, WgslReflect, WgslScanner, While, _BlockEnd, _BlockStart };
 //# sourceMappingURL=wgsl_reflect.module.js.map

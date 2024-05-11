@@ -2,6 +2,18 @@ import { test, group } from "../test.js";
 import { WgslReflect, ResourceType } from "../../../wgsl_reflect.module.js";
 
 group("Reflect", function () {
+  test("requires", function(test) {
+    const reflect = new WgslReflect(`requires readonly_and_readwrite_storage_textures;
+      @group(0) @binding(0) var tex : texture_storage_2d<r32uint, read_write>;
+      @compute @workgroup_size(1, 1)
+      fn main(@builtin(local_invocation_id) local_id: vec3u) {
+        var data = textureLoad(tex, vec2i(local_id.xy));
+        data.x *= 2;
+        textureStore(tex, vec2i(local_id.xy), data);
+      }`);
+      test.equals(reflect.functions.length, 1);
+  });
+
   test("read_write storage buffer", function (test) {
     const reflect = new WgslReflect(`
       struct Particle {

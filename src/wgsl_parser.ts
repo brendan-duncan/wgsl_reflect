@@ -164,6 +164,12 @@ export class WgslParser {
       return directive;
     }
 
+    if (this._match(TokenTypes.keywords.requires)) {
+      const requires = this._requires_directive();
+      this._consume(TokenTypes.tokens.semicolon, "Expected ';'");
+      return requires;
+    }
+
     if (this._match(TokenTypes.keywords.enable)) {
       const enable = this._enable_directive();
       this._consume(TokenTypes.tokens.semicolon, "Expected ';'");
@@ -1421,6 +1427,16 @@ export class WgslParser {
     // enable ident semicolon
     const name = this._consume(TokenTypes.tokens.ident, "identity expected.");
     return new AST.Enable(name.toString());
+  }
+
+  _requires_directive(): AST.Requires {
+    // requires extension [, extension]* semicolon
+    const extensions: string[] = [this._consume(TokenTypes.tokens.ident, "identity expected.").toString()];
+    while (this._match(TokenTypes.tokens.comma)) {
+      const name = this._consume(TokenTypes.tokens.ident, "identity expected.");
+      extensions.push(name.toString());
+    }
+    return new AST.Requires(extensions);
   }
 
   _type_alias(): AST.Alias {
