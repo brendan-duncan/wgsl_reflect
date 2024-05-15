@@ -72,16 +72,30 @@ fn main(input: VertexInput) -> VertexOutput {
 
       function getTypeName(type) {
         let name = type.name;
-        if (type.format) name += `&lt;${type.format.name}&gt;`;
+        if (type.format) {
+          name += `&lt;${type.format.name}&gt;`;
+        }
         return name;
       }
 
       function parse() {
         let info = "";
         const t1 = performance.now();
-        const reflect = new wgsl.WgslReflect(shadercode.value);
+        let reflect;
+        try {
+          reflect = new wgsl.WgslReflect(shadercode.value);
+        } catch (e) {
+          let msg = e.message;
+          if (e.token) {
+            msg += ` Line ${e.token.line}. Found: '${e.token}'.`;
+          }
+          shaderInfo.innerHTML = `<h2 style="color:#f00;">${msg}</h2>`;
+          return;
+        }
         const t2 = performance.now();
+        
         info += `<b>TIME: ${t2 - t1}ms</b><br>`;
+        
         info += "<b>Entry Points</b>";
         info += "<ul>";
         for (let s in reflect.entry) {
@@ -103,30 +117,72 @@ fn main(input: VertexInput) -> VertexOutput {
         }
         info += "</ul>";
 
-        info += `<b>Uniforms</b><p>`;
-        info += "<ul>";
-        for (let s of reflect.uniforms) {
-          info += `<li><b>${s.name}</b>: <b>${s.type.name}</b></li>`;
-
+        if (reflect.textures.length) {
+          info += `<b>Textures</b><p>`;
           info += "<ul>";
-          info += `<li><b>Buffer Size:</b> ${s.type.size}</li>`;
-          info += `<li><b>Bind Group:</b> ${s.group}</li>`;
-          info += `<li><b>Bind Index:</b> ${s.binding}</li>`;
-          info += `<li><b>Members:</b></li>`;
-          info += "<ul>";
-          for (let m in s.type.members) {
-            info += `<li><b>${s.type.members[m].name}</b> : <b>${getTypeName(
-              s.type.members[m].type
-            )}</b></li>`;
+          for (let s of reflect.textures) {
+            info += `<li><b>${s.name}</b>: <b>${s.type.name}</b></li>`;
             info += "<ul>";
-            info += `<li><b>Offset:</b>${s.type.members[m].offset}</li>`;
-            info += `<li><b>Size:</b>${s.type.members[m].size}</li>`;
+            info += `<li><b>Group:</b> ${s.group}</li>`;
+            info += `<li><b>Binding:</b> ${s.binding}</li>`;
+            info += `<li><b>Format:</b> ${s.type?.format?.name ?? "<unknown>"}</li>`;
             info += "</ul>";
           }
           info += "</ul>";
+        }
+
+        if (reflect.samplers.length) {
+          info += `<b>Samplers</b><p>`;
+          info += "<ul>";
+          for (let s of reflect.samplers) {
+            info += `<li><b>${s.name}</b>: <b>${s.type.name}</b></li>`;
+            info += "<ul>";
+            info += `<li><b>Group:</b> ${s.group}</li>`;
+            info += `<li><b>Binding:</b> ${s.binding}</li>`;
+            info += "</ul>";
+          }
           info += "</ul>";
         }
-        info += "</ul>";
+
+        if (reflect.storage.length) {
+          info += `<b>Storage Buffers</b><p>`;
+          info += "<ul>";
+          for (let s of reflect.storage) {
+            info += `<li><b>${s.name}</b>: <b>${s.type.name}</b></li>`;
+            info += "<ul>";
+            info += `<li><b>Group:</b> ${s.group}</li>`;
+            info += `<li><b>Binding:</b> ${s.binding}</li>`;
+            info += "</ul>";
+          }
+          info += "</ul>";
+        }
+
+        if (reflect.uniforms.length) {
+          info += `<b>Uniforms</b><p>`;
+          info += "<ul>";
+          for (let s of reflect.uniforms) {
+            info += `<li><b>${s.name}</b>: <b>${s.type.name}</b></li>`;
+
+            info += "<ul>";
+            info += `<li><b>Buffer Size:</b> ${s.type.size}</li>`;
+            info += `<li><b>Group:</b> ${s.group}</li>`;
+            info += `<li><b>Binding:</b> ${s.binding}</li>`;
+            info += `<li><b>Members:</b></li>`;
+            info += "<ul>";
+            for (let m in s.type.members) {
+              info += `<li><b>${s.type.members[m].name}</b> : <b>${getTypeName(
+                s.type.members[m].type
+              )}</b></li>`;
+              info += "<ul>";
+              info += `<li><b>Offset:</b>${s.type.members[m].offset}</li>`;
+              info += `<li><b>Size:</b>${s.type.members[m].size}</li>`;
+              info += "</ul>";
+            }
+            info += "</ul>";
+            info += "</ul>";
+          }
+          info += "</ul>";
+        }
 
         shaderInfo.innerHTML = info;
       }
