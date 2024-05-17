@@ -2,6 +2,21 @@ import { test, group } from "../test.js";
 import { WgslReflect, ResourceType } from "../../../wgsl_reflect.module.js";
 
 group("Reflect", function () {
+  test("uniform index", function (test) {
+    const reflect = new WgslReflect(`
+      @group(0) @binding(2) var<uniform>  batchIndex: u32;
+      @group(0) @binding(3) var<storage, read> batchOffsets: array<u32>;
+      @vertex
+      fn main() {
+        let batchOffset = batchOffsets[batchIndex];
+      }`);
+      test.equals(reflect.uniforms.length, 1);
+      test.equals(reflect.uniforms[0].name, "batchIndex");
+      test.equals(reflect.entry.vertex[0].resources.length, 2);
+      test.equals(reflect.entry.vertex[0].resources[0].name, "batchOffsets");
+      test.equals(reflect.entry.vertex[0].resources[1].name, "batchIndex");
+  });
+
   test("enable", function (test) {
     const reflect = new WgslReflect(`enable chromium_experimental_subgroups;
       @compute @workgroup_size(64) fn main(

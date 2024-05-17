@@ -824,6 +824,9 @@ class VariableExpr extends Expression {
     }
     search(callback) {
         callback(this);
+        if (this.postfix) {
+            this.postfix.search(callback);
+        }
     }
     evaluate(context) {
         const constant = context.constants.get(this.name);
@@ -941,6 +944,20 @@ class GroupingExpr extends Expression {
     }
     search(callback) {
         this.searchBlock(this.contents, callback);
+    }
+}
+/**
+ * @class ArrayIndex
+ * @extends Expression
+ * @category AST
+ */
+class ArrayIndex extends Expression {
+    constructor(index) {
+        super();
+        this.index = index;
+    }
+    search(callback) {
+        this.index.search(callback);
     }
 }
 /**
@@ -2626,8 +2643,9 @@ class WgslParser {
         // primary_expression postfix_expression ?
         const expr = this._primary_expression();
         const p = this._postfix_expression();
-        if (p)
+        if (p) {
             expr.postfix = p;
+        }
         return expr;
     }
     _postfix_expression() {
@@ -2635,18 +2653,21 @@ class WgslParser {
         if (this._match(TokenTypes.tokens.bracket_left)) {
             const expr = this._short_circuit_or_expression();
             this._consume(TokenTypes.tokens.bracket_right, "Expected ']'.");
+            const arrayIndex = new ArrayIndex(expr);
             const p = this._postfix_expression();
-            if (p)
-                expr.postfix = p;
-            return expr;
+            if (p) {
+                arrayIndex.postfix = p;
+            }
+            return arrayIndex;
         }
         // period ident postfix_expression?
         if (this._match(TokenTypes.tokens.period)) {
             const name = this._consume(TokenTypes.tokens.ident, "Expected member name.");
             const p = this._postfix_expression();
             const expr = new StringExpr(name.lexeme);
-            if (p)
+            if (p) {
                 expr.postfix = p;
+            }
             return expr;
         }
         return null;
@@ -4055,6 +4076,7 @@ WgslReflect._samplerTypes = TokenTypes.sampler_type.map((t) => {
 exports.Alias = Alias;
 exports.AliasInfo = AliasInfo;
 exports.Argument = Argument;
+exports.ArrayIndex = ArrayIndex;
 exports.ArrayInfo = ArrayInfo;
 exports.ArrayType = ArrayType;
 exports.Assign = Assign;

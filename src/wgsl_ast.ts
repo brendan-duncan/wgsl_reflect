@@ -1110,6 +1110,9 @@ export class VariableExpr extends Expression {
 
   search(callback: (node: Node) => void) {
     callback(this);
+    if (this.postfix) {
+      this.postfix.search(callback);
+    }
   }
 
   evaluate(context: ParseContext): number {
@@ -1259,6 +1262,23 @@ export class GroupingExpr extends Expression {
 
   search(callback: (node: Node) => void): void {
     this.searchBlock(this.contents, callback);
+  }
+}
+
+/**
+ * @class ArrayIndex
+ * @extends Expression
+ * @category AST
+ */
+export class ArrayIndex extends Expression {
+  index: Expression;
+  constructor(index: Expression) {
+    super();
+    this.index = index;
+  }
+
+  search(callback: (node: Node) => void): void {
+    this.index.search(callback);
   }
 }
 

@@ -530,6 +530,16 @@ export declare class GroupingExpr extends Expression {
     search(callback: (node: Node) => void): void;
 }
 /**
+ * @class ArrayIndex
+ * @extends Expression
+ * @category AST
+ */
+export declare class ArrayIndex extends Expression {
+    index: Expression;
+    constructor(index: Expression);
+    search(callback: (node: Node) => void): void;
+}
+/**
  * @class Operator
  * @extends Expression
  * @category AST
