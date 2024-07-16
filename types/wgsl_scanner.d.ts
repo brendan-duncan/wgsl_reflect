@@ -159,8 +159,6 @@ export declare class TokenTypes {
         and_and: TokenType;
         arrow: TokenType;
         attr: TokenType;
-        attr_left: TokenType;
-        attr_right: TokenType;
         forward_slash: TokenType;
         bang: TokenType;
         bracket_left: TokenType;
@@ -218,8 +216,6 @@ export declare class TokenTypes {
         "&": TokenType;
         "&&": TokenType;
         "->": TokenType;
-        "[[": TokenType;
-        "]]": TokenType;
         "/": TokenType;
         "!": TokenType;
         "[": TokenType;

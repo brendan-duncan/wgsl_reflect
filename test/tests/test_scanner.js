@@ -218,6 +218,13 @@ group("Scanner", function () {
     test.equals(tokens[7].type, TokenTypes.tokens.equal);
   });
 
+  test("nested array", function (test) {
+    const scanner = new WgslScanner("foo[bar[0]]");
+    const tokens = scanner.scanTokens();
+    test.equals(tokens.length, 8);
+    test.equals(tokens[6].type, TokenTypes.tokens.bracket_right);
+  });
+
   test("fn foo(a, b) -> d { return; }", function (test) {
     const scanner = new WgslScanner(`fn foo(a, b) -> d {
             // skip this comment

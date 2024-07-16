@@ -172,8 +172,6 @@ TokenTypes.tokens = {
     and_and: new TokenType("and_and", TokenClass.token, "&&"),
     arrow: new TokenType("arrow ", TokenClass.token, "->"),
     attr: new TokenType("attr", TokenClass.token, "@"),
-    attr_left: new TokenType("attr_left", TokenClass.token, "[["),
-    attr_right: new TokenType("attr_right", TokenClass.token, "]]"),
     forward_slash: new TokenType("forward_slash", TokenClass.token, "/"),
     bang: new TokenType("bang", TokenClass.token, "!"),
     bracket_left: new TokenType("bracket_left", TokenClass.token, "["),

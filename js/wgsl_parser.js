@@ -1205,33 +1205,6 @@ export class WgslParser {
             }
             attributes.push(attr);
         }
-        // Deprecated:
-        // attr_left (attribute comma)* attribute attr_right
-        while (this._match(TokenTypes.tokens.attr_left)) {
-            if (!this._check(TokenTypes.tokens.attr_right)) {
-                do {
-                    const name = this._consume(TokenTypes.attribute_name, "Expected attribute name");
-                    const attr = new AST.Attribute(name.toString(), null);
-                    if (this._match(TokenTypes.tokens.paren_left)) {
-                        // literal_or_ident
-                        attr.value = [
-                            this._consume(TokenTypes.literal_or_ident, "Expected attribute value").toString(),
-                        ];
-                        if (this._check(TokenTypes.tokens.comma)) {
-                            this._advance();
-                            do {
-                                const v = this._consume(TokenTypes.literal_or_ident, "Expected attribute value").toString();
-                                attr.value.push(v);
-                            } while (this._match(TokenTypes.tokens.comma));
-                        }
-                        this._consume(TokenTypes.tokens.paren_right, "Expected ')'");
-                    }
-                    attributes.push(attr);
-                } while (this._match(TokenTypes.tokens.comma));
-            }
-            // Consume ]]
-            this._consume(TokenTypes.tokens.attr_right, "Expected ']]' after attribute declarations");
-        }
         if (attributes.length == 0) {
             return null;
         }

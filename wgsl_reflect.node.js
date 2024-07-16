@@ -1359,8 +1359,6 @@ TokenTypes.tokens = {
     and_and: new TokenType("and_and", exports.TokenClass.token, "&&"),
     arrow: new TokenType("arrow ", exports.TokenClass.token, "->"),
     attr: new TokenType("attr", exports.TokenClass.token, "@"),
-    attr_left: new TokenType("attr_left", exports.TokenClass.token, "[["),
-    attr_right: new TokenType("attr_right", exports.TokenClass.token, "]]"),
     forward_slash: new TokenType("forward_slash", exports.TokenClass.token, "/"),
     bang: new TokenType("bang", exports.TokenClass.token, "!"),
     bracket_left: new TokenType("bracket_left", exports.TokenClass.token, "["),
@@ -1418,8 +1416,6 @@ TokenTypes.literalTokens = {
     "&": _a.tokens.and,
     "&&": _a.tokens.and_and,
     "->": _a.tokens.arrow,
-    "[[": _a.tokens.attr_left,
-    "]]": _a.tokens.attr_right,
     "/": _a.tokens.forward_slash,
     "!": _a.tokens.bang,
     "[": _a.tokens.bracket_left,
@@ -3122,33 +3118,6 @@ class WgslParser {
                 this._consume(TokenTypes.tokens.paren_right, "Expected ')'");
             }
             attributes.push(attr);
-        }
-        // Deprecated:
-        // attr_left (attribute comma)* attribute attr_right
-        while (this._match(TokenTypes.tokens.attr_left)) {
-            if (!this._check(TokenTypes.tokens.attr_right)) {
-                do {
-                    const name = this._consume(TokenTypes.attribute_name, "Expected attribute name");
-                    const attr = new Attribute(name.toString(), null);
-                    if (this._match(TokenTypes.tokens.paren_left)) {
-                        // literal_or_ident
-                        attr.value = [
-                            this._consume(TokenTypes.literal_or_ident, "Expected attribute value").toString(),
-                        ];
-                        if (this._check(TokenTypes.tokens.comma)) {
-                            this._advance();
-                            do {
-                                const v = this._consume(TokenTypes.literal_or_ident, "Expected attribute value").toString();
-                                attr.value.push(v);
-                            } while (this._match(TokenTypes.tokens.comma));
-                        }
-                        this._consume(TokenTypes.tokens.paren_right, "Expected ')'");
-                    }
-                    attributes.push(attr);
-                } while (this._match(TokenTypes.tokens.comma));
-            }
-            // Consume ]]
-            this._consume(TokenTypes.tokens.attr_right, "Expected ']]' after attribute declarations");
         }
         if (attributes.length == 0) {
             return null;
