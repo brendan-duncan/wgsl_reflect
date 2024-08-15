@@ -2,6 +2,13 @@ import { test, group } from "../test.js";
 import { WgslScanner, TokenTypes } from "../../../wgsl_reflect.module.js";
 
 group("Scanner", function () {
+  test(">=", function (test) {
+    const scanner = new WgslScanner("vec3<bool>=a>=b");
+    const tokens = scanner.scanTokens();
+    test.equals(tokens.length, 9);
+    test.equals(tokens[6].type, TokenTypes.tokens.greater_than_equal);
+  });
+
   test("default", function (test) {
     const scanner = new WgslScanner();
     const tokens = scanner.scanTokens();

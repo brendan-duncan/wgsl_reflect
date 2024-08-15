@@ -732,6 +732,9 @@ export class WgslScanner {
         let foundLessThan = false;
         let ti = this._tokens.length - 1;
         for (let count = 0; count < 5 && ti >= 0; ++count, --ti) {
+          if (TokenTypes.assignment_operators.indexOf(this._tokens[ti].type) !== -1) {
+            break;
+          }
           if (this._tokens[ti].type === TokenTypes.tokens.less_than) {
             if (ti > 0 && this._tokens[ti - 1].isArrayOrTemplateType()) {
               foundLessThan = true;

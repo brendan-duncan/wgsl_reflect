@@ -4,9 +4,16 @@ import { WgslParser } from "../../../wgsl_reflect.module.js";
 group("Parser", function () {
   const parser = new WgslParser();
 
+  test(">=", function(test) {
+    const t = parser.parse(`fn foo() {
+      var cEdgeBool : vec3<bool> = c3 >= vec3<f32>(1.0);
+    }`);
+    test.equals(t.length, 1);
+  });
+
   test("requires", function(test) {
     const t = parser.parse(`requires readonly_and_readwrite_storage_textures;`);
-      test.equals(t.length, 1);
+    test.equals(t.length, 1);
   });
 
   test("diagnostic if", function () {
