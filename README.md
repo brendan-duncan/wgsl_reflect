@@ -248,7 +248,7 @@ console.log(groups.length); // 1
 console.log(groups[0].length); // 4, bindings in group(0)
 
 console.log(groups[0][1].resourceType); // ResourceType.Uniform, the type of resource at group(0) binding(1)
-console.log(groups[0][1].size); // 108, the size of the uniform buffer.
+console.log(groups[0][1].size); // 96, the size of the uniform buffer.
 console.log(groups[0][1].members.length); // 3, members in ModelUniforms.
 console.log(groups[0][1].members[0].name); // "model", the name of the first member in the uniform buffer.
 console.log(groups[0][1].members[0].offset); // 0, the offset of 'model' in the uniform buffer.
