@@ -304,7 +304,7 @@ const u = reflect.uniforms[0];
 console.log(u.size); // 208, the size of the uniform buffer in bytes
 console.log(u.group); // 0
 console.log(u.binding); // 0
-console.log(u.members.length); // 7, members in B
+console.log(u.members.length); // 8, members in B
 console.log(u.members[0].name); // "a"
 console.log(u.members[0].offset); // 0, the offset of 'a' in the buffer
 console.log(u.members[0].size); // 8, the size of 'a' in bytes
