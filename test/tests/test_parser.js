@@ -4,6 +4,11 @@ import { WgslParser } from "../../../wgsl_reflect.module.js";
 group("Parser", function () {
   const parser = new WgslParser();
 
+  test("bar--;", function (test) {
+    const t = parser.parse("fn foo() { bar--; }");
+    test.equals(t[0].body.length, 1);
+  });
+
   test(">=", function(test) {
     const t = parser.parse(`fn foo() {
       var cEdgeBool : vec3<bool> = c3 >= vec3<f32>(1.0);

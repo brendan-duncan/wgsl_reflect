@@ -1737,12 +1737,34 @@ class WgslScanner {
             // and one to close the array).
             // Another ambiguity is '>='. In the case of vec2<i32>=vec2(1,2),
             // it's a greather_than and an equal, not a greater_than_equal.
+            // Another ambiguity is '-'. In the case of a-2, it's a minus; in the case of a*-2, it's a -2;
+            // in the case of foo()->int, it's a ->; in the case of foo-- or --foo, it's a -- decrement.
             // WGSL requires context sensitive parsing to resolve these ambiguities. Both of these cases
             // are predicated on it the > either closing a template, or being part of an operator.
             // The solution here is to check if there was a less_than up to some number of tokens
             // previously, and the token prior to that is a keyword that requires a '<', then it will be
             // split into two operators; otherwise it's a single operator.
             const nextLexeme = this._peekAhead();
+            if (lexeme == "-" && this._tokens.length > 0) {
+                if (nextLexeme == "=") {
+                    this._current++;
+                    lexeme += nextLexeme;
+                    this._addToken(TokenTypes.tokens.minus_equal);
+                    return true;
+                }
+                if (nextLexeme == "-") {
+                    this._current++;
+                    lexeme += nextLexeme;
+                    this._addToken(TokenTypes.tokens.minus_minus);
+                    return true;
+                }
+                const ti = this._tokens.length - 1;
+                const isIdentOrLiteral = TokenTypes.literal_or_ident.indexOf(this._tokens[ti].type) != -1;
+                if (isIdentOrLiteral && nextLexeme != ">") {
+                    this._addToken(matchedType);
+                    return true;
+                }
+            }
             if (lexeme == ">" && (nextLexeme == ">" || nextLexeme == "=")) {
                 let foundLessThan = false;
                 let ti = this._tokens.length - 1;

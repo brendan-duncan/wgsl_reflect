@@ -2,12 +2,37 @@ import { test, group } from "../test.js";
 import { WgslScanner, TokenTypes } from "../../../wgsl_reflect.module.js";
 
 group("Scanner", function () {
-  test(">=", function (test) {
-    const scanner = new WgslScanner("vec3<bool>=a>=b");
+  test("bar--;", function (test) {
+    const scanner = new WgslScanner("bar--;");
     const tokens = scanner.scanTokens();
-    test.equals(tokens.length, 9);
-    test.equals(tokens[6].type, TokenTypes.tokens.greater_than_equal);
+    test.equals(tokens.length, 4);
+    test.equals(tokens[1].type, TokenTypes.tokens.minus_minus);
   });
+  test("b-=1;", function (test) {
+    const scanner = new WgslScanner("b-=1;");
+    const tokens = scanner.scanTokens();
+    test.equals(tokens.length, 5);
+    test.equals(tokens[1].type, TokenTypes.tokens.minus_equal);
+  });
+  test("foo=bar--", function (test) {
+    const scanner = new WgslScanner("foo=bar--");
+    const tokens = scanner.scanTokens();
+    test.equals(tokens.length, 5);
+    test.equals(tokens[3].type, TokenTypes.tokens.minus_minus);
+  });
+  test("foo=-2", function (test) {
+    const scanner = new WgslScanner("foo=-1;");
+    const tokens = scanner.scanTokens();
+    test.equals(tokens.length, 5);
+    test.equals(tokens[2].type, TokenTypes.tokens.int_literal);
+  });
+
+  test("1-2", function (test) {
+    const scanner = new WgslScanner("let foo=bar*2-1;");
+    const tokens = scanner.scanTokens();
+    test.equals(tokens.length, 10);
+    test.equals(tokens[6].type, TokenTypes.tokens.minus);
+  }); 
 
   test("default", function (test) {
     const scanner = new WgslScanner();
@@ -283,5 +308,12 @@ group("Scanner", function () {
       test.equals(tokens.length, 23);
       test.equals(tokens[17].lexeme, '>');
       test.equals(tokens[18].lexeme, '>');
+  });
+
+  test(">=", function (test) {
+    const scanner = new WgslScanner("vec3<bool>=a>=b");
+    const tokens = scanner.scanTokens();
+    test.equals(tokens.length, 9);
+    test.equals(tokens[6].type, TokenTypes.tokens.greater_than_equal);
   });
 });
