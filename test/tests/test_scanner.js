@@ -2,6 +2,12 @@ import { test, group } from "../test.js";
 import { WgslScanner, TokenTypes } from "../../../wgsl_reflect.module.js";
 
 group("Scanner", function () {
+  test("(1+2)-3;", function (test) {
+    const scanner = new WgslScanner("(1+2)-3;");
+    const tokens = scanner.scanTokens();
+    test.equals(tokens.length, 9);
+    test.equals(tokens[5].type, TokenTypes.tokens.minus);
+  });
   test("bar--;", function (test) {
     const scanner = new WgslScanner("bar--;");
     const tokens = scanner.scanTokens();

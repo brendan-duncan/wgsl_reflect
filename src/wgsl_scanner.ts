@@ -745,7 +745,7 @@ export class WgslScanner {
         }
         const ti = this._tokens.length - 1;
         const isIdentOrLiteral = TokenTypes.literal_or_ident.indexOf(this._tokens[ti].type) != -1;
-        if (isIdentOrLiteral && nextLexeme != ">") {
+        if ((isIdentOrLiteral || this._tokens[ti].type == TokenTypes.tokens.paren_right) && nextLexeme != ">") {
           this._addToken(matchedType);
           return true;
         }
