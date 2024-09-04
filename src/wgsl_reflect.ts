@@ -981,7 +981,7 @@ export class WgslReflect {
     {
       const info = WgslReflect._typeInfo[type.name];
       if (info !== undefined) {
-        const divisor = type["format"] === "f16" ? 2 : 1;
+        const divisor = type["format"]?.name === "f16" ? 2 : 1;
         return new _TypeSize(
           Math.max(explicitAlign, info.align / divisor),
           Math.max(explicitSize, info.size / divisor)

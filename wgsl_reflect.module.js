@@ -3889,7 +3889,7 @@ class WgslReflect {
         struct.align = structAlign;
     }
     _getTypeSize(type) {
-        var _a;
+        var _a, _b;
         if (type === null || type === undefined) {
             return null;
         }
@@ -3907,7 +3907,7 @@ class WgslReflect {
         {
             const info = WgslReflect._typeInfo[type.name];
             if (info !== undefined) {
-                const divisor = type["format"] === "f16" ? 2 : 1;
+                const divisor = ((_a = type["format"]) === null || _a === void 0 ? void 0 : _a.name) === "f16" ? 2 : 1;
                 return new _TypeSize(Math.max(explicitAlign, info.align / divisor), Math.max(explicitSize, info.size / divisor));
             }
         }
@@ -3938,7 +3938,7 @@ class WgslReflect {
                 align = E.align;
             }
             const N = arrayType.count;
-            const stride = this._getAttributeNum((_a = type === null || type === void 0 ? void 0 : type.attributes) !== null && _a !== void 0 ? _a : null, "stride", this._roundUp(align, size));
+            const stride = this._getAttributeNum((_b = type === null || type === void 0 ? void 0 : type.attributes) !== null && _b !== void 0 ? _b : null, "stride", this._roundUp(align, size));
             size = N * stride;
             if (explicitSize) {
                 size = explicitSize;

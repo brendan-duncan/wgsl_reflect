@@ -2,6 +2,39 @@ import { test, group } from "../test.js";
 import { WgslReflect, ResourceType } from "../../../wgsl_reflect.module.js";
 
 group("Reflect", function () {
+  test("f16", function (test) {
+    const reflect = new WgslReflect(`
+      @binding(0) @group(0) var<uniform> a1: f16;            // This is correctly sized at 2 bytes!
+      @binding(0) @group(1) var<uniform> a2: vec2<f16>;      // This should be 4 bytes, not 8
+      @binding(0) @group(2) var<uniform> a3: vec3<f16>;      // This should be 6 bytes, not 12
+      @binding(0) @group(3) var<uniform> a4: vec4<f16>;      // This should be 8 bytes, not 16
+
+      @binding(0) @group(4) var<uniform> a5: mat2x2<f16>;    // This should be 8 bytes, not 16
+      @binding(0) @group(5) var<uniform> a6: mat2x3<f16>;    // This should be 16 bytes, not 32
+      @binding(0) @group(6) var<uniform> a7: mat2x4<f16>;    // This should be 16 bytes, not 32
+      @binding(0) @group(7) var<uniform> a8: mat3x2<f16>;    // This should be 12 bytes, not 24
+      @binding(0) @group(8) var<uniform> a9: mat3x3<f16>;    // This should be 24 bytes, not 48
+      @binding(0) @group(9) var<uniform> a10: mat3x4<f16>;   // This should be 24 bytes, not 48
+      @binding(0) @group(10) var<uniform> a11: mat4x2<f16>;  // This should be 16 bytes, not 32
+      @binding(0) @group(11) var<uniform> a11: mat4x3<f16>;  // This should be 32 bytes, not 64
+      @binding(0) @group(12) var<uniform> a11: mat4x4<f16>;  // This should be 32 bytes, not 64`);
+
+      test.equals(reflect.uniforms.length, 13);
+      test.equals(reflect.uniforms[0].size, 2);
+      test.equals(reflect.uniforms[1].size, 4);
+      test.equals(reflect.uniforms[2].size, 6);
+      test.equals(reflect.uniforms[3].size, 8);
+      test.equals(reflect.uniforms[4].size, 8);
+      test.equals(reflect.uniforms[5].size, 16);
+      test.equals(reflect.uniforms[6].size, 16);
+      test.equals(reflect.uniforms[7].size, 12);
+      test.equals(reflect.uniforms[8].size, 24);
+      test.equals(reflect.uniforms[9].size, 24);
+      test.equals(reflect.uniforms[10].size, 16);
+      test.equals(reflect.uniforms[11].size, 32);
+      test.equals(reflect.uniforms[12].size, 32);
+  });
+
   test("uniform index", function (test) {
     const reflect = new WgslReflect(`
       @group(0) @binding(2) var<uniform>  batchIndex: u32;
