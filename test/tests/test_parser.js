@@ -2,14 +2,30 @@ import { test, group } from "../test.js";
 import { WgslParser } from "../../../wgsl_reflect.module.js";
 
 group("Parser", function () {
-  const parser = new WgslParser();
+  test("const2", function (test) {
+    const shader = `const FOO = radians(90);
+    const BAR = sin(FOO);
+    const NUM_COLORS = u32(BAR + 3); // result 4
+    @group(0) @binding(0) var<uniform> uni: array<vec4f, NUM_COLORS>;`;
+    const parser = new WgslParser();
+    const t = parser.parse(shader);
+    test.equals(t.length, 4);
+  });
+
+  test("override", function (test) {
+    const parser = new WgslParser();
+    const t = parser.parse("override AP_INV_DISTANCE_PER_SLICE = 1.0 + AP_DISTANCE_PER_SLICE;");
+    test.equals(t.length, 1);
+  });
 
   test("bar--;", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse("fn foo() { bar--; }");
     test.equals(t[0].body.length, 1);
   });
 
   test(">=", function(test) {
+    const parser = new WgslParser();
     const t = parser.parse(`fn foo() {
       var cEdgeBool : vec3<bool> = c3 >= vec3<f32>(1.0);
     }`);
@@ -17,11 +33,13 @@ group("Parser", function () {
   });
 
   test("requires", function(test) {
+    const parser = new WgslParser();
     const t = parser.parse(`requires readonly_and_readwrite_storage_textures;`);
     test.equals(t.length, 1);
   });
 
   test("diagnostic if", function () {
+    const parser = new WgslParser();
     const t = parser.parse(`fn helper() -> vec4<f32> {
       if (d < 0.5) @diagnostic(off,derivative_uniformity) {
         return textureSample(t,s,vec2(0,0));
@@ -31,6 +49,7 @@ group("Parser", function () {
   });
 
   test("diagnostic block", function () {
+    const parser = new WgslParser();
     const t = parser.parse(`fn helper() -> vec4<f32> {
       // The derivative_uniformity diagnostic is set to 'warning' severity.
       @diagnostic(warning,derivative_uniformity) {
@@ -40,22 +59,26 @@ group("Parser", function () {
   });
 
   test("_", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse("fn foo(_point : vec3<f32>) {}");
     test.equals(t.length, 1);
   });
 
   test("empty", function (test) {
+    const parser = new WgslParser();
     test.equals(parser.parse().length, 0);
     test.equals(parser.parse("").length, 0);
     test.equals(parser.parse([]).length, 0);
   });
 
   test(";;;;", function (test) {
+    const parser = new WgslParser();
     test.equals(parser.parse(";;;;").length, 0);
   });
 
   // enable:
   test("enable foo;", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse("enable foo;");
     test.validateObject(t, [
       {
@@ -67,6 +90,7 @@ group("Parser", function () {
 
   // enable:
   test("diagnostic", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse("diagnostic(off, derivative_uniformity);");
     test.validateObject(t, [
       {
@@ -79,6 +103,7 @@ group("Parser", function () {
 
   // alias:
   test("alias", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse("alias foo = i32;");
     test.validateObject(t, [
       {
@@ -90,6 +115,7 @@ group("Parser", function () {
   });
 
   test("alias foo = vec3<f32>;", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse("alias foo = vec3<f32>;");
     test.validateObject(t, [
       {
@@ -106,6 +132,7 @@ group("Parser", function () {
   });
 
   test("alias foo = array<f32, 5>;", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse("alias foo = array<f32, 5>;");
     test.validateObject(t, [
       {
@@ -123,27 +150,32 @@ group("Parser", function () {
   });
 
   test("alias foo = @stride(16) array<vec4<f32>>;", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse("alias foo = @stride(16) array<vec4<f32>>;");
     test.equals(t.length, 1);
   });
 
   // var
   test("var<private> decibels: f32;", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse("var<private> decibels: f32;");
     test.equals(t.length, 1);
   });
 
   test("var<workgroup> worklist: array<i32,10>;", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse("var<workgroup> worklist: array<i32,10>;");
     test.equals(t.length, 1);
   });
 
   test("@group(0) @binding(2) var<uniform> param: Params;", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse("@group(0) @binding(2) var<uniform> param: Params;");
     test.equals(t.length, 1);
   });
 
   test("@group(0) binding(0) var<storage,read_write> pbuf: PositionsBuffer;", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse(
       "@group(0) @binding(0) var<storage,read_write> pbuf: PositionsBuffer;"
     );
@@ -167,6 +199,7 @@ group("Parser", function () {
 
   // let
   test("let golden: f32 = 1.61803398875;", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse("let golden: f32 = 1.61803398875;");
     test.validateObject(t, [
       {
@@ -175,12 +208,13 @@ group("Parser", function () {
         type: {
           name: "f32",
         },
-        value: "1.61803398875",
+        value: { value: 1.61803398875 },
       },
     ]);
   });
 
   test("let e2 = vec3<i32>(0,1,0);", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse("let e2 = vec3<i32>(0,1,0);");
     test.validateObject(t, [
       {
@@ -202,6 +236,7 @@ group("Parser", function () {
   // struct
 
   test("struct", function (test) {
+    const parser = new WgslParser();
     const code = `
 struct S {
     @offset(0) a: f32,
@@ -214,6 +249,7 @@ struct S {
 
   // let
   test("let x : i32 = 42;", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse("let x : i32 = 42;");
     test.validateObject(t, [
       {
@@ -225,11 +261,13 @@ struct S {
 
   // function
   test("fn test() { let x : i32 = 42; }", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse("fn test() { let x : i32 = 42; }");
     test.equals(t.length, 1);
   });
 
   test("@vertex fn vert_main() -> @builtin(position) vec4<f32> {}", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse(
       "@vertex fn vert_main() -> @builtin(position) vec4<f32> {}"
     );
@@ -237,6 +275,7 @@ struct S {
   });
 
   test("var W_out_origX0X : texture_storage_2d<rgba16float, write>;", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse(
       "var W_out_origX0X : texture_storage_2d<rgba16float, write>;"
     );
@@ -244,16 +283,19 @@ struct S {
   });
 
   test("if (foo) { }", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse("fn test() { if (foo) { } }");
     test.equals(t.length, 1);
   });
 
   test("if foo { }", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse("fn test() { if foo { } }");
     test.equals(t.length, 1);
   });
 
   test("switch foo { case 0: {} default: {} }", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse(
       "fn test() { switch foo { case 0: {} default: {} } }"
     );
@@ -261,16 +303,19 @@ struct S {
   });
 
   test("switch foo { }", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse("fn test() { switch foo { default: { } } }");
     test.equals(t.length, 1);
   });
 
   test("trailing_comma", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse("fn foo (a:i32,) {}");
     test.equals(t.length, 1);
   });
 
   test("operators", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse(`fn foo() {
             var b = 1;
             b+=1;
@@ -289,6 +334,7 @@ struct S {
   });
 
   test("static_assert", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse(`fn foo() {
             const x = 1;
             const y = 2;
@@ -298,6 +344,7 @@ struct S {
   });
 
   test("for incrementer", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse(`fn foo() {
             for (var i = 0; i < 10; i++) {
             }
@@ -320,6 +367,7 @@ struct S {
   });
 
   test("inferred type arrays", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse(`
       @vertex fn vs(@builtin(vertex_index) vertexIndex : u32) -> @builtin(position) vec4f {
       let pos = array(
@@ -335,6 +383,7 @@ struct S {
   });
 
   test("if (foo < 0.33333) { } else if foo < 0.66667 {} else {}", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse(
       "fn test() { if (foo < 0.33333) { } else if foo < 0.66667 {} else {} }"
     );
@@ -349,6 +398,7 @@ struct S {
   });
 
   test("continuing", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse(`fn test() {
         var i: i32 = 0;
         loop {
@@ -366,6 +416,7 @@ struct S {
   });
 
   test("module scope value constructor", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse(`const v2 = vec2f(0.0f, 0.0f);
       const v3 = vec3f(0.0f, 0.0f, 0.0f);
       const v4 = vec4f(0.0f, 0.0f, 0.0f, 0.0f);
@@ -401,6 +452,7 @@ struct S {
   });
 
   test("const switch", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse(`alias material_type = u32;
       const MATERIAL_TYPE_LAMBERTIAN : material_type = 0;
       fn scatter(ty: material_type) -> bool {
@@ -414,6 +466,7 @@ struct S {
   });
 
   test("storage texture", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse(
       `var<storage> tex: texture_storage_2d<rgba8unorm, read_write>;`
     );
@@ -424,6 +477,7 @@ struct S {
   });
 
   test("post const array count", function (test) {
+    const parser = new WgslParser();
     const t = parser.parse(`alias Arr = array<f32, SIZE>;
       const SIZE = 3u + FOO;
       const FOO = 2u;`);

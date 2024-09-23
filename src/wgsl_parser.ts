@@ -1141,7 +1141,7 @@ export class WgslParser {
     // type_decl argument_expression_list
     const type = this._type_decl();
     const args = this._argument_expression_list();
-    return new AST.TypecastExpr(type, args);
+    return new AST.CreateExpr(type, args);
   }
 
   _argument_expression_list(): Array<AST.Expression> | null {
@@ -1332,26 +1332,7 @@ export class WgslParser {
   _const_expression(): AST.Expression {
     // type_decl paren_left ((const_expression comma)* const_expression comma?)? paren_right
     // const_literal
-    if (this._match(TokenTypes.const_literal)) {
-      return new AST.StringExpr(this._previous().toString());
-    }
-
-    const type = this._type_decl();
-
-    this._consume(TokenTypes.tokens.paren_left, "Expected '('.");
-
-    let args: Array<AST.Expression> = [];
-    while (!this._check(TokenTypes.tokens.paren_right)) {
-      args.push(this._const_expression());
-      if (!this._check(TokenTypes.tokens.comma)) {
-        break;
-      }
-      this._advance();
-    }
-
-    this._consume(TokenTypes.tokens.paren_right, "Expected ')'.");
-
-    return new AST.CreateExpr(type, args);
+    return this._short_circuit_or_expression();
   }
 
   _variable_decl(): AST.Var | null {

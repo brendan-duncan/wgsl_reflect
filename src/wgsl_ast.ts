@@ -923,6 +923,10 @@ export class CreateExpr extends Expression {
       node.search(callback);
     }
   }
+
+  evaluate(context: ParseContext): number {
+    return this.args[0].evaluate(context);
+  }
 }
 
 /**
@@ -1150,9 +1154,11 @@ export class ConstExpr extends Expression {
       const type = this.initializer.type?.name;
       const struct = context.structs.get(type);
       const memberIndex = struct?.getMemberIndex(property);
-      if (memberIndex != -1) {
+      if (memberIndex !== undefined && memberIndex != -1) {
         const value = this.initializer.args[memberIndex].evaluate(context);
         return value;
+      } else {
+        return this.initializer.evaluate(context);
       }
       console.log(memberIndex);
     }
