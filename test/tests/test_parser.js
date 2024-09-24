@@ -14,8 +14,9 @@ group("Parser", function () {
 
   test("override", function (test) {
     const parser = new WgslParser();
-    const t = parser.parse("override AP_INV_DISTANCE_PER_SLICE = 1.0 + AP_DISTANCE_PER_SLICE;");
-    test.equals(t.length, 1);
+    const t = parser.parse("const AP_DISTANCE_PER_SLICE = 4.0; override AP_INV_DISTANCE_PER_SLICE = 1.0 / AP_DISTANCE_PER_SLICE;");
+    test.equals(t.length, 2);
+    //const v = t[1].evaluate(parser._context);
   });
 
   test("bar--;", function (test) {
