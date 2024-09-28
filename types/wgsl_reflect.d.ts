@@ -97,12 +97,20 @@ export declare class OutputInfo {
     location: number | string;
     constructor(name: string, type: TypeInfo | null, locationType: string, location: number | string);
 }
+export declare class OverrideInfo {
+    name: string;
+    type: TypeInfo | null;
+    attributes: Array<AST.Attribute> | null;
+    id: number;
+    constructor(name: string, type: TypeInfo | null, attributes: Array<AST.Attribute> | null, id: number);
+}
 export declare class FunctionInfo {
     name: string;
     stage: string | null;
     inputs: Array<InputInfo>;
     outputs: Array<OutputInfo>;
     resources: Array<VariableInfo>;
+    overrides: Array<OverrideInfo>;
     startLine: number;
     endLine: number;
     inUse: boolean;
@@ -113,13 +121,6 @@ export declare class EntryFunctions {
     vertex: Array<FunctionInfo>;
     fragment: Array<FunctionInfo>;
     compute: Array<FunctionInfo>;
-}
-export declare class OverrideInfo {
-    name: string;
-    type: TypeInfo | null;
-    attributes: Array<AST.Attribute> | null;
-    id: number;
-    constructor(name: string, type: TypeInfo | null, attributes: Array<AST.Attribute> | null, id: number);
 }
 declare class _FunctionResources {
     node: AST.Function;

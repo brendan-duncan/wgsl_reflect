@@ -272,29 +272,6 @@ export class OutputInfo {
   }
 }
 
-export class FunctionInfo {
-  name: string;
-  stage: string | null = null;
-  inputs: Array<InputInfo> = [];
-  outputs: Array<OutputInfo> = [];
-  resources: Array<VariableInfo> = [];
-  startLine: number = -1;
-  endLine: number = -1;
-  inUse: boolean = false;
-  calls: Set<FunctionInfo> = new Set();
-
-  constructor(name: string, stage: string | null = null) {
-    this.name = name;
-    this.stage = stage;
-  }
-}
-
-export class EntryFunctions {
-  vertex: Array<FunctionInfo> = [];
-  fragment: Array<FunctionInfo> = [];
-  compute: Array<FunctionInfo> = [];
-}
-
 export class OverrideInfo {
   name: string;
   type: TypeInfo | null;
@@ -312,6 +289,30 @@ export class OverrideInfo {
     this.attributes = attributes;
     this.id = id;
   }
+}
+
+export class FunctionInfo {
+  name: string;
+  stage: string | null = null;
+  inputs: Array<InputInfo> = [];
+  outputs: Array<OutputInfo> = [];
+  resources: Array<VariableInfo> = [];
+  overrides: Array<OverrideInfo> = [];
+  startLine: number = -1;
+  endLine: number = -1;
+  inUse: boolean = false;
+  calls: Set<FunctionInfo> = new Set();
+
+  constructor(name: string, stage: string | null = null) {
+    this.name = name;
+    this.stage = stage;
+  }
+}
+
+export class EntryFunctions {
+  vertex: Array<FunctionInfo> = [];
+  fragment: Array<FunctionInfo> = [];
+  compute: Array<FunctionInfo> = [];
 }
 
 class _FunctionResources {
@@ -503,6 +504,19 @@ export class WgslReflect {
         fn.info.inUse = fn.inUse;
         this._addCalls(fn.node, fn.info.calls);
       }
+    }
+
+    for (const fn of this._functions.values()) {
+      fn.node.search((node) => {
+        if (node.astNodeType === "varExpr") {
+          const v = node as AST.VariableExpr;
+          for (const override of this.overrides) {
+            if (v.name == override.name) {
+              fn.info?.overrides.push(override);
+            }
+          }
+        }
+      });
     }
 
     for (const u of this.uniforms) {

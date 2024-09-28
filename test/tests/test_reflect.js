@@ -2,6 +2,18 @@ import { test, group } from "../test.js";
 import { WgslReflect, ResourceType } from "../../../wgsl_reflect.module.js";
 
 group("Reflect", function () {
+  test("override", function (test) {
+    const reflect = new WgslReflect(`override red = 0.0;
+      override green = 0.0;
+      override blue = 0.0;
+      @fragment fn fs() -> @location(0) vec4f {
+        return vec4f(red, green, blue, 1.0);
+      }`);
+      test.equals(reflect.overrides.length, 3);
+      test.equals(reflect.entry.fragment[0].name, "fs");
+      test.equals(reflect.entry.fragment[0].overrides.length, 3);
+  });
+
   test("f16", function (test) {
     const reflect = new WgslReflect(`
       @binding(0) @group(0) var<uniform> a1: f16;            // This is correctly sized at 2 bytes!
@@ -37,11 +49,14 @@ group("Reflect", function () {
 
   test("uniform index", function (test) {
     const reflect = new WgslReflect(`
-      @group(0) @binding(2) var<uniform>  batchIndex: u32;
+      struct BatchIndex {
+        index: u32,
+      }
+      @group(0) @binding(2) var<uniform>  batchIndex: BatchIndex;
       @group(0) @binding(3) var<storage, read> batchOffsets: array<u32>;
       @vertex
       fn main() {
-        let batchOffset = batchOffsets[batchIndex];
+        let batchOffset = batchOffsets[batchIndex.index];
       }`);
       test.equals(reflect.uniforms.length, 1);
       test.equals(reflect.uniforms[0].name, "batchIndex");

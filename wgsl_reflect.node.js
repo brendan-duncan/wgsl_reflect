@@ -3310,12 +3310,21 @@ class OutputInfo {
         this.location = location;
     }
 }
+class OverrideInfo {
+    constructor(name, type, attributes, id) {
+        this.name = name;
+        this.type = type;
+        this.attributes = attributes;
+        this.id = id;
+    }
+}
 class FunctionInfo {
     constructor(name, stage = null) {
         this.stage = null;
         this.inputs = [];
         this.outputs = [];
         this.resources = [];
+        this.overrides = [];
         this.startLine = -1;
         this.endLine = -1;
         this.inUse = false;
@@ -3329,14 +3338,6 @@ class EntryFunctions {
         this.vertex = [];
         this.fragment = [];
         this.compute = [];
-    }
-}
-class OverrideInfo {
-    constructor(name, type, attributes, id) {
-        this.name = name;
-        this.type = type;
-        this.attributes = attributes;
-        this.id = id;
     }
 }
 class _FunctionResources {
@@ -3476,6 +3477,19 @@ class WgslReflect {
                 fn.info.inUse = fn.inUse;
                 this._addCalls(fn.node, fn.info.calls);
             }
+        }
+        for (const fn of this._functions.values()) {
+            fn.node.search((node) => {
+                var _a;
+                if (node.astNodeType === "varExpr") {
+                    const v = node;
+                    for (const override of this.overrides) {
+                        if (v.name == override.name) {
+                            (_a = fn.info) === null || _a === void 0 ? void 0 : _a.overrides.push(override);
+                        }
+                    }
+                }
+            });
         }
         for (const u of this.uniforms) {
             this._markStructsInUse(u.type);
