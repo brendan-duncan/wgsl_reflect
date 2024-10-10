@@ -674,8 +674,10 @@ class CreateExpr extends Expression {
     }
     search(callback) {
         callback(this);
-        for (const node of this.args) {
-            node.search(callback);
+        if (this.args) {
+            for (const node of this.args) {
+                node.search(callback);
+            }
         }
     }
     evaluate(context) {
@@ -3495,17 +3497,24 @@ class WgslReflect {
         }
     }
     _markStructsInUse(type) {
+        if (!type) {
+            return;
+        }
         if (type.isStruct) {
             type.inUse = true;
-            for (const m of type.members) {
-                this._markStructsInUse(m.type);
+            if (type.members) {
+                for (const m of type.members) {
+                    this._markStructsInUse(m.type);
+                }
             }
         }
         else if (type.isArray) {
             this._markStructsInUse(type.format);
         }
         else if (type.isTemplate) {
-            this._markStructsInUse(type.format);
+            if (type.format) {
+                this._markStructsInUse(type.format);
+            }
         }
         else {
             const alias = this._getAlias(type.name);

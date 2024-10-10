@@ -528,15 +528,22 @@ export class WgslReflect {
   }
 
   _markStructsInUse(type: TypeInfo) {
+    if (!type) {
+      return;
+    }
     if (type.isStruct) {
       (type as StructInfo).inUse = true;
-      for (const m of (type as StructInfo).members) {
-        this._markStructsInUse(m.type);
+      if ((type as StructInfo).members) {
+        for (const m of (type as StructInfo).members) {
+          this._markStructsInUse(m.type);
+        }
       }
     } else if (type.isArray) {
       this._markStructsInUse((type as ArrayInfo).format);
     } else if (type.isTemplate) {
-      this._markStructsInUse((type as TemplateInfo).format!);
+      if ((type as TemplateInfo).format) {
+        this._markStructsInUse((type as TemplateInfo).format!);
+      }
     } else {
       const alias = this._getAlias(type.name);
       if (alias) {

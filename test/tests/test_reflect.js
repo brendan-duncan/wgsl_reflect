@@ -2,6 +2,14 @@ import { test, group } from "../test.js";
 import { WgslReflect, ResourceType } from "../../../wgsl_reflect.module.js";
 
 group("Reflect", function () {
+  test("builtin", function (test) {
+    const reflect = new WgslReflect(`@compute @workgroup_size(64) fn compute(@builtin(global_invocation_id) id : vec3<u32>) {
+      if (id.x > 1000.) { return; }
+      let f = vec2(0.);
+    }`);
+    test.equals(reflect.entry.compute.length, 1);
+  });
+
   test("override", function (test) {
     const reflect = new WgslReflect(`override red = 0.0;
       override green = 0.0;

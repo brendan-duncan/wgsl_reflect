@@ -919,8 +919,10 @@ export class CreateExpr extends Expression {
 
   search(callback: (node: Node) => void) {
     callback(this);
-    for (const node of this.args) {
-      node.search(callback);
+    if (this.args) {
+      for (const node of this.args) {
+        node.search(callback);
+      }
     }
   }
 
