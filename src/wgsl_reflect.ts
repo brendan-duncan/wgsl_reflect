@@ -879,7 +879,7 @@ export class WgslReflect {
 
     if (type instanceof AST.ArrayType) {
       const a = type as AST.ArrayType;
-      const t = this._getTypeInfo(a.format!, a.attributes);
+      const t = a.format ? this._getTypeInfo(a.format!, a.attributes) : null;
       const info = new ArrayInfo(a.name, attributes);
       info.format = t;
       info.count = a.count;
@@ -936,9 +936,11 @@ export class WgslReflect {
     type.size = typeSize?.size ?? 0;
 
     if (type instanceof ArrayInfo) {
-      const formatInfo = this._getTypeSize(type["format"]);
-      type.stride = formatInfo?.size ?? 0;
-      this._updateTypeInfo(type["format"]);
+      if (type["format"]) {
+        const formatInfo = this._getTypeSize(type["format"]);
+        type.stride = formatInfo?.size ?? 0;
+        this._updateTypeInfo(type["format"]);
+      }
     }
 
     if (type instanceof StructInfo) {

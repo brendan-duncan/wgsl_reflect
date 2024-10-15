@@ -3820,7 +3820,7 @@ class WgslReflect {
         }
         if (type instanceof ArrayType) {
             const a = type;
-            const t = this._getTypeInfo(a.format, a.attributes);
+            const t = a.format ? this._getTypeInfo(a.format, a.attributes) : null;
             const info = new ArrayInfo(a.name, attributes);
             info.format = t;
             info.count = a.count;
@@ -3872,9 +3872,11 @@ class WgslReflect {
         const typeSize = this._getTypeSize(type);
         type.size = (_a = typeSize === null || typeSize === void 0 ? void 0 : typeSize.size) !== null && _a !== void 0 ? _a : 0;
         if (type instanceof ArrayInfo) {
-            const formatInfo = this._getTypeSize(type["format"]);
-            type.stride = (_b = formatInfo === null || formatInfo === void 0 ? void 0 : formatInfo.size) !== null && _b !== void 0 ? _b : 0;
-            this._updateTypeInfo(type["format"]);
+            if (type["format"]) {
+                const formatInfo = this._getTypeSize(type["format"]);
+                type.stride = (_b = formatInfo === null || formatInfo === void 0 ? void 0 : formatInfo.size) !== null && _b !== void 0 ? _b : 0;
+                this._updateTypeInfo(type["format"]);
+            }
         }
         if (type instanceof StructInfo) {
             this._updateStructInfo(type);

@@ -2,6 +2,17 @@ import { test, group } from "../test.js";
 import { WgslReflect, ResourceType } from "../../../wgsl_reflect.module.js";
 
 group("Reflect", function () {
+  test("array_no_format", function (test) {
+    const t = new WgslReflect(`
+      @vertex fn vs() -> VertexData {
+        let pos = array(
+          vec2f( 0.0,  0.366),  // top center: (√3/2)-0.5
+          vec2f(-0.5, -0.5),  // bottom left
+          vec2f( 0.5, -0.5)   // bottom right
+        );
+      }`);
+      test.equals(t.entry.vertex.length, 1);
+  });
   test("builtin", function (test) {
     const reflect = new WgslReflect(`@compute @workgroup_size(64) fn compute(@builtin(global_invocation_id) id : vec3<u32>) {
       if (id.x > 1000.) { return; }
