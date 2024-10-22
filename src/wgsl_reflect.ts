@@ -291,11 +291,26 @@ export class OverrideInfo {
   }
 }
 
+export class ArgumentInfo {
+  name: string;
+  type: TypeInfo;
+
+  constructor(
+    name: string,
+    type: TypeInfo,
+  ) {
+    this.name = name;
+    this.type = type;
+  }
+}
+
 export class FunctionInfo {
   name: string;
   stage: string | null = null;
   inputs: Array<InputInfo> = [];
   outputs: Array<OutputInfo> = [];
+  arguments: Array<ArgumentInfo> = [];
+  returnType: TypeInfo | null = null;
   resources: Array<VariableInfo> = [];
   overrides: Array<OverrideInfo> = [];
   startLine: number = -1;
@@ -494,6 +509,17 @@ export class WgslReflect {
           fn.inputs = this._getInputs(node.args);
           fn.outputs = this._getOutputs(node.returnType);
           this.entry[stage.name].push(fn);
+        } else {
+          fn.arguments = node.args.map(
+            (arg) =>
+              new ArgumentInfo(
+                arg.name,
+                this._getTypeInfo(arg.type, arg.attributes)
+              )
+          );
+          fn.returnType = node.returnType
+            ? this._getTypeInfo(node.returnType, node.attributes)
+            : null;
         }
         continue;
       }

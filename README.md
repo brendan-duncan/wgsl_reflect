@@ -139,6 +139,8 @@ class FunctionInfo {
   stage: string | null;
   inputs: Array<InputInfo>;
   outputs: Array<OutputInfo>;
+  arguments: Array<ArgumentInfo>; // only for non-entry functions
+  returnType: TypeInfo | null;
   resources: Array<VariableInfo>;
   startLine: number;
   endLine: number;
@@ -165,6 +167,11 @@ class OverrideInfo {
   name: string;
   type: TypeInfo | null;
   id: number;
+}
+
+class ArgumentInfo {
+  name: string;
+  type: TypeInfo;
 }
 ```
 

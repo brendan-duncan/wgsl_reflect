@@ -1225,4 +1225,28 @@ fn shuffler() { }
     test.equals(reflect.entry.vertex[5].resources[0].name, "u1");
     test.equals(reflect.entry.vertex[5].resources[1].name, "u2");
   });
+
+  test("function arguments and return types", function (test) {
+    const reflect = new WgslReflect(`
+      fn rotate(v: vec2<f32>, angle: f32) -> vec2f {
+        let pos = vec2(
+          (v.x * cos(angle)) - (v.y * sin(angle)),
+          (v.x * sin(angle)) + (v.y * cos(angle))
+        );
+        return pos;
+      }`);
+
+    const args = reflect.functions[0].arguments;
+    test.equals(args[0].name, "v");
+    test.equals(args[0].type.name, "vec2");
+    test.equals(args[0].type.format.name, "f32");
+    test.equals(args[1].name, "angle");
+    test.equals(args[1].type.name, "f32");
+
+    test.equals(reflect.functions[0].returnType.name, "vec2f");
+
+    const logFunc = new WgslReflect("fn log() {}").functions[0];
+    test.equals(logFunc.arguments.length, 0);
+    test.equals(logFunc.returnType, null);
+  });
 });
