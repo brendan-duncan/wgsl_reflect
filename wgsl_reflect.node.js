@@ -3320,11 +3320,19 @@ class OverrideInfo {
         this.id = id;
     }
 }
+class ArgumentInfo {
+    constructor(name, type) {
+        this.name = name;
+        this.type = type;
+    }
+}
 class FunctionInfo {
     constructor(name, stage = null) {
         this.stage = null;
         this.inputs = [];
         this.outputs = [];
+        this.arguments = [];
+        this.returnType = null;
         this.resources = [];
         this.overrides = [];
         this.startLine = -1;
@@ -3470,6 +3478,12 @@ class WgslReflect {
                     fn.inputs = this._getInputs(node.args);
                     fn.outputs = this._getOutputs(node.returnType);
                     this.entry[stage.name].push(fn);
+                }
+                else {
+                    fn.arguments = node.args.map((arg) => new ArgumentInfo(arg.name, this._getTypeInfo(arg.type, arg.attributes)));
+                    fn.returnType = node.returnType
+                        ? this._getTypeInfo(node.returnType, node.attributes)
+                        : null;
                 }
                 continue;
             }
@@ -4086,6 +4100,7 @@ WgslReflect._samplerTypes = TokenTypes.sampler_type.map((t) => {
 exports.Alias = Alias;
 exports.AliasInfo = AliasInfo;
 exports.Argument = Argument;
+exports.ArgumentInfo = ArgumentInfo;
 exports.ArrayIndex = ArrayIndex;
 exports.ArrayInfo = ArrayInfo;
 exports.ArrayType = ArrayType;

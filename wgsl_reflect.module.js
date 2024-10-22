@@ -3316,11 +3316,19 @@ class OverrideInfo {
         this.id = id;
     }
 }
+class ArgumentInfo {
+    constructor(name, type) {
+        this.name = name;
+        this.type = type;
+    }
+}
 class FunctionInfo {
     constructor(name, stage = null) {
         this.stage = null;
         this.inputs = [];
         this.outputs = [];
+        this.arguments = [];
+        this.returnType = null;
         this.resources = [];
         this.overrides = [];
         this.startLine = -1;
@@ -3466,6 +3474,12 @@ class WgslReflect {
                     fn.inputs = this._getInputs(node.args);
                     fn.outputs = this._getOutputs(node.returnType);
                     this.entry[stage.name].push(fn);
+                }
+                else {
+                    fn.arguments = node.args.map((arg) => new ArgumentInfo(arg.name, this._getTypeInfo(arg.type, arg.attributes)));
+                    fn.returnType = node.returnType
+                        ? this._getTypeInfo(node.returnType, node.attributes)
+                        : null;
                 }
                 continue;
             }
@@ -4079,5 +4093,5 @@ WgslReflect._samplerTypes = TokenTypes.sampler_type.map((t) => {
     return t.name;
 });
 
-export { Alias, AliasInfo, Argument, ArrayIndex, ArrayInfo, ArrayType, Assign, AssignOperator, Attribute, BinaryOperator, BitcastExpr, Break, Call, CallExpr, Case, Const, ConstExpr, Continue, Continuing, CreateExpr, Default, Diagnostic, Discard, ElseIf, Enable, EntryFunctions, Expression, For, Function, FunctionInfo, GroupingExpr, If, Increment, IncrementOperator, InputInfo, Let, LiteralExpr, Loop, Member, MemberInfo, Node, Operator, OutputInfo, Override, OverrideInfo, ParseContext, PointerType, Requires, ResourceType, Return, SamplerType, Statement, StaticAssert, StringExpr, Struct, StructInfo, Switch, SwitchCase, TemplateInfo, TemplateType, Token, TokenClass, TokenType, TokenTypes, Type, TypeInfo, TypecastExpr, UnaryOperator, Var, VariableExpr, VariableInfo, WgslParser, WgslReflect, WgslScanner, While, _BlockEnd, _BlockStart };
+export { Alias, AliasInfo, Argument, ArgumentInfo, ArrayIndex, ArrayInfo, ArrayType, Assign, AssignOperator, Attribute, BinaryOperator, BitcastExpr, Break, Call, CallExpr, Case, Const, ConstExpr, Continue, Continuing, CreateExpr, Default, Diagnostic, Discard, ElseIf, Enable, EntryFunctions, Expression, For, Function, FunctionInfo, GroupingExpr, If, Increment, IncrementOperator, InputInfo, Let, LiteralExpr, Loop, Member, MemberInfo, Node, Operator, OutputInfo, Override, OverrideInfo, ParseContext, PointerType, Requires, ResourceType, Return, SamplerType, Statement, StaticAssert, StringExpr, Struct, StructInfo, Switch, SwitchCase, TemplateInfo, TemplateType, Token, TokenClass, TokenType, TokenTypes, Type, TypeInfo, TypecastExpr, UnaryOperator, Var, VariableExpr, VariableInfo, WgslParser, WgslReflect, WgslScanner, While, _BlockEnd, _BlockStart };
 //# sourceMappingURL=wgsl_reflect.module.js.map

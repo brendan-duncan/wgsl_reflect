@@ -104,11 +104,18 @@ export declare class OverrideInfo {
     id: number;
     constructor(name: string, type: TypeInfo | null, attributes: Array<AST.Attribute> | null, id: number);
 }
+export declare class ArgumentInfo {
+    name: string;
+    type: TypeInfo;
+    constructor(name: string, type: TypeInfo);
+}
 export declare class FunctionInfo {
     name: string;
     stage: string | null;
     inputs: Array<InputInfo>;
     outputs: Array<OutputInfo>;
+    arguments: Array<ArgumentInfo>;
+    returnType: TypeInfo | null;
     resources: Array<VariableInfo>;
     overrides: Array<OverrideInfo>;
     startLine: number;
