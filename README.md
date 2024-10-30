@@ -139,7 +139,7 @@ class FunctionInfo {
   stage: string | null;
   inputs: Array<InputInfo>;
   outputs: Array<OutputInfo>;
-  arguments: Array<ArgumentInfo>; // only for non-entry functions
+  arguments: Array<ArgumentInfo>;
   returnType: TypeInfo | null;
   resources: Array<VariableInfo>;
   startLine: number;
