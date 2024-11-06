@@ -18,7 +18,9 @@
   "sideEffects": false,
   "files": [
     "wgsl_reflect.module.js",
+    "wgsl_reflect.module.js.map",
     "wgsl_reflect.node.js",
+    "wgsl_reflect.node.js.map",
     "LICENSE.md",
     "package.json",
     "README.md",
