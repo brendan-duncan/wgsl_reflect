@@ -4171,4 +4171,3 @@ exports.WgslScanner = WgslScanner;
 exports.While = While;
 exports._BlockEnd = _BlockEnd;
 exports._BlockStart = _BlockStart;
-//# sourceMappingURL=wgsl_reflect.node.js.map

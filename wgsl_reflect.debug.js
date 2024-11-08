@@ -4094,3 +4094,4 @@ WgslReflect._samplerTypes = TokenTypes.sampler_type.map((t) => {
 });
 
 export { Alias, AliasInfo, Argument, ArgumentInfo, ArrayIndex, ArrayInfo, ArrayType, Assign, AssignOperator, Attribute, BinaryOperator, BitcastExpr, Break, Call, CallExpr, Case, Const, ConstExpr, Continue, Continuing, CreateExpr, Default, Diagnostic, Discard, ElseIf, Enable, EntryFunctions, Expression, For, Function, FunctionInfo, GroupingExpr, If, Increment, IncrementOperator, InputInfo, Let, LiteralExpr, Loop, Member, MemberInfo, Node, Operator, OutputInfo, Override, OverrideInfo, ParseContext, PointerType, Requires, ResourceType, Return, SamplerType, Statement, StaticAssert, StringExpr, Struct, StructInfo, Switch, SwitchCase, TemplateInfo, TemplateType, Token, TokenClass, TokenType, TokenTypes, Type, TypeInfo, TypecastExpr, UnaryOperator, Var, VariableExpr, VariableInfo, WgslParser, WgslReflect, WgslScanner, While, _BlockEnd, _BlockStart };
+//# sourceMappingURL=wgsl_reflect.debug.js.map

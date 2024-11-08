@@ -1,5 +1,5 @@
 import { test, group } from "../test.js";
-import { WgslReflect, ResourceType } from "../../../wgsl_reflect.module.js";
+import { WgslReflect, ResourceType } from "../../../wgsl_reflect.debug.js";
 
 group("Reflect", function () {
   test("array_no_format", function (test) {
