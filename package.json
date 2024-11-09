@@ -1,6 +1,6 @@
 {
   "name": "wgsl_reflect",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "description": "WGSL Parser and Reflection library",
   "author": "Brendan Duncan",
   "license": "MIT",
@@ -52,7 +52,9 @@
       "LICENSE.md",
       "README.md",
       "wgsl_reflect.module.js",
+      "wgsl_reflect.module.js.map",
       "wgsl_reflect.node.js",
+      "wgsl_reflect.node.js.map",
       "types"
     ]
   }

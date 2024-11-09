@@ -15,9 +15,8 @@ function build(format, file, sourcemap) {
 }
 
 let builds = [
-    build('esm', 'wgsl_reflect.module.js', false),
-    build('cjs', 'wgsl_reflect.node.js', false),
-    build('esm', 'wgsl_reflect.debug.js', true),
+    build('esm', 'wgsl_reflect.module.js', true),
+    build('cjs', 'wgsl_reflect.node.js', true),
 ];
 
 export default builds;
