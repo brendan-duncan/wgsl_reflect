@@ -1,6 +1,6 @@
 import typescript from "@rollup/plugin-typescript";
 
-function build(format, file) {
+function build(format, file, sourcemap) {
     return {
         input: 'src/index.ts',
         plugins: [typescript()],
@@ -8,15 +8,15 @@ function build(format, file) {
             {
                 format,
                 file,
-                sourcemap: true,
+                sourcemap,
             }
         ]
     }
 }
 
 let builds = [
-    build('esm', 'wgsl_reflect.module.js'),
-    build('cjs', 'wgsl_reflect.node.js'),
+    build('esm', 'wgsl_reflect.module.js', true),
+    build('cjs', 'wgsl_reflect.node.js', true),
 ];
 
 export default builds;
