@@ -1,5 +1,5 @@
 import { test, group } from "../test.js";
-import { WgslScanner, TokenTypes } from "../../../wgsl_reflect.debug.js";
+import { WgslScanner, TokenTypes } from "../../../wgsl_reflect.module.js";
 
 group("Scanner", function () {
   test("(1+2)-3;", function (test) {

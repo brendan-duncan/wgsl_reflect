@@ -509,18 +509,20 @@ export class WgslReflect {
           fn.inputs = this._getInputs(node.args);
           fn.outputs = this._getOutputs(node.returnType);
           this.entry[stage.name].push(fn);
-        } else {
-          fn.arguments = node.args.map(
-            (arg) =>
-              new ArgumentInfo(
-                arg.name,
-                this._getTypeInfo(arg.type, arg.attributes)
-              )
-          );
-          fn.returnType = node.returnType
-            ? this._getTypeInfo(node.returnType, node.attributes)
-            : null;
         }
+
+        fn.arguments = node.args.map(
+          (arg) =>
+            new ArgumentInfo(
+              arg.name,
+              this._getTypeInfo(arg.type, arg.attributes)
+            )
+        );
+        
+        fn.returnType = node.returnType
+          ? this._getTypeInfo(node.returnType, node.attributes)
+          : null;
+
         continue;
       }
     }
