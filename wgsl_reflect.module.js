@@ -63,7 +63,7 @@ class Statement extends Node {
  * @extends Statement
  * @category AST
  */
-class Function extends Statement {
+class Function$1 extends Statement {
     constructor(name, args, returnType, body, startLine, endLine) {
         super();
         this.calls = new Set();
@@ -1187,82 +1187,6 @@ class Attribute extends Node {
     }
 }
 
-class Var {
-    constructor(n, v) {
-        this.name = n;
-        this.value = v;
-    }
-}
-class ExecContext {
-    constructor() {
-        this.variables = new Map();
-    }
-}
-class WgslExec {
-    constructor(ast) {
-        this.ast = ast;
-        this.context = new ExecContext();
-    }
-    getVariableValue(name) {
-        var _a;
-        const v = this.context.variables.get(name);
-        return (_a = v === null || v === void 0 ? void 0 : v.value) !== null && _a !== void 0 ? _a : null;
-    }
-    exec() {
-        new ExecContext();
-        for (const stmt of this.ast) {
-            this._execStatement(stmt);
-        }
-    }
-    _execStatement(stmt) {
-        if (stmt instanceof Let) {
-            this._let(stmt);
-        }
-    }
-    _let(node) {
-        let value = null;
-        if (node.value != null) {
-            value = this._evalExpression(node.value);
-        }
-        const v = new Var(node.name, value);
-        this.context.variables.set(node.name, v);
-        console.log(`LET ${node.name} ${value}`);
-    }
-    _evalExpression(node) {
-        if (node instanceof BinaryOperator) {
-            return this._evalBinaryOp(node);
-        }
-        else if (node instanceof LiteralExpr) {
-            return this._evalLiteral(node);
-        }
-        else if (node instanceof VariableExpr) {
-            return this._evalVariable(node);
-        }
-        return null;
-    }
-    _evalLiteral(node) {
-        return node.value;
-    }
-    _evalVariable(node) {
-        return this.getVariableValue(node.name);
-    }
-    _evalBinaryOp(node) {
-        const l = this._evalExpression(node.left);
-        const r = this._evalExpression(node.right);
-        switch (node.operator) {
-            case "+":
-                return l + r;
-            case "-":
-                return l - r;
-            case "*":
-                return l * r;
-            case "/":
-                return l / r;
-        }
-        return null;
-    }
-}
-
 var _a;
 var TokenClass;
 (function (TokenClass) {
@@ -2201,7 +2125,7 @@ class WgslParser {
         }
         const body = this._compound_statement();
         const endLine = this._currentLine;
-        return new Function(name, args, _return, body, startLine, endLine);
+        return new Function$1(name, args, _return, body, startLine, endLine);
     }
     _compound_statement() {
         // brace_left statement* brace_right
@@ -3216,6 +3140,121 @@ class WgslParser {
     }
 }
 
+class Var {
+    constructor(n, v) {
+        this.name = n;
+        this.value = v;
+    }
+}
+class Function {
+    constructor(node) {
+        this.name = node.name;
+        this.node = node;
+    }
+}
+class ExecContext {
+    constructor() {
+        this.variables = new Map();
+        this.functions = new Map();
+    }
+    clone() {
+        const c = new ExecContext();
+        c.variables = new Map(this.variables);
+        c.functions = new Map(this.functions);
+        return c;
+    }
+}
+class WgslExec {
+    constructor(code) {
+        const parser = new WgslParser();
+        this.ast = parser.parse(code);
+    }
+    getVariableValue(name) {
+        var _a;
+        const v = this.context.variables.get(name);
+        return (_a = v === null || v === void 0 ? void 0 : v.value) !== null && _a !== void 0 ? _a : null;
+    }
+    exec() {
+        this.context = new ExecContext();
+        this._execStatements(this.ast, this.context);
+    }
+    _execStatements(statements, context) {
+        for (const stmt of statements) {
+            this._execStatement(stmt, context);
+        }
+    }
+    _execStatement(stmt, context) {
+        if (stmt instanceof Let) {
+            this._let(stmt, context);
+        }
+        else if (stmt instanceof Function$1) {
+            this._function(stmt, context);
+        }
+    }
+    _function(node, context) {
+        const f = new Function(node);
+        context.functions.set(node.name, f);
+    }
+    _let(node, context) {
+        let value = null;
+        if (node.value != null) {
+            value = this._evalExpression(node.value, context);
+        }
+        const v = new Var(node.name, value);
+        context.variables.set(node.name, v);
+        console.log(`LET ${node.name} ${value}`);
+    }
+    _evalExpression(node, context) {
+        if (node instanceof BinaryOperator) {
+            return this._evalBinaryOp(node, context);
+        }
+        else if (node instanceof LiteralExpr) {
+            return this._evalLiteral(node, context);
+        }
+        else if (node instanceof VariableExpr) {
+            return this._evalVariable(node, context);
+        }
+        else if (node instanceof CallExpr) {
+            return this._evalCall(node, context);
+        }
+        return null;
+    }
+    _evalLiteral(node, context) {
+        return node.value;
+    }
+    _evalVariable(node, context) {
+        return this.getVariableValue(node.name);
+    }
+    _evalBinaryOp(node, context) {
+        const l = this._evalExpression(node.left, context);
+        const r = this._evalExpression(node.right, context);
+        switch (node.operator) {
+            case "+":
+                return l + r;
+            case "-":
+                return l - r;
+            case "*":
+                return l * r;
+            case "/":
+                return l / r;
+        }
+        return null;
+    }
+    _evalCall(node, context) {
+        const f = context.functions.get(node.name);
+        if (!f) {
+            return null;
+        }
+        const subContext = context.clone();
+        console.log(`CALL ${node.name}`);
+        for (let ai = 0; ai < f.node.args.length; ++ai) {
+            const v = new Var(f.node.args[ai].name, this._evalExpression(node.args[ai], subContext));
+            subContext.variables.set(v.name, v);
+            console.log(`    ARG: ${v.name} : ${v.value}`);
+        }
+    }
+}
+
 /**
  * @author Brendan Duncan / https://github.com/brendan-duncan
  */
@@ -3466,7 +3505,7 @@ class WgslReflect {
         const parser = new WgslParser();
         const ast = parser.parse(code);
         for (const node of ast) {
-            if (node instanceof Function) {
+            if (node instanceof Function$1) {
                 this._functions.set(node.name, new _FunctionResources(node));
             }
         }
@@ -3533,7 +3572,7 @@ class WgslReflect {
                 this.samplers.push(varInfo);
                 continue;
             }
-            if (node instanceof Function) {
+            if (node instanceof Function$1) {
                 const vertexStage = this._getAttribute(node, "vertex");
                 const fragmentStage = this._getAttribute(node, "fragment");
                 const computeStage = this._getAttribute(node, "compute");
@@ -4167,5 +4206,5 @@ WgslReflect._samplerTypes = TokenTypes.sampler_type.map((t) => {
     return t.name;
 });
 
-export { Alias, AliasInfo, Argument, ArgumentInfo, ArrayIndex, ArrayInfo, ArrayType, Assign, AssignOperator, Attribute, BinaryOperator, BitcastExpr, Break, Call, CallExpr, Case, Const, ConstExpr, Continue, Continuing, CreateExpr, Default, Diagnostic, Discard, ElseIf, Enable, EntryFunctions, Expression, For, Function, FunctionInfo, GroupingExpr, If, Increment, IncrementOperator, InputInfo, Let, LiteralExpr, Loop, Member, MemberInfo, Node, Operator, OutputInfo, Override, OverrideInfo, ParseContext, PointerType, Requires, ResourceType, Return, SamplerType, Statement, StaticAssert, StringExpr, Struct, StructInfo, Switch, SwitchCase, TemplateInfo, TemplateType, Token, TokenClass, TokenType, TokenTypes, Type, TypeInfo, TypecastExpr, UnaryOperator, Var$1 as Var, VariableExpr, VariableInfo, WgslExec, WgslParser, WgslReflect, WgslScanner, While, _BlockEnd, _BlockStart };
+export { Alias, AliasInfo, Argument, ArgumentInfo, ArrayIndex, ArrayInfo, ArrayType, Assign, AssignOperator, Attribute, BinaryOperator, BitcastExpr, Break, Call, CallExpr, Case, Const, ConstExpr, Continue, Continuing, CreateExpr, Default, Diagnostic, Discard, ElseIf, Enable, EntryFunctions, Expression, For, Function$1 as Function, FunctionInfo, GroupingExpr, If, Increment, IncrementOperator, InputInfo, Let, LiteralExpr, Loop, Member, MemberInfo, Node, Operator, OutputInfo, Override, OverrideInfo, ParseContext, PointerType, Requires, ResourceType, Return, SamplerType, Statement, StaticAssert, StringExpr, Struct, StructInfo, Switch, SwitchCase, TemplateInfo, TemplateType, Token, TokenClass, TokenType, TokenTypes, Type, TypeInfo, TypecastExpr, UnaryOperator, Var$1 as Var, VariableExpr, VariableInfo, WgslExec, WgslParser, WgslReflect, WgslScanner, While, _BlockEnd, _BlockStart };
 //# sourceMappingURL=wgsl_reflect.module.js.map
