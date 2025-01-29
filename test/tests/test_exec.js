@@ -39,14 +39,11 @@ group("Exec", function () {
         let i = id.x;
         data[i] = data[i] * 2.0;
     }`;
-    const exec = new WgslExec(shader);
-    const data = new Float32Array(3);
-    data[0] = 1;
-    data[1] = 2;
-    data[2] = 6;
+    const wgsl = new WgslExec(shader);
+    const dataBuffer = [1, 2, 6];
     for (let i = 0; i < 3; ++i) {
-        exec.dispatch("computeSomething", [i, 0, 0], {0: {0: data}});
+        wgsl.dispatch("computeSomething", [i, 0, 0], {0: {0: dataBuffer}});
     }
-    test.equals(data, [2, 4, 12]);
+    test.equals(dataBuffer, [2, 4, 12]);
   });
 });
