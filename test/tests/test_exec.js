@@ -98,18 +98,18 @@ group("Exec", function () {
     const numResults = numWorkgroups * numThreadsPerWorkgroup;
     const size = numResults * 4;// * 4;  // vec3f * u32
 
-    let usage = GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC;
+    //let usage = GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC;
     const workgroupBuffer = new Uint32Array(size);//device.createBuffer({size, usage});
     const localBuffer = new Uint32Array(size);//device.createBuffer({size, usage});
     const globalBuffer = new Uint32Array(size);//device.createBuffer({size, usage});
 
     const bindGroups = {0: {0: workgroupBuffer, 1: localBuffer, 2: globalBuffer}};
-    //for (let i = 0; i < 3; ++i) {
-        wgsl.dispatch("computeSomething", [0, 0, 0], bindGroups);
-    //}
+    
+    wgsl.dispatchWorkgroups("computeSomething", dispatchCount, bindGroups);
+
     //test.equals(dataBuffer, [2, 4, 12]);
-    //console.log(workgroupBuffer);
-    //console.log(localBuffer);
-    //console.log(globalBuffer);
+    console.log(workgroupBuffer);
+    console.log(localBuffer);
+    console.log(globalBuffer);
   });
 });

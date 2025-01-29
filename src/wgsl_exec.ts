@@ -5,19 +5,29 @@ class Var {
     name: string;
     value: any;
     node: AST.Let | AST.Var | AST.Argument;
+
     constructor(n: string, v: any, node: AST.Let | AST.Var | AST.Argument) {
         this.name = n;
         this.value = v;
         this.node = node;
+    }
+
+    clone(): Var {
+        return new Var(this.name, this.value, this.node);
     }
 };
 
 class Function {
     name: string;
     node: AST.Function;
+
     constructor(node: AST.Function) {
         this.name = node.name;
         this.node = node;
+    }
+
+    clone(): Function {
+        return new Function(this.node);
     }
 };
 
@@ -32,8 +42,12 @@ class ExecContext {
 
     clone(): ExecContext {
         const c = new ExecContext();
-        c.variables = new Map<string, Var>(this.variables);
-        c.functions = new Map<string, Function>(this.functions);
+        for (const [k, v] of this.variables) {
+            c.variables.set(k, v.clone());
+        }
+        for (const [k, v] of this.functions) {
+            c.functions.set(k, v.clone());
+        }
         return c;
     }
 };
@@ -51,15 +65,77 @@ export class WgslExec {
         return this.context.getVariableValue(name);
     }
 
-    exec() {
-        this.context = new ExecContext();
+    exec(context?: ExecContext) {
+        this.context = context?.clone() ?? new ExecContext();
         this._execStatements(this.ast, this.context);
     }
 
-    dispatch(kernel: string, dispatch: [number, number, number], bindGroups: Object) {
-        this.context = new ExecContext();
+    execFunction(functionName: string, args: Array<any>, context?: ExecContext): any {
+        this.context = context?.clone() ?? new ExecContext();
         this._execStatements(this.ast, this.context);
+        const f = this.context.functions.get(functionName);
+        for (const arg of f.node.args) {
+            const value = args.shift();
+            const v = new Var(arg.name, value, arg);
+            this.context.variables.set(v.name, v);
+        }
+        return this._execStatements(f.node.body, this.context);
+    }
 
+    dispatchWorkgroups(kernel: string, dispatchCount: [number, number, number], bindGroups: Object, context?: ExecContext) {
+        this.context = context?.clone() ?? new ExecContext();
+        this._execStatements(this.ast, this.context);
+        const f = this.context.functions.get(kernel);
+        if (!f) {
+            console.error(`Function ${kernel} not found`);
+            return;
+        }
+        let workgroupSize = [1, 1, 1];
+        for (const attr of f.node.attributes) {
+            if (attr.name === "workgroup_size") {
+                if (attr.value.length > 0) {
+                    workgroupSize[0] = parseInt(attr.value[0]);
+                }
+                if (attr.value.length > 1) {
+                    workgroupSize[1] = parseInt(attr.value[1]);
+                }
+                if (attr.value.length > 2) {
+                    workgroupSize[2] = parseInt(attr.value[2]);
+                }
+            }
+        }
+
+        for (let dz = 0; dz < dispatchCount[2]; ++dz) {
+            for (let dy = 0; dy < dispatchCount[1]; ++dy) {
+                for (let dx = 0; dx < dispatchCount[0]; ++dx) {
+                    for (let wz = 0, li = 0; wz < workgroupSize[2]; ++wz) {
+                        for (let wy = 0; wy < workgroupSize[1]; ++wy) {
+                            for (let wx = 0; wx < workgroupSize[0]; ++wx, ++li) {
+                                let lx = wx + dx * workgroupSize[0];
+                                let ly = wy + dy * workgroupSize[1];
+                                let lz = wz + dz * workgroupSize[2];
+
+                                this.context.variables.set("@workgroup_id",  new Var("@workgroup_id", [dx, dy, dz], null));
+                                this.context.variables.set("@local_invocation_id",  new Var("@local_invocation_id", [wx, wy, wz], null));
+                                this.context.variables.set("@num_workgroups",  new Var("@num_workgroups", dispatchCount, null));
+                                this.context.variables.set("@local_invocation_index",  new Var("@local_invocation_index", li, null));
+
+                                this._dispatchExec(kernel, [lx, ly, lz], bindGroups, this.context);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    dispatch(kernel: string, dispatch: [number, number, number], bindGroups: Object, context?: ExecContext) {
+        this.context = context?.clone() ?? new ExecContext();
+        this._execStatements(this.ast, this.context);
+        this._dispatchExec(kernel, dispatch, bindGroups, context);
+    }
+
+    _dispatchExec(kernel: string, dispatch: [number, number, number], bindGroups: Object, context: ExecContext) {
         const f = this.context.functions.get(kernel);
         if (!f) {
             console.error(`Function ${kernel} not found`);
@@ -87,9 +163,9 @@ export class WgslExec {
             for (const binding in bindGroups[set]) {
                 const entry = bindGroups[set][binding];
 
-                subContext.variables.forEach((v) => {
+                subContext.variables.forEach((v, k) => {
                     const node = v.node;
-                    if (node.attributes) {
+                    if (node?.attributes) {
                         let b = null;
                         let s = null;
                         for (const attr of node.attributes) {
@@ -111,23 +187,21 @@ export class WgslExec {
             for (const attr of arg.attributes) {
                 if (attr.name === "builtin") {
                     if (attr.value === "global_invocation_id") {
-                        const v = new Var(arg.name, dispatch, arg);
-                        subContext.variables.set(arg.name, v);
+                        subContext.variables.set(arg.name, new Var(arg.name, dispatch, arg));
                     } else if (attr.value === "workgroup_id") {
-                        const v = new Var(arg.name, [0, 0, 0], arg);
-                        subContext.variables.set(arg.name, v);
+                        const workgroup_id = subContext.getVariableValue("@workgroup_id") ?? [0, 0, 0];
+                        subContext.variables.set(arg.name, new Var(arg.name, workgroup_id, arg));
                     } else if (attr.value === "workgroup_size") {
-                        const v = new Var(arg.name, workgroupSize, arg);
-                        subContext.variables.set(arg.name, v);
+                        subContext.variables.set(arg.name, new Var(arg.name, workgroupSize, arg));
                     } else if (attr.value === "local_invocation_id") {
-                        const v = new Var(arg.name, [0, 0, 0], arg);
-                        subContext.variables.set(arg.name, v);
+                        const local_invocation_id = subContext.getVariableValue("@local_invocation_id") ?? [0, 0, 0];
+                        subContext.variables.set(arg.name, new Var(arg.name, local_invocation_id, arg));
                     } else if (attr.value === "num_workgroups") {
-                        const v = new Var(arg.name, [1, 1, 1], arg);
-                        subContext.variables.set(arg.name, v);
+                        const num_workgroups = subContext.getVariableValue("@num_workgroups") ?? [1, 1, 1];
+                        subContext.variables.set(arg.name, new Var(arg.name, num_workgroups, arg));
                     } else if (attr.value === "local_invocation_index") {
-                        const v = new Var(arg.name, 0, arg);
-                        subContext.variables.set(arg.name, v);
+                        const local_invocation_index = subContext.getVariableValue("@local_invocation_index") ?? 0;
+                        subContext.variables.set(arg.name, new Var(arg.name, local_invocation_index, arg));
                     } else {
                         console.error(`Unknown builtin ${attr.value}`);
                     }

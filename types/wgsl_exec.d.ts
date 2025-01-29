@@ -4,11 +4,13 @@ declare class Var {
     value: any;
     node: AST.Let | AST.Var | AST.Argument;
     constructor(n: string, v: any, node: AST.Let | AST.Var | AST.Argument);
+    clone(): Var;
 }
 declare class Function {
     name: string;
     node: AST.Function;
     constructor(node: AST.Function);
+    clone(): Function;
 }
 declare class ExecContext {
     variables: Map<string, Var>;
@@ -21,8 +23,11 @@ export declare class WgslExec {
     context: ExecContext;
     constructor(code: string);
     getVariableValue(name: string): any;
-    exec(): void;
-    dispatch(kernel: string, dispatch: [number, number, number], bindGroups: Object): void;
+    exec(context?: ExecContext): void;
+    execFunction(functionName: string, args: Array<any>, context?: ExecContext): any;
+    dispatchWorkgroups(kernel: string, dispatchCount: [number, number, number], bindGroups: Object, context?: ExecContext): void;
+    dispatch(kernel: string, dispatch: [number, number, number], bindGroups: Object, context?: ExecContext): void;
+    _dispatchExec(kernel: string, dispatch: [number, number, number], bindGroups: Object, context: ExecContext): void;
     _execStatements(statements: Array<AST.Node>, context: ExecContext): any;
     _execStatement(stmt: AST.Node, context: ExecContext): any;
     _getVariableName(node: AST.Node, context: ExecContext): string;

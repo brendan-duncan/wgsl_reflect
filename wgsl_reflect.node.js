@@ -3150,11 +3150,17 @@ class Var {
         this.value = v;
         this.node = node;
     }
+    clone() {
+        return new Var(this.name, this.value, this.node);
+    }
 }
 class Function {
     constructor(node) {
         this.name = node.name;
         this.node = node;
+    }
+    clone() {
+        return new Function(this.node);
     }
 }
 class ExecContext {
@@ -3169,8 +3175,12 @@ class ExecContext {
     }
     clone() {
         const c = new ExecContext();
-        c.variables = new Map(this.variables);
-        c.functions = new Map(this.functions);
+        for (const [k, v] of this.variables) {
+            c.variables.set(k, v.clone());
+        }
+        for (const [k, v] of this.functions) {
+            c.functions.set(k, v.clone());
+        }
         return c;
     }
 }
@@ -3182,13 +3192,75 @@ class WgslExec {
     getVariableValue(name) {
         return this.context.getVariableValue(name);
     }
-    exec() {
-        this.context = new ExecContext();
+    exec(context) {
+        var _a;
+        this.context = (_a = context === null || context === void 0 ? void 0 : context.clone()) !== null && _a !== void 0 ? _a : new ExecContext();
         this._execStatements(this.ast, this.context);
     }
-    dispatch(kernel, dispatch, bindGroups) {
-        this.context = new ExecContext();
+    execFunction(functionName, args, context) {
+        var _a;
+        this.context = (_a = context === null || context === void 0 ? void 0 : context.clone()) !== null && _a !== void 0 ? _a : new ExecContext();
         this._execStatements(this.ast, this.context);
+        const f = this.context.functions.get(functionName);
+        for (const arg of f.node.args) {
+            const value = args.shift();
+            const v = new Var(arg.name, value, arg);
+            this.context.variables.set(v.name, v);
+        }
+        return this._execStatements(f.node.body, this.context);
+    }
+    dispatchWorkgroups(kernel, dispatchCount, bindGroups, context) {
+        var _a;
+        this.context = (_a = context === null || context === void 0 ? void 0 : context.clone()) !== null && _a !== void 0 ? _a : new ExecContext();
+        this._execStatements(this.ast, this.context);
+        const f = this.context.functions.get(kernel);
+        if (!f) {
+            console.error(`Function ${kernel} not found`);
+            return;
+        }
+        let workgroupSize = [1, 1, 1];
+        for (const attr of f.node.attributes) {
+            if (attr.name === "workgroup_size") {
+                if (attr.value.length > 0) {
+                    workgroupSize[0] = parseInt(attr.value[0]);
+                }
+                if (attr.value.length > 1) {
+                    workgroupSize[1] = parseInt(attr.value[1]);
+                }
+                if (attr.value.length > 2) {
+                    workgroupSize[2] = parseInt(attr.value[2]);
+                }
+            }
+        }
+        for (let dz = 0; dz < dispatchCount[2]; ++dz) {
+            for (let dy = 0; dy < dispatchCount[1]; ++dy) {
+                for (let dx = 0; dx < dispatchCount[0]; ++dx) {
+                    for (let wz = 0, li = 0; wz < workgroupSize[2]; ++wz) {
+                        for (let wy = 0; wy < workgroupSize[1]; ++wy) {
+                            for (let wx = 0; wx < workgroupSize[0]; ++wx, ++li) {
+                                let lx = wx + dx * workgroupSize[0];
+                                let ly = wy + dy * workgroupSize[1];
+                                let lz = wz + dz * workgroupSize[2];
+                                this.context.variables.set("@workgroup_id", new Var("@workgroup_id", [dx, dy, dz], null));
+                                this.context.variables.set("@local_invocation_id", new Var("@local_invocation_id", [wx, wy, wz], null));
+                                this.context.variables.set("@num_workgroups", new Var("@num_workgroups", dispatchCount, null));
+                                this.context.variables.set("@local_invocation_index", new Var("@local_invocation_index", li, null));
+                                this._dispatchExec(kernel, [lx, ly, lz], bindGroups, this.context);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    dispatch(kernel, dispatch, bindGroups, context) {
+        var _a;
+        this.context = (_a = context === null || context === void 0 ? void 0 : context.clone()) !== null && _a !== void 0 ? _a : new ExecContext();
+        this._execStatements(this.ast, this.context);
+        this._dispatchExec(kernel, dispatch, bindGroups, context);
+    }
+    _dispatchExec(kernel, dispatch, bindGroups, context) {
+        var _a, _b, _c, _d;
         const f = this.context.functions.get(kernel);
         if (!f) {
             console.error(`Function ${kernel} not found`);
@@ -3212,9 +3284,9 @@ class WgslExec {
         for (const set in bindGroups) {
             for (const binding in bindGroups[set]) {
                 const entry = bindGroups[set][binding];
-                subContext.variables.forEach((v) => {
+                subContext.variables.forEach((v, k) => {
                     const node = v.node;
-                    if (node.attributes) {
+                    if (node === null || node === void 0 ? void 0 : node.attributes) {
                         let b = null;
                         let s = null;
                         for (const attr of node.attributes) {
@@ -3236,28 +3308,26 @@ class WgslExec {
             for (const attr of arg.attributes) {
                 if (attr.name === "builtin") {
                     if (attr.value === "global_invocation_id") {
-                        const v = new Var(arg.name, dispatch, arg);
-                        subContext.variables.set(arg.name, v);
+                        subContext.variables.set(arg.name, new Var(arg.name, dispatch, arg));
                     }
                     else if (attr.value === "workgroup_id") {
-                        const v = new Var(arg.name, [0, 0, 0], arg);
-                        subContext.variables.set(arg.name, v);
+                        const workgroup_id = (_a = subContext.getVariableValue("@workgroup_id")) !== null && _a !== void 0 ? _a : [0, 0, 0];
+                        subContext.variables.set(arg.name, new Var(arg.name, workgroup_id, arg));
                     }
                     else if (attr.value === "workgroup_size") {
-                        const v = new Var(arg.name, workgroupSize, arg);
-                        subContext.variables.set(arg.name, v);
+                        subContext.variables.set(arg.name, new Var(arg.name, workgroupSize, arg));
                     }
                     else if (attr.value === "local_invocation_id") {
-                        const v = new Var(arg.name, [0, 0, 0], arg);
-                        subContext.variables.set(arg.name, v);
+                        const local_invocation_id = (_b = subContext.getVariableValue("@local_invocation_id")) !== null && _b !== void 0 ? _b : [0, 0, 0];
+                        subContext.variables.set(arg.name, new Var(arg.name, local_invocation_id, arg));
                     }
                     else if (attr.value === "num_workgroups") {
-                        const v = new Var(arg.name, [1, 1, 1], arg);
-                        subContext.variables.set(arg.name, v);
+                        const num_workgroups = (_c = subContext.getVariableValue("@num_workgroups")) !== null && _c !== void 0 ? _c : [1, 1, 1];
+                        subContext.variables.set(arg.name, new Var(arg.name, num_workgroups, arg));
                     }
                     else if (attr.value === "local_invocation_index") {
-                        const v = new Var(arg.name, 0, arg);
-                        subContext.variables.set(arg.name, v);
+                        const local_invocation_index = (_d = subContext.getVariableValue("@local_invocation_index")) !== null && _d !== void 0 ? _d : 0;
+                        subContext.variables.set(arg.name, new Var(arg.name, local_invocation_index, arg));
                     }
                     else {
                         console.error(`Unknown builtin ${attr.value}`);
