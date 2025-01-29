@@ -66,6 +66,21 @@ export class WgslExec {
             return;
         }
 
+        let workgroupSize = [1, 1, 1];
+        for (const attr of f.node.attributes) {
+            if (attr.name === "workgroup_size") {
+                if (attr.value.length > 0) {
+                    workgroupSize[0] = parseInt(attr.value[0]);
+                }
+                if (attr.value.length > 1) {
+                    workgroupSize[1] = parseInt(attr.value[1]);
+                }
+                if (attr.value.length > 2) {
+                    workgroupSize[2] = parseInt(attr.value[2]);
+                }
+            }
+        }
+
         const subContext = this.context.clone();
 
         for (const set in bindGroups) {
@@ -97,6 +112,21 @@ export class WgslExec {
                 if (attr.name === "builtin") {
                     if (attr.value === "global_invocation_id") {
                         const v = new Var(arg.name, dispatch, arg);
+                        subContext.variables.set(arg.name, v);
+                    } else if (attr.value === "workgroup_id") {
+                        const v = new Var(arg.name, [0, 0, 0], arg);
+                        subContext.variables.set(arg.name, v);
+                    } else if (attr.value === "workgroup_size") {
+                        const v = new Var(arg.name, workgroupSize, arg);
+                        subContext.variables.set(arg.name, v);
+                    } else if (attr.value === "local_invocation_id") {
+                        const v = new Var(arg.name, [0, 0, 0], arg);
+                        subContext.variables.set(arg.name, v);
+                    } else if (attr.value === "num_workgroups") {
+                        const v = new Var(arg.name, [1, 1, 1], arg);
+                        subContext.variables.set(arg.name, v);
+                    } else if (attr.value === "local_invocation_index") {
+                        const v = new Var(arg.name, 0, arg);
                         subContext.variables.set(arg.name, v);
                     } else {
                         console.error(`Unknown builtin ${attr.value}`);
