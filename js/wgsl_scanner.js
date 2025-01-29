@@ -91,10 +91,10 @@ TokenTypes.keywords = {
     continue: new TokenType("continue", TokenClass.keyword, "continue"),
     continuing: new TokenType("continuing", TokenClass.keyword, "continuing"),
     default: new TokenType("default", TokenClass.keyword, "default"),
+    diagnostic: new TokenType("diagnostic", TokenClass.keyword, "diagnostic"),
     discard: new TokenType("discard", TokenClass.keyword, "discard"),
     else: new TokenType("else", TokenClass.keyword, "else"),
     enable: new TokenType("enable", TokenClass.keyword, "enable"),
-    diagnostic: new TokenType("diagnostic", TokenClass.keyword, "diagnostic"),
     fallthrough: new TokenType("fallthrough", TokenClass.keyword, "fallthrough"),
     false: new TokenType("false", TokenClass.keyword, "false"),
     fn: new TokenType("fn", TokenClass.keyword, "fn"),
@@ -109,6 +109,7 @@ TokenTypes.keywords = {
     read: new TokenType("read", TokenClass.keyword, "read"),
     read_write: new TokenType("read_write", TokenClass.keyword, "read_write"),
     return: new TokenType("return", TokenClass.keyword, "return"),
+    requires: new TokenType("requires", TokenClass.keyword, "requires"),
     storage: new TokenType("storage", TokenClass.keyword, "storage"),
     switch: new TokenType("switch", TokenClass.keyword, "switch"),
     true: new TokenType("true", TokenClass.keyword, "true"),
@@ -214,6 +215,63 @@ TokenTypes.tokens = {
     xor_equal: new TokenType("xor_equal", TokenClass.token, "^="),
     shift_right_equal: new TokenType("shift_right_equal", TokenClass.token, ">>="),
     shift_left_equal: new TokenType("shift_left_equal", TokenClass.token, "<<="),
+};
+TokenTypes.simpleTokens = {
+    "@": _a.tokens.attr,
+    "{": _a.tokens.brace_left,
+    "}": _a.tokens.brace_right,
+    ":": _a.tokens.colon,
+    ",": _a.tokens.comma,
+    "(": _a.tokens.paren_left,
+    ")": _a.tokens.paren_right,
+    ";": _a.tokens.semicolon,
+};
+TokenTypes.literalTokens = {
+    "&": _a.tokens.and,
+    "&&": _a.tokens.and_and,
+    "->": _a.tokens.arrow,
+    "/": _a.tokens.forward_slash,
+    "!": _a.tokens.bang,
+    "[": _a.tokens.bracket_left,
+    "]": _a.tokens.bracket_right,
+    "=": _a.tokens.equal,
+    "==": _a.tokens.equal_equal,
+    "!=": _a.tokens.not_equal,
+    ">": _a.tokens.greater_than,
+    ">=": _a.tokens.greater_than_equal,
+    ">>": _a.tokens.shift_right,
+    "<": _a.tokens.less_than,
+    "<=": _a.tokens.less_than_equal,
+    "<<": _a.tokens.shift_left,
+    "%": _a.tokens.modulo,
+    "-": _a.tokens.minus,
+    "--": _a.tokens.minus_minus,
+    ".": _a.tokens.period,
+    "+": _a.tokens.plus,
+    "++": _a.tokens.plus_plus,
+    "|": _a.tokens.or,
+    "||": _a.tokens.or_or,
+    "*": _a.tokens.star,
+    "~": _a.tokens.tilde,
+    "_": _a.tokens.underscore,
+    "^": _a.tokens.xor,
+    "+=": _a.tokens.plus_equal,
+    "-=": _a.tokens.minus_equal,
+    "*=": _a.tokens.times_equal,
+    "/=": _a.tokens.division_equal,
+    "%=": _a.tokens.modulo_equal,
+    "&=": _a.tokens.and_equal,
+    "|=": _a.tokens.or_equal,
+    "^=": _a.tokens.xor_equal,
+    ">>=": _a.tokens.shift_right_equal,
+    "<<=": _a.tokens.shift_left_equal,
+};
+TokenTypes.regexTokens = {
+    decimal_float_literal: _a.tokens.decimal_float_literal,
+    hex_float_literal: _a.tokens.hex_float_literal,
+    int_literal: _a.tokens.int_literal,
+    uint_literal: _a.tokens.uint_literal,
+    ident: _a.tokens.ident,
 };
 TokenTypes.storage_class = [
     _a.keywords.function,
@@ -339,7 +397,7 @@ TokenTypes.template_types = [
 ];
 // The grammar calls out 'block', but attribute grammar is defined to use a 'ident'.
 // The attribute grammar should be ident | block.
-TokenTypes.attribute_name = [_a.tokens.ident, _a.keywords.block];
+TokenTypes.attribute_name = [_a.tokens.ident, _a.keywords.block, _a.keywords.diagnostic];
 TokenTypes.assignment_operators = [
     _a.tokens.equal,
     _a.tokens.plus_equal,
@@ -391,8 +449,9 @@ export class WgslScanner {
     scanTokens() {
         while (!this._isAtEnd()) {
             this._start = this._current;
-            if (!this.scanToken())
+            if (!this.scanToken()) {
                 throw `Invalid syntax at line ${this._line}`;
+            }
         }
         this._tokens.push(new Token(TokenTypes.eof, "", this._line));
         return this._tokens;
@@ -414,8 +473,9 @@ export class WgslScanner {
             // If it's a // comment, skip everything until the next line-feed.
             if (this._peekAhead() == "/") {
                 while (lexeme != "\n") {
-                    if (this._isAtEnd())
+                    if (this._isAtEnd()) {
                         return true;
+                    }
                     lexeme = this._advance();
                 }
                 // skip the linefeed
@@ -428,8 +488,9 @@ export class WgslScanner {
                 this._advance();
                 let commentLevel = 1;
                 while (commentLevel > 0) {
-                    if (this._isAtEnd())
+                    if (this._isAtEnd()) {
                         return true;
+                    }
                     lexeme = this._advance();
                     if (lexeme == "\n") {
                         this._line++;
@@ -453,7 +514,35 @@ export class WgslScanner {
                 return true;
             }
         }
+        // Shortcut single character tokens
+        const simpleToken = TokenTypes.simpleTokens[lexeme];
+        if (simpleToken) {
+            this._addToken(simpleToken);
+            return true;
+        }
+        // Shortcut keywords and identifiers
         let matchType = TokenTypes.none;
+        const isAlpha = this._isAlpha(lexeme);
+        const isUnderscore = lexeme === "_";
+        if (this._isAlphaNumeric(lexeme)) {
+            let nextChar = this._peekAhead();
+            while (this._isAlphaNumeric(nextChar)) {
+                lexeme += this._advance();
+                nextChar = this._peekAhead();
+            }
+        }
+        if (isAlpha) {
+            const matchedType = TokenTypes.keywords[lexeme];
+            if (matchedType) {
+                this._addToken(matchedType);
+                return true;
+            }
+        }
+        if (isAlpha || isUnderscore) {
+            this._addToken(TokenTypes.tokens.ident);
+            return true;
+        }
+        // Scan for the next valid token type
         for (;;) {
             let matchedType = this._findType(lexeme);
             // An exception to "longest lexeme" rule is '>>'. In the case of 1>>2, it's a
@@ -462,16 +551,41 @@ export class WgslScanner {
             // and one to close the array).
             // Another ambiguity is '>='. In the case of vec2<i32>=vec2(1,2),
             // it's a greather_than and an equal, not a greater_than_equal.
+            // Another ambiguity is '-'. In the case of a-2, it's a minus; in the case of a*-2, it's a -2;
+            // in the case of foo()->int, it's a ->; in the case of foo-- or --foo, it's a -- decrement.
             // WGSL requires context sensitive parsing to resolve these ambiguities. Both of these cases
             // are predicated on it the > either closing a template, or being part of an operator.
             // The solution here is to check if there was a less_than up to some number of tokens
             // previously, and the token prior to that is a keyword that requires a '<', then it will be
             // split into two operators; otherwise it's a single operator.
             const nextLexeme = this._peekAhead();
+            if (lexeme == "-" && this._tokens.length > 0) {
+                if (nextLexeme == "=") {
+                    this._current++;
+                    lexeme += nextLexeme;
+                    this._addToken(TokenTypes.tokens.minus_equal);
+                    return true;
+                }
+                if (nextLexeme == "-") {
+                    this._current++;
+                    lexeme += nextLexeme;
+                    this._addToken(TokenTypes.tokens.minus_minus);
+                    return true;
+                }
+                const ti = this._tokens.length - 1;
+                const isIdentOrLiteral = TokenTypes.literal_or_ident.indexOf(this._tokens[ti].type) != -1;
+                if ((isIdentOrLiteral || this._tokens[ti].type == TokenTypes.tokens.paren_right) && nextLexeme != ">") {
+                    this._addToken(matchedType);
+                    return true;
+                }
+            }
             if (lexeme == ">" && (nextLexeme == ">" || nextLexeme == "=")) {
                 let foundLessThan = false;
                 let ti = this._tokens.length - 1;
                 for (let count = 0; count < 5 && ti >= 0; ++count, --ti) {
+                    if (TokenTypes.assignment_operators.indexOf(this._tokens[ti].type) !== -1) {
+                        break;
+                    }
                     if (this._tokens[ti].type === TokenTypes.tokens.less_than) {
                         if (ti > 0 && this._tokens[ti - 1].isArrayOrTemplateType()) {
                             foundLessThan = true;
@@ -507,8 +621,9 @@ export class WgslScanner {
                     }
                 }
                 if (matchedType === TokenTypes.none) {
-                    if (matchType === TokenTypes.none)
+                    if (matchType === TokenTypes.none) {
                         return false;
+                    }
                     this._current--;
                     this._addToken(matchType);
                     return true;
@@ -517,47 +632,43 @@ export class WgslScanner {
                 this._current += lookAhead + 1;
             }
             matchType = matchedType;
-            if (this._isAtEnd())
+            if (this._isAtEnd()) {
                 break;
+            }
             lexeme += this._advance();
         }
         // We got to the end of the input stream. Then the token we've ready so far is it.
-        if (matchType === TokenTypes.none)
+        if (matchType === TokenTypes.none) {
             return false;
+        }
         this._addToken(matchType);
         return true;
     }
     _findType(lexeme) {
-        for (const name in TokenTypes.keywords) {
-            const type = TokenTypes.keywords[name];
+        for (const name in TokenTypes.regexTokens) {
+            const type = TokenTypes.regexTokens[name];
             if (this._match(lexeme, type.rule)) {
                 return type;
             }
         }
-        for (const name in TokenTypes.tokens) {
-            const type = TokenTypes.tokens[name];
-            if (this._match(lexeme, type.rule)) {
-                return type;
-            }
+        const type = TokenTypes.literalTokens[lexeme];
+        if (type) {
+            return type;
         }
         return TokenTypes.none;
     }
     _match(lexeme, rule) {
-        if (typeof rule === "string") {
-            if (rule == lexeme) {
-                return true;
-            }
-        }
-        else {
-            // regex
-            const match = rule.exec(lexeme);
-            if (match && match.index == 0 && match[0] == lexeme)
-                return true;
-        }
-        return false;
+        const match = rule.exec(lexeme);
+        return match && match.index == 0 && match[0] == lexeme;
     }
     _isAtEnd() {
         return this._current >= this._source.length;
+    }
+    _isAlpha(c) {
+        return (c >= "a" && c <= "z") || (c >= "A" && c <= "Z");
+    }
+    _isAlphaNumeric(c) {
+        return (c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || c == "_" || (c >= "0" && c <= "9");
     }
     _isWhitespace(c) {
         return c == " " || c == "\t" || c == "\r";
@@ -571,8 +682,9 @@ export class WgslScanner {
     }
     _peekAhead(offset = 0) {
         offset = offset || 0;
-        if (this._current + offset >= this._source.length)
+        if (this._current + offset >= this._source.length) {
             return "\0";
+        }
         return this._source[this._current + offset];
     }
     _addToken(type) {
@@ -580,4 +692,3 @@ export class WgslScanner {
         this._tokens.push(new Token(type, text, this._line));
     }
 }
-//# sourceMappingURL=wgsl_scanner.js.map

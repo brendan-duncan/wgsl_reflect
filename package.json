@@ -57,5 +57,8 @@
       "wgsl_reflect.node.js.map",
       "types"
     ]
+  },
+  "dependencies": {
+    "tsc": "^2.0.4"
   }
 }

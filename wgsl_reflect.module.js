@@ -163,7 +163,7 @@ class For extends Statement {
  * @extends Statement
  * @category AST
  */
-class Var extends Statement {
+class Var$1 extends Statement {
     constructor(name, type, storage, access, value) {
         super();
         this.name = name;
@@ -1184,6 +1184,82 @@ class Attribute extends Node {
     }
     get astNodeType() {
         return "attribute";
+    }
+}
+
+class Var {
+    constructor(n, v) {
+        this.name = n;
+        this.value = v;
+    }
+}
+class ExecContext {
+    constructor() {
+        this.variables = new Map();
+    }
+}
+class WgslExec {
+    constructor(ast) {
+        this.ast = ast;
+        this.context = new ExecContext();
+    }
+    getVariableValue(name) {
+        var _a;
+        const v = this.context.variables.get(name);
+        return (_a = v === null || v === void 0 ? void 0 : v.value) !== null && _a !== void 0 ? _a : null;
+    }
+    exec() {
+        new ExecContext();
+        for (const stmt of this.ast) {
+            this._execStatement(stmt);
+        }
+    }
+    _execStatement(stmt) {
+        if (stmt instanceof Let) {
+            this._let(stmt);
+        }
+    }
+    _let(node) {
+        let value = null;
+        if (node.value != null) {
+            value = this._evalExpression(node.value);
+        }
+        const v = new Var(node.name, value);
+        this.context.variables.set(node.name, v);
+        console.log(`LET ${node.name} ${value}`);
+    }
+    _evalExpression(node) {
+        if (node instanceof BinaryOperator) {
+            return this._evalBinaryOp(node);
+        }
+        else if (node instanceof LiteralExpr) {
+            return this._evalLiteral(node);
+        }
+        else if (node instanceof VariableExpr) {
+            return this._evalVariable(node);
+        }
+        return null;
+    }
+    _evalLiteral(node) {
+        return node.value;
+    }
+    _evalVariable(node) {
+        return this.getVariableValue(node.name);
+    }
+    _evalBinaryOp(node) {
+        const l = this._evalExpression(node.left);
+        const r = this._evalExpression(node.right);
+        switch (node.operator) {
+            case "+":
+                return l + r;
+            case "-":
+                return l - r;
+            case "*":
+                return l * r;
+            case "/":
+                return l / r;
+        }
+        return null;
     }
 }
 
@@ -2295,7 +2371,7 @@ class WgslParser {
             if (this._match(TokenTypes.tokens.equal)) {
                 value = this._short_circuit_or_expression();
             }
-            return new Var(_var.name, _var.type, _var.storage, _var.access, value);
+            return new Var$1(_var.name, _var.type, _var.storage, _var.access, value);
         }
         if (this._match(TokenTypes.keywords.let)) {
             const name = this._consume(TokenTypes.tokens.ident, "Expected name for let.").toString();
@@ -2910,7 +2986,7 @@ class WgslParser {
                 type.attributes = attrs;
             }
         }
-        return new Var(name.toString(), type, storage, access, null);
+        return new Var$1(name.toString(), type, storage, access, null);
     }
     _override_decl() {
         // override (ident variable_ident_decl)
@@ -3606,7 +3682,7 @@ class WgslReflect {
             else if (node instanceof _BlockEnd) {
                 varStack.pop();
             }
-            else if (node instanceof Var) {
+            else if (node instanceof Var$1) {
                 const v = node;
                 if (isEntry && v.type !== null) {
                     this._markStructsFromAST(v.type);
@@ -3997,18 +4073,18 @@ class WgslReflect {
         return null;
     }
     _isUniformVar(node) {
-        return node instanceof Var && node.storage == "uniform";
+        return node instanceof Var$1 && node.storage == "uniform";
     }
     _isStorageVar(node) {
-        return node instanceof Var && node.storage == "storage";
+        return node instanceof Var$1 && node.storage == "storage";
     }
     _isTextureVar(node) {
-        return (node instanceof Var &&
+        return (node instanceof Var$1 &&
             node.type !== null &&
             WgslReflect._textureTypes.indexOf(node.type.name) != -1);
     }
     _isSamplerVar(node) {
-        return (node instanceof Var &&
+        return (node instanceof Var$1 &&
             node.type !== null &&
             WgslReflect._samplerTypes.indexOf(node.type.name) != -1);
     }
@@ -4091,5 +4167,5 @@ WgslReflect._samplerTypes = TokenTypes.sampler_type.map((t) => {
     return t.name;
 });
 
-export { Alias, AliasInfo, Argument, ArgumentInfo, ArrayIndex, ArrayInfo, ArrayType, Assign, AssignOperator, Attribute, BinaryOperator, BitcastExpr, Break, Call, CallExpr, Case, Const, ConstExpr, Continue, Continuing, CreateExpr, Default, Diagnostic, Discard, ElseIf, Enable, EntryFunctions, Expression, For, Function, FunctionInfo, GroupingExpr, If, Increment, IncrementOperator, InputInfo, Let, LiteralExpr, Loop, Member, MemberInfo, Node, Operator, OutputInfo, Override, OverrideInfo, ParseContext, PointerType, Requires, ResourceType, Return, SamplerType, Statement, StaticAssert, StringExpr, Struct, StructInfo, Switch, SwitchCase, TemplateInfo, TemplateType, Token, TokenClass, TokenType, TokenTypes, Type, TypeInfo, TypecastExpr, UnaryOperator, Var, VariableExpr, VariableInfo, WgslParser, WgslReflect, WgslScanner, While, _BlockEnd, _BlockStart };
+export { Alias, AliasInfo, Argument, ArgumentInfo, ArrayIndex, ArrayInfo, ArrayType, Assign, AssignOperator, Attribute, BinaryOperator, BitcastExpr, Break, Call, CallExpr, Case, Const, ConstExpr, Continue, Continuing, CreateExpr, Default, Diagnostic, Discard, ElseIf, Enable, EntryFunctions, Expression, For, Function, FunctionInfo, GroupingExpr, If, Increment, IncrementOperator, InputInfo, Let, LiteralExpr, Loop, Member, MemberInfo, Node, Operator, OutputInfo, Override, OverrideInfo, ParseContext, PointerType, Requires, ResourceType, Return, SamplerType, Statement, StaticAssert, StringExpr, Struct, StructInfo, Switch, SwitchCase, TemplateInfo, TemplateType, Token, TokenClass, TokenType, TokenTypes, Type, TypeInfo, TypecastExpr, UnaryOperator, Var$1 as Var, VariableExpr, VariableInfo, WgslExec, WgslParser, WgslReflect, WgslScanner, While, _BlockEnd, _BlockStart };
 //# sourceMappingURL=wgsl_reflect.module.js.map

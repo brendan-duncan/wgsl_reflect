@@ -8,6 +8,7 @@ export class WgslParser {
     constructor() {
         this._tokens = [];
         this._current = 0;
+        this._currentLine = 0;
         this._context = new AST.ParseContext();
         this._deferArrayCountEval = [];
     }
@@ -63,7 +64,6 @@ export class WgslParser {
         this._current = 0;
     }
     _error(token, message) {
-        //console.error(token, message);
         return {
             token,
             message,
@@ -112,6 +112,8 @@ export class WgslParser {
         return tk.type == types;
     }
     _advance() {
+        var _a, _b;
+        this._currentLine = (_b = (_a = this._peek()) === null || _a === void 0 ? void 0 : _a.line) !== null && _b !== void 0 ? _b : -1;
         if (!this._isAtEnd()) {
             this._current++;
         }
@@ -143,6 +145,11 @@ export class WgslParser {
             const directive = this._diagnostic();
             this._consume(TokenTypes.tokens.semicolon, "Expected ';'");
             return directive;
+        }
+        if (this._match(TokenTypes.keywords.requires)) {
+            const requires = this._requires_directive();
+            this._consume(TokenTypes.tokens.semicolon, "Expected ';'");
+            return requires;
         }
         if (this._match(TokenTypes.keywords.enable)) {
             const enable = this._enable_directive();
@@ -185,14 +192,16 @@ export class WgslParser {
         }
         if (this._check(TokenTypes.keywords.struct)) {
             const _struct = this._struct_decl();
-            if (_struct != null)
+            if (_struct != null) {
                 _struct.attributes = attrs;
+            }
             return _struct;
         }
         if (this._check(TokenTypes.keywords.fn)) {
             const _fn = this._function_decl();
-            if (_fn != null)
+            if (_fn != null) {
                 _fn.attributes = attrs;
+            }
             return _fn;
         }
         return null;
@@ -200,8 +209,10 @@ export class WgslParser {
     _function_decl() {
         // attribute* function_header compound_statement
         // function_header: fn ident paren_left param_list? paren_right (arrow attribute* type_decl)?
-        if (!this._match(TokenTypes.keywords.fn))
+        if (!this._match(TokenTypes.keywords.fn)) {
             return null;
+        }
+        const startLine = this._currentLine;
         const name = this._consume(TokenTypes.tokens.ident, "Expected function name.").toString();
         this._consume(TokenTypes.tokens.paren_left, "Expected '(' for function arguments.");
         const args = [];
@@ -231,7 +242,8 @@ export class WgslParser {
             }
         }
         const body = this._compound_statement();
-        return new AST.Function(name, args, _return, body);
+        const endLine = this._currentLine;
+        return new AST.Function(name, args, _return, body, startLine, endLine);
     }
     _compound_statement() {
         // brace_left statement* brace_right
@@ -267,6 +279,10 @@ export class WgslParser {
         // Ignore any stand-alone semicolons
         while (this._match(TokenTypes.tokens.semicolon) && !this._isAtEnd())
             ;
+        let attributes = null;
+        if (this._check(TokenTypes.tokens.attr)) {
+            attributes = this._attribute();
+        }
         if (this._check(TokenTypes.keywords.if)) {
             return this._if_statement();
         }
@@ -334,6 +350,10 @@ export class WgslParser {
             return null;
         }
         const condition = this._optional_paren_expression();
+        let attributes = null;
+        if (this._check(TokenTypes.tokens.attr)) {
+            attributes = this._attribute();
+        }
         const block = this._compound_statement();
         return new AST.While(condition, block);
     }
@@ -363,6 +383,10 @@ export class WgslParser {
             ? this._for_increment()
             : null;
         this._consume(TokenTypes.tokens.paren_right, "Expected ')'.");
+        let attributes = null;
+        if (this._check(TokenTypes.tokens.attr)) {
+            attributes = this._attribute();
+        }
         const body = this._compound_statement();
         return new AST.For(init, condition, increment, body);
     }
@@ -475,6 +499,10 @@ export class WgslParser {
         if (!this._match(TokenTypes.keywords.loop)) {
             return null;
         }
+        let attributes = null;
+        if (this._check(TokenTypes.tokens.attr)) {
+            attributes = this._attribute();
+        }
         this._consume(TokenTypes.tokens.brace_left, "Expected '{' for loop.");
         // statement*
         const statements = [];
@@ -504,6 +532,10 @@ export class WgslParser {
             return null;
         }
         const condition = this._optional_paren_expression();
+        let attributes = null;
+        if (this._check(TokenTypes.tokens.attr)) {
+            attributes = this._attribute();
+        }
         this._consume(TokenTypes.tokens.brace_left, "Expected '{' for switch.");
         const body = this._switch_body();
         if (body == null || body.length == 0) {
@@ -519,6 +551,10 @@ export class WgslParser {
         if (this._match(TokenTypes.keywords.case)) {
             const selector = this._case_selectors();
             this._match(TokenTypes.tokens.colon); // colon is optional
+            let attributes = null;
+            if (this._check(TokenTypes.tokens.attr)) {
+                attributes = this._attribute();
+            }
             this._consume(TokenTypes.tokens.brace_left, "Exected '{' for switch case.");
             const body = this._case_body();
             this._consume(TokenTypes.tokens.brace_right, "Exected '}' for switch case.");
@@ -526,6 +562,10 @@ export class WgslParser {
         }
         if (this._match(TokenTypes.keywords.default)) {
             this._match(TokenTypes.tokens.colon); // colon is optional
+            let attributes = null;
+            if (this._check(TokenTypes.tokens.attr)) {
+                attributes = this._attribute();
+            }
             this._consume(TokenTypes.tokens.brace_left, "Exected '{' for switch default.");
             const body = this._case_body();
             this._consume(TokenTypes.tokens.brace_right, "Exected '}' for switch default.");
@@ -573,13 +613,25 @@ export class WgslParser {
             return null;
         }
         const condition = this._optional_paren_expression();
+        let attributes = null;
+        if (this._check(TokenTypes.tokens.attr)) {
+            attributes = this._attribute();
+        }
         const block = this._compound_statement();
         let elseif = [];
         if (this._match_elseif()) {
+            let attributes = null;
+            if (this._check(TokenTypes.tokens.attr)) {
+                attributes = this._attribute();
+            }
             elseif = this._elseif_statement(elseif);
         }
         let _else = null;
         if (this._match(TokenTypes.keywords.else)) {
+            let attributes = null;
+            if (this._check(TokenTypes.tokens.attr)) {
+                attributes = this._attribute();
+            }
             _else = this._compound_statement();
         }
         return new AST.If(condition, block, elseif, _else);
@@ -599,6 +651,10 @@ export class WgslParser {
         const block = this._compound_statement();
         elseif.push(new AST.ElseIf(condition, block));
         if (this._match_elseif()) {
+            let attributes = null;
+            if (this._check(TokenTypes.tokens.attr)) {
+                attributes = this._attribute();
+            }
             this._elseif_statement(elseif);
         }
         return elseif;
@@ -740,8 +796,9 @@ export class WgslParser {
         // primary_expression postfix_expression ?
         const expr = this._primary_expression();
         const p = this._postfix_expression();
-        if (p)
+        if (p) {
             expr.postfix = p;
+        }
         return expr;
     }
     _postfix_expression() {
@@ -749,18 +806,21 @@ export class WgslParser {
         if (this._match(TokenTypes.tokens.bracket_left)) {
             const expr = this._short_circuit_or_expression();
             this._consume(TokenTypes.tokens.bracket_right, "Expected ']'.");
+            const arrayIndex = new AST.ArrayIndex(expr);
             const p = this._postfix_expression();
-            if (p)
-                expr.postfix = p;
-            return expr;
+            if (p) {
+                arrayIndex.postfix = p;
+            }
+            return arrayIndex;
         }
         // period ident postfix_expression?
         if (this._match(TokenTypes.tokens.period)) {
             const name = this._consume(TokenTypes.tokens.ident, "Expected member name.");
             const p = this._postfix_expression();
             const expr = new AST.StringExpr(name.lexeme);
-            if (p)
+            if (p) {
                 expr.postfix = p;
+            }
             return expr;
         }
         return null;
@@ -813,7 +873,7 @@ export class WgslParser {
         // type_decl argument_expression_list
         const type = this._type_decl();
         const args = this._argument_expression_list();
-        return new AST.TypecastExpr(type, args);
+        return new AST.CreateExpr(type, args);
     }
     _argument_expression_list() {
         // paren_left ((short_circuit_or_expression comma)* short_circuit_or_expression comma?)? paren_right
@@ -850,6 +910,7 @@ export class WgslParser {
         if (!this._match(TokenTypes.keywords.struct)) {
             return null;
         }
+        const startLine = this._currentLine;
         const name = this._consume(TokenTypes.tokens.ident, "Expected name for struct.").toString();
         // struct_body_decl: brace_left (struct_member comma)* struct_member comma? brace_right
         this._consume(TokenTypes.tokens.brace_left, "Expected '{' for struct body.");
@@ -871,7 +932,8 @@ export class WgslParser {
             members.push(new AST.Member(memberName, memberType, memberAttrs));
         }
         this._consume(TokenTypes.tokens.brace_right, "Expected '}' after struct body.");
-        const structNode = new AST.Struct(name, members);
+        const endLine = this._currentLine;
+        const structNode = new AST.Struct(name, members, startLine, endLine);
         this._context.structs.set(name, structNode);
         return structNode;
     }
@@ -952,21 +1014,7 @@ export class WgslParser {
     _const_expression() {
         // type_decl paren_left ((const_expression comma)* const_expression comma?)? paren_right
         // const_literal
-        if (this._match(TokenTypes.const_literal)) {
-            return new AST.StringExpr(this._previous().toString());
-        }
-        const type = this._type_decl();
-        this._consume(TokenTypes.tokens.paren_left, "Expected '('.");
-        let args = [];
-        while (!this._check(TokenTypes.tokens.paren_right)) {
-            args.push(this._const_expression());
-            if (!this._check(TokenTypes.tokens.comma)) {
-                break;
-            }
-            this._advance();
-        }
-        this._consume(TokenTypes.tokens.paren_right, "Expected ')'.");
-        return new AST.CreateExpr(type, args);
+        return this._short_circuit_or_expression();
     }
     _variable_decl() {
         // var variable_qualifier? (ident variable_ident_decl)
@@ -1022,6 +1070,15 @@ export class WgslParser {
         // enable ident semicolon
         const name = this._consume(TokenTypes.tokens.ident, "identity expected.");
         return new AST.Enable(name.toString());
+    }
+    _requires_directive() {
+        // requires extension [, extension]* semicolon
+        const extensions = [this._consume(TokenTypes.tokens.ident, "identity expected.").toString()];
+        while (this._match(TokenTypes.tokens.comma)) {
+            const name = this._consume(TokenTypes.tokens.ident, "identity expected.");
+            extensions.push(name.toString());
+        }
+        return new AST.Requires(extensions);
     }
     _type_alias() {
         // type ident equal type_decl
@@ -1211,4 +1268,3 @@ export class WgslParser {
         return attributes;
     }
 }
-//# sourceMappingURL=wgsl_parser.js.map
