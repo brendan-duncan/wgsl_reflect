@@ -2,7 +2,7 @@ import { test, group } from "../test.js";
 import { WgslExec } from "../../../wgsl_reflect.module.js";
 
 group("Exec", function () {
-  /*test("ast 1", function (test) {
+  test("ast 1", function (test) {
     const shader = `let foo = 1 + 2;`;
     const exec = new WgslExec(shader);
     exec.exec();
@@ -46,7 +46,7 @@ group("Exec", function () {
         wgsl.dispatch("computeSomething", [i, 0, 0], bindGroups);
     }
     test.equals(dataBuffer, [2, 4, 12]);
-  });*/
+  });
 
   test("ast 5", function (test) {
     const dispatchCount = [4, 3, 2];
