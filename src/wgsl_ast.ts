@@ -1375,14 +1375,6 @@ export class BinaryOperator extends Operator {
         return this.left.evaluate(context) / this.right.evaluate(context);
       case "%":
         return this.left.evaluate(context) % this.right.evaluate(context);
-      case "==":
-        return this.left.evaluate(context) == this.right.evaluate(context)
-          ? 1
-          : 0;
-      case "!=":
-        return this.left.evaluate(context) != this.right.evaluate(context)
-          ? 1
-          : 0;
       case "<":
         return this.left.evaluate(context) < this.right.evaluate(context)
           ? 1
@@ -1391,6 +1383,14 @@ export class BinaryOperator extends Operator {
         return this.left.evaluate(context) > this.right.evaluate(context)
           ? 1
           : 0;
+      case "==":
+        return this.left.evaluate(context) == this.right.evaluate(context)
+            ? 1
+            : 0;
+      case "!=":
+        return this.left.evaluate(context) != this.right.evaluate(context)
+            ? 1
+            : 0;
       case "<=":
         return this.left.evaluate(context) <= this.right.evaluate(context)
           ? 1
