@@ -148,9 +148,10 @@ export declare class WgslReflect {
     functions: Array<FunctionInfo>;
     _types: Map<AST.Type, TypeInfo>;
     _functions: Map<string, _FunctionResources>;
-    constructor(code: string | undefined);
+    constructor(code?: string);
     _isStorageTexture(type: TypeInfo): boolean;
     update(code: string): void;
+    updateAST(ast: Array<AST.Node>): void;
     _markStructsInUse(type: TypeInfo): void;
     _addCalls(fn: AST.Function, calls: Set<FunctionInfo>): void;
     findResource(group: number, binding: number): VariableInfo;

@@ -3140,457 +3140,6 @@ class WgslParser {
     }
 }
 
-class Var {
-    constructor(n, v, node) {
-        this.name = n;
-        this.value = v;
-        this.node = node;
-    }
-    clone() {
-        return new Var(this.name, this.value, this.node);
-    }
-}
-class Function {
-    constructor(node) {
-        this.name = node.name;
-        this.node = node;
-    }
-    clone() {
-        return new Function(this.node);
-    }
-}
-class ExecContext {
-    constructor() {
-        this.variables = new Map();
-        this.functions = new Map();
-    }
-    getVariableValue(name) {
-        var _a;
-        const v = this.variables.get(name);
-        return (_a = v === null || v === void 0 ? void 0 : v.value) !== null && _a !== void 0 ? _a : null;
-    }
-    clone() {
-        const c = new ExecContext();
-        for (const [k, v] of this.variables) {
-            c.variables.set(k, v.clone());
-        }
-        for (const [k, v] of this.functions) {
-            c.functions.set(k, v.clone());
-        }
-        return c;
-    }
-}
-class WgslExec {
-    constructor(code) {
-        const parser = new WgslParser();
-        this.ast = parser.parse(code);
-    }
-    getVariableValue(name) {
-        return this.context.getVariableValue(name);
-    }
-    exec(context) {
-        var _a;
-        this.context = (_a = context === null || context === void 0 ? void 0 : context.clone()) !== null && _a !== void 0 ? _a : new ExecContext();
-        this._execStatements(this.ast, this.context);
-    }
-    execFunction(functionName, args, context) {
-        var _a;
-        this.context = (_a = context === null || context === void 0 ? void 0 : context.clone()) !== null && _a !== void 0 ? _a : new ExecContext();
-        this._execStatements(this.ast, this.context);
-        const f = this.context.functions.get(functionName);
-        for (const arg of f.node.args) {
-            const value = args.shift();
-            const v = new Var(arg.name, value, arg);
-            this.context.variables.set(v.name, v);
-        }
-        return this._execStatements(f.node.body, this.context);
-    }
-    dispatchWorkgroups(kernel, dispatchCount, bindGroups, context) {
-        var _a;
-        this.context = (_a = context === null || context === void 0 ? void 0 : context.clone()) !== null && _a !== void 0 ? _a : new ExecContext();
-        this._execStatements(this.ast, this.context);
-        const f = this.context.functions.get(kernel);
-        if (!f) {
-            console.error(`Function ${kernel} not found`);
-            return;
-        }
-        let workgroupSize = [1, 1, 1];
-        for (const attr of f.node.attributes) {
-            if (attr.name === "workgroup_size") {
-                if (attr.value.length > 0) {
-                    workgroupSize[0] = parseInt(attr.value[0]);
-                }
-                if (attr.value.length > 1) {
-                    workgroupSize[1] = parseInt(attr.value[1]);
-                }
-                if (attr.value.length > 2) {
-                    workgroupSize[2] = parseInt(attr.value[2]);
-                }
-            }
-        }
-        for (let dz = 0; dz < dispatchCount[2]; ++dz) {
-            for (let dy = 0; dy < dispatchCount[1]; ++dy) {
-                for (let dx = 0; dx < dispatchCount[0]; ++dx) {
-                    for (let wz = 0, li = 0; wz < workgroupSize[2]; ++wz) {
-                        for (let wy = 0; wy < workgroupSize[1]; ++wy) {
-                            for (let wx = 0; wx < workgroupSize[0]; ++wx, ++li) {
-                                let lx = wx + dx * workgroupSize[0];
-                                let ly = wy + dy * workgroupSize[1];
-                                let lz = wz + dz * workgroupSize[2];
-                                this.context.variables.set("@workgroup_id", new Var("@workgroup_id", [dx, dy, dz], null));
-                                this.context.variables.set("@local_invocation_id", new Var("@local_invocation_id", [wx, wy, wz], null));
-                                this.context.variables.set("@num_workgroups", new Var("@num_workgroups", dispatchCount, null));
-                                this.context.variables.set("@local_invocation_index", new Var("@local_invocation_index", li, null));
-                                this._dispatchExec(kernel, [lx, ly, lz], bindGroups, this.context);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    dispatch(kernel, dispatch, bindGroups, context) {
-        var _a;
-        this.context = (_a = context === null || context === void 0 ? void 0 : context.clone()) !== null && _a !== void 0 ? _a : new ExecContext();
-        this._execStatements(this.ast, this.context);
-        this._dispatchExec(kernel, dispatch, bindGroups, context);
-    }
-    _dispatchExec(kernel, dispatch, bindGroups, context) {
-        var _a, _b, _c, _d;
-        const f = this.context.functions.get(kernel);
-        if (!f) {
-            console.error(`Function ${kernel} not found`);
-            return;
-        }
-        let workgroupSize = [1, 1, 1];
-        for (const attr of f.node.attributes) {
-            if (attr.name === "workgroup_size") {
-                if (attr.value.length > 0) {
-                    workgroupSize[0] = parseInt(attr.value[0]);
-                }
-                if (attr.value.length > 1) {
-                    workgroupSize[1] = parseInt(attr.value[1]);
-                }
-                if (attr.value.length > 2) {
-                    workgroupSize[2] = parseInt(attr.value[2]);
-                }
-            }
-        }
-        const subContext = this.context.clone();
-        for (const set in bindGroups) {
-            for (const binding in bindGroups[set]) {
-                const entry = bindGroups[set][binding];
-                subContext.variables.forEach((v, k) => {
-                    const node = v.node;
-                    if (node === null || node === void 0 ? void 0 : node.attributes) {
-                        let b = null;
-                        let s = null;
-                        for (const attr of node.attributes) {
-                            if (attr.name === "binding") {
-                                b = attr.value;
-                            }
-                            else if (attr.name === "group") {
-                                s = attr.value;
-                            }
-                        }
-                        if (binding == b && set == s) {
-                            v.value = entry;
-                        }
-                    }
-                });
-            }
-        }
-        for (const arg of f.node.args) {
-            for (const attr of arg.attributes) {
-                if (attr.name === "builtin") {
-                    if (attr.value === "global_invocation_id") {
-                        subContext.variables.set(arg.name, new Var(arg.name, dispatch, arg));
-                    }
-                    else if (attr.value === "workgroup_id") {
-                        const workgroup_id = (_a = subContext.getVariableValue("@workgroup_id")) !== null && _a !== void 0 ? _a : [0, 0, 0];
-                        subContext.variables.set(arg.name, new Var(arg.name, workgroup_id, arg));
-                    }
-                    else if (attr.value === "workgroup_size") {
-                        subContext.variables.set(arg.name, new Var(arg.name, workgroupSize, arg));
-                    }
-                    else if (attr.value === "local_invocation_id") {
-                        const local_invocation_id = (_b = subContext.getVariableValue("@local_invocation_id")) !== null && _b !== void 0 ? _b : [0, 0, 0];
-                        subContext.variables.set(arg.name, new Var(arg.name, local_invocation_id, arg));
-                    }
-                    else if (attr.value === "num_workgroups") {
-                        const num_workgroups = (_c = subContext.getVariableValue("@num_workgroups")) !== null && _c !== void 0 ? _c : [1, 1, 1];
-                        subContext.variables.set(arg.name, new Var(arg.name, num_workgroups, arg));
-                    }
-                    else if (attr.value === "local_invocation_index") {
-                        const local_invocation_index = (_d = subContext.getVariableValue("@local_invocation_index")) !== null && _d !== void 0 ? _d : 0;
-                        subContext.variables.set(arg.name, new Var(arg.name, local_invocation_index, arg));
-                    }
-                    else {
-                        console.error(`Unknown builtin ${attr.value}`);
-                    }
-                }
-            }
-        }
-        this._execStatements(f.node.body, subContext);
-    }
-    _execStatements(statements, context) {
-        for (const stmt of statements) {
-            const res = this._execStatement(stmt, context);
-            if (res) {
-                return res;
-            }
-        }
-        return null;
-    }
-    _execStatement(stmt, context) {
-        if (stmt instanceof Return) {
-            return this._evalExpression(stmt.value, context);
-        }
-        else if (stmt instanceof Break) {
-            return stmt;
-        }
-        else if (stmt instanceof Continue) {
-            return stmt;
-        }
-        else if (stmt instanceof Let) {
-            this._let(stmt, context);
-        }
-        else if (stmt instanceof Var$1) {
-            this._var(stmt, context);
-        }
-        else if (stmt instanceof Function$1) {
-            this._function(stmt, context);
-        }
-        else if (stmt instanceof If) {
-            return this._if(stmt, context);
-        }
-        else if (stmt instanceof For) {
-            return this._for(stmt, context);
-        }
-        else if (stmt instanceof While) {
-            return this._while(stmt, context);
-        }
-        else if (stmt instanceof Assign) {
-            return this._assign(stmt, context);
-        }
-        else {
-            console.error(`Unknown statement type`, stmt);
-        }
-        return null;
-    }
-    _getVariableName(node, context) {
-        if (node instanceof VariableExpr) {
-            return node.name;
-        }
-        else {
-            console.error(`Unknown variable type`, node);
-        }
-        return null;
-    }
-    _assign(node, context) {
-        const name = this._getVariableName(node.variable, context);
-        const v = context.variables.get(name);
-        if (!v) {
-            console.error(`Variable ${name} not found`);
-            return;
-        }
-        const value = this._evalExpression(node.value, context);
-        if (node.variable.postfix) {
-            if (node.variable.postfix instanceof ArrayIndex) {
-                const idx = this._evalExpression(node.variable.postfix.index, context);
-                if (v.value.length !== undefined) {
-                    v.value[idx] = value;
-                }
-                else {
-                    console.error(`Variable ${v.name} is not an array`);
-                }
-            }
-            else if (node.variable.postfix instanceof StringExpr) ;
-        }
-        else {
-            v.value = value;
-        }
-    }
-    _function(node, context) {
-        const f = new Function(node);
-        context.functions.set(node.name, f);
-    }
-    _let(node, context) {
-        let value = null;
-        if (node.value != null) {
-            value = this._evalExpression(node.value, context);
-        }
-        const v = new Var(node.name, value, node);
-        context.variables.set(node.name, v);
-    }
-    _var(node, context) {
-        let value = null;
-        if (node.value != null) {
-            value = this._evalExpression(node.value, context);
-        }
-        const v = new Var(node.name, value, node);
-        context.variables.set(node.name, v);
-    }
-    _if(node, context) {
-        const condition = this._evalExpression(node.condition, context);
-        if (condition) {
-            return this._execStatements(node.body, context);
-        }
-        for (const e of node.elseif) {
-            const condition = this._evalExpression(e.condition, context);
-            if (condition) {
-                return this._execStatements(e.body, context);
-            }
-        }
-        if (node.else) {
-            return this._execStatements(node.else, context);
-        }
-        return null;
-    }
-    _for(node, context) {
-        this._evalExpression(node.init, context);
-        this._evalExpression(node.condition, context);
-        this._evalExpression(node.increment, context);
-        /*const v = new Var(node.name, start);
-        for (let i = start; i < end; i += step) {
-            
-            context.variables.set(node.name, v);
-            const res = this._execStatements(node.body, context);
-            if (res) {
-                return res;
-            }
-        }*/
-        return null;
-    }
-    _while(node, context) {
-        let condition = this._evalExpression(node.condition, context);
-        while (condition) {
-            const res = this._execStatements(node.body, context);
-            if (res instanceof Break) {
-                break;
-            }
-            else if (res instanceof Continue) {
-                continue;
-            }
-            else if (res !== null) {
-                return res;
-            }
-            condition = this._evalExpression(node.condition, context);
-        }
-        return null;
-    }
-    _evalExpression(node, context) {
-        if (node instanceof GroupingExpr) {
-            const grp = node;
-            return this._evalExpression(grp.contents[0], context);
-        }
-        else if (node instanceof BinaryOperator) {
-            return this._evalBinaryOp(node, context);
-        }
-        else if (node instanceof LiteralExpr) {
-            return this._evalLiteral(node, context);
-        }
-        else if (node instanceof VariableExpr) {
-            return this._evalVariable(node, context);
-        }
-        else if (node instanceof CallExpr) {
-            return this._evalCall(node, context);
-        }
-        else {
-            console.error(`Unknown expression type`, node);
-        }
-        return null;
-    }
-    _evalLiteral(node, context) {
-        return node.value;
-    }
-    _evalVariable(node, context) {
-        const value = context.getVariableValue(node.name);
-        if (node.postfix) {
-            if (node.postfix instanceof ArrayIndex) {
-                const idx = this._evalExpression(node.postfix.index, context);
-                if (value.length !== undefined) {
-                    return value[idx];
-                }
-                else {
-                    console.error(`Variable ${node.name} is not an array`);
-                }
-            }
-            else if (node.postfix instanceof StringExpr) {
-                const member = node.postfix.value;
-                if (value instanceof Array) {
-                    if (member === "x") {
-                        return value[0];
-                    }
-                    else if (member === "y") {
-                        return value[1];
-                    }
-                    else if (member === "z") {
-                        return value[2];
-                    }
-                    else if (member === "w") {
-                        return value[3];
-                    }
-                    else {
-                        console.error(`Unknown member ${member}`);
-                    }
-                }
-                else {
-                    console.error(`Unknown variable postfix`, node.postfix);
-                }
-            }
-        }
-        return value;
-    }
-    _evalBinaryOp(node, context) {
-        const l = this._evalExpression(node.left, context);
-        const r = this._evalExpression(node.right, context);
-        switch (node.operator) {
-            case "+":
-                return l + r;
-            case "-":
-                return l - r;
-            case "*":
-                return l * r;
-            case "%":
-                return l % r;
-            case "/":
-                return l / r;
-            case ">":
-                return l > r;
-            case "<":
-                return l < r;
-            case "==":
-                return l === r;
-            case "!=":
-                return l !== r;
-            case ">=":
-                return l >= r;
-            case "<=":
-                return l <= r;
-            case "&&":
-                return l && r;
-            case "||":
-                return l || r;
-        }
-        return null;
-    }
-    _evalCall(node, context) {
-        const f = context.functions.get(node.name);
-        if (!f) {
-            return null;
-        }
-        const subContext = context.clone();
-        for (let ai = 0; ai < f.node.args.length; ++ai) {
-            const arg = f.node.args[ai];
-            const value = this._evalExpression(node.args[ai], subContext);
-            const v = new Var(arg.name, value, arg);
-            subContext.variables.set(v.name, v);
-        }
-        return this._execStatements(f.node.body, subContext);
-    }
-}
-
 /**
  * @author Brendan Duncan / https://github.com/brendan-duncan
  */
@@ -3840,6 +3389,9 @@ class WgslReflect {
     update(code) {
         const parser = new WgslParser();
         const ast = parser.parse(code);
+        this.updateAST(ast);
+    }
+    updateAST(ast) {
         for (const node of ast) {
             if (node instanceof Function$1) {
                 this._functions.set(node.name, new _FunctionResources(node));
@@ -4541,6 +4093,528 @@ WgslReflect._textureTypes = TokenTypes.any_texture_type.map((t) => {
 WgslReflect._samplerTypes = TokenTypes.sampler_type.map((t) => {
     return t.name;
 });
+
+class Var {
+    constructor(n, v, node) {
+        this.name = n;
+        this.value = v;
+        this.node = node;
+    }
+    clone() {
+        return new Var(this.name, this.value, this.node);
+    }
+}
+class Function {
+    constructor(node) {
+        this.name = node.name;
+        this.node = node;
+    }
+    clone() {
+        return new Function(this.node);
+    }
+}
+class ExecContext {
+    constructor() {
+        this.variables = new Map();
+        this.functions = new Map();
+    }
+    getVariableValue(name) {
+        var _a;
+        const v = this.variables.get(name);
+        return (_a = v === null || v === void 0 ? void 0 : v.value) !== null && _a !== void 0 ? _a : null;
+    }
+    clone() {
+        const c = new ExecContext();
+        for (const [k, v] of this.variables) {
+            c.variables.set(k, v.clone());
+        }
+        for (const [k, v] of this.functions) {
+            c.functions.set(k, v.clone());
+        }
+        return c;
+    }
+}
+class WgslExec {
+    constructor(code) {
+        const parser = new WgslParser();
+        this.ast = parser.parse(code);
+        this.reflecion = new WgslReflect();
+        this.reflecion.updateAST(this.ast);
+    }
+    getVariableValue(name) {
+        return this.context.getVariableValue(name);
+    }
+    exec(context) {
+        var _a;
+        this.context = (_a = context === null || context === void 0 ? void 0 : context.clone()) !== null && _a !== void 0 ? _a : new ExecContext();
+        this._execStatements(this.ast, this.context);
+    }
+    execFunction(functionName, args, context) {
+        var _a;
+        this.context = (_a = context === null || context === void 0 ? void 0 : context.clone()) !== null && _a !== void 0 ? _a : new ExecContext();
+        this._execStatements(this.ast, this.context);
+        const f = this.context.functions.get(functionName);
+        for (const arg of f.node.args) {
+            const value = args.shift();
+            const v = new Var(arg.name, value, arg);
+            this.context.variables.set(v.name, v);
+        }
+        return this._execStatements(f.node.body, this.context);
+    }
+    dispatchWorkgroups(kernel, dispatchCount, bindGroups, config) {
+        var _a, _b;
+        config = config !== null && config !== void 0 ? config : {};
+        this.context = (_b = (_a = config["context"]) === null || _a === void 0 ? void 0 : _a.clone()) !== null && _b !== void 0 ? _b : new ExecContext();
+        if (config["constants"]) {
+            for (const k in config["constants"]) {
+                const v = config["constants"][k];
+                this.context.variables.set(k, new Var(k, v, null));
+            }
+        }
+        this._execStatements(this.ast, this.context);
+        const f = this.context.functions.get(kernel);
+        if (!f) {
+            console.error(`Function ${kernel} not found`);
+            return;
+        }
+        let workgroupSize = [1, 1, 1];
+        for (const attr of f.node.attributes) {
+            if (attr.name === "workgroup_size") {
+                if (attr.value.length > 0) {
+                    const v = this.context.getVariableValue(attr.value[0]);
+                    if (v !== null) {
+                        workgroupSize[0] = v;
+                    }
+                    else {
+                        workgroupSize[0] = parseInt(attr.value[0]);
+                    }
+                }
+                if (attr.value.length > 1) {
+                    const v = this.context.getVariableValue(attr.value[1]);
+                    if (v !== null) {
+                        workgroupSize[1] = v;
+                    }
+                    else {
+                        workgroupSize[1] = parseInt(attr.value[1]);
+                    }
+                }
+                if (attr.value.length > 2) {
+                    const v = this.context.getVariableValue(attr.value[2]);
+                    if (v !== null) {
+                        workgroupSize[2] = v;
+                    }
+                    else {
+                        workgroupSize[2] = parseInt(attr.value[2]);
+                    }
+                }
+            }
+        }
+        for (let dz = 0; dz < dispatchCount[2]; ++dz) {
+            for (let dy = 0; dy < dispatchCount[1]; ++dy) {
+                for (let dx = 0; dx < dispatchCount[0]; ++dx) {
+                    for (let wz = 0, li = 0; wz < workgroupSize[2]; ++wz) {
+                        for (let wy = 0; wy < workgroupSize[1]; ++wy) {
+                            for (let wx = 0; wx < workgroupSize[0]; ++wx, ++li) {
+                                let lx = wx + dx * workgroupSize[0];
+                                let ly = wy + dy * workgroupSize[1];
+                                let lz = wz + dz * workgroupSize[2];
+                                this.context.variables.set("@workgroup_id", new Var("@workgroup_id", [dx, dy, dz], null));
+                                this.context.variables.set("@local_invocation_id", new Var("@local_invocation_id", [wx, wy, wz], null));
+                                this.context.variables.set("@num_workgroups", new Var("@num_workgroups", dispatchCount, null));
+                                this.context.variables.set("@local_invocation_index", new Var("@local_invocation_index", li, null));
+                                this._dispatchExec(kernel, [lx, ly, lz], bindGroups, this.context);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    dispatch(kernel, dispatch, bindGroups, config) {
+        var _a, _b;
+        config = config !== null && config !== void 0 ? config : {};
+        this.context = (_b = (_a = config["context"]) === null || _a === void 0 ? void 0 : _a.clone()) !== null && _b !== void 0 ? _b : new ExecContext();
+        if (config["constants"]) {
+            for (const k in config["constants"]) {
+                const v = config["constants"][k];
+                this.context.variables.set(k, new Var(k, v, null));
+            }
+        }
+        this._execStatements(this.ast, this.context);
+        this._dispatchExec(kernel, dispatch, bindGroups, this.context);
+    }
+    _dispatchExec(kernel, dispatch, bindGroups, context) {
+        var _a, _b, _c, _d;
+        const f = this.context.functions.get(kernel);
+        if (!f) {
+            console.error(`Function ${kernel} not found`);
+            return;
+        }
+        let workgroupSize = [1, 1, 1];
+        for (const attr of f.node.attributes) {
+            if (attr.name === "workgroup_size") {
+                if (attr.value.length > 0) {
+                    workgroupSize[0] = parseInt(attr.value[0]);
+                }
+                if (attr.value.length > 1) {
+                    workgroupSize[1] = parseInt(attr.value[1]);
+                }
+                if (attr.value.length > 2) {
+                    workgroupSize[2] = parseInt(attr.value[2]);
+                }
+            }
+        }
+        const subContext = this.context.clone();
+        for (const set in bindGroups) {
+            for (const binding in bindGroups[set]) {
+                const entry = bindGroups[set][binding];
+                subContext.variables.forEach((v, k) => {
+                    const node = v.node;
+                    if (node === null || node === void 0 ? void 0 : node.attributes) {
+                        let b = null;
+                        let s = null;
+                        for (const attr of node.attributes) {
+                            if (attr.name === "binding") {
+                                b = attr.value;
+                            }
+                            else if (attr.name === "group") {
+                                s = attr.value;
+                            }
+                        }
+                        if (binding == b && set == s) {
+                            v.value = entry;
+                        }
+                    }
+                });
+            }
+        }
+        for (const arg of f.node.args) {
+            for (const attr of arg.attributes) {
+                if (attr.name === "builtin") {
+                    if (attr.value === "global_invocation_id") {
+                        subContext.variables.set(arg.name, new Var(arg.name, dispatch, arg));
+                    }
+                    else if (attr.value === "workgroup_id") {
+                        const workgroup_id = (_a = subContext.getVariableValue("@workgroup_id")) !== null && _a !== void 0 ? _a : [0, 0, 0];
+                        subContext.variables.set(arg.name, new Var(arg.name, workgroup_id, arg));
+                    }
+                    else if (attr.value === "workgroup_size") {
+                        subContext.variables.set(arg.name, new Var(arg.name, workgroupSize, arg));
+                    }
+                    else if (attr.value === "local_invocation_id") {
+                        const local_invocation_id = (_b = subContext.getVariableValue("@local_invocation_id")) !== null && _b !== void 0 ? _b : [0, 0, 0];
+                        subContext.variables.set(arg.name, new Var(arg.name, local_invocation_id, arg));
+                    }
+                    else if (attr.value === "num_workgroups") {
+                        const num_workgroups = (_c = subContext.getVariableValue("@num_workgroups")) !== null && _c !== void 0 ? _c : [1, 1, 1];
+                        subContext.variables.set(arg.name, new Var(arg.name, num_workgroups, arg));
+                    }
+                    else if (attr.value === "local_invocation_index") {
+                        const local_invocation_index = (_d = subContext.getVariableValue("@local_invocation_index")) !== null && _d !== void 0 ? _d : 0;
+                        subContext.variables.set(arg.name, new Var(arg.name, local_invocation_index, arg));
+                    }
+                    else {
+                        console.error(`Unknown builtin ${attr.value}`);
+                    }
+                }
+            }
+        }
+        this._execStatements(f.node.body, subContext);
+    }
+    _execStatements(statements, context) {
+        for (const stmt of statements) {
+            const res = this._execStatement(stmt, context);
+            if (res) {
+                return res;
+            }
+        }
+        return null;
+    }
+    _execStatement(stmt, context) {
+        if (stmt instanceof Return) {
+            return this._evalExpression(stmt.value, context);
+        }
+        else if (stmt instanceof Break) {
+            return stmt;
+        }
+        else if (stmt instanceof Continue) {
+            return stmt;
+        }
+        else if (stmt instanceof Let) {
+            this._let(stmt, context);
+        }
+        else if (stmt instanceof Var$1) {
+            this._var(stmt, context);
+        }
+        else if (stmt instanceof Function$1) {
+            this._function(stmt, context);
+        }
+        else if (stmt instanceof If) {
+            return this._if(stmt, context);
+        }
+        else if (stmt instanceof For) {
+            return this._for(stmt, context);
+        }
+        else if (stmt instanceof While) {
+            return this._while(stmt, context);
+        }
+        else if (stmt instanceof Assign) {
+            return this._assign(stmt, context);
+        }
+        else if (stmt instanceof Struct) {
+            return null;
+        }
+        else if (stmt instanceof Override) {
+            const name = stmt.name;
+            if (!context.variables.has(name)) {
+                console.error(`Override constant ${name} not found`);
+                return null;
+            }
+        }
+        else {
+            console.error(`Unknown statement type`, stmt);
+        }
+        return null;
+    }
+    _getVariableName(node, context) {
+        if (node instanceof VariableExpr) {
+            return node.name;
+        }
+        else {
+            console.error(`Unknown variable type`, node);
+        }
+        return null;
+    }
+    _assign(node, context) {
+        const name = this._getVariableName(node.variable, context);
+        const v = context.variables.get(name);
+        if (!v) {
+            console.error(`Variable ${name} not found`);
+            return;
+        }
+        const value = this._evalExpression(node.value, context);
+        if (node.variable.postfix) {
+            if (node.variable.postfix instanceof ArrayIndex) {
+                const idx = this._evalExpression(node.variable.postfix.index, context);
+                // TODO: use array format to determine how to set the value
+                if (v.value.length !== undefined) {
+                    if (v.node.type.isArray) {
+                        const arrayType = v.node.type;
+                        if (arrayType.format.name === "vec3" ||
+                            arrayType.format.name === "vec3u" ||
+                            arrayType.format.name === "vec3i" ||
+                            arrayType.format.name === "vec3f") {
+                            v.value[idx * 3 + 0] = value[0];
+                            v.value[idx * 3 + 1] = value[1];
+                            v.value[idx * 3 + 2] = value[2];
+                        }
+                        else if (arrayType.format.name === "vec4" ||
+                            arrayType.format.name === "vec4u" ||
+                            arrayType.format.name === "vec4i" ||
+                            arrayType.format.name === "vec4f") {
+                            v.value[idx * 4 + 0] = value[0];
+                            v.value[idx * 4 + 1] = value[1];
+                            v.value[idx * 4 + 2] = value[2];
+                            v.value[idx * 4 + 3] = value[3];
+                        }
+                        else {
+                            v.value[idx] = value;
+                        }
+                    }
+                    else {
+                        v.value[idx] = value;
+                    }
+                }
+                else {
+                    console.error(`Variable ${v.name} is not an array`);
+                }
+            }
+            else if (node.variable.postfix instanceof StringExpr) ;
+        }
+        else {
+            v.value = value;
+        }
+    }
+    _function(node, context) {
+        const f = new Function(node);
+        context.functions.set(node.name, f);
+    }
+    _let(node, context) {
+        let value = null;
+        if (node.value != null) {
+            value = this._evalExpression(node.value, context);
+        }
+        const v = new Var(node.name, value, node);
+        context.variables.set(node.name, v);
+    }
+    _var(node, context) {
+        let value = null;
+        if (node.value != null) {
+            value = this._evalExpression(node.value, context);
+        }
+        const v = new Var(node.name, value, node);
+        context.variables.set(node.name, v);
+    }
+    _if(node, context) {
+        const condition = this._evalExpression(node.condition, context);
+        if (condition) {
+            return this._execStatements(node.body, context);
+        }
+        for (const e of node.elseif) {
+            const condition = this._evalExpression(e.condition, context);
+            if (condition) {
+                return this._execStatements(e.body, context);
+            }
+        }
+        if (node.else) {
+            return this._execStatements(node.else, context);
+        }
+        return null;
+    }
+    _for(node, context) {
+        this._evalExpression(node.init, context);
+        this._evalExpression(node.condition, context);
+        this._evalExpression(node.increment, context);
+        /*const v = new Var(node.name, start);
+        for (let i = start; i < end; i += step) {
+            
+            context.variables.set(node.name, v);
+            const res = this._execStatements(node.body, context);
+            if (res) {
+                return res;
+            }
+        }*/
+        return null;
+    }
+    _while(node, context) {
+        let condition = this._evalExpression(node.condition, context);
+        while (condition) {
+            const res = this._execStatements(node.body, context);
+            if (res instanceof Break) {
+                break;
+            }
+            else if (res instanceof Continue) {
+                continue;
+            }
+            else if (res !== null) {
+                return res;
+            }
+            condition = this._evalExpression(node.condition, context);
+        }
+        return null;
+    }
+    _evalExpression(node, context) {
+        if (node instanceof GroupingExpr) {
+            const grp = node;
+            return this._evalExpression(grp.contents[0], context);
+        }
+        else if (node instanceof BinaryOperator) {
+            return this._evalBinaryOp(node, context);
+        }
+        else if (node instanceof LiteralExpr) {
+            return this._evalLiteral(node, context);
+        }
+        else if (node instanceof VariableExpr) {
+            return this._evalVariable(node, context);
+        }
+        else if (node instanceof CallExpr) {
+            return this._evalCall(node, context);
+        }
+        else {
+            console.error(`Unknown expression type`, node);
+        }
+        return null;
+    }
+    _evalLiteral(node, context) {
+        return node.value;
+    }
+    _evalVariable(node, context) {
+        const value = context.getVariableValue(node.name);
+        if (node.postfix) {
+            if (node.postfix instanceof ArrayIndex) {
+                const idx = this._evalExpression(node.postfix.index, context);
+                if (value.length !== undefined) {
+                    return value[idx];
+                }
+                else {
+                    console.error(`Variable ${node.name} is not an array`);
+                }
+            }
+            else if (node.postfix instanceof StringExpr) {
+                const member = node.postfix.value;
+                if (value instanceof Array) {
+                    if (member === "x") {
+                        return value[0];
+                    }
+                    else if (member === "y") {
+                        return value[1];
+                    }
+                    else if (member === "z") {
+                        return value[2];
+                    }
+                    else if (member === "w") {
+                        return value[3];
+                    }
+                    else {
+                        console.error(`Unknown member ${member}`);
+                    }
+                }
+                else {
+                    console.error(`Unknown variable postfix`, node.postfix);
+                }
+            }
+        }
+        return value;
+    }
+    _evalBinaryOp(node, context) {
+        const l = this._evalExpression(node.left, context);
+        const r = this._evalExpression(node.right, context);
+        switch (node.operator) {
+            case "+":
+                return l + r;
+            case "-":
+                return l - r;
+            case "*":
+                return l * r;
+            case "%":
+                return l % r;
+            case "/":
+                return l / r;
+            case ">":
+                return l > r;
+            case "<":
+                return l < r;
+            case "==":
+                return l === r;
+            case "!=":
+                return l !== r;
+            case ">=":
+                return l >= r;
+            case "<=":
+                return l <= r;
+            case "&&":
+                return l && r;
+            case "||":
+                return l || r;
+        }
+        return null;
+    }
+    _evalCall(node, context) {
+        const f = context.functions.get(node.name);
+        if (!f) {
+            console.error(`Function ${node.name} not found`);
+            return null;
+        }
+        const subContext = context.clone();
+        for (let ai = 0; ai < f.node.args.length; ++ai) {
+            const arg = f.node.args[ai];
+            const value = this._evalExpression(node.args[ai], subContext);
+            const v = new Var(arg.name, value, arg);
+            subContext.variables.set(v.name, v);
+        }
+        return this._execStatements(f.node.body, subContext);
+    }
+}
 
 export { Alias, AliasInfo, Argument, ArgumentInfo, ArrayIndex, ArrayInfo, ArrayType, Assign, AssignOperator, Attribute, BinaryOperator, BitcastExpr, Break, Call, CallExpr, Case, Const, ConstExpr, Continue, Continuing, CreateExpr, Default, Diagnostic, Discard, ElseIf, Enable, EntryFunctions, Expression, For, Function$1 as Function, FunctionInfo, GroupingExpr, If, Increment, IncrementOperator, InputInfo, Let, LiteralExpr, Loop, Member, MemberInfo, Node, Operator, OutputInfo, Override, OverrideInfo, ParseContext, PointerType, Requires, ResourceType, Return, SamplerType, Statement, StaticAssert, StringExpr, Struct, StructInfo, Switch, SwitchCase, TemplateInfo, TemplateType, Token, TokenClass, TokenType, TokenTypes, Type, TypeInfo, TypecastExpr, UnaryOperator, Var$1 as Var, VariableExpr, VariableInfo, WgslExec, WgslParser, WgslReflect, WgslScanner, While, _BlockEnd, _BlockStart };
 //# sourceMappingURL=wgsl_reflect.module.js.map

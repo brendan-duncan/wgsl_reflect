@@ -1,4 +1,5 @@
 import * as AST from "./wgsl_ast.js";
+import { WgslReflect } from "./wgsl_reflect.js";
 declare class Var {
     name: string;
     value: any;
@@ -21,12 +22,13 @@ declare class ExecContext {
 export declare class WgslExec {
     ast: Array<AST.Node>;
     context: ExecContext;
+    reflecion: WgslReflect;
     constructor(code: string);
     getVariableValue(name: string): any;
     exec(context?: ExecContext): void;
     execFunction(functionName: string, args: Array<any>, context?: ExecContext): any;
-    dispatchWorkgroups(kernel: string, dispatchCount: [number, number, number], bindGroups: Object, context?: ExecContext): void;
-    dispatch(kernel: string, dispatch: [number, number, number], bindGroups: Object, context?: ExecContext): void;
+    dispatchWorkgroups(kernel: string, dispatchCount: [number, number, number], bindGroups: Object, config?: Object): void;
+    dispatch(kernel: string, dispatch: [number, number, number], bindGroups: Object, config?: Object): void;
     _dispatchExec(kernel: string, dispatch: [number, number, number], bindGroups: Object, context: ExecContext): void;
     _execStatements(statements: Array<AST.Node>, context: ExecContext): any;
     _execStatement(stmt: AST.Node, context: ExecContext): any;

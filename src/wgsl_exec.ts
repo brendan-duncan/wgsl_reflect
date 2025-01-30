@@ -1,5 +1,6 @@
 import * as AST from "./wgsl_ast.js";
 import { WgslParser } from "./wgsl_parser.js";
+import { WgslReflect } from "./wgsl_reflect.js";
 
 class Var {
     name: string;
@@ -55,10 +56,13 @@ class ExecContext {
 export class WgslExec {
     ast: Array<AST.Node>;
     context: ExecContext;
+    reflecion: WgslReflect 
 
     constructor(code: string) {
         const parser = new WgslParser();
         this.ast = parser.parse(code);
+        this.reflecion = new WgslReflect();
+        this.reflecion.updateAST(this.ast);
     }
 
     getVariableValue(name: string) {
@@ -82,8 +86,15 @@ export class WgslExec {
         return this._execStatements(f.node.body, this.context);
     }
 
-    dispatchWorkgroups(kernel: string, dispatchCount: [number, number, number], bindGroups: Object, context?: ExecContext) {
-        this.context = context?.clone() ?? new ExecContext();
+    dispatchWorkgroups(kernel: string, dispatchCount: [number, number, number], bindGroups: Object, config?: Object) {
+        config = config ?? {};
+        this.context = config["context"]?.clone() ?? new ExecContext();
+        if (config["constants"]) {
+            for (const k in config["constants"]) {
+                const v = config["constants"][k];
+                this.context.variables.set(k, new Var(k, v, null));
+            }
+        }
         this._execStatements(this.ast, this.context);
         const f = this.context.functions.get(kernel);
         if (!f) {
@@ -94,13 +105,28 @@ export class WgslExec {
         for (const attr of f.node.attributes) {
             if (attr.name === "workgroup_size") {
                 if (attr.value.length > 0) {
-                    workgroupSize[0] = parseInt(attr.value[0]);
+                    const v = this.context.getVariableValue(attr.value[0]);
+                    if (v !== null) {
+                        workgroupSize[0] = v;
+                    } else {
+                        workgroupSize[0] = parseInt(attr.value[0]);
+                    }
                 }
                 if (attr.value.length > 1) {
-                    workgroupSize[1] = parseInt(attr.value[1]);
+                    const v = this.context.getVariableValue(attr.value[1]);
+                    if (v !== null) {
+                        workgroupSize[1] = v;
+                    } else {
+                        workgroupSize[1] = parseInt(attr.value[1]);
+                    }
                 }
                 if (attr.value.length > 2) {
-                    workgroupSize[2] = parseInt(attr.value[2]);
+                    const v = this.context.getVariableValue(attr.value[2]);
+                    if (v !== null) {
+                        workgroupSize[2] = v;
+                    } else {
+                        workgroupSize[2] = parseInt(attr.value[2]);
+                    }
                 }
             }
         }
@@ -129,10 +155,17 @@ export class WgslExec {
         }
     }
 
-    dispatch(kernel: string, dispatch: [number, number, number], bindGroups: Object, context?: ExecContext) {
-        this.context = context?.clone() ?? new ExecContext();
+    dispatch(kernel: string, dispatch: [number, number, number], bindGroups: Object, config?: Object) {
+        config = config ?? {};
+        this.context = config["context"]?.clone() ?? new ExecContext();
+        if (config["constants"]) {
+            for (const k in config["constants"]) {
+                const v = config["constants"][k];
+                this.context.variables.set(k, new Var(k, v, null));
+            }
+        }
         this._execStatements(this.ast, this.context);
-        this._dispatchExec(kernel, dispatch, bindGroups, context);
+        this._dispatchExec(kernel, dispatch, bindGroups, this.context);
     }
 
     _dispatchExec(kernel: string, dispatch: [number, number, number], bindGroups: Object, context: ExecContext) {
@@ -243,6 +276,14 @@ export class WgslExec {
             return this._while(stmt as AST.While, context);
         } else if (stmt instanceof AST.Assign) {
             return this._assign(stmt as AST.Assign, context);
+        } else if (stmt instanceof AST.Struct) {
+            return null;
+        } else if (stmt instanceof AST.Override) {
+            const name = (stmt as AST.Override).name;
+            if (!context.variables.has(name)) {
+                console.error(`Override constant ${name} not found`);
+                return null;
+            }
         } else {
             console.error(`Unknown statement type`, stmt);
         }
@@ -270,8 +311,31 @@ export class WgslExec {
         if (node.variable.postfix) {
             if (node.variable.postfix instanceof AST.ArrayIndex) {
                 const idx = this._evalExpression(node.variable.postfix.index, context);
+                // TODO: use array format to determine how to set the value
                 if (v.value.length !== undefined) {
-                    v.value[idx] = value;
+                    if (v.node.type.isArray) {
+                        const arrayType = v.node.type as AST.ArrayType;
+                        if (arrayType.format.name === "vec3" ||
+                            arrayType.format.name === "vec3u" ||
+                            arrayType.format.name === "vec3i" ||
+                            arrayType.format.name === "vec3f") {
+                            v.value[idx * 3 + 0] = value[0];
+                            v.value[idx * 3 + 1] = value[1];
+                            v.value[idx * 3 + 2] = value[2];
+                        } else if (arrayType.format.name === "vec4" ||
+                            arrayType.format.name === "vec4u" ||
+                            arrayType.format.name === "vec4i" ||
+                            arrayType.format.name === "vec4f") {
+                            v.value[idx * 4 + 0] = value[0];
+                            v.value[idx * 4 + 1] = value[1];
+                            v.value[idx * 4 + 2] = value[2];
+                            v.value[idx * 4 + 3] = value[3];
+                        } else {
+                            v.value[idx] = value;
+                        }
+                    } else {
+                        v.value[idx] = value;
+                    }
                 } else {
                     console.error(`Variable ${v.name} is not an array`);
                 }
@@ -451,6 +515,7 @@ export class WgslExec {
     _evalCall(node: AST.CallExpr, context: ExecContext) {
         const f = context.functions.get(node.name);
         if (!f) {
+            console.error(`Function ${node.name} not found`);
             return null;
         }
 

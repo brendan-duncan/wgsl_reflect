@@ -363,7 +363,7 @@ export class WgslReflect {
   _types: Map<AST.Type, TypeInfo> = new Map();
   _functions: Map<string, _FunctionResources> = new Map();
 
-  constructor(code: string | undefined) {
+  constructor(code?: string) {
     if (code) {
       this.update(code);
     }
@@ -381,7 +381,10 @@ export class WgslReflect {
   update(code: string) {
     const parser = new WgslParser();
     const ast = parser.parse(code);
+    this.updateAST(ast);
+  }
 
+  updateAST(ast: Array<AST.Node>) {
     for (const node of ast) {
       if (node instanceof AST.Function) {
         this._functions.set(node.name, new _FunctionResources(node as AST.Function));
