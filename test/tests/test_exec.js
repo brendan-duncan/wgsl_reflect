@@ -1,23 +1,25 @@
 import { test, group } from "../test.js";
 import { WgslExec } from "../../../wgsl_reflect.module.js";
 
-group("Exec", function () {
-  test("exec 1", function (test) {
+group("WgslExec", function () {
+  test("set variable", function (test) {
     const shader = `let foo = 1 + 2;`;
     const wgsl = new WgslExec(shader);
+    // Ensure the top-level instructions were executed and the global variable has the correct value.
     test.equals(wgsl.getVariableValue("foo"), 3);
   });
 
-  test("exec 2", function (test) {
+  test("multiple variables", function (test) {
     const shader = `let foo = 1 + 2;
     let bar = foo * 4;`;
 
     const exec = new WgslExec(shader);
+    // Ensure as the top-level instructions are executed, variables are correctly evaluated.
     test.equals(exec.getVariableValue("foo"), 3);
     test.equals(exec.getVariableValue("bar"), 12);
   });
 
-  test("exec 3", function (test) {
+  test("call function", function (test) {
     const shader = `fn foo(a: int, b: int) -> int {
       if (b != 0) {
         return a / b;
@@ -27,23 +29,25 @@ group("Exec", function () {
     }
     let bar = foo(3, 4);`;
     const exec = new WgslExec(shader);
+    // Ensure calling a function works as expected.
     test.equals(exec.getVariableValue("bar"), 0.75);
   });
 
-  test("exec 4", function (test) {
+  test("simple compute dispatch", function (test) {
     const shader = `@group(0) @binding(0) var<storage, read_write> data: array<f32>;
     @compute @workgroup_size(1) fn computeSomething(@builtin(global_invocation_id) id: vec3<u32>) {
         let i = id.x;
         data[i] = data[i] * 2.0;
     }`;
     const wgsl = new WgslExec(shader);
-    const dataBuffer = [1, 2, 6];
+    const dataBuffer = new Float32Array([1, 2, 6]);
     const bindGroups = {0: {0: dataBuffer}};
+    // Ensure we can dispatch a compute shader and get the expected results from the output buffer.
     wgsl.dispatchWorkgroups("computeSomething", 3, bindGroups);
     test.equals(dataBuffer, [2, 4, 12]);
   });
 
-  test("exec 5", function (test) {
+  test("compute dispatch builtin variables", function (test) {
     const dispatchCount = [4, 3, 2];
     const workgroupSize = [2, 3, 4];
 
@@ -53,7 +57,6 @@ group("Exec", function () {
     const numThreadsPerWorkgroup = arrayProd(workgroupSize);
 
     const shader = `
-    // NOTE!: vec3u is padded to by 4 bytes
     @group(0) @binding(0) var<storage, read_write> workgroupResult: array<vec3u>;
     @group(0) @binding(1) var<storage, read_write> localResult: array<vec3u>;
     @group(0) @binding(2) var<storage, read_write> globalResult: array<vec3u>;
@@ -91,11 +94,11 @@ group("Exec", function () {
 
     const numWorkgroups = arrayProd(dispatchCount);
     const numResults = numWorkgroups * numThreadsPerWorkgroup;
-    const size = numResults * 4;// * 4;  // vec3f * u32
+    const size = numResults * 4; // vec3u is padded to 4 element alignment
 
-    const workgroupBuffer = new Uint32Array(size);//device.createBuffer({size, usage});
-    const localBuffer = new Uint32Array(size);//device.createBuffer({size, usage});
-    const globalBuffer = new Uint32Array(size);//device.createBuffer({size, usage});
+    const workgroupBuffer = new Uint32Array(size);
+    const localBuffer = new Uint32Array(size);
+    const globalBuffer = new Uint32Array(size);
 
     const bindGroups = {0: {0: workgroupBuffer, 1: localBuffer, 2: globalBuffer}};
 
@@ -105,7 +108,7 @@ group("Exec", function () {
     test.equals(globalBuffer[3], 1);
   });
 
-  /*test("exec 6", function (test) {
+  /*test("struct buffers", function (test) {
     const shader = `
         struct Uniforms {
             viewportSize: vec2<u32>

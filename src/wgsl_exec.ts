@@ -1,6 +1,7 @@
 import * as AST from "./wgsl_ast.js";
 import { WgslParser } from "./wgsl_parser.js";
 import { WgslReflect } from "./wgsl_reflect.js";
+import { StructInfo } from "./wgsl_reflect.js";
 
 class Var {
     name: string;
@@ -15,6 +16,10 @@ class Var {
 
     clone(): Var {
         return new Var(this.name, this.value, this.node);
+    }
+
+    getValue() {
+        return this.value;
     }
 };
 
@@ -56,13 +61,14 @@ class ExecContext {
 export class WgslExec {
     ast: Array<AST.Node>;
     context: ExecContext;
-    reflecion: WgslReflect 
+    reflection: WgslReflect;
 
     constructor(code: string, context?: ExecContext) {
         const parser = new WgslParser();
         this.ast = parser.parse(code);
-        this.reflecion = new WgslReflect();
-        this.reflecion.updateAST(this.ast);
+        this.reflection = new WgslReflect();
+        this.reflection.updateAST(this.ast);
+
         this.context = context?.clone() ?? new ExecContext();
         this._execStatements(this.ast, this.context);
     }
@@ -501,7 +507,7 @@ export class WgslExec {
                     const variable = context.variables.get(node.name);
                     if (variable) {
                         if (variable.node.type?.isStruct) {
-                            const structInfo = this.reflecion.getStructInfo(variable.node.type.name);
+                            const structInfo = this.reflection.getStructInfo(variable.node.type.name);
                             for (const m of structInfo.members) {
                                 if (m.name === member) {
                                     const v = new Float32Array(variable.value.buffer, m.offset);
