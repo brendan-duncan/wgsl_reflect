@@ -49,5 +49,6 @@ export declare class WgslExec {
     _evalCall(node: AST.CallExpr, context: ExecContext): any;
     _callIntrinsicFunction(node: AST.CallExpr, context: ExecContext): any;
     _callIntrinsicAny(node: AST.CallExpr, context: ExecContext): any;
+    _callIntrinsicAll(node: AST.CallExpr, context: ExecContext): any;
 }
 export {};

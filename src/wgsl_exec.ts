@@ -622,6 +622,8 @@ export class WgslExec {
         switch (node.name) {
             case "any":
                 return this._callIntrinsicAny(node, context);
+            case "all":
+                return this._callIntrinsicAll(node, context);
         }
         console.error(`Function ${node.name} not found`);
         return null;
@@ -630,5 +632,10 @@ export class WgslExec {
     _callIntrinsicAny(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
         return value.some((v) => v);
+    }
+
+    _callIntrinsicAll(node: AST.CallExpr, context: ExecContext) {
+        const value = this._evalExpression(node.args[0], context);
+        return value.all((v) => v);
     }
 }

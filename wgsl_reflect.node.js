@@ -4729,6 +4729,8 @@ class WgslExec {
         switch (node.name) {
             case "any":
                 return this._callIntrinsicAny(node, context);
+            case "all":
+                return this._callIntrinsicAll(node, context);
         }
         console.error(`Function ${node.name} not found`);
         return null;
@@ -4736,6 +4738,10 @@ class WgslExec {
     _callIntrinsicAny(node, context) {
         const value = this._evalExpression(node.args[0], context);
         return value.some((v) => v);
+    }
+    _callIntrinsicAll(node, context) {
+        const value = this._evalExpression(node.args[0], context);
+        return value.all((v) => v);
     }
 }
 
