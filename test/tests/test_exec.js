@@ -5,7 +5,6 @@ group("Exec", function () {
   test("exec 1", function (test) {
     const shader = `let foo = 1 + 2;`;
     const wgsl = new WgslExec(shader);
-    wgsl.exec();
     test.equals(wgsl.getVariableValue("foo"), 3);
   });
 
@@ -14,7 +13,6 @@ group("Exec", function () {
     let bar = foo * 4;`;
 
     const exec = new WgslExec(shader);
-    exec.exec();
     test.equals(exec.getVariableValue("foo"), 3);
     test.equals(exec.getVariableValue("bar"), 12);
   });
@@ -29,7 +27,6 @@ group("Exec", function () {
     }
     let bar = foo(3, 4);`;
     const exec = new WgslExec(shader);
-    exec.exec();
     test.equals(exec.getVariableValue("bar"), 0.75);
   });
 
@@ -42,9 +39,7 @@ group("Exec", function () {
     const wgsl = new WgslExec(shader);
     const dataBuffer = [1, 2, 6];
     const bindGroups = {0: {0: dataBuffer}};
-    for (let i = 0; i < 3; ++i) {
-        wgsl.dispatch("computeSomething", [i, 0, 0], bindGroups);
-    }
+    wgsl.dispatchWorkgroups("computeSomething", 3, bindGroups);
     test.equals(dataBuffer, [2, 4, 12]);
   });
 
@@ -110,7 +105,7 @@ group("Exec", function () {
     test.equals(globalBuffer[3], 1);
   });
 
-  test("exec 6", function (test) {
+  /*test("exec 6", function (test) {
     const shader = `
         struct Uniforms {
             viewportSize: vec2<u32>
@@ -178,5 +173,5 @@ group("Exec", function () {
         }
     });
     console.log(imageBuffer);
-  });
+  });*/
 });

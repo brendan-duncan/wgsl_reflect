@@ -23,13 +23,11 @@ export declare class WgslExec {
     ast: Array<AST.Node>;
     context: ExecContext;
     reflecion: WgslReflect;
-    constructor(code: string);
+    constructor(code: string, context?: ExecContext);
     getVariableValue(name: string): any;
-    exec(context?: ExecContext): void;
-    execFunction(functionName: string, args: Array<any>, context?: ExecContext): any;
-    dispatchWorkgroups(kernel: string, dispatchCount: [number, number, number], bindGroups: Object, config?: Object): void;
-    dispatch(kernel: string, dispatch: [number, number, number], bindGroups: Object, config?: Object): void;
-    _dispatchExec(kernel: string, dispatch: [number, number, number], bindGroups: Object, context: ExecContext): void;
+    dispatchWorkgroups(kernel: string, dispatchCount: number | number[], bindGroups: Object, config?: Object): void;
+    _dispatchWorkgroup(f: Function, workgroup_id: number[], bindGroups: Object, context: ExecContext): void;
+    _dispatchExec(f: Function, context: ExecContext): void;
     _execStatements(statements: Array<AST.Node>, context: ExecContext): any;
     _execStatement(stmt: AST.Node, context: ExecContext): any;
     _getVariableName(node: AST.Node, context: ExecContext): string;

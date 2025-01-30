@@ -4143,140 +4143,56 @@ class ExecContext {
     }
 }
 class WgslExec {
-    constructor(code) {
+    constructor(code, context) {
+        var _a;
         const parser = new WgslParser();
         this.ast = parser.parse(code);
         this.reflecion = new WgslReflect();
         this.reflecion.updateAST(this.ast);
+        this.context = (_a = context === null || context === void 0 ? void 0 : context.clone()) !== null && _a !== void 0 ? _a : new ExecContext();
+        this._execStatements(this.ast, this.context);
     }
     getVariableValue(name) {
         return this.context.getVariableValue(name);
     }
-    exec(context) {
-        var _a;
-        this.context = (_a = context === null || context === void 0 ? void 0 : context.clone()) !== null && _a !== void 0 ? _a : new ExecContext();
-        this._execStatements(this.ast, this.context);
-    }
-    execFunction(functionName, args, context) {
-        var _a;
-        this.context = (_a = context === null || context === void 0 ? void 0 : context.clone()) !== null && _a !== void 0 ? _a : new ExecContext();
-        this._execStatements(this.ast, this.context);
-        const f = this.context.functions.get(functionName);
-        for (const arg of f.node.args) {
-            const value = args.shift();
-            const v = new Var(arg.name, value, arg);
-            this.context.variables.set(v.name, v);
-        }
-        return this._execStatements(f.node.body, this.context);
-    }
     dispatchWorkgroups(kernel, dispatchCount, bindGroups, config) {
-        var _a, _b;
+        const context = this.context.clone();
         config = config !== null && config !== void 0 ? config : {};
-        this.context = (_b = (_a = config["context"]) === null || _a === void 0 ? void 0 : _a.clone()) !== null && _b !== void 0 ? _b : new ExecContext();
         if (config["constants"]) {
             for (const k in config["constants"]) {
                 const v = config["constants"][k];
-                this.context.variables.set(k, new Var(k, v, null));
+                context.variables.set(k, new Var(k, v, null));
             }
         }
-        this._execStatements(this.ast, this.context);
-        const f = this.context.functions.get(kernel);
+        const f = context.functions.get(kernel);
         if (!f) {
             console.error(`Function ${kernel} not found`);
             return;
         }
-        let workgroupSize = [1, 1, 1];
-        for (const attr of f.node.attributes) {
-            if (attr.name === "workgroup_size") {
-                if (attr.value.length > 0) {
-                    const v = this.context.getVariableValue(attr.value[0]);
-                    if (v !== null) {
-                        workgroupSize[0] = v;
-                    }
-                    else {
-                        workgroupSize[0] = parseInt(attr.value[0]);
-                    }
-                }
-                if (attr.value.length > 1) {
-                    const v = this.context.getVariableValue(attr.value[1]);
-                    if (v !== null) {
-                        workgroupSize[1] = v;
-                    }
-                    else {
-                        workgroupSize[1] = parseInt(attr.value[1]);
-                    }
-                }
-                if (attr.value.length > 2) {
-                    const v = this.context.getVariableValue(attr.value[2]);
-                    if (v !== null) {
-                        workgroupSize[2] = v;
-                    }
-                    else {
-                        workgroupSize[2] = parseInt(attr.value[2]);
-                    }
-                }
-            }
+        if (typeof dispatchCount === "number") {
+            dispatchCount = [dispatchCount, 1, 1];
         }
-        for (let dz = 0; dz < dispatchCount[2]; ++dz) {
-            for (let dy = 0; dy < dispatchCount[1]; ++dy) {
-                for (let dx = 0; dx < dispatchCount[0]; ++dx) {
-                    for (let wz = 0, li = 0; wz < workgroupSize[2]; ++wz) {
-                        for (let wy = 0; wy < workgroupSize[1]; ++wy) {
-                            for (let wx = 0; wx < workgroupSize[0]; ++wx, ++li) {
-                                let lx = wx + dx * workgroupSize[0];
-                                let ly = wy + dy * workgroupSize[1];
-                                let lz = wz + dz * workgroupSize[2];
-                                this.context.variables.set("@workgroup_id", new Var("@workgroup_id", [dx, dy, dz], null));
-                                this.context.variables.set("@local_invocation_id", new Var("@local_invocation_id", [wx, wy, wz], null));
-                                this.context.variables.set("@num_workgroups", new Var("@num_workgroups", dispatchCount, null));
-                                this.context.variables.set("@local_invocation_index", new Var("@local_invocation_index", li, null));
-                                this._dispatchExec(kernel, [lx, ly, lz], bindGroups, this.context);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    dispatch(kernel, dispatch, bindGroups, config) {
-        var _a, _b;
-        config = config !== null && config !== void 0 ? config : {};
-        this.context = (_b = (_a = config["context"]) === null || _a === void 0 ? void 0 : _a.clone()) !== null && _b !== void 0 ? _b : new ExecContext();
-        if (config["constants"]) {
-            for (const k in config["constants"]) {
-                const v = config["constants"][k];
-                this.context.variables.set(k, new Var(k, v, null));
-            }
-        }
-        this._execStatements(this.ast, this.context);
-        this._dispatchExec(kernel, dispatch, bindGroups, this.context);
-    }
-    _dispatchExec(kernel, dispatch, bindGroups, context) {
-        var _a, _b, _c, _d;
-        const f = this.context.functions.get(kernel);
-        if (!f) {
-            console.error(`Function ${kernel} not found`);
+        else if (dispatchCount.length === 0) {
+            console.error(`Invalid dispatch count`);
             return;
         }
-        let workgroupSize = [1, 1, 1];
-        for (const attr of f.node.attributes) {
-            if (attr.name === "workgroup_size") {
-                if (attr.value.length > 0) {
-                    workgroupSize[0] = parseInt(attr.value[0]);
-                }
-                if (attr.value.length > 1) {
-                    workgroupSize[1] = parseInt(attr.value[1]);
-                }
-                if (attr.value.length > 2) {
-                    workgroupSize[2] = parseInt(attr.value[2]);
-                }
-            }
+        else if (dispatchCount.length === 1) {
+            dispatchCount = [dispatchCount[0], 1, 1];
         }
-        const subContext = this.context.clone();
+        else if (dispatchCount.length === 2) {
+            dispatchCount = [dispatchCount[0], dispatchCount[1], 1];
+        }
+        else if (dispatchCount.length > 3) {
+            dispatchCount = [dispatchCount[0], dispatchCount[1], dispatchCount[2]];
+        }
+        const depth = dispatchCount[2];
+        const height = dispatchCount[1];
+        const width = dispatchCount[0];
+        context.variables.set("@num_workgroups", new Var("@num_workgroups", dispatchCount, null));
         for (const set in bindGroups) {
             for (const binding in bindGroups[set]) {
                 const entry = bindGroups[set][binding];
-                subContext.variables.forEach((v, k) => {
+                context.variables.forEach((v, k) => {
                     const node = v.node;
                     if (node === null || node === void 0 ? void 0 : node.attributes) {
                         let b = null;
@@ -4296,38 +4212,85 @@ class WgslExec {
                 });
             }
         }
-        for (const arg of f.node.args) {
-            for (const attr of arg.attributes) {
-                if (attr.name === "builtin") {
-                    if (attr.value === "global_invocation_id") {
-                        subContext.variables.set(arg.name, new Var(arg.name, dispatch, arg));
-                    }
-                    else if (attr.value === "workgroup_id") {
-                        const workgroup_id = (_a = subContext.getVariableValue("@workgroup_id")) !== null && _a !== void 0 ? _a : [0, 0, 0];
-                        subContext.variables.set(arg.name, new Var(arg.name, workgroup_id, arg));
-                    }
-                    else if (attr.value === "workgroup_size") {
-                        subContext.variables.set(arg.name, new Var(arg.name, workgroupSize, arg));
-                    }
-                    else if (attr.value === "local_invocation_id") {
-                        const local_invocation_id = (_b = subContext.getVariableValue("@local_invocation_id")) !== null && _b !== void 0 ? _b : [0, 0, 0];
-                        subContext.variables.set(arg.name, new Var(arg.name, local_invocation_id, arg));
-                    }
-                    else if (attr.value === "num_workgroups") {
-                        const num_workgroups = (_c = subContext.getVariableValue("@num_workgroups")) !== null && _c !== void 0 ? _c : [1, 1, 1];
-                        subContext.variables.set(arg.name, new Var(arg.name, num_workgroups, arg));
-                    }
-                    else if (attr.value === "local_invocation_index") {
-                        const local_invocation_index = (_d = subContext.getVariableValue("@local_invocation_index")) !== null && _d !== void 0 ? _d : 0;
-                        subContext.variables.set(arg.name, new Var(arg.name, local_invocation_index, arg));
+        for (let z = 0; z < depth; ++z) {
+            for (let y = 0; y < height; ++y) {
+                for (let x = 0; x < width; ++x) {
+                    context.variables.set("@workgroup_id", new Var("@workgroup_id", [x, y, z], null));
+                    this._dispatchWorkgroup(f, [x, y, z], bindGroups, context);
+                }
+            }
+        }
+    }
+    _dispatchWorkgroup(f, workgroup_id, bindGroups, context) {
+        const workgroupSize = [1, 1, 1];
+        for (const attr of f.node.attributes) {
+            if (attr.name === "workgroup_size") {
+                if (attr.value.length > 0) {
+                    // The value could be an override constant
+                    const v = context.getVariableValue(attr.value[0]);
+                    if (v !== null) {
+                        workgroupSize[0] = v;
                     }
                     else {
-                        console.error(`Unknown builtin ${attr.value}`);
+                        workgroupSize[0] = parseInt(attr.value[0]);
+                    }
+                }
+                if (attr.value.length > 1) {
+                    const v = context.getVariableValue(attr.value[1]);
+                    if (v !== null) {
+                        workgroupSize[1] = v;
+                    }
+                    else {
+                        workgroupSize[1] = parseInt(attr.value[1]);
+                    }
+                }
+                if (attr.value.length > 2) {
+                    const v = context.getVariableValue(attr.value[2]);
+                    if (v !== null) {
+                        workgroupSize[2] = v;
+                    }
+                    else {
+                        workgroupSize[2] = parseInt(attr.value[2]);
                     }
                 }
             }
         }
-        this._execStatements(f.node.body, subContext);
+        context.variables.set("@workgroup_size", new Var("@workgroup_size", workgroupSize, null));
+        const width = workgroupSize[0];
+        const height = workgroupSize[1];
+        const depth = workgroupSize[2];
+        for (let z = 0, li = 0; z < depth; ++z) {
+            for (let y = 0; y < height; ++y) {
+                for (let x = 0; x < width; ++x, ++li) {
+                    const local_invocation_id = [x, y, z];
+                    const global_invocation_id = [
+                        x + workgroup_id[0] * workgroupSize[0],
+                        y + workgroup_id[1] * workgroupSize[1],
+                        z + workgroup_id[2] * workgroupSize[2]
+                    ];
+                    context.variables.set("@local_invocation_id", new Var("@local_invocation_id", local_invocation_id, null));
+                    context.variables.set("@global_invocation_id", new Var("@global_invocation_id", global_invocation_id, null));
+                    context.variables.set("@local_invocation_index", new Var("@local_invocation_index", li, null));
+                    this._dispatchExec(f, context);
+                }
+            }
+        }
+    }
+    _dispatchExec(f, context) {
+        // Update any built-in input args.
+        // TODO: handle input structs.
+        for (const arg of f.node.args) {
+            for (const attr of arg.attributes) {
+                if (attr.name === "builtin") {
+                    const globalName = `@${attr.value}`;
+                    const globalVar = context.variables.get(globalName);
+                    if (globalVar !== undefined) {
+                        context.variables.set(arg.name, globalVar);
+                    }
+                }
+            }
+        }
+        this._execStatements(f.node.body, context);
     }
     _execStatements(statements, context) {
         for (const stmt of statements) {
