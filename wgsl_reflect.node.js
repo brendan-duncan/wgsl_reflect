@@ -3515,6 +3515,14 @@ class WgslReflect {
             this._markStructsInUse(s.type);
         }
     }
+    getStructInfo(name) {
+        for (const s of this.structs) {
+            if (s.name == name) {
+                return s;
+            }
+        }
+        return null;
+    }
     _markStructsInUse(type) {
         if (!type) {
             return;
@@ -4518,21 +4526,104 @@ class WgslExec {
         else if (node instanceof LiteralExpr) {
             return this._evalLiteral(node, context);
         }
+        else if (node instanceof StringExpr) {
+            return node.value;
+        }
         else if (node instanceof VariableExpr) {
             return this._evalVariable(node, context);
         }
         else if (node instanceof CallExpr) {
             return this._evalCall(node, context);
         }
+        else if (node instanceof CreateExpr) {
+            return this._evalCreate(node, context);
+        }
         else {
             console.error(`Unknown expression type`, node);
         }
         return null;
     }
+    _evalCreate(node, context) {
+        if (node.type.name === "f32") {
+            return this._evalExpression(node.args[0], context);
+        }
+        else if (node.type.name == "i32") {
+            return this._evalExpression(node.args[0], context);
+        }
+        else if (node.type.name == "u32") {
+            return this._evalExpression(node.args[0], context);
+        }
+        else if (node.type.name == "vec2f") {
+            return [this._evalExpression(node.args[0], context), this._evalExpression(node.args[1], context)];
+        }
+        else if (node.type.name == "vec3f") {
+            return [this._evalExpression(node.args[0], context), this._evalExpression(node.args[1], context), this._evalExpression(node.args[2], context)];
+        }
+        else if (node.type.name == "vec4f") {
+            return [this._evalExpression(node.args[0], context), this._evalExpression(node.args[1], context), this._evalExpression(node.args[2], context), this._evalExpression(node.args[3], context)];
+        }
+        else if (node.type.name == "vec2i") {
+            return [this._evalExpression(node.args[0], context), this._evalExpression(node.args[1], context)];
+        }
+        else if (node.type.name == "vec3i") {
+            return [this._evalExpression(node.args[0], context), this._evalExpression(node.args[1], context), this._evalExpression(node.args[2], context)];
+        }
+        else if (node.type.name == "vec4i") {
+            return [this._evalExpression(node.args[0], context), this._evalExpression(node.args[1], context), this._evalExpression(node.args[2], context), this._evalExpression(node.args[3], context)];
+        }
+        else if (node.type.name == "vec2u") {
+            return [this._evalExpression(node.args[0], context), this._evalExpression(node.args[1], context)];
+        }
+        else if (node.type.name == "vec3u") {
+            return [this._evalExpression(node.args[0], context), this._evalExpression(node.args[1], context), this._evalExpression(node.args[2], context)];
+        }
+        else if (node.type.name == "vec4u") {
+            return [this._evalExpression(node.args[0], context), this._evalExpression(node.args[1], context), this._evalExpression(node.args[2], context), this._evalExpression(node.args[3], context)];
+        }
+        console.error(`Unknown type ${node.type.name}`);
+        return null;
+    }
     _evalLiteral(node, context) {
         return node.value;
     }
+    _getArraySwizzle(value, member) {
+        const swizzleIndex = { "x": 0, "y": 1, "z": 2, "w": 3, "r": 0, "g": 1, "b": 2, "a": 3 };
+        const m = member.toLocaleLowerCase();
+        if (member.length === 1) {
+            const idx = swizzleIndex[m];
+            if (idx !== undefined) {
+                return value[idx];
+            }
+        }
+        else if (member.length === 2) {
+            const idx0 = swizzleIndex[m[0]];
+            const idx1 = swizzleIndex[m[1]];
+            if (idx0 !== undefined && idx1 !== undefined) {
+                return [value[idx0], value[idx1]];
+            }
+        }
+        else if (member.length === 3) {
+            const idx0 = swizzleIndex[m[0]];
+            const idx1 = swizzleIndex[m[1]];
+            const idx2 = swizzleIndex[m[2]];
+            if (idx0 !== undefined && idx1 !== undefined && idx2 !== undefined) {
+                return [value[idx0], value[idx1], value[idx2]];
+            }
+        }
+        else if (member.length === 4) {
+            const idx0 = swizzleIndex[m[0]];
+            const idx1 = swizzleIndex[m[1]];
+            const idx2 = swizzleIndex[m[2]];
+            const idx3 = swizzleIndex[m[3]];
+            if (idx0 !== undefined && idx1 !== undefined && idx2 !== undefined && idx3 !== undefined) {
+                return [value[idx0], value[idx1], value[idx2], value[idx3]];
+            }
+        }
+        console.error(`Unknown member ${member}`);
+        return null;
+    }
     _evalVariable(node, context) {
+        var _a;
         const value = context.getVariableValue(node.name);
         if (node.postfix) {
             if (node.postfix instanceof ArrayIndex) {
@@ -4547,23 +4638,26 @@ class WgslExec {
             else if (node.postfix instanceof StringExpr) {
                 const member = node.postfix.value;
                 if (value instanceof Array) {
-                    if (member === "x") {
-                        return value[0];
-                    }
-                    else if (member === "y") {
-                        return value[1];
-                    }
-                    else if (member === "z") {
-                        return value[2];
-                    }
-                    else if (member === "w") {
-                        return value[3];
-                    }
-                    else {
-                        console.error(`Unknown member ${member}`);
-                    }
+                    return this._getArraySwizzle(value, member);
                 }
                 else {
+                    const variable = context.variables.get(node.name);
+                    if (variable) {
+                        if ((_a = variable.node.type) === null || _a === void 0 ? void 0 : _a.isStruct) {
+                            const structInfo = this.reflecion.getStructInfo(variable.node.type.name);
+                            for (const m of structInfo.members) {
+                                if (m.name === member) {
+                                    const v = new Float32Array(variable.value.buffer, m.offset);
+                                    if (node.postfix.postfix) {
+                                        const postfix = this._evalExpression(node.postfix.postfix, context);
+                                        return this._getArraySwizzle(value, postfix);
+                                    }
+                                    return v;
+                                }
+                            }
+                            console.log(structInfo);
+                        }
+                    }
                     console.error(`Unknown variable postfix`, node.postfix);
                 }
             }
@@ -4585,8 +4679,22 @@ class WgslExec {
             case "/":
                 return l / r;
             case ">":
+                if (l.length !== undefined && r.length !== undefined) {
+                    if (l.length !== r.length) {
+                        console.error(`Vector length mismatch`);
+                        return null;
+                    }
+                    return l.map((x, i) => x > r[i]);
+                }
                 return l > r;
             case "<":
+                if (l.length !== undefined && r.length !== undefined) {
+                    if (l.length !== r.length) {
+                        console.error(`Vector length mismatch`);
+                        return null;
+                    }
+                    return l.map((x, i) => x < r[i]);
+                }
                 return l < r;
             case "==":
                 return l === r;
@@ -4606,8 +4714,7 @@ class WgslExec {
     _evalCall(node, context) {
         const f = context.functions.get(node.name);
         if (!f) {
-            console.error(`Function ${node.name} not found`);
-            return null;
+            return this._callIntrinsicFunction(node, context);
         }
         const subContext = context.clone();
         for (let ai = 0; ai < f.node.args.length; ++ai) {
@@ -4617,6 +4724,18 @@ class WgslExec {
             subContext.variables.set(v.name, v);
         }
         return this._execStatements(f.node.body, subContext);
+    }
+    _callIntrinsicFunction(node, context) {
+        switch (node.name) {
+            case "any":
+                return this._callIntrinsicAny(node, context);
+        }
+        console.error(`Function ${node.name} not found`);
+        return null;
+    }
+    _callIntrinsicAny(node, context) {
+        const value = this._evalExpression(node.args[0], context);
+        return value.some((v) => v);
     }
 }
 

@@ -41,9 +41,13 @@ export declare class WgslExec {
     _for(node: AST.For, context: ExecContext): any;
     _while(node: AST.While, context: ExecContext): any;
     _evalExpression(node: AST.Node, context: ExecContext): any;
+    _evalCreate(node: AST.CreateExpr, context: ExecContext): any;
     _evalLiteral(node: AST.LiteralExpr, context: ExecContext): number;
+    _getArraySwizzle(value: any, member: string): any;
     _evalVariable(node: AST.VariableExpr, context: ExecContext): any;
     _evalBinaryOp(node: AST.BinaryOperator, context: ExecContext): any;
     _evalCall(node: AST.CallExpr, context: ExecContext): any;
+    _callIntrinsicFunction(node: AST.CallExpr, context: ExecContext): any;
+    _callIntrinsicAny(node: AST.CallExpr, context: ExecContext): any;
 }
 export {};

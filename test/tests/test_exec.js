@@ -110,7 +110,7 @@ group("Exec", function () {
     test.equals(globalBuffer[3], 1);
   });
 
-  /*test("exec 6", function (test) {
+  test("exec 6", function (test) {
     const shader = `
         struct Uniforms {
             viewportSize: vec2<u32>
@@ -178,5 +178,5 @@ group("Exec", function () {
         }
     });
     console.log(imageBuffer);
-  });*/
+  });
 });

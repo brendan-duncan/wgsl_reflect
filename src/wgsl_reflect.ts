@@ -558,6 +558,15 @@ export class WgslReflect {
     }
   }
 
+  getStructInfo(name: string): StructInfo | null {
+    for (const s of this.structs) {
+      if (s.name == name) {
+        return s;
+      }
+    }
+    return null;
+  }
+
   _markStructsInUse(type: TypeInfo) {
     if (!type) {
       return;
