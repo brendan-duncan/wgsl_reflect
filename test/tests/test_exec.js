@@ -33,6 +33,21 @@ group("WgslExec", function () {
     test.equals(exec.getVariableValue("bar"), 0.75);
   });
 
+  test("data", function (test) {
+        const shader = `
+            @group(0) @binding(0) var<storage, read_write> buffer: array<vec3u>;
+            @compute
+            fn main() {
+                var foo = buffer[0].y;
+                buffer[0].x = foo + 10;
+            }`;
+        const wgsl = new WgslExec(shader);
+        const buffer = new Uint32Array([1, 2, 6, 0]);
+        const bindGroups = {0: {0: buffer}};
+        wgsl.dispatchWorkgroups("main", 1, bindGroups);
+        test.equals(buffer[0], 12);
+  });
+
   test("simple compute dispatch", function (test) {
     const shader = `@group(0) @binding(0) var<storage, read_write> data: array<f32>;
     @compute @workgroup_size(1) fn computeSomething(@builtin(global_invocation_id) id: vec3<u32>) {

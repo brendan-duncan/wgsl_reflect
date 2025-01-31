@@ -1,11 +1,19 @@
 import * as AST from "./wgsl_ast.js";
-import { WgslReflect } from "./wgsl_reflect.js";
+import { WgslReflect, TypeInfo } from "./wgsl_reflect.js";
+declare class Data {
+    type: AST.Type;
+    buffer: ArrayBuffer;
+    typeInfo: TypeInfo;
+    constructor(type: AST.Type, data: ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array, reflection?: WgslReflect);
+    typeName(): string;
+}
 declare class Var {
     name: string;
     value: any;
     node: AST.Let | AST.Var | AST.Argument;
     constructor(n: string, v: any, node: AST.Let | AST.Var | AST.Argument);
     clone(): Var;
+    getValue(): any;
 }
 declare class Function {
     name: string;
@@ -22,7 +30,7 @@ declare class ExecContext {
 export declare class WgslExec {
     ast: Array<AST.Node>;
     context: ExecContext;
-    reflecion: WgslReflect;
+    reflection: WgslReflect;
     constructor(code: string, context?: ExecContext);
     getVariableValue(name: string): any;
     dispatchWorkgroups(kernel: string, dispatchCount: number | number[], bindGroups: Object, config?: Object): void;
@@ -48,5 +56,7 @@ export declare class WgslExec {
     _callIntrinsicFunction(node: AST.CallExpr, context: ExecContext): any;
     _callIntrinsicAny(node: AST.CallExpr, context: ExecContext): any;
     _callIntrinsicAll(node: AST.CallExpr, context: ExecContext): any;
+    _setDataValue(data: Data, value: any, postfix: AST.Expression | null, context: ExecContext): void;
+    _getDataValue(data: Data, postfix: AST.Expression | null, context: ExecContext): any;
 }
 export {};

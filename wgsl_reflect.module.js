@@ -4102,6 +4102,34 @@ WgslReflect._samplerTypes = TokenTypes.sampler_type.map((t) => {
     return t.name;
 });
 
+class Data {
+    constructor(type, data, reflection = null) {
+        this.type = type;
+        this.buffer = data instanceof ArrayBuffer ? data : data.buffer;
+        this.typeInfo = reflection._types.get(this.type);
+    }
+    typeName() {
+        let name = this.type.name;
+        if (this.type instanceof TemplateType) {
+            if (name === "vec2" || name === "vec3" || name === "vec4") {
+                if (this.type.format.name === "f32") {
+                    name += "f";
+                    return name;
+                }
+                else if (this.type.format.name === "i32") {
+                    name += "i";
+                    return name;
+                }
+                else if (this.type.format.name === "u32") {
+                    name += "u";
+                    return name;
+                }
+            }
+            name += `<${this.type.format.name}>`;
+        }
+        return name;
+    }
+}
 class Var {
     constructor(n, v, node) {
         this.name = n;
@@ -4110,6 +4138,9 @@ class Var {
     }
     clone() {
         return new Var(this.name, this.value, this.node);
+    }
+    getValue() {
+        return this.value;
     }
 }
 class Function {
@@ -4147,8 +4178,8 @@ class WgslExec {
         var _a;
         const parser = new WgslParser();
         this.ast = parser.parse(code);
-        this.reflecion = new WgslReflect();
-        this.reflecion.updateAST(this.ast);
+        this.reflection = new WgslReflect();
+        this.reflection.updateAST(this.ast);
         this.context = (_a = context === null || context === void 0 ? void 0 : context.clone()) !== null && _a !== void 0 ? _a : new ExecContext();
         this._execStatements(this.ast, this.context);
     }
@@ -4206,7 +4237,8 @@ class WgslExec {
                             }
                         }
                         if (binding == b && set == s) {
-                            v.value = entry;
+                            const data = new Data(node.type, entry, this.reflection);
+                            v.value = data;
                         }
                     }
                 });
@@ -4364,7 +4396,10 @@ class WgslExec {
             return;
         }
         const value = this._evalExpression(node.value, context);
-        if (node.variable.postfix) {
+        if (v.value instanceof Data) {
+            this._setDataValue(v.value, value, node.variable.postfix, context);
+        }
+        else if (node.variable.postfix) {
             if (node.variable.postfix instanceof ArrayIndex) {
                 const idx = this._evalExpression(node.variable.postfix.index, context);
                 // TODO: use array format to determine how to set the value
@@ -4584,10 +4619,13 @@ class WgslExec {
     _evalVariable(node, context) {
         var _a;
         const value = context.getVariableValue(node.name);
+        if (value instanceof Data) {
+            return this._getDataValue(value, node.postfix, context);
+        }
         if (node.postfix) {
             if (node.postfix instanceof ArrayIndex) {
                 const idx = this._evalExpression(node.postfix.index, context);
-                if (value.length !== undefined) {
+                if ((value === null || value === void 0 ? void 0 : value.length) !== undefined) {
                     return value[idx];
                 }
                 else {
@@ -4603,7 +4641,7 @@ class WgslExec {
                     const variable = context.variables.get(node.name);
                     if (variable) {
                         if ((_a = variable.node.type) === null || _a === void 0 ? void 0 : _a.isStruct) {
-                            const structInfo = this.reflecion.getStructInfo(variable.node.type.name);
+                            const structInfo = this.reflection.getStructInfo(variable.node.type.name);
                             for (const m of structInfo.members) {
                                 if (m.name === member) {
                                     const v = new Float32Array(variable.value.buffer, m.offset);
@@ -4701,6 +4739,331 @@ class WgslExec {
     _callIntrinsicAll(node, context) {
         const value = this._evalExpression(node.args[0], context);
         return value.all((v) => v);
+    }
+    _setDataValue(data, value, postfix, context) {
+        let offset = 0;
+        let typeInfo = data.typeInfo;
+        while (postfix) {
+            if (postfix instanceof ArrayIndex) {
+                if (typeInfo instanceof ArrayInfo) {
+                    const idx = postfix.index;
+                    if (idx instanceof LiteralExpr) {
+                        offset += idx.value * typeInfo.stride;
+                    }
+                    else {
+                        const i = this._evalExpression(idx, context);
+                        if (i !== null) {
+                            offset += i * typeInfo.stride;
+                        }
+                        else {
+                            console.error(`Unknown index type`, idx);
+                            return;
+                        }
+                    }
+                    typeInfo = typeInfo.format;
+                }
+                else {
+                    console.error(`Type ${data.type.name} is not an array`);
+                }
+            }
+            else if (postfix instanceof StringExpr) {
+                const member = postfix.value;
+                if (typeInfo instanceof StructInfo) {
+                    let found = false;
+                    for (const m of typeInfo.members) {
+                        if (m.name === member) {
+                            offset += m.offset;
+                            typeInfo = m.type;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        console.error(`Member ${member} not found`);
+                        return;
+                    }
+                }
+                else if (typeInfo instanceof TypeInfo) {
+                    const typeName = typeInfo.name;
+                    let element = 0;
+                    if (member === "x" || member === "r") {
+                        element = 0;
+                    }
+                    else if (member === "y" || member === "g") {
+                        element = 1;
+                    }
+                    else if (member === "z" || member === "b") {
+                        element = 2;
+                    }
+                    else if (member === "w" || member === "a") {
+                        element = 3;
+                    }
+                    else {
+                        console.error(`Unknown member ${member}`);
+                        return;
+                    }
+                    if (typeName === "vec2f") {
+                        new Float32Array(data.buffer, offset, 2)[element] = value;
+                        return;
+                    }
+                    else if (typeName === "vec3f") {
+                        new Float32Array(data.buffer, offset, 3)[element] = value;
+                        return;
+                    }
+                    else if (typeName === "vec4f") {
+                        new Float32Array(data.buffer, offset, 4)[element] = value;
+                        return;
+                    }
+                    else if (typeName === "vec2i") {
+                        new Int32Array(data.buffer, offset, 2)[element] = value;
+                        return;
+                    }
+                    else if (typeName === "vec3i") {
+                        new Int32Array(data.buffer, offset, 3)[element] = value;
+                        return;
+                    }
+                    else if (typeName === "vec4i") {
+                        new Int32Array(data.buffer, offset, 4)[element] = value;
+                        return;
+                    }
+                    else if (typeName === "vec2u") {
+                        new Uint32Array(data.buffer, offset, 2)[element] = value;
+                        return;
+                    }
+                    else if (typeName === "vec3u") {
+                        new Uint32Array(data.buffer, offset, 3)[element] = value;
+                        return;
+                    }
+                    else if (typeName === "vec4u") {
+                        new Uint32Array(data.buffer, offset, 4)[element] = value;
+                        return;
+                    }
+                    console.error(`Type ${data.type.name} is not a struct`);
+                    return;
+                }
+            }
+            else {
+                console.error(`Unknown postfix type`, postfix);
+                return;
+            }
+            postfix = postfix.postfix;
+        }
+        const typeName = typeInfo.name;
+        if (typeName === "f32") {
+            new Float32Array(data.buffer, offset, 1)[0] = value;
+            return;
+        }
+        else if (typeName === "i32") {
+            new Int32Array(data.buffer, offset, 1)[0] = value;
+            return;
+        }
+        else if (typeName === "u32") {
+            new Uint32Array(data.buffer, offset, 1)[0] = value;
+            return;
+        }
+        else if (typeName === "vec2f") {
+            const x = new Float32Array(data.buffer, offset, 2);
+            x[0] = value[0];
+            x[1] = value[1];
+            return;
+        }
+        else if (typeName === "vec3f") {
+            const x = new Float32Array(data.buffer, offset, 3);
+            x[0] = value[0];
+            x[1] = value[1];
+            x[2] = value[2];
+            return;
+        }
+        else if (typeName === "vec4f") {
+            const x = new Float32Array(data.buffer, offset, 4);
+            x[0] = value[0];
+            x[1] = value[1];
+            x[2] = value[2];
+            x[3] = value[3];
+            return;
+        }
+        else if (typeName === "vec2i") {
+            const x = new Int32Array(data.buffer, offset, 2);
+            x[0] = value[0];
+            x[1] = value[1];
+            return;
+        }
+        else if (typeName === "vec3i") {
+            const x = new Int32Array(data.buffer, offset, 3);
+            x[0] = value[0];
+            x[1] = value[1];
+            x[2] = value[2];
+            return;
+        }
+        else if (typeName === "vec4i") {
+            const x = new Int32Array(data.buffer, offset, 4);
+            x[0] = value[0];
+            x[1] = value[1];
+            x[2] = value[2];
+            x[3] = value[3];
+            return;
+        }
+        else if (typeName === "vec2u") {
+            const x = new Uint32Array(data.buffer, offset, 2);
+            x[0] = value[0];
+            x[1] = value[1];
+            return;
+        }
+        else if (typeName === "vec3u") {
+            const x = new Uint32Array(data.buffer, offset, 3);
+            x[0] = value[0];
+            x[1] = value[1];
+            x[2] = value[2];
+            return;
+        }
+        else if (typeName === "vec4u") {
+            const x = new Uint32Array(data.buffer, offset, 4);
+            x[0] = value[0];
+            x[1] = value[1];
+            x[2] = value[2];
+            x[3] = value[3];
+            return;
+        }
+        console.error(`SET Unknown type ${data.type.name}`);
+    }
+    _getDataValue(data, postfix, context) {
+        let offset = 0;
+        let typeInfo = data.typeInfo;
+        while (postfix) {
+            if (postfix instanceof ArrayIndex) {
+                if (typeInfo instanceof ArrayInfo) {
+                    const idx = postfix.index;
+                    if (idx instanceof LiteralExpr) {
+                        offset += idx.value * typeInfo.stride;
+                    }
+                    else {
+                        const i = this._evalExpression(idx, context);
+                        if (i !== null) {
+                            offset += i * typeInfo.stride;
+                        }
+                        else {
+                            console.error(`Unknown index type`, idx);
+                            return null;
+                        }
+                    }
+                    typeInfo = typeInfo.format;
+                }
+                else {
+                    console.error(`Type ${data.type.name} is not an array`);
+                }
+            }
+            else if (postfix instanceof StringExpr) {
+                const member = postfix.value;
+                if (typeInfo instanceof StructInfo) {
+                    let found = false;
+                    for (const m of typeInfo.members) {
+                        if (m.name === member) {
+                            offset += m.offset;
+                            typeInfo = m.type;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        console.error(`Member ${member} not found`);
+                        return null;
+                    }
+                }
+                else if (typeInfo instanceof TypeInfo) {
+                    const typeName = typeInfo.name;
+                    let element = 0;
+                    if (member === "x" || member === "r") {
+                        element = 0;
+                    }
+                    else if (member === "y" || member === "g") {
+                        element = 1;
+                    }
+                    else if (member === "z" || member === "b") {
+                        element = 2;
+                    }
+                    else if (member === "w" || member === "a") {
+                        element = 3;
+                    }
+                    else {
+                        console.error(`Unknown member ${member}`);
+                        return null;
+                    }
+                    if (typeName === "vec2f") {
+                        return new Float32Array(data.buffer, offset, 2)[element];
+                    }
+                    else if (typeName === "vec3f") {
+                        return new Float32Array(data.buffer, offset, 3)[element];
+                    }
+                    else if (typeName === "vec4f") {
+                        return new Float32Array(data.buffer, offset, 4)[element];
+                    }
+                    else if (typeName === "vec2i") {
+                        return new Int32Array(data.buffer, offset, 2)[element];
+                    }
+                    else if (typeName === "vec3i") {
+                        return new Int32Array(data.buffer, offset, 3)[element];
+                    }
+                    else if (typeName === "vec4i") {
+                        return new Int32Array(data.buffer, offset, 4)[element];
+                    }
+                    else if (typeName === "vec2u") {
+                        return new Uint32Array(data.buffer, offset, 2)[element];
+                    }
+                    else if (typeName === "vec3u") {
+                        return new Uint32Array(data.buffer, offset, 3)[element];
+                    }
+                    else if (typeName === "vec4u") {
+                        return new Uint32Array(data.buffer, offset, 4)[element];
+                    }
+                    console.error(`Type ${data.type.name} is not a struct`);
+                    return null;
+                }
+            }
+            else {
+                console.error(`Unknown postfix type`, postfix);
+                return null;
+            }
+            postfix = postfix.postfix;
+        }
+        const typeName = typeInfo.name;
+        if (typeName === "f32") {
+            return new Float32Array(data.buffer, offset, 1)[0];
+        }
+        else if (typeName === "i32") {
+            return new Int32Array(data.buffer, offset, 1)[0];
+        }
+        else if (typeName === "u32") {
+            return new Uint32Array(data.buffer, offset, 1)[0];
+        }
+        else if (typeName === "vec2f") {
+            return new Float32Array(data.buffer, offset, 2);
+        }
+        else if (typeName === "vec3f") {
+            return new Float32Array(data.buffer, offset, 3);
+        }
+        else if (typeName === "vec4f") {
+            return new Float32Array(data.buffer, offset, 4);
+        }
+        else if (typeName === "vec2i") {
+            return new Int32Array(data.buffer, offset, 2);
+        }
+        else if (typeName === "vec3i") {
+            return new Int32Array(data.buffer, offset, 3);
+        }
+        else if (typeName === "vec4i") {
+            return new Int32Array(data.buffer, offset, 4);
+        }
+        else if (typeName === "vec2u") {
+            return new Uint32Array(data.buffer, offset, 2);
+        }
+        else if (typeName === "vec3u") {
+            return new Uint32Array(data.buffer, offset, 3);
+        }
+        else if (typeName === "vec4u") {
+            return new Uint32Array(data.buffer, offset, 4);
+        }
+        console.error(`GET Unknown type ${data.type.name}`);
+        return null;
     }
 }
 
