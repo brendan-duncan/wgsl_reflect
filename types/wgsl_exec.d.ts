@@ -6,11 +6,12 @@ declare class Data {
     typeInfo: TypeInfo;
     constructor(type: AST.Type, data: ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array, reflection?: WgslReflect);
 }
+type ASTVarNode = AST.Let | AST.Var | AST.Argument;
 declare class Var {
     name: string;
     value: any;
-    node: AST.Let | AST.Var | AST.Argument;
-    constructor(n: string, v: any, node: AST.Let | AST.Var | AST.Argument);
+    node: ASTVarNode | null;
+    constructor(n: string, v: any, node: ASTVarNode | null);
     clone(): Var;
     getValue(): any;
 }
@@ -23,6 +24,7 @@ declare class Function {
 declare class ExecContext {
     variables: Map<string, Var>;
     functions: Map<string, Function>;
+    setVariable(name: string, value: any, node: ASTVarNode | null): void;
     getVariableValue(name: string): any;
     clone(): ExecContext;
 }
@@ -32,6 +34,7 @@ export declare class WgslExec {
     reflection: WgslReflect;
     constructor(code: string, context?: ExecContext);
     getVariableValue(name: string): any;
+    execute(config?: Object): void;
     dispatchWorkgroups(kernel: string, dispatchCount: number | number[], bindGroups: Object, config?: Object): void;
     _dispatchWorkgroup(f: Function, workgroup_id: number[], bindGroups: Object, context: ExecContext): void;
     _dispatchExec(f: Function, context: ExecContext): void;

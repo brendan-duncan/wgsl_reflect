@@ -5,6 +5,7 @@ group("WgslExec", function () {
   test("set variable", function (test) {
     const shader = `let foo = 1 + 2;`;
     const wgsl = new WgslExec(shader);
+    wgsl.execute();
     // Ensure the top-level instructions were executed and the global variable has the correct value.
     test.equals(wgsl.getVariableValue("foo"), 3);
   });
@@ -13,10 +14,11 @@ group("WgslExec", function () {
     const shader = `let foo = 1 + 2;
     let bar = foo * 4;`;
 
-    const exec = new WgslExec(shader);
+    const wgsl = new WgslExec(shader);
+    wgsl.execute();
     // Ensure as the top-level instructions are executed, variables are correctly evaluated.
-    test.equals(exec.getVariableValue("foo"), 3);
-    test.equals(exec.getVariableValue("bar"), 12);
+    test.equals(wgsl.getVariableValue("foo"), 3);
+    test.equals(wgsl.getVariableValue("bar"), 12);
   });
 
   test("call function", function (test) {
@@ -28,9 +30,10 @@ group("WgslExec", function () {
       }
     }
     let bar = foo(3, 4);`;
-    const exec = new WgslExec(shader);
+    const wgsl = new WgslExec(shader);
+    wgsl.execute();
     // Ensure calling a function works as expected.
-    test.equals(exec.getVariableValue("bar"), 0.75);
+    test.equals(wgsl.getVariableValue("bar"), 0.75);
   });
 
   test("data", function (test) {
@@ -154,7 +157,7 @@ group("WgslExec", function () {
     //test.equals(globalBuffer[3], 1);
   });
 
-  /*test("struct buffers", function (test) {
+  /*test("override / structs", function (test) {
     const shader = `
         struct Uniforms {
             viewportSize: vec2<u32>
@@ -190,8 +193,8 @@ group("WgslExec", function () {
     const height = 10;
     const size = width * height;
 
-    const rayBuffer = new Float32Array(size * 6);
-    const imageBuffer = new Float32Array(size * 3);
+    const rayBuffer = new Float32Array(size * 8);
+    const imageBuffer = new Float32Array(size * 4);
     const uniforms = new Float32Array(2);
     uniforms[0] = width;
     uniforms[1] = height;

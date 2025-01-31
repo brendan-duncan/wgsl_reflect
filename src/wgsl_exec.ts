@@ -92,15 +92,26 @@ export class WgslExec {
         this.reflection.updateAST(this.ast);
 
         this.context = context?.clone() ?? new ExecContext();
-        this._execStatements(this.ast, this.context);
     }
 
     getVariableValue(name: string) {
         return this.context.getVariableValue(name);
     }
 
+    execute(config?: Object) {
+        config = config ?? {};
+        if (config["constants"]) {
+            for (const k in config["constants"]) {
+                const v = config["constants"][k];
+                this.context.setVariable(k, v, null);
+            }
+        }
+
+        this._execStatements(this.ast, this.context);
+    }
+
     dispatchWorkgroups(kernel: string, dispatchCount: number | number[], bindGroups: Object, config?: Object) {
-        const context = this.context.clone();
+        const context = this.context;
 
         config = config ?? {};
         if (config["constants"]) {
@@ -109,6 +120,9 @@ export class WgslExec {
                 context.setVariable(k, v, null);
             }
         }
+
+        this._execStatements(this.ast, context);
+
         const f = context.functions.get(kernel);
         if (!f) {
             console.error(`Function ${kernel} not found`);
@@ -138,7 +152,7 @@ export class WgslExec {
             for (const binding in bindGroups[set]) {
                 const entry = bindGroups[set][binding];
 
-                context.variables.forEach((v, k) => {
+                context.variables.forEach((v) => {
                     const node = v.node;
                     if (node?.attributes) {
                         let b = null;
@@ -151,8 +165,7 @@ export class WgslExec {
                             }
                         }
                         if (binding == b && set == s) {
-                            const data = new Data(node.type, entry, this.reflection);
-                            v.value = data;
+                            v.value = new Data(node.type, entry, this.reflection);
                         }
                     }
                 });
@@ -930,7 +943,7 @@ export class WgslExec {
             return new Uint32Array(data.buffer, offset, 4);
         }
 
-        console.error(`GET Unknown type ${data.type.name}`);
+        console.error(`GetDataValue Unknown type ${typeName}`);
         return null;
     }
 }

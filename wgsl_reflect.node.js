@@ -4143,6 +4143,14 @@ class ExecContext {
         this.variables = new Map();
         this.functions = new Map();
     }
+    setVariable(name, value, node) {
+        if (this.variables.has(name)) {
+            this.variables.get(name).value = value;
+        }
+        else {
+            this.variables.set(name, new Var(name, value, node));
+        }
+    }
     getVariableValue(name) {
         var _a;
         const v = this.variables.get(name);
@@ -4167,20 +4175,30 @@ class WgslExec {
         this.reflection = new WgslReflect();
         this.reflection.updateAST(this.ast);
         this.context = (_a = context === null || context === void 0 ? void 0 : context.clone()) !== null && _a !== void 0 ? _a : new ExecContext();
-        this._execStatements(this.ast, this.context);
     }
     getVariableValue(name) {
         return this.context.getVariableValue(name);
     }
-    dispatchWorkgroups(kernel, dispatchCount, bindGroups, config) {
-        const context = this.context.clone();
+    execute(config) {
         config = config !== null && config !== void 0 ? config : {};
         if (config["constants"]) {
             for (const k in config["constants"]) {
                 const v = config["constants"][k];
-                context.variables.set(k, new Var(k, v, null));
+                this.context.setVariable(k, v, null);
             }
         }
+        this._execStatements(this.ast, this.context);
+    }
+    dispatchWorkgroups(kernel, dispatchCount, bindGroups, config) {
+        const context = this.context;
+        config = config !== null && config !== void 0 ? config : {};
+        if (config["constants"]) {
+            for (const k in config["constants"]) {
+                const v = config["constants"][k];
+                context.setVariable(k, v, null);
+            }
+        }
+        this._execStatements(this.ast, context);
         const f = context.functions.get(kernel);
         if (!f) {
             console.error(`Function ${kernel} not found`);
@@ -4205,11 +4223,11 @@ class WgslExec {
         const depth = dispatchCount[2];
         const height = dispatchCount[1];
         const width = dispatchCount[0];
-        context.variables.set("@num_workgroups", new Var("@num_workgroups", dispatchCount, null));
+        context.setVariable("@num_workgroups", dispatchCount, null);
         for (const set in bindGroups) {
             for (const binding in bindGroups[set]) {
                 const entry = bindGroups[set][binding];
-                context.variables.forEach((v, k) => {
+                context.variables.forEach((v) => {
                     const node = v.node;
                     if (node === null || node === void 0 ? void 0 : node.attributes) {
                         let b = null;
@@ -4223,8 +4241,7 @@ class WgslExec {
                             }
                         }
                         if (binding == b && set == s) {
-                            const data = new Data(node.type, entry, this.reflection);
-                            v.value = data;
+                            v.value = new Data(node.type, entry, this.reflection);
                         }
                     }
                 });
@@ -4233,7 +4250,7 @@ class WgslExec {
         for (let z = 0; z < depth; ++z) {
             for (let y = 0; y < height; ++y) {
                 for (let x = 0; x < width; ++x) {
-                    context.variables.set("@workgroup_id", new Var("@workgroup_id", [x, y, z], null));
+                    context.setVariable("@workgroup_id", [x, y, z], null);
                     this._dispatchWorkgroup(f, [x, y, z], bindGroups, context);
                 }
             }
@@ -4273,7 +4290,7 @@ class WgslExec {
                 }
             }
         }
-        context.variables.set("@workgroup_size", new Var("@workgroup_size", workgroupSize, null));
+        context.setVariable("@workgroup_size", workgroupSize, null);
         const width = workgroupSize[0];
         const height = workgroupSize[1];
         const depth = workgroupSize[2];
@@ -4286,9 +4303,9 @@ class WgslExec {
                         y + workgroup_id[1] * workgroupSize[1],
                         z + workgroup_id[2] * workgroupSize[2]
                     ];
-                    context.variables.set("@local_invocation_id", new Var("@local_invocation_id", local_invocation_id, null));
-                    context.variables.set("@global_invocation_id", new Var("@global_invocation_id", global_invocation_id, null));
-                    context.variables.set("@local_invocation_index", new Var("@local_invocation_index", li, null));
+                    context.setVariable("@local_invocation_id", local_invocation_id, null);
+                    context.setVariable("@global_invocation_id", global_invocation_id, null);
+                    context.setVariable("@local_invocation_index", li, null);
                     this._dispatchExec(f, context);
                 }
             }
@@ -4436,16 +4453,14 @@ class WgslExec {
         if (node.value != null) {
             value = this._evalExpression(node.value, context);
         }
-        const v = new Var(node.name, value, node);
-        context.variables.set(node.name, v);
+        context.setVariable(node.name, value, node);
     }
     _var(node, context) {
         let value = null;
         if (node.value != null) {
             value = this._evalExpression(node.value, context);
         }
-        const v = new Var(node.name, value, node);
-        context.variables.set(node.name, v);
+        context.setVariable(node.name, value, node);
     }
     _if(node, context) {
         const condition = this._evalExpression(node.condition, context);
@@ -4467,10 +4482,9 @@ class WgslExec {
         this._evalExpression(node.init, context);
         this._evalExpression(node.condition, context);
         this._evalExpression(node.increment, context);
-        /*const v = new Var(node.name, start);
-        for (let i = start; i < end; i += step) {
+        /*for (let i = start; i < end; i += step) {
             
-            context.variables.set(node.name, v);
+            context.setVariable(node.name, i, null);
             const res = this._execStatements(node.body, context);
             if (res) {
                 return res;
@@ -4703,8 +4717,7 @@ class WgslExec {
         for (let ai = 0; ai < f.node.args.length; ++ai) {
             const arg = f.node.args[ai];
             const value = this._evalExpression(node.args[ai], subContext);
-            const v = new Var(arg.name, value, arg);
-            subContext.variables.set(v.name, v);
+            subContext.setVariable(arg.name, value, arg);
         }
         return this._execStatements(f.node.body, subContext);
     }
@@ -5069,7 +5082,7 @@ class WgslExec {
         else if (typeName === "vec4u") {
             return new Uint32Array(data.buffer, offset, 4);
         }
-        console.error(`GET Unknown type ${data.type.name}`);
+        console.error(`GetDataValue Unknown type ${typeName}`);
         return null;
     }
 }
