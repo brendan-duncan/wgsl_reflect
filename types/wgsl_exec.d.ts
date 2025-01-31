@@ -5,7 +5,6 @@ declare class Data {
     buffer: ArrayBuffer;
     typeInfo: TypeInfo;
     constructor(type: AST.Type, data: ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array, reflection?: WgslReflect);
-    typeName(): string;
 }
 declare class Var {
     name: string;
@@ -56,6 +55,7 @@ export declare class WgslExec {
     _callIntrinsicFunction(node: AST.CallExpr, context: ExecContext): any;
     _callIntrinsicAny(node: AST.CallExpr, context: ExecContext): any;
     _callIntrinsicAll(node: AST.CallExpr, context: ExecContext): any;
+    _getTypeName(type: TypeInfo): string;
     _setDataValue(data: Data, value: any, postfix: AST.Expression | null, context: ExecContext): void;
     _getDataValue(data: Data, postfix: AST.Expression | null, context: ExecContext): any;
 }

@@ -1,6 +1,6 @@
 import * as AST from "./wgsl_ast.js";
 import { WgslParser } from "./wgsl_parser.js";
-import { WgslReflect, TypeInfo, ArrayInfo, StructInfo, MemberInfo } from "./wgsl_reflect.js";
+import { WgslReflect, TypeInfo, ArrayInfo, StructInfo, MemberInfo, TemplateInfo } from "./wgsl_reflect.js";
 
 class Data {
     type: AST.Type;
@@ -12,26 +12,6 @@ class Data {
         this.type = type;
         this.buffer = data instanceof ArrayBuffer ? data : data.buffer;
         this.typeInfo = reflection._types.get(this.type);
-    }
-
-    typeName(): string {
-        let name = this.type.name;
-        if (this.type instanceof AST.TemplateType) {
-            if (name === "vec2" || name === "vec3" || name === "vec4") {
-                if (this.type.format.name === "f32") {
-                    name += "f";
-                    return name;
-                } else if (this.type.format.name === "i32") {
-                    name += "i";
-                    return name;
-                } else if (this.type.format.name === "u32") {
-                    name += "u";
-                    return name;
-                }
-            }
-            name += `<${this.type.format.name}>`;
-        }
-        return name;
     }
 };
 
@@ -653,6 +633,26 @@ export class WgslExec {
         return value.all((v) => v);
     }
 
+    _getTypeName(type: TypeInfo): string {
+        let name = type.name;
+        if (type instanceof TemplateInfo) {
+            if (name === "vec2" || name === "vec3" || name === "vec4") {
+                if (type.format.name === "f32") {
+                    name += "f";
+                    return name;
+                } else if (type.format.name === "i32") {
+                    name += "i";
+                    return name;
+                } else if (type.format.name === "u32") {
+                    name += "u";
+                    return name;
+                }
+            }
+            name += `<${type.format.name}>`;
+        }
+        return name;
+    }
+
     _setDataValue(data: Data, value: any, postfix: AST.Expression | null, context: ExecContext) {
         let offset = 0;
         let typeInfo = data.typeInfo;
@@ -667,13 +667,13 @@ export class WgslExec {
                         if (i !== null) {
                             offset += i * typeInfo.stride;
                         } else {
-                            console.error(`Unknown index type`, idx);
+                            console.error(`SetDataValue: Unknown index type`, idx);
                             return;
                         }
                     }
                     typeInfo = typeInfo.format;
                 } else {
-                    console.error(`Type ${data.type.name} is not an array`);
+                    console.error(`SetDataValue: Type ${data.type.name} is not an array`);
                 }
             } else if (postfix instanceof AST.StringExpr) {
                 const member = postfix.value;
@@ -688,11 +688,11 @@ export class WgslExec {
                         }
                     }
                     if (!found) {
-                        console.error(`Member ${member} not found`);
+                        console.error(`SetDataValue: Member ${member} not found`);
                         return;
                     }
                 } else if (typeInfo instanceof TypeInfo) {
-                    const typeName = typeInfo.name;
+                    const typeName = this._getTypeName(typeInfo);
                     let element = 0;
                     if (member === "x" || member === "r") {
                         element = 0;
@@ -703,7 +703,7 @@ export class WgslExec {
                     } else if (member === "w" || member === "a") {
                         element = 3;
                     } else {
-                        console.error(`Unknown member ${member}`);
+                        console.error(`SetDataValue: Unknown member ${member}`);
                         return;
                     }
                     if (typeName === "vec2f") {
@@ -734,17 +734,17 @@ export class WgslExec {
                         new Uint32Array(data.buffer, offset, 4)[element] = value;
                         return;
                     }
-                    console.error(`Type ${data.type.name} is not a struct`);
+                    console.error(`SetDataValue: Type ${data.type.name} is not a struct`);
                     return;
                 }
             } else {
-                console.error(`Unknown postfix type`, postfix);
+                console.error(`SetDataValue: Unknown postfix type`, postfix);
                 return;
             }
             postfix = postfix.postfix;
         }
 
-        const typeName = typeInfo.name;
+        const typeName = this._getTypeName(typeInfo);
 
         if (typeName === "f32") {
             new Float32Array(data.buffer, offset, 1)[0] = value;
@@ -811,7 +811,7 @@ export class WgslExec {
             return;
         }
 
-        console.error(`SET Unknown type ${data.type.name}`);
+        console.error(`SetDataValue: Unknown type ${data.type.name}`);
     }
 
     _getDataValue(data: Data, postfix: AST.Expression | null, context: ExecContext): any {
@@ -828,7 +828,7 @@ export class WgslExec {
                         if (i !== null) {
                             offset += i * typeInfo.stride;
                         } else {
-                            console.error(`Unknown index type`, idx);
+                            console.error(`GetDataValue: Unknown index type`, idx);
                             return null;
                         }
                     }
@@ -849,11 +849,11 @@ export class WgslExec {
                         }
                     }
                     if (!found) {
-                        console.error(`Member ${member} not found`);
+                        console.error(`GetDataValue: Member ${member} not found`);
                         return null;
                     }
                 } else if (typeInfo instanceof TypeInfo) {
-                    const typeName = typeInfo.name;
+                    const typeName = this._getTypeName(typeInfo);
                     let element = 0;
                     if (member === "x" || member === "r") {
                         element = 0;
@@ -886,17 +886,17 @@ export class WgslExec {
                     } else if (typeName === "vec4u") {
                         return new Uint32Array(data.buffer, offset, 4)[element];
                     }
-                    console.error(`Type ${data.type.name} is not a struct`);
+                    console.error(`GetDataValue: Type ${data.type.name} is not a struct`);
                     return null;
                 }
             } else {
-                console.error(`Unknown postfix type`, postfix);
+                console.error(`GetDataValue: Unknown postfix type`, postfix);
                 return null;
             }
             postfix = postfix.postfix;
         }
 
-        const typeName = typeInfo.name;
+        const typeName = this._getTypeName(typeInfo);
 
         if (typeName === "f32") {
             return new Float32Array(data.buffer, offset, 1)[0];
