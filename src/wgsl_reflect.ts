@@ -978,7 +978,10 @@ export class WgslReflect {
     if (type instanceof ArrayInfo) {
       if (type["format"]) {
         const formatInfo = this._getTypeSize(type["format"]);
-        type.stride = formatInfo?.size ?? 0;
+        // Array stride is the maximum of the format size and alignment.
+        // In the case of a vec3f, the size is 12 bytes, but the alignment is 16 bytes.
+        // Buffer alignment is therefore 16 bytes.
+        type.stride = Math.max(formatInfo?.size ?? 0, formatInfo?.align ?? 0);
         this._updateTypeInfo(type["format"]);
       }
     }

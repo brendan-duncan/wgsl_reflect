@@ -3887,13 +3887,16 @@ class WgslReflect {
         return info;
     }
     _updateTypeInfo(type) {
-        var _a, _b;
+        var _a, _b, _c;
         const typeSize = this._getTypeSize(type);
         type.size = (_a = typeSize === null || typeSize === void 0 ? void 0 : typeSize.size) !== null && _a !== void 0 ? _a : 0;
         if (type instanceof ArrayInfo) {
             if (type["format"]) {
                 const formatInfo = this._getTypeSize(type["format"]);
-                type.stride = (_b = formatInfo === null || formatInfo === void 0 ? void 0 : formatInfo.size) !== null && _b !== void 0 ? _b : 0;
+                // Array stride is the maximum of the format size and alignment.
+                // In the case of a vec3f, the size is 12 bytes, but the alignment is 16 bytes.
+                // Buffer alignment is therefore 16 bytes.
+                type.stride = Math.max((_b = formatInfo === null || formatInfo === void 0 ? void 0 : formatInfo.size) !== null && _b !== void 0 ? _b : 0, (_c = formatInfo === null || formatInfo === void 0 ? void 0 : formatInfo.align) !== null && _c !== void 0 ? _c : 0);
                 this._updateTypeInfo(type["format"]);
             }
         }
