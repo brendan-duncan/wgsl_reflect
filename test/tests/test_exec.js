@@ -157,7 +157,7 @@ group("WgslExec", function () {
     //test.equals(globalBuffer[3], 1);
   });
 
-  /*test("override / structs", function (test) {
+  test("override / structs", function (test) {
     const shader = `
         struct Uniforms {
             viewportSize: vec2<u32>
@@ -169,19 +169,21 @@ group("WgslExec", function () {
         @group(0) @binding(0) var<uniform> uniforms: Uniforms;
         @group(1) @binding(0) var<storage, read> rays: array<Ray>;
         @group(1) @binding(1) var<storage, read_write> imageBuffer: array<vec3f>;
-        override WORKGROUP_SIZE_X: u32;
+        override WORKGROUP_SIZE_X: u32; // specialization constants
         override WORKGROUP_SIZE_Y: u32;
         @compute @workgroup_size(WORKGROUP_SIZE_X, WORKGROUP_SIZE_Y)
-        fn main(@builtin(global_invocation_id) globalInvocationId : vec3<u32>,) {
+        fn main(@builtin(global_invocation_id) globalInvocationId : vec3<u32>) {
             if (any(globalInvocationId.xy > uniforms.viewportSize)) {
                 return;
             }
+            let w = uniforms.viewportSize.x;
+            let h = uniforms.viewportSize.y;
             let pos = globalInvocationId.xy;
             let x = f32(pos.x);
             let y = f32(pos.y);
-            let idx = pos.x + pos.y * uniforms.viewportSize.x;
+            let idx = pos.x + pos.y * w;
             var r = rays[idx];
-            if (r.direction.x > 0.0 && r.direction.y > 0.0 && r.direction.z > 0.0) {
+            if (all(r.direction > vec3<f32>(0.0, 0.0, 0.0))) {
                 imageBuffer[idx] = vec3<f32>(x / f32(uniforms.viewportSize.x), y / f32(uniforms.viewportSize.y), 0.0);
             } else {
                 imageBuffer[idx] = r.direction;
@@ -195,24 +197,23 @@ group("WgslExec", function () {
 
     const rayBuffer = new Float32Array(size * 8);
     const imageBuffer = new Float32Array(size * 4);
-    const uniforms = new Float32Array(2);
+    const uniforms = new Uint32Array(2);
     uniforms[0] = width;
     uniforms[1] = height;
 
-    for (let y = 0; y < height; ++y) {
-        for (let x = 0; x < width; ++x) {
-            const idx = x + y * width;
-            rayBuffer[idx * 6 + 0] = 0.0;
-            rayBuffer[idx * 6 + 1] = 0.0;
-            rayBuffer[idx * 6 + 2] = 0.0;
+    for (let y = 0, idx = 0; y < height; ++y) {
+        for (let x = 0; x < width; ++x, idx += 8) {
+            rayBuffer[idx + 0] = 0.0;
+            rayBuffer[idx + 1] = 0.0;
+            rayBuffer[idx + 2] = 0.0;
             if (x > width / 2 && y > height / 2) {
-                rayBuffer[idx * 6 + 3] = 1.0;
-                rayBuffer[idx * 6 + 4] = 0.0;
-                rayBuffer[idx * 6 + 5] = 0.0;
+                rayBuffer[idx + 4] = 1.0;
+                rayBuffer[idx + 5] = 2.0;
+                rayBuffer[idx + 6] = 3.0;
             } else {
-                rayBuffer[idx * 6 + 3] = -1.0;
-                rayBuffer[idx * 6 + 4] = 0.0;
-                rayBuffer[idx * 6 + 5] = 0.0;
+                rayBuffer[idx + 4] = -1.0;
+                rayBuffer[idx + 5] = 0.0;
+                rayBuffer[idx + 6] = 0.0;
             }
         }
     }
@@ -224,6 +225,32 @@ group("WgslExec", function () {
             "WORKGROUP_SIZE_Y": 1
         }
     });
-    console.log(imageBuffer);
-  });*/
-});
+
+    let valid = true;
+    for (let y = 0, idx = 0; y < height; ++y) {
+      for (let x = 0; x < width; ++x, idx += 4) {
+        if (x > width / 2 && y > height / 2) {
+            let gx = x / 10.0;
+            let gy = y / 10.0;
+            let r = imageBuffer[idx];
+            let g = imageBuffer[idx + 1];
+            // stupid floating point errors
+            let dr = Math.abs(r - gx);
+            let dg = Math.abs(g - gy);
+            if (dr > 1.0e-4) {
+              valid = false;
+            }
+            if (dg > 1.0e-4) {
+              valid = false;
+            }
+        } else {
+          if (imageBuffer[idx] != -1.0) {
+            valid = false;
+          }
+        }
+      }
+    }
+
+    test.equals(valid, true);
+  }, true);
+}, true);

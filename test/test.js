@@ -266,7 +266,7 @@ let __group = {
     testsFailed: 0,
 };
 
-export function group(name, f) {
+export function group(name, f, skipCatchError) {
     let div = document.createElement("div");
     div.className = "test_group";
     div.innerText = name;
@@ -280,13 +280,17 @@ export function group(name, f) {
 
     __group = group;
 
-    try {
-        f();
-    } catch (error) {
-        div = document.createElement("div");
-        div.className = "test_status_fail";
-        div.innerText = `${error}`;
-        document.body.appendChild(div);
+    if (skipCatchError) {
+        f()
+    } else {
+        try {
+            f();
+        } catch (error) {
+            div = document.createElement("div");
+            div.className = "test_status_fail";
+            div.innerText = `${error}`;
+            document.body.appendChild(div);
+        }
     }
 
     div = document.createElement("div");
@@ -314,32 +318,36 @@ function _printLog(log) {
     }
 }
 
-export function test(name, func) {
+export function test(name, func, skipCatchError) {
     const t = new Test();
     const group = __group;
     group.numTests++;
 
-    try {
+    if (skipCatchError) {
         func(t);
-    } catch (error) {
-        group.testsFailed++;
-        const div = document.createElement("div");
-        div.className = "test_fail";
-        if (error.fileName != undefined) {
-            div.innerText = `${name} FAILED: ${error.fileName}:${error.lineNumber}: ${error}`;
-        } else {
-            div.innerText = `${name} FAILED: ${error}`;
+    } else {
+        try {
+            func(t);
+        } catch (error) {
+            group.testsFailed++;
+            const div = document.createElement("div");
+            div.className = "test_fail";
+            if (error.fileName != undefined) {
+                div.innerText = `${name} FAILED: ${error.fileName}:${error.lineNumber}: ${error}`;
+            } else {
+                div.innerText = `${name} FAILED: ${error}`;
+            }
+
+            if (group.group !== undefined) {
+                group.group.appendChild(div);
+            } else {
+                document.body.append(div);
+            }
+
+            _printLog(t._log);
+
+            return;
         }
-
-        if (group.group !== undefined) {
-            group.group.appendChild(div);
-        } else {
-            document.body.append(div);
-        }
-
-        _printLog(t._log);
-
-        return;
     }
 
     let msg = "";

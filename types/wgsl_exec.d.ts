@@ -1,10 +1,10 @@
 import * as AST from "./wgsl_ast.js";
 import { WgslReflect, TypeInfo } from "./wgsl_reflect.js";
 declare class Data {
-    type: AST.Type;
     buffer: ArrayBuffer;
     typeInfo: TypeInfo;
-    constructor(type: AST.Type, data: ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array, reflection?: WgslReflect);
+    offset: number;
+    constructor(data: ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array, typeInfo: TypeInfo, offset?: number);
 }
 type ASTVarNode = AST.Let | AST.Var | AST.Argument;
 declare class Var {
@@ -24,7 +24,7 @@ declare class Function {
 declare class ExecContext {
     variables: Map<string, Var>;
     functions: Map<string, Function>;
-    setVariable(name: string, value: any, node: ASTVarNode | null): void;
+    setVariable(name: string, value: any, node?: ASTVarNode): void;
     getVariableValue(name: string): any;
     clone(): ExecContext;
 }
@@ -56,9 +56,10 @@ export declare class WgslExec {
     _evalBinaryOp(node: AST.BinaryOperator, context: ExecContext): any;
     _evalCall(node: AST.CallExpr, context: ExecContext): any;
     _callIntrinsicFunction(node: AST.CallExpr, context: ExecContext): any;
+    _callCreate(node: AST.CallExpr, context: ExecContext): any;
     _callIntrinsicAny(node: AST.CallExpr, context: ExecContext): any;
-    _callIntrinsicAll(node: AST.CallExpr, context: ExecContext): any;
-    _getTypeName(type: TypeInfo): string;
+    _callIntrinsicAll(node: AST.CallExpr, context: ExecContext): boolean;
+    _getTypeName(type: TypeInfo | AST.Type): string;
     _setDataValue(data: Data, value: any, postfix: AST.Expression | null, context: ExecContext): void;
     _getDataValue(data: Data, postfix: AST.Expression | null, context: ExecContext): any;
 }

@@ -3,15 +3,15 @@ import { WgslParser } from "./wgsl_parser.js";
 import { WgslReflect, TypeInfo, ArrayInfo, StructInfo, MemberInfo, TemplateInfo } from "./wgsl_reflect.js";
 
 class Data {
-    type: AST.Type;
     buffer: ArrayBuffer;
     typeInfo: TypeInfo;
+    offset: number;
 
-    constructor(type: AST.Type, data: ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array,
-        reflection: WgslReflect = null) {
-        this.type = type;
+    constructor(data: ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array,
+        typeInfo: TypeInfo, offset: number = 0) {
         this.buffer = data instanceof ArrayBuffer ? data : data.buffer;
-        this.typeInfo = reflection._types.get(this.type);
+        this.typeInfo = typeInfo;
+        this.offset = offset;
     }
 };
 
@@ -55,11 +55,11 @@ class ExecContext {
     variables: Map<string, Var> = new Map<string, Var>();
     functions: Map<string, Function> = new Map<string, Function>();
 
-    setVariable(name: string, value: any, node: ASTVarNode | null) {
+    setVariable(name: string, value: any, node?: ASTVarNode) {
         if (this.variables.has(name)) {
             this.variables.get(name).value = value;
         } else {
-            this.variables.set(name, new Var(name, value, node));
+            this.variables.set(name, new Var(name, value, node ?? null));
         }
     }
 
@@ -103,7 +103,7 @@ export class WgslExec {
         if (config["constants"]) {
             for (const k in config["constants"]) {
                 const v = config["constants"][k];
-                this.context.setVariable(k, v, null);
+                this.context.setVariable(k, v);
             }
         }
 
@@ -117,7 +117,7 @@ export class WgslExec {
         if (config["constants"]) {
             for (const k in config["constants"]) {
                 const v = config["constants"][k];
-                context.setVariable(k, v, null);
+                context.setVariable(k, v);
             }
         }
 
@@ -146,7 +146,7 @@ export class WgslExec {
         const height = dispatchCount[1];
         const width = dispatchCount[0];
 
-        context.setVariable("@num_workgroups", dispatchCount, null);
+        context.setVariable("@num_workgroups", dispatchCount);
 
         for (const set in bindGroups) {
             for (const binding in bindGroups[set]) {
@@ -165,7 +165,7 @@ export class WgslExec {
                             }
                         }
                         if (binding == b && set == s) {
-                            v.value = new Data(node.type, entry, this.reflection);
+                            v.value = new Data(entry, this.reflection._types.get(node.type));
                         }
                     }
                 });
@@ -175,7 +175,7 @@ export class WgslExec {
         for (let z = 0; z < depth; ++z) {
             for (let y = 0; y < height; ++y) {
                 for (let x = 0; x < width; ++x) {
-                    context.setVariable("@workgroup_id", [x, y, z], null);
+                    context.setVariable("@workgroup_id", [x, y, z]);
                     this._dispatchWorkgroup(f, [x, y, z], bindGroups, context);
                 }
             }
@@ -214,7 +214,7 @@ export class WgslExec {
             }
         }
 
-        context.setVariable("@workgroup_size", workgroupSize, null);
+        context.setVariable("@workgroup_size", workgroupSize);
 
         const width = workgroupSize[0];
         const height = workgroupSize[1];
@@ -229,9 +229,9 @@ export class WgslExec {
                         y + workgroup_id[1] * workgroupSize[1],
                         z + workgroup_id[2] * workgroupSize[2]];
 
-                    context.setVariable("@local_invocation_id", local_invocation_id, null);
-                    context.setVariable("@global_invocation_id", global_invocation_id, null);
-                    context.setVariable("@local_invocation_index", li, null);
+                    context.setVariable("@local_invocation_id", local_invocation_id);
+                    context.setVariable("@global_invocation_id", global_invocation_id);
+                    context.setVariable("@local_invocation_index", li);
 
                     this._dispatchExec(f, context);
                 }
@@ -408,7 +408,7 @@ export class WgslExec {
 
         /*for (let i = start; i < end; i += step) {
             
-            context.setVariable(node.name, i, null);
+            context.setVariable(node.name, i);
             const res = this._execStatements(node.body, context);
             if (res) {
                 return res;
@@ -457,32 +457,33 @@ export class WgslExec {
     }
 
     _evalCreate(node: AST.CreateExpr, context: ExecContext) {
-        if (node.type.name === "f32") {
+        const typeName = this._getTypeName(node.type);
+        if (typeName === "f32") {
             return this._evalExpression(node.args[0], context);
-        } else if (node.type.name == "i32") {
+        } else if (typeName == "i32") {
             return this._evalExpression(node.args[0], context);
-        } else if (node.type.name == "u32") {
+        } else if (typeName == "u32") {
             return this._evalExpression(node.args[0], context);
-        } else if (node.type.name == "vec2f") {
+        } else if (typeName == "vec2f") {
             return [this._evalExpression(node.args[0], context), this._evalExpression(node.args[1], context)];
-        } else if (node.type.name == "vec3f") {
+        } else if (typeName == "vec3f") {
             return [this._evalExpression(node.args[0], context), this._evalExpression(node.args[1], context), this._evalExpression(node.args[2], context)];
-        } else if (node.type.name == "vec4f") {
+        } else if (typeName == "vec4f") {
             return [this._evalExpression(node.args[0], context), this._evalExpression(node.args[1], context), this._evalExpression(node.args[2], context), this._evalExpression(node.args[3], context)];
-        } else if (node.type.name == "vec2i") {
+        } else if (typeName == "vec2i") {
             return [this._evalExpression(node.args[0], context), this._evalExpression(node.args[1], context)];
-        } else if (node.type.name == "vec3i") {
+        } else if (typeName == "vec3i") {
             return [this._evalExpression(node.args[0], context), this._evalExpression(node.args[1], context), this._evalExpression(node.args[2], context)];
-        } else if (node.type.name == "vec4i") {
+        } else if (typeName == "vec4i") {
             return [this._evalExpression(node.args[0], context), this._evalExpression(node.args[1], context), this._evalExpression(node.args[2], context), this._evalExpression(node.args[3], context)];
-        } else if (node.type.name == "vec2u") {
+        } else if (typeName == "vec2u") {
             return [this._evalExpression(node.args[0], context), this._evalExpression(node.args[1], context)];
-        } else if (node.type.name == "vec3u") {
+        } else if (typeName == "vec3u") {
             return [this._evalExpression(node.args[0], context), this._evalExpression(node.args[1], context), this._evalExpression(node.args[2], context)];
-        } else if (node.type.name == "vec4u") {
+        } else if (typeName == "vec4u") {
             return [this._evalExpression(node.args[0], context), this._evalExpression(node.args[1], context), this._evalExpression(node.args[2], context), this._evalExpression(node.args[3], context)];
         }
-        console.error(`Unknown type ${node.type.name}`);
+        console.error(`Unknown type ${typeName}`);
         return null;
     }
 
@@ -637,22 +638,39 @@ export class WgslExec {
                 return this._callIntrinsicAny(node, context);
             case "all":
                 return this._callIntrinsicAll(node, context);
+            case "vec3f":
+                return this._callCreate(node, context);
         }
         console.error(`Function ${node.name} not found`);
         return null;
     }
 
+    _callCreate(node: AST.CallExpr, context: ExecContext) {
+        switch (node.name) {
+            case "vec3f":
+                const x = node.args.length > 0 ? this._evalExpression(node.args[0], context) : 0;
+                const y = node.args.length > 1 ? this._evalExpression(node.args[1], context) : 0;
+                const z = node.args.length > 2 ? this._evalExpression(node.args[2], context) : 0;
+                return [x, y, z];
+        }
+    }
+
     _callIntrinsicAny(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        return value.some((v) => v);
+        return value.some((v: any) => v);
     }
 
     _callIntrinsicAll(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        return value.all((v) => v);
+        let isTrue = true;
+        value.forEach((x: any) => if (!x) isTrue = false; );
+        return isTrue;
     }
 
-    _getTypeName(type: TypeInfo): string {
+    _getTypeName(type: TypeInfo | AST.Type): string {
+        if (type instanceof AST.Type) {
+            type = this.reflection._types.get(type);
+        }
         let name = type.name;
         if (type instanceof TemplateInfo) {
             if (name === "vec2" || name === "vec3" || name === "vec4") {
@@ -673,7 +691,12 @@ export class WgslExec {
     }
 
     _setDataValue(data: Data, value: any, postfix: AST.Expression | null, context: ExecContext) {
-        let offset = 0;
+        if (value === null) {
+            console.log("NULL data");
+            return;
+        }
+
+        let offset = data.offset;
         let typeInfo = data.typeInfo;
         while (postfix) {
             if (postfix instanceof AST.ArrayIndex) {
@@ -692,7 +715,7 @@ export class WgslExec {
                     }
                     typeInfo = typeInfo.format;
                 } else {
-                    console.error(`SetDataValue: Type ${data.type.name} is not an array`);
+                    console.error(`SetDataValue: Type ${this._getTypeName(typeInfo)} is not an array`);
                 }
             } else if (postfix instanceof AST.StringExpr) {
                 const member = postfix.value;
@@ -753,7 +776,7 @@ export class WgslExec {
                         new Uint32Array(data.buffer, offset, 4)[element] = value;
                         return;
                     }
-                    console.error(`SetDataValue: Type ${data.type.name} is not a struct`);
+                    console.error(`SetDataValue: Type ${typeName} is not a struct`);
                     return;
                 }
             } else {
@@ -830,11 +853,11 @@ export class WgslExec {
             return;
         }
 
-        console.error(`SetDataValue: Unknown type ${data.type.name}`);
+        console.error(`SetDataValue: Unknown type ${typeName}`);
     }
 
     _getDataValue(data: Data, postfix: AST.Expression | null, context: ExecContext): any {
-        let offset = 0;
+        let offset = data.offset;
         let typeInfo = data.typeInfo;
         while (postfix) {
             if (postfix instanceof AST.ArrayIndex) {
@@ -853,7 +876,7 @@ export class WgslExec {
                     }
                     typeInfo = typeInfo.format;
                 } else {
-                    console.error(`Type ${data.type.name} is not an array`);
+                    console.error(`Type ${this._getTypeName(typeInfo)} is not an array`);
                 }
             } else if (postfix instanceof AST.StringExpr) {
                 const member = postfix.value;
@@ -889,7 +912,12 @@ export class WgslExec {
                     if (typeName === "vec2f") {
                         return new Float32Array(data.buffer, offset, 2)[element];
                     } else if (typeName === "vec3f") {
-                        return new Float32Array(data.buffer, offset, 3)[element];
+                        if ((offset + 12) >= data.buffer.byteLength) {
+                            console.log("Insufficient buffer data");
+                            return null;
+                        }
+                        const fa = new Float32Array(data.buffer, offset, 3);
+                        return fa[element];
                     } else if (typeName === "vec4f") {
                         return new Float32Array(data.buffer, offset, 4)[element];
                     } else if (typeName === "vec2i") {
@@ -899,13 +927,14 @@ export class WgslExec {
                     } else if (typeName === "vec4i") {
                         return new Int32Array(data.buffer, offset, 4)[element];
                     } else if (typeName === "vec2u") {
-                        return new Uint32Array(data.buffer, offset, 2)[element];
+                        const ua = new Uint32Array(data.buffer, offset, 2);
+                        return ua[element];
                     } else if (typeName === "vec3u") {
                         return new Uint32Array(data.buffer, offset, 3)[element];
                     } else if (typeName === "vec4u") {
                         return new Uint32Array(data.buffer, offset, 4)[element];
                     }
-                    console.error(`GetDataValue: Type ${data.type.name} is not a struct`);
+                    console.error(`GetDataValue: Type ${typeName} is not a struct`);
                     return null;
                 }
             } else {
@@ -943,7 +972,7 @@ export class WgslExec {
             return new Uint32Array(data.buffer, offset, 4);
         }
 
-        console.error(`GetDataValue Unknown type ${typeName}`);
-        return null;
+        const newData = new Data(data.buffer, typeInfo, offset);
+        return newData;
     }
 }
