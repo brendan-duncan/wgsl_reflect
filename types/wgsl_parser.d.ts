@@ -11,6 +11,7 @@ export declare class WgslParser {
     _deferArrayCountEval: Array<Object>;
     parse(tokensOrCode: Array<Token> | string): Array<AST.Statement>;
     _initialize(tokensOrCode: Array<Token> | string): void;
+    _updateNode<T extends AST.Node>(n: T): T;
     _error(token: Token, message: string | null): Object;
     _isAtEnd(): boolean;
     _match(types: TokenType | Array<TokenType>): boolean;

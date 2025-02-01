@@ -9,6 +9,7 @@ export declare class ParseContext {
  * Base class for AST nodes parsed from a WGSL shader.
  */
 export declare class Node {
+    line: number;
     constructor();
     get isAstNode(): boolean;
     get astNodeType(): string;

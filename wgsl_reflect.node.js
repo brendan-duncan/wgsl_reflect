@@ -15,7 +15,9 @@ class ParseContext {
  * Base class for AST nodes parsed from a WGSL shader.
  */
 class Node {
-    constructor() { }
+    constructor() {
+        this.line = 0;
+    }
     get isAstNode() {
         return true;
     }
@@ -1949,6 +1951,10 @@ class WgslParser {
         }
         this._current = 0;
     }
+    _updateNode(n) {
+        n.line = this._currentLine;
+        return n;
+    }
     _error(token, message) {
         return {
             token,
@@ -2114,7 +2120,7 @@ class WgslParser {
                 const type = this._type_decl();
                 if (type != null) {
                     type.attributes = typeAttrs;
-                    args.push(new Argument(name, type, argAttrs));
+                    args.push(this._updateNode(new Argument(name, type, argAttrs)));
                 }
             } while (this._match(TokenTypes.tokens.comma));
         }
@@ -2129,7 +2135,7 @@ class WgslParser {
         }
         const body = this._compound_statement();
         const endLine = this._currentLine;
-        return new Function$1(name, args, _return, body, startLine, endLine);
+        return this._updateNode(new Function$1(name, args, _return, body, startLine, endLine));
     }
     _compound_statement() {
         // brace_left statement* brace_right
@@ -2204,13 +2210,13 @@ class WgslParser {
             result = this._variable_statement();
         }
         else if (this._match(TokenTypes.keywords.discard)) {
-            result = new Discard();
+            result = this._updateNode(new Discard());
         }
         else if (this._match(TokenTypes.keywords.break)) {
-            result = new Break();
+            result = this._updateNode(new Break());
         }
         else if (this._match(TokenTypes.keywords.continue)) {
-            result = new Continue();
+            result = this._updateNode(new Continue());
         }
         else {
             result =
@@ -2228,7 +2234,7 @@ class WgslParser {
             return null;
         }
         const expression = this._optional_paren_expression();
-        return new StaticAssert(expression);
+        return this._updateNode(new StaticAssert(expression));
     }
     _while_statement() {
         if (!this._match(TokenTypes.keywords.while)) {
@@ -2239,14 +2245,14 @@ class WgslParser {
             this._attribute();
         }
         const block = this._compound_statement();
-        return new While(condition, block);
+        return this._updateNode(new While(condition, block));
     }
     _continuing_statement() {
         if (!this._match(TokenTypes.keywords.continuing)) {
             return null;
         }
         const block = this._compound_statement();
-        return new Continuing(block);
+        return this._updateNode(new Continuing(block));
     }
     _for_statement() {
         // for paren_left for_header paren_right compound_statement
@@ -2271,7 +2277,7 @@ class WgslParser {
             this._attribute();
         }
         const body = this._compound_statement();
-        return new For(init, condition, increment, body);
+        return this._updateNode(new For(init, condition, increment, body));
     }
     _for_init() {
         // (variable_statement assignment_statement func_call_statement)?
@@ -2299,7 +2305,7 @@ class WgslParser {
             if (this._match(TokenTypes.tokens.equal)) {
                 value = this._short_circuit_or_expression();
             }
-            return new Var$1(_var.name, _var.type, _var.storage, _var.access, value);
+            return this._updateNode(new Var$1(_var.name, _var.type, _var.storage, _var.access, value));
         }
         if (this._match(TokenTypes.keywords.let)) {
             const name = this._consume(TokenTypes.tokens.ident, "Expected name for let.").toString();
@@ -2313,7 +2319,7 @@ class WgslParser {
             }
             this._consume(TokenTypes.tokens.equal, "Expected '=' for let.");
             const value = this._short_circuit_or_expression();
-            return new Let(name, type, null, null, value);
+            return this._updateNode(new Let(name, type, null, null, value));
         }
         if (this._match(TokenTypes.keywords.const)) {
             const name = this._consume(TokenTypes.tokens.ident, "Expected name for const.").toString();
@@ -2327,7 +2333,7 @@ class WgslParser {
             }
             this._consume(TokenTypes.tokens.equal, "Expected '=' for const.");
             const value = this._short_circuit_or_expression();
-            return new Const(name, type, null, null, value);
+            return this._updateNode(new Const(name, type, null, null, value));
         }
         return null;
     }
@@ -2342,9 +2348,9 @@ class WgslParser {
             return null;
         }
         const token = this._consume(TokenTypes.increment_operators, "Expected increment operator");
-        return new Increment(token.type === TokenTypes.tokens.plus_plus
+        return this._updateNode(new Increment(token.type === TokenTypes.tokens.plus_plus
             ? exports.IncrementOperator.increment
-            : exports.IncrementOperator.decrement, _var);
+            : exports.IncrementOperator.decrement, _var));
     }
     _assignment_statement() {
         // (unary_expression underscore) equal short_circuit_or_expression
@@ -2361,7 +2367,7 @@ class WgslParser {
         }
         const type = this._consume(TokenTypes.assignment_operators, "Expected assignment operator.");
         const value = this._short_circuit_or_expression();
-        return new Assign(exports.AssignOperator.parse(type.lexeme), _var, value);
+        return this._updateNode(new Assign(exports.AssignOperator.parse(type.lexeme), _var, value));
     }
     _func_call_statement() {
         // ident argument_expression_list
@@ -2375,7 +2381,7 @@ class WgslParser {
             this._current = savedPos;
             return null;
         }
-        return new Call(name.lexeme, args);
+        return this._updateNode(new Call(name.lexeme, args));
     }
     _loop_statement() {
         // loop brace_left statement* continuing_statement? brace_right
@@ -2406,7 +2412,7 @@ class WgslParser {
             continuing = this._compound_statement();
         }
         this._consume(TokenTypes.tokens.brace_right, "Expected '}' for loop.");
-        return new Loop(statements, continuing);
+        return this._updateNode(new Loop(statements, continuing));
     }
     _switch_statement() {
         // switch optional_paren_expression brace_left switch_body+ brace_right
@@ -2423,7 +2429,7 @@ class WgslParser {
             throw this._error(this._previous(), "Expected 'case' or 'default'.");
         }
         this._consume(TokenTypes.tokens.brace_right, "Expected '}' for switch.");
-        return new Switch(condition, body);
+        return this._updateNode(new Switch(condition, body));
     }
     _switch_body() {
         // case case_selectors colon brace_left case_body? brace_right
@@ -2438,7 +2444,7 @@ class WgslParser {
             this._consume(TokenTypes.tokens.brace_left, "Exected '{' for switch case.");
             const body = this._case_body();
             this._consume(TokenTypes.tokens.brace_right, "Exected '}' for switch case.");
-            cases.push(new Case(selector, body));
+            cases.push(this._updateNode(new Case(selector, body)));
         }
         if (this._match(TokenTypes.keywords.default)) {
             this._match(TokenTypes.tokens.colon); // colon is optional
@@ -2448,7 +2454,7 @@ class WgslParser {
             this._consume(TokenTypes.tokens.brace_left, "Exected '{' for switch default.");
             const body = this._case_body();
             this._consume(TokenTypes.tokens.brace_right, "Exected '}' for switch default.");
-            cases.push(new Default(body));
+            cases.push(this._updateNode(new Default(body)));
         }
         if (this._check([TokenTypes.keywords.default, TokenTypes.keywords.case])) {
             const _cases = this._switch_body();
@@ -2510,7 +2516,7 @@ class WgslParser {
             }
             _else = this._compound_statement();
         }
-        return new If(condition, block, elseif, _else);
+        return this._updateNode(new If(condition, block, elseif, _else));
     }
     _match_elseif() {
         if (this._tokens[this._current].type === TokenTypes.keywords.else &&
@@ -2525,7 +2531,7 @@ class WgslParser {
         // else_if optional_paren_expression compound_statement elseif_statement?
         const condition = this._optional_paren_expression();
         const block = this._compound_statement();
-        elseif.push(new ElseIf(condition, block));
+        elseif.push(this._updateNode(new ElseIf(condition, block)));
         if (this._match_elseif()) {
             if (this._check(TokenTypes.tokens.attr)) {
                 this._attribute();
@@ -2540,14 +2546,14 @@ class WgslParser {
             return null;
         }
         const value = this._short_circuit_or_expression();
-        return new Return(value);
+        return this._updateNode(new Return(value));
     }
     _short_circuit_or_expression() {
         // short_circuit_and_expression
         // short_circuit_or_expression or_or short_circuit_and_expression
         let expr = this._short_circuit_and_expr();
         while (this._match(TokenTypes.tokens.or_or)) {
-            expr = new BinaryOperator(this._previous().toString(), expr, this._short_circuit_and_expr());
+            expr = this._updateNode(new BinaryOperator(this._previous().toString(), expr, this._short_circuit_and_expr()));
         }
         return expr;
     }
@@ -2556,7 +2562,7 @@ class WgslParser {
         // short_circuit_and_expression and_and inclusive_or_expression
         let expr = this._inclusive_or_expression();
         while (this._match(TokenTypes.tokens.and_and)) {
-            expr = new BinaryOperator(this._previous().toString(), expr, this._inclusive_or_expression());
+            expr = this._updateNode(new BinaryOperator(this._previous().toString(), expr, this._inclusive_or_expression()));
         }
         return expr;
     }
@@ -2565,7 +2571,7 @@ class WgslParser {
         // inclusive_or_expression or exclusive_or_expression
         let expr = this._exclusive_or_expression();
         while (this._match(TokenTypes.tokens.or)) {
-            expr = new BinaryOperator(this._previous().toString(), expr, this._exclusive_or_expression());
+            expr = this._updateNode(new BinaryOperator(this._previous().toString(), expr, this._exclusive_or_expression()));
         }
         return expr;
     }
@@ -2574,7 +2580,7 @@ class WgslParser {
         // exclusive_or_expression xor and_expression
         let expr = this._and_expression();
         while (this._match(TokenTypes.tokens.xor)) {
-            expr = new BinaryOperator(this._previous().toString(), expr, this._and_expression());
+            expr = this._updateNode(new BinaryOperator(this._previous().toString(), expr, this._and_expression()));
         }
         return expr;
     }
@@ -2583,7 +2589,7 @@ class WgslParser {
         // and_expression and equality_expression
         let expr = this._equality_expression();
         while (this._match(TokenTypes.tokens.and)) {
-            expr = new BinaryOperator(this._previous().toString(), expr, this._equality_expression());
+            expr = this._updateNode(new BinaryOperator(this._previous().toString(), expr, this._equality_expression()));
         }
         return expr;
     }
@@ -2593,7 +2599,7 @@ class WgslParser {
         // relational_expression not_equal relational_expression
         const expr = this._relational_expression();
         if (this._match([TokenTypes.tokens.equal_equal, TokenTypes.tokens.not_equal])) {
-            return new BinaryOperator(this._previous().toString(), expr, this._relational_expression());
+            return this._updateNode(new BinaryOperator(this._previous().toString(), expr, this._relational_expression()));
         }
         return expr;
     }
@@ -2610,7 +2616,7 @@ class WgslParser {
             TokenTypes.tokens.less_than_equal,
             TokenTypes.tokens.greater_than_equal,
         ])) {
-            expr = new BinaryOperator(this._previous().toString(), expr, this._shift_expression());
+            expr = this._updateNode(new BinaryOperator(this._previous().toString(), expr, this._shift_expression()));
         }
         return expr;
     }
@@ -2620,7 +2626,7 @@ class WgslParser {
         // shift_expression shift_right additive_expression
         let expr = this._additive_expression();
         while (this._match([TokenTypes.tokens.shift_left, TokenTypes.tokens.shift_right])) {
-            expr = new BinaryOperator(this._previous().toString(), expr, this._additive_expression());
+            expr = this._updateNode(new BinaryOperator(this._previous().toString(), expr, this._additive_expression()));
         }
         return expr;
     }
@@ -2630,7 +2636,7 @@ class WgslParser {
         // additive_expression minus multiplicative_expression
         let expr = this._multiplicative_expression();
         while (this._match([TokenTypes.tokens.plus, TokenTypes.tokens.minus])) {
-            expr = new BinaryOperator(this._previous().toString(), expr, this._multiplicative_expression());
+            expr = this._updateNode(new BinaryOperator(this._previous().toString(), expr, this._multiplicative_expression()));
         }
         return expr;
     }
@@ -2645,7 +2651,7 @@ class WgslParser {
             TokenTypes.tokens.forward_slash,
             TokenTypes.tokens.modulo,
         ])) {
-            expr = new BinaryOperator(this._previous().toString(), expr, this._unary_expression());
+            expr = this._updateNode(new BinaryOperator(this._previous().toString(), expr, this._unary_expression()));
         }
         return expr;
     }
@@ -2663,7 +2669,7 @@ class WgslParser {
             TokenTypes.tokens.star,
             TokenTypes.tokens.and,
         ])) {
-            return new UnaryOperator(this._previous().toString(), this._unary_expression());
+            return this._updateNode(new UnaryOperator(this._previous().toString(), this._unary_expression()));
         }
         return this._singular_expression();
     }
@@ -2681,7 +2687,7 @@ class WgslParser {
         if (this._match(TokenTypes.tokens.bracket_left)) {
             const expr = this._short_circuit_or_expression();
             this._consume(TokenTypes.tokens.bracket_right, "Expected ']'.");
-            const arrayIndex = new ArrayIndex(expr);
+            const arrayIndex = this._updateNode(new ArrayIndex(expr));
             const p = this._postfix_expression();
             if (p) {
                 arrayIndex.postfix = p;
@@ -2692,7 +2698,7 @@ class WgslParser {
         if (this._match(TokenTypes.tokens.period)) {
             const name = this._consume(TokenTypes.tokens.ident, "Expected member name.");
             const p = this._postfix_expression();
-            const expr = new StringExpr(name.lexeme);
+            const expr = this._updateNode(new StringExpr(name.lexeme));
             if (p) {
                 expr.postfix = p;
             }
@@ -2719,19 +2725,19 @@ class WgslParser {
                 const args = this._argument_expression_list();
                 const struct = this._getStruct(name);
                 if (struct != null) {
-                    return new CreateExpr(struct, args);
+                    return this._updateNode(new CreateExpr(struct, args));
                 }
-                return new CallExpr(name, args);
+                return this._updateNode(new CallExpr(name, args));
             }
             if (this._context.constants.has(name)) {
                 const c = this._context.constants.get(name);
-                return new ConstExpr(name, c.value);
+                return this._updateNode(new ConstExpr(name, c.value));
             }
-            return new VariableExpr(name);
+            return this._updateNode(new VariableExpr(name));
         }
         // const_literal
         if (this._match(TokenTypes.const_literal)) {
-            return new LiteralExpr(parseFloat(this._previous().toString()));
+            return this._updateNode(new LiteralExpr(parseFloat(this._previous().toString())));
         }
         // paren_expression
         if (this._check(TokenTypes.tokens.paren_left)) {
@@ -2743,12 +2749,12 @@ class WgslParser {
             const type = this._type_decl();
             this._consume(TokenTypes.tokens.greater_than, "Expected '>'.");
             const value = this._paren_expression();
-            return new BitcastExpr(type, value);
+            return this._updateNode(new BitcastExpr(type, value));
         }
         // type_decl argument_expression_list
         const type = this._type_decl();
         const args = this._argument_expression_list();
-        return new CreateExpr(type, args);
+        return this._updateNode(new CreateExpr(type, args));
     }
     _argument_expression_list() {
         // paren_left ((short_circuit_or_expression comma)* short_circuit_or_expression comma?)? paren_right
@@ -2771,14 +2777,14 @@ class WgslParser {
         this._match(TokenTypes.tokens.paren_left);
         const expr = this._short_circuit_or_expression();
         this._match(TokenTypes.tokens.paren_right);
-        return new GroupingExpr([expr]);
+        return this._updateNode(new GroupingExpr([expr]));
     }
     _paren_expression() {
         // paren_left short_circuit_or_expression paren_right
         this._consume(TokenTypes.tokens.paren_left, "Expected '('.");
         const expr = this._short_circuit_or_expression();
         this._consume(TokenTypes.tokens.paren_right, "Expected ')'.");
-        return new GroupingExpr([expr]);
+        return this._updateNode(new GroupingExpr([expr]));
     }
     _struct_decl() {
         // attribute* struct ident struct_body_decl
@@ -2804,11 +2810,11 @@ class WgslParser {
                 this._consume(TokenTypes.tokens.comma, "Expected ',' for struct member.");
             else
                 this._match(TokenTypes.tokens.comma); // trailing comma optional.
-            members.push(new Member(memberName, memberType, memberAttrs));
+            members.push(this._updateNode(new Member(memberName, memberType, memberAttrs)));
         }
         this._consume(TokenTypes.tokens.brace_right, "Expected '}' after struct body.");
         const endLine = this._currentLine;
-        const structNode = new Struct(name, members, startLine, endLine);
+        const structNode = this._updateNode(new Struct(name, members, startLine, endLine));
         this._context.structs.set(name, structNode);
         return structNode;
     }
@@ -2855,14 +2861,14 @@ class WgslParser {
             else {
                 try {
                     const constValue = valueExpr.evaluate(this._context);
-                    value = new LiteralExpr(constValue);
+                    value = this._updateNode(new LiteralExpr(constValue));
                 }
                 catch (_a) {
                     value = valueExpr;
                 }
             }
         }
-        const c = new Const(name.toString(), type, "", "", value);
+        const c = this._updateNode(new Const(name.toString(), type, "", "", value));
         this._context.constants.set(c.name, c);
         return c;
     }
@@ -2884,7 +2890,7 @@ class WgslParser {
         if (this._match(TokenTypes.tokens.equal)) {
             value = this._const_expression();
         }
-        return new Let(name.toString(), type, "", "", value);
+        return this._updateNode(new Let(name.toString(), type, "", "", value));
     }
     _const_expression() {
         // type_decl paren_left ((const_expression comma)* const_expression comma?)? paren_right
@@ -2914,7 +2920,7 @@ class WgslParser {
                 type.attributes = attrs;
             }
         }
-        return new Var$1(name.toString(), type, storage, access, null);
+        return this._updateNode(new Var$1(name.toString(), type, storage, access, null));
     }
     _override_decl() {
         // override (ident variable_ident_decl)
@@ -2930,7 +2936,7 @@ class WgslParser {
                 type.attributes = attrs;
             }
         }
-        return new Override(name.toString(), type, null);
+        return this._updateNode(new Override(name.toString(), type, null));
     }
     _diagnostic() {
         // diagnostic(severity_control_name, diagnostic_rule_name)
@@ -2939,12 +2945,12 @@ class WgslParser {
         this._consume(TokenTypes.tokens.comma, "Expected ','");
         const rule = this._consume(TokenTypes.tokens.ident, "Expected diagnostic rule name.");
         this._consume(TokenTypes.tokens.paren_right, "Expected ')'");
-        return new Diagnostic(severity.toString(), rule.toString());
+        return this._updateNode(new Diagnostic(severity.toString(), rule.toString()));
     }
     _enable_directive() {
         // enable ident semicolon
         const name = this._consume(TokenTypes.tokens.ident, "identity expected.");
-        return new Enable(name.toString());
+        return this._updateNode(new Enable(name.toString()));
     }
     _requires_directive() {
         // requires extension [, extension]* semicolon
@@ -2953,7 +2959,7 @@ class WgslParser {
             const name = this._consume(TokenTypes.tokens.ident, "identity expected.");
             extensions.push(name.toString());
         }
-        return new Requires(extensions);
+        return this._updateNode(new Requires(extensions));
     }
     _type_alias() {
         // type ident equal type_decl
@@ -2966,7 +2972,7 @@ class WgslParser {
         if (this._context.aliases.has(aliasType.name)) {
             aliasType = this._context.aliases.get(aliasType.name).type;
         }
-        const aliasNode = new Alias(name.toString(), aliasType);
+        const aliasNode = this._updateNode(new Alias(name.toString(), aliasType));
         this._context.aliases.set(aliasNode.name, aliasNode);
         return aliasNode;
     }
@@ -3008,7 +3014,7 @@ class WgslParser {
             if (this._context.aliases.has(typeName)) {
                 return this._context.aliases.get(typeName).type;
             }
-            return new Type(type.toString());
+            return this._updateNode(new Type(type.toString()));
         }
         // texture_sampler_types
         let type = this._texture_sampler_types();
@@ -3027,7 +3033,7 @@ class WgslParser {
                 }
                 this._consume(TokenTypes.tokens.greater_than, "Expected '>' for type.");
             }
-            return new TemplateType(type, format, access);
+            return this._updateNode(new TemplateType(type, format, access));
         }
         // pointer less_than storage_class comma type_decl (comma access_mode)? greater_than
         if (this._match(TokenTypes.keywords.ptr)) {
@@ -3041,7 +3047,7 @@ class WgslParser {
                 access = this._consume(TokenTypes.access_mode, "Expected access_mode for pointer").toString();
             }
             this._consume(TokenTypes.tokens.greater_than, "Expected '>' for pointer.");
-            return new PointerType(pointer, storage.toString(), decl, access);
+            return this._updateNode(new PointerType(pointer, storage.toString(), decl, access));
         }
         // The following type_decl's have an optional attribyte_list*
         const attrs = this._attribute();
@@ -3074,7 +3080,7 @@ class WgslParser {
                 this._consume(TokenTypes.tokens.greater_than, "Expected '>' for array.");
                 countInt = count ? parseInt(count) : 0;
             }
-            const arrayType = new ArrayType(array.toString(), attrs, format, countInt);
+            const arrayType = this._updateNode(new ArrayType(array.toString(), attrs, format, countInt));
             if (countNode) {
                 this._deferArrayCountEval.push({ arrayType, countNode });
             }
@@ -3085,11 +3091,11 @@ class WgslParser {
     _texture_sampler_types() {
         // sampler_type
         if (this._match(TokenTypes.sampler_type)) {
-            return new SamplerType(this._previous().toString(), null, null);
+            return this._updateNode(new SamplerType(this._previous().toString(), null, null));
         }
         // depth_texture_type
         if (this._match(TokenTypes.depth_texture_type)) {
-            return new SamplerType(this._previous().toString(), null, null);
+            return this._updateNode(new SamplerType(this._previous().toString(), null, null));
         }
         // sampled_texture_type less_than type_decl greater_than
         // multisampled_texture_type less_than type_decl greater_than
@@ -3099,7 +3105,7 @@ class WgslParser {
             this._consume(TokenTypes.tokens.less_than, "Expected '<' for sampler type.");
             const format = this._type_decl();
             this._consume(TokenTypes.tokens.greater_than, "Expected '>' for sampler type.");
-            return new SamplerType(sampler.toString(), format, null);
+            return this._updateNode(new SamplerType(sampler.toString(), format, null));
         }
         // storage_texture_type less_than texel_format comma access_mode greater_than
         if (this._match(TokenTypes.storage_texture_type)) {
@@ -3109,7 +3115,7 @@ class WgslParser {
             this._consume(TokenTypes.tokens.comma, "Expected ',' after texel format.");
             const access = this._consume(TokenTypes.access_mode, "Expected access mode for storage texture type.").toString();
             this._consume(TokenTypes.tokens.greater_than, "Expected '>' for sampler type.");
-            return new SamplerType(sampler.toString(), format, access);
+            return this._updateNode(new SamplerType(sampler.toString(), format, access));
         }
         return null;
     }
@@ -3119,7 +3125,7 @@ class WgslParser {
         let attributes = [];
         while (this._match(TokenTypes.tokens.attr)) {
             const name = this._consume(TokenTypes.attribute_name, "Expected attribute name");
-            const attr = new Attribute(name.toString(), null);
+            const attr = this._updateNode(new Attribute(name.toString(), null));
             if (this._match(TokenTypes.tokens.paren_left)) {
                 // literal_or_ident
                 attr.value = this._consume(TokenTypes.literal_or_ident, "Expected attribute value").toString();
@@ -4241,7 +4247,7 @@ class WgslExec {
                             }
                         }
                         if (binding == b && set == s) {
-                            v.value = new Data(entry, this.reflection._types.get(node.type));
+                            v.value = new Data(entry, this._getTypeInfo(node.type));
                         }
                     }
                 });
@@ -4373,12 +4379,12 @@ class WgslExec {
         else if (stmt instanceof Override) {
             const name = stmt.name;
             if (!context.variables.has(name)) {
-                console.error(`Override constant ${name} not found`);
+                console.error(`Override constant ${name} not found. Line ${stmt.line}`);
                 return null;
             }
         }
         else {
-            console.error(`Unknown statement type`, stmt);
+            console.error(`Unknown statement type.`, stmt, `Line ${stmt.line}`);
         }
         return null;
     }
@@ -4387,7 +4393,7 @@ class WgslExec {
             return node.name;
         }
         else {
-            console.error(`Unknown variable type`, node);
+            console.error(`Unknown variable type`, node, 'Line', node.line);
         }
         return null;
     }
@@ -4395,7 +4401,7 @@ class WgslExec {
         const name = this._getVariableName(node.variable, context);
         const v = context.variables.get(name);
         if (!v) {
-            console.error(`Variable ${name} not found`);
+            console.error(`Variable ${name} not found. Line ${node.line}`);
             return;
         }
         const value = this._evalExpression(node.value, context);
@@ -4435,10 +4441,12 @@ class WgslExec {
                     }
                 }
                 else {
-                    console.error(`Variable ${v.name} is not an array`);
+                    console.error(`Variable ${v.name} is not an array. Line ${node.line}`);
                 }
             }
-            else if (node.variable.postfix instanceof StringExpr) ;
+            else if (node.variable.postfix instanceof StringExpr) {
+                console.error(`TODO Struct member. Line ${node.line}`);
+            }
         }
         else {
             v.value = value;
@@ -4532,9 +4540,7 @@ class WgslExec {
         else if (node instanceof CreateExpr) {
             return this._evalCreate(node, context);
         }
-        else {
-            console.error(`Unknown expression type`, node);
-        }
+        console.error(`Unknown expression type`, node, `Line ${node.line}`);
         return null;
     }
     _evalCreate(node, context) {
@@ -4575,8 +4581,25 @@ class WgslExec {
         else if (typeName == "vec4u") {
             return [this._evalExpression(node.args[0], context), this._evalExpression(node.args[1], context), this._evalExpression(node.args[2], context), this._evalExpression(node.args[3], context)];
         }
-        console.error(`Unknown type ${typeName}`);
-        return null;
+        const typeInfo = this._getTypeInfo(node.type);
+        if (typeInfo === null) {
+            console.error(`Unknown type ${typeName}. Line ${node.line}`);
+            return null;
+        }
+        const data = new Data(new ArrayBuffer(typeInfo.size), typeInfo, 0);
+        // Assign the values in node.args to the data.
+        if (typeInfo instanceof StructInfo) {
+            for (let i = 0; i < node.args.length; ++i) {
+                const memberInfo = typeInfo.members[i];
+                const arg = node.args[i];
+                const value = this._evalExpression(arg, context);
+                this._setData(data, value, memberInfo.type, memberInfo.offset, context);
+            }
+        }
+        else {
+            console.error(`Unknown type ${typeName}. Line ${node.line}`);
+        }
+        return data;
     }
     _evalLiteral(node, context) {
         return node.value;
@@ -4630,7 +4653,7 @@ class WgslExec {
                     return value[idx];
                 }
                 else {
-                    console.error(`Variable ${node.name} is not an array`);
+                    console.error(`Variable ${node.name} is not an array. Line ${node.line}`);
                 }
             }
             else if (node.postfix instanceof StringExpr) {
@@ -4656,7 +4679,7 @@ class WgslExec {
                             console.log(structInfo);
                         }
                     }
-                    console.error(`Unknown variable postfix`, node.postfix);
+                    console.error(`Unknown variable postfix`, node.postfix, `. Line ${node.line}`);
                 }
             }
         }
@@ -4679,7 +4702,7 @@ class WgslExec {
             case ">":
                 if (l.length !== undefined && r.length !== undefined) {
                     if (l.length !== r.length) {
-                        console.error(`Vector length mismatch`);
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
                     }
                     return l.map((x, i) => x > r[i]);
@@ -4688,7 +4711,7 @@ class WgslExec {
             case "<":
                 if (l.length !== undefined && r.length !== undefined) {
                     if (l.length !== r.length) {
-                        console.error(`Vector length mismatch`);
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
                     }
                     return l.map((x, i) => x < r[i]);
@@ -4707,6 +4730,7 @@ class WgslExec {
             case "||":
                 return l || r;
         }
+        console.error(`Unknown operator ${node.operator}. Line ${node.line}`);
         return null;
     }
     _evalCall(node, context) {
@@ -4728,20 +4752,29 @@ class WgslExec {
                 return this._callIntrinsicAny(node, context);
             case "all":
                 return this._callIntrinsicAll(node, context);
+            case "vec2":
+            case "vec3":
+            case "vec4":
+            case "vec2f":
             case "vec3f":
-                return this._callCreate(node, context);
+            case "vec4f":
+            case "vec2i":
+            case "vec3i":
+            case "vec4i":
+            case "vec2u":
+            case "vec3u":
+            case "vec4u":
+                return this._callIntrinsicVec(node, context);
         }
-        console.error(`Function ${node.name} not found`);
+        console.error(`Function ${node.name} not found. Line ${node.line}`);
         return null;
     }
-    _callCreate(node, context) {
-        switch (node.name) {
-            case "vec3f":
-                const x = node.args.length > 0 ? this._evalExpression(node.args[0], context) : 0;
-                const y = node.args.length > 1 ? this._evalExpression(node.args[1], context) : 0;
-                const z = node.args.length > 2 ? this._evalExpression(node.args[2], context) : 0;
-                return [x, y, z];
+    _callIntrinsicVec(node, context) {
+        const values = [];
+        for (const arg of node.args) {
+            values.push(this._evalExpression(arg, context));
         }
+        return values;
     }
     _callIntrinsicAny(node, context) {
         const value = this._evalExpression(node.args[0], context);
@@ -4754,33 +4787,41 @@ class WgslExec {
             isTrue = false; });
         return isTrue;
     }
+    _getTypeInfo(type) {
+        return this.reflection._types.get(type);
+    }
     _getTypeName(type) {
         if (type instanceof Type) {
-            type = this.reflection._types.get(type);
+            type = this._getTypeInfo(type);
         }
         let name = type.name;
         if (type instanceof TemplateInfo) {
-            if (name === "vec2" || name === "vec3" || name === "vec4") {
-                if (type.format.name === "f32") {
-                    name += "f";
-                    return name;
+            if (type.format !== null) {
+                if (name === "vec2" || name === "vec3" || name === "vec4") {
+                    if (type.format.name === "f32") {
+                        name += "f";
+                        return name;
+                    }
+                    else if (type.format.name === "i32") {
+                        name += "i";
+                        return name;
+                    }
+                    else if (type.format.name === "u32") {
+                        name += "u";
+                        return name;
+                    }
                 }
-                else if (type.format.name === "i32") {
-                    name += "i";
-                    return name;
-                }
-                else if (type.format.name === "u32") {
-                    name += "u";
-                    return name;
-                }
+                name += `<${type.format.name}>`;
             }
-            name += `<${type.format.name}>`;
+            else {
+                console.log("Template format is null.");
+            }
         }
         return name;
     }
     _setDataValue(data, value, postfix, context) {
         if (value === null) {
-            console.log("NULL data");
+            console.log("_setDataValue: NULL data");
             return;
         }
         let offset = data.offset;
@@ -4890,6 +4931,9 @@ class WgslExec {
             }
             postfix = postfix.postfix;
         }
+        this._setData(data, value, typeInfo, offset, context);
+    }
+    _setData(data, value, typeInfo, offset, context) {
         const typeName = this._getTypeName(typeInfo);
         if (typeName === "f32") {
             new Float32Array(data.buffer, offset, 1)[0] = value;
@@ -4965,6 +5009,17 @@ class WgslExec {
             x[2] = value[2];
             x[3] = value[3];
             return;
+        }
+        if (value instanceof Data) {
+            if (typeInfo === value.typeInfo) {
+                const x = new Uint8Array(data.buffer, offset, value.buffer.byteLength);
+                x.set(new Uint8Array(value.buffer));
+                return;
+            }
+            else {
+                console.error(`SetDataValue: Type mismatch`, typeName, this._getTypeName(value.typeInfo));
+                return;
+            }
         }
         console.error(`SetDataValue: Unknown type ${typeName}`);
     }

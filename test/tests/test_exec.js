@@ -95,6 +95,34 @@ group("WgslExec", function () {
     test.equals(dataBuffer, [1+2, 2+3, 3+4, 0, 4+2, 5+3, 6+4, 0, 7+2, 8+3, 9+4, 0, 10+2, 11+3, 12+4, 0]);
   });
 
+  test("struct construction", function (test) {
+    const shader = `
+    struct Ray {
+        origin: vec3f,
+        direction: vec3f
+    };
+    @group(0) @binding(0) var<storage, write> data: array<Ray>;
+    @compute @workgroup_size(1) fn computeSomething(@builtin(global_invocation_id) id: vec3<u32>) {
+        let i = id.x;
+        let j = i * 10;
+        let ray = Ray(
+            vec3f(j + 1.0, j + 2.0, j + 3.0),
+            vec3f(j + 4.0, j + 5.0, j + 6.0)
+        );
+        data[i] = ray;
+    }`;
+    const wgsl = new WgslExec(shader);
+    const dataBuffer = new Float32Array([
+        0, 0, 0, 0,
+        0, 0, 0, 0,
+        0, 0, 0, 0,
+        0, 0, 0, 0]);
+    const bindGroups = {0: {0: dataBuffer}};
+    // Ensure we can dispatch a compute shader and get the expected results from the output buffer.
+    wgsl.dispatchWorkgroups("computeSomething", 2, bindGroups);
+    test.equals(dataBuffer, [1, 2, 3, 0, 4, 5, 6, 0, 11, 12, 13, 0, 14, 15, 16, 0]);
+  });
+
   test("compute dispatch builtin variables", function (test) {
     const dispatchCount = [4, 3, 2];
     const workgroupSize = [2, 3, 4];
@@ -252,5 +280,5 @@ group("WgslExec", function () {
     }
 
     test.equals(valid, true);
-  }, true);
-}, true);
+  });
+});

@@ -56,11 +56,13 @@ export declare class WgslExec {
     _evalBinaryOp(node: AST.BinaryOperator, context: ExecContext): any;
     _evalCall(node: AST.CallExpr, context: ExecContext): any;
     _callIntrinsicFunction(node: AST.CallExpr, context: ExecContext): any;
-    _callCreate(node: AST.CallExpr, context: ExecContext): any;
+    _callIntrinsicVec(node: AST.CallExpr, context: ExecContext): any[];
     _callIntrinsicAny(node: AST.CallExpr, context: ExecContext): any;
     _callIntrinsicAll(node: AST.CallExpr, context: ExecContext): boolean;
+    _getTypeInfo(type: AST.Type): TypeInfo;
     _getTypeName(type: TypeInfo | AST.Type): string;
     _setDataValue(data: Data, value: any, postfix: AST.Expression | null, context: ExecContext): void;
+    _setData(data: Data, value: any, typeInfo: TypeInfo, offset: number, context: ExecContext): void;
     _getDataValue(data: Data, postfix: AST.Expression | null, context: ExecContext): any;
 }
 export {};
