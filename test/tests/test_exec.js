@@ -37,18 +37,18 @@ group("WgslExec", function () {
   });
 
   test("data", function (test) {
-        const shader = `
-            @group(0) @binding(0) var<storage, read_write> buffer: array<vec3u>;
-            @compute
-            fn main() {
-                var foo = buffer[0].y;
-                buffer[0].x = foo + 10;
-            }`;
-        const wgsl = new WgslExec(shader);
-        const buffer = new Uint32Array([1, 2, 6, 0]);
-        const bindGroups = {0: {0: buffer}};
-        wgsl.dispatchWorkgroups("main", 1, bindGroups);
-        test.equals(buffer[0], 12);
+    const shader = `
+        @group(0) @binding(0) var<storage, read_write> buffer: array<vec3u>;
+        @compute
+        fn main() {
+            var foo = buffer[0].y;
+            buffer[0].x = foo + 10;
+        }`;
+    const wgsl = new WgslExec(shader);
+    const buffer = new Uint32Array([1, 2, 6, 0]);
+    const bindGroups = {0: {0: buffer}};
+    wgsl.dispatchWorkgroups("main", 1, bindGroups);
+    test.equals(buffer[0], 12);
   });
 
   test("vec3f buffer stride", function (test) {
@@ -65,6 +65,27 @@ group("WgslExec", function () {
     // Ensure we can dispatch a compute shader and get the expected results from the output buffer.
     wgsl.dispatchWorkgroups("computeSomething", 3, bindGroups);
     test.equals(dataBuffer, [1*2, 2*3, 3*4, 0, 4*2, 5*3, 6*4, 0, 7*2, 8*3, 9*4, 0]);
+  });
+
+  test("shadow variable", function (test) {
+    const shader = `@group(0) @binding(0) var<storage, read_write> data: array<vec3f>;
+    @compute @workgroup_size(1) fn foo(@builtin(global_invocation_id) id: vec3<u32>) {
+        let i = id.x;
+        let j = 2.0;
+        data[i].x = data[i].x * j;
+        {
+            // Make sure variables defined in blocks shadow outer variables.
+            let j = 3.0;
+            data[i].y = data[i].y * 3.0;
+        }
+        data[i].z = data[i].z * j;
+    }`;
+    const wgsl = new WgslExec(shader);
+    const dataBuffer = new Float32Array([1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9, 0]);
+    const bindGroups = {0: {0: dataBuffer}};
+    // Ensure we can dispatch a compute shader and get the expected results from the output buffer.
+    wgsl.dispatchWorkgroups("foo", 3, bindGroups);
+    test.equals(dataBuffer, [1*2, 2*3, 3*2, 0, 4*2, 5*3, 6*2, 0, 7*2, 8*3, 9*2, 0]);
   });
 
   test("struct buffer", function (test) {

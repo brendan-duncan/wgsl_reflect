@@ -264,6 +264,7 @@ let __group = {
     group: undefined,
     numTests: 0,
     testsFailed: 0,
+    skipCatchError: false
 };
 
 export function group(name, f, skipCatchError) {
@@ -276,6 +277,7 @@ export function group(name, f, skipCatchError) {
         group: div,
         numTests: 0,
         testsFailed: 0,
+        skipCatchError: !!skipCatchError
     };
 
     __group = group;
@@ -322,6 +324,8 @@ export function test(name, func, skipCatchError) {
     const t = new Test();
     const group = __group;
     group.numTests++;
+
+    skipCatchError = !!skipCatchError || group.skipCatchError;
 
     if (skipCatchError) {
         func(t);

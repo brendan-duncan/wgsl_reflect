@@ -111,7 +111,7 @@ export class WgslExec {
     }
 
     dispatchWorkgroups(kernel: string, dispatchCount: number | number[], bindGroups: Object, config?: Object) {
-        const context = this.context;
+        const context = this.context.clone();
 
         config = config ?? {};
         if (config["constants"]) {
@@ -259,6 +259,16 @@ export class WgslExec {
 
     _execStatements(statements: Array<AST.Node>, context: ExecContext) {
         for (const stmt of statements) {
+            // Block statements are declared as arrays of statements.
+            if (stmt instanceof Array) {
+                const subContext = context.clone();
+                const res = this._execStatements(stmt, subContext);
+                if (res) {
+                    return res;
+                }
+                continue;
+            }
+
             const res = this._execStatement(stmt, context);
             if (res) {
                 return res;

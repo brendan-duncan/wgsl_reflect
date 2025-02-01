@@ -67,8 +67,8 @@ export class WgslParser {
     this._current = 0;
   }
 
-  _updateNode<T extends AST.Node>(n: T): T {
-    n.line = this._currentLine;
+  _updateNode<T extends AST.Node>(n: T, l?: number): T {
+    n.line = l ?? this._currentLine;
     return n;
   }
 
@@ -304,7 +304,7 @@ export class WgslParser {
 
     const endLine = this._currentLine;
 
-    return this._updateNode(new AST.Function(name, args, _return, body, startLine, endLine));
+    return this._updateNode(new AST.Function(name, args, _return, body, startLine, endLine), startLine);
   }
 
   _compound_statement(): Array<AST.Statement> {
@@ -1226,12 +1226,14 @@ export class WgslParser {
         memberType.attributes = typeAttrs;
       }
 
-      if (!this._check(TokenTypes.tokens.brace_right))
+      if (!this._check(TokenTypes.tokens.brace_right)) {
         this._consume(
           TokenTypes.tokens.comma,
           "Expected ',' for struct member."
         );
-      else this._match(TokenTypes.tokens.comma); // trailing comma optional.
+      } else {
+        this._match(TokenTypes.tokens.comma); // trailing comma optional.
+      }
 
       members.push(this._updateNode(new AST.Member(memberName, memberType, memberAttrs)));
     }
@@ -1243,7 +1245,7 @@ export class WgslParser {
 
     const endLine = this._currentLine;
 
-    const structNode = this._updateNode(new AST.Struct(name, members, startLine, endLine));
+    const structNode = this._updateNode(new AST.Struct(name, members, startLine, endLine), startLine);
     this._context.structs.set(name, structNode);
     return structNode;
   }

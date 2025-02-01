@@ -1951,8 +1951,8 @@ class WgslParser {
         }
         this._current = 0;
     }
-    _updateNode(n) {
-        n.line = this._currentLine;
+    _updateNode(n, l) {
+        n.line = l !== null && l !== void 0 ? l : this._currentLine;
         return n;
     }
     _error(token, message) {
@@ -2135,7 +2135,7 @@ class WgslParser {
         }
         const body = this._compound_statement();
         const endLine = this._currentLine;
-        return this._updateNode(new Function$1(name, args, _return, body, startLine, endLine));
+        return this._updateNode(new Function$1(name, args, _return, body, startLine, endLine), startLine);
     }
     _compound_statement() {
         // brace_left statement* brace_right
@@ -2806,15 +2806,17 @@ class WgslParser {
             if (memberType != null) {
                 memberType.attributes = typeAttrs;
             }
-            if (!this._check(TokenTypes.tokens.brace_right))
+            if (!this._check(TokenTypes.tokens.brace_right)) {
                 this._consume(TokenTypes.tokens.comma, "Expected ',' for struct member.");
-            else
+            }
+            else {
                 this._match(TokenTypes.tokens.comma); // trailing comma optional.
+            }
             members.push(this._updateNode(new Member(memberName, memberType, memberAttrs)));
         }
         this._consume(TokenTypes.tokens.brace_right, "Expected '}' after struct body.");
         const endLine = this._currentLine;
-        const structNode = this._updateNode(new Struct(name, members, startLine, endLine));
+        const structNode = this._updateNode(new Struct(name, members, startLine, endLine), startLine);
         this._context.structs.set(name, structNode);
         return structNode;
     }
@@ -4196,7 +4198,7 @@ class WgslExec {
         this._execStatements(this.ast, this.context);
     }
     dispatchWorkgroups(kernel, dispatchCount, bindGroups, config) {
-        const context = this.context;
+        const context = this.context.clone();
         config = config !== null && config !== void 0 ? config : {};
         if (config["constants"]) {
             for (const k in config["constants"]) {
@@ -4335,6 +4337,15 @@ class WgslExec {
     }
     _execStatements(statements, context) {
         for (const stmt of statements) {
+            // Block statements are declared as arrays of statements.
+            if (stmt instanceof Array) {
+                const subContext = context.clone();
+                const res = this._execStatements(stmt, subContext);
+                if (res) {
+                    return res;
+                }
+                continue;
+            }
             const res = this._execStatement(stmt, context);
             if (res) {
                 return res;
