@@ -1,7 +1,7 @@
 import { test, group } from "../test.js";
 import { WgslParser } from "../../../wgsl_reflect.module.js";
 
-group("Parser", function () {
+await group("Parser", function () {
   test("const2", function (test) {
     const shader = `const FOO = radians(90);
     const BAR = sin(FOO);

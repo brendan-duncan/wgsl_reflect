@@ -1,7 +1,7 @@
 import { test, group } from "../test.js";
 import { WgslParser } from "../../../wgsl_reflect.module.js";
 
-group("struct", function () {
+await group("struct", function () {
   const shader = `
   struct S1 {
     a : i32,

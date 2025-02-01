@@ -4552,41 +4552,67 @@ class WgslExec {
     }
     _evalCreate(node, context) {
         const typeName = this._getTypeName(node.type);
-        if (typeName === "f32") {
-            return this._evalExpression(node.args[0], context);
-        }
-        else if (typeName == "i32") {
-            return this._evalExpression(node.args[0], context);
-        }
-        else if (typeName == "u32") {
-            return this._evalExpression(node.args[0], context);
-        }
-        else if (typeName == "vec2f") {
-            return [this._evalExpression(node.args[0], context), this._evalExpression(node.args[1], context)];
-        }
-        else if (typeName == "vec3f") {
-            return [this._evalExpression(node.args[0], context), this._evalExpression(node.args[1], context), this._evalExpression(node.args[2], context)];
-        }
-        else if (typeName == "vec4f") {
-            return [this._evalExpression(node.args[0], context), this._evalExpression(node.args[1], context), this._evalExpression(node.args[2], context), this._evalExpression(node.args[3], context)];
-        }
-        else if (typeName == "vec2i") {
-            return [this._evalExpression(node.args[0], context), this._evalExpression(node.args[1], context)];
-        }
-        else if (typeName == "vec3i") {
-            return [this._evalExpression(node.args[0], context), this._evalExpression(node.args[1], context), this._evalExpression(node.args[2], context)];
-        }
-        else if (typeName == "vec4i") {
-            return [this._evalExpression(node.args[0], context), this._evalExpression(node.args[1], context), this._evalExpression(node.args[2], context), this._evalExpression(node.args[3], context)];
-        }
-        else if (typeName == "vec2u") {
-            return [this._evalExpression(node.args[0], context), this._evalExpression(node.args[1], context)];
-        }
-        else if (typeName == "vec3u") {
-            return [this._evalExpression(node.args[0], context), this._evalExpression(node.args[1], context), this._evalExpression(node.args[2], context)];
-        }
-        else if (typeName == "vec4u") {
-            return [this._evalExpression(node.args[0], context), this._evalExpression(node.args[1], context), this._evalExpression(node.args[2], context), this._evalExpression(node.args[3], context)];
+        switch (typeName) {
+            // Constructor Built-in Functions
+            // Value Constructor Built-in Functions
+            case "bool":
+            case "i32":
+            case "u32":
+            case "f32":
+            case "f16":
+                return this._callConstructorValue(node, context);
+            case "vec2":
+            case "vec3":
+            case "vec4":
+            case "vec2f":
+            case "vec3f":
+            case "vec4f":
+            case "vec2i":
+            case "vec3i":
+            case "vec4i":
+            case "vec2u":
+            case "vec3u":
+            case "vec4u":
+                return this._callConstructorVec(node, context);
+            case "mat2x2":
+            case "mat2x2i":
+            case "mat2x2u":
+            case "mat2x2f":
+            case "mat2x3":
+            case "mat2x3i":
+            case "mat2x3u":
+            case "mat2x3f":
+            case "mat2x4":
+            case "mat2x4i":
+            case "mat2x4u":
+            case "mat2x4f":
+            case "mat3x2":
+            case "mat3x2i":
+            case "mat3x2u":
+            case "mat3x2f":
+            case "mat3x3":
+            case "mat3x3i":
+            case "mat3x3u":
+            case "mat3x3f":
+            case "mat3x4":
+            case "mat3x4i":
+            case "mat3x4u":
+            case "mat3x4f":
+            case "mat4x2":
+            case "mat4x2i":
+            case "mat4x2u":
+            case "mat4x2f":
+            case "mat4x3":
+            case "mat4x3i":
+            case "mat4x3u":
+            case "mat4x3f":
+            case "mat4x4":
+            case "mat4x4i":
+            case "mat4x4u":
+            case "mat4x4f":
+                return this._callConstructorMatrix(node, context);
+            case "array":
+                return this._callConstructorArray(node, context);
         }
         const typeInfo = this._getTypeInfo(node.type);
         if (typeInfo === null) {
@@ -4604,7 +4630,7 @@ class WgslExec {
             }
         }
         else {
-            console.error(`Unknown type ${typeName}. Line ${node.line}`);
+            console.error(`Unknown type "${typeName}". Line ${node.line}`);
         }
         return data;
     }
@@ -4755,10 +4781,20 @@ class WgslExec {
     }
     _callIntrinsicFunction(node, context) {
         switch (node.name) {
-            case "any":
-                return this._callIntrinsicAny(node, context);
             case "all":
-                return this._callIntrinsicAll(node, context);
+                return this._callAll(node, context);
+            case "any":
+                return this._callAny(node, context);
+            case "select":
+                return this._callSelect(node, context);
+            // Constructor Built-in Functions
+            // Value Constructor Built-in Functions
+            case "bool":
+            case "i32":
+            case "u32":
+            case "f32":
+            case "f16":
+                return this._callConstructorValue(node, context);
             case "vec2":
             case "vec3":
             case "vec4":
@@ -4771,23 +4807,163 @@ class WgslExec {
             case "vec2u":
             case "vec3u":
             case "vec4u":
-                return this._callIntrinsicVec(node, context);
+                return this._callConstructorVec(node, context);
+            case "mat2x2":
+            case "mat2x3":
+            case "mat2x4":
+            case "mat3x2":
+            case "mat3x3":
+            case "mat3x4":
+            case "mat4x2":
+            case "mat4x3":
+            case "mat4x4":
+                return this._callConstructorMatrix(node, context);
+            case "array":
+                return this._callConstructorArray(node, context);
         }
         console.error(`Function ${node.name} not found. Line ${node.line}`);
         return null;
     }
-    _callIntrinsicVec(node, context) {
+    _callConstructorValue(node, context) {
+        if (node.args.length === 0) {
+            return 0;
+        }
+        return this._evalExpression(node.args[0], context);
+    }
+    _callConstructorArray(node, context) {
+        if (node.args.length === 0) {
+            if (node instanceof CreateExpr) {
+                if (node.type instanceof ArrayType) {
+                    if (node.type.count) {
+                        const format = node.type.format.name;
+                        if (format === "bool" || format === "i32" || format === "u32" || format === "f32" || format === "f16") {
+                            return new Array(node.type.count).fill(0);
+                        }
+                        else if (format === "vec2" || format === "vec2u" || format === "vec2i" || format === "vec2f") {
+                            return new Array(node.type.count).fill([0, 0]);
+                        }
+                        else if (format === "vec3" || format === "vec3u" || format === "vec3i" || format === "vec3f") {
+                            return new Array(node.type.count).fill([0, 0, 0]);
+                        }
+                        else if (format === "vec4" || format === "vec4u" || format === "vec4i" || format === "vec4f") {
+                            return new Array(node.type.count).fill([0, 0, 0, 0]);
+                        }
+                        else if (format === "mat2x2") {
+                            return new Array(node.type.count).fill([0, 0, 0, 0]);
+                        }
+                        else if (format === "mat2x3") {
+                            return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0]);
+                        }
+                        else if (format === "mat2x4") {
+                            return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0]);
+                        }
+                        else if (format === "mat3x2") {
+                            return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0]);
+                        }
+                        else if (format === "mat3x3") {
+                            return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0, 0]);
+                        }
+                        else if (format === "mat3x4") {
+                            return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+                        }
+                        else if (format === "mat4x2") {
+                            return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0]);
+                        }
+                        else if (format === "mat4x3") {
+                            return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+                        }
+                        else if (format === "mat4x4") {
+                            return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+                        }
+                        else {
+                            console.error(`TODO: support array format ${format}. Line ${node.line}`);
+                            return null;
+                        }
+                    }
+                }
+            }
+            return [];
+        }
         const values = [];
         for (const arg of node.args) {
             values.push(this._evalExpression(arg, context));
         }
         return values;
     }
-    _callIntrinsicAny(node, context) {
+    _callConstructorVec(node, context) {
+        const typeName = node instanceof CallExpr ? node.name : this._getTypeName(node.type);
+        if (node.args.length === 0) {
+            if (typeName === "vec2" || typeName === "vec2f" || typeName === "vec2i" || typeName === "vec2u") {
+                return [0, 0];
+            }
+            else if (typeName === "vec3" || typeName === "vec3f" || typeName === "vec3i" || typeName === "vec3u") {
+                return [0, 0, 0];
+            }
+            else if (typeName === "vec4" || typeName === "vec4f" || typeName === "vec4i" || typeName === "vec4u") {
+                return [0, 0, 0, 0];
+            }
+            console.error(`Invalid vec constructor ${typeName}. Line ${node.line}`);
+            return null;
+        }
+        const values = [];
+        // TODO: make sure the number of args matches the vector length.
+        for (const arg of node.args) {
+            values.push(this._evalExpression(arg, context));
+        }
+        return values;
+    }
+    _callConstructorMatrix(node, context) {
+        const typeName = node instanceof CallExpr ? node.name : this._getTypeName(node.type);
+        if (node.args.length === 0) {
+            if (typeName === "mat2x2" || typeName === "mat2x2f" || typeName === "mat2x2i" || typeName === "mat2x2u") {
+                return [0, 0, 0, 0];
+            }
+            else if (typeName === "mat2x3" || typeName === "mat2x3f" || typeName === "mat2x3i" || typeName === "mat2x3u") {
+                return [0, 0, 0, 0, 0, 0];
+            }
+            else if (typeName === "mat2x4" || typeName === "mat2x4f" || typeName === "mat2x4i" || typeName === "mat2x4u") {
+                return [0, 0, 0, 0, 0, 0, 0, 0];
+            }
+            else if (typeName === "mat3x2" || typeName === "mat3x2f" || typeName === "mat3x2i" || typeName === "mat3x2u") {
+                return [0, 0, 0, 0, 0, 0];
+            }
+            else if (typeName === "mat3x3" || typeName === "mat3x3f" || typeName === "mat3x3i" || typeName === "mat3x3u") {
+                return [0, 0, 0, 0, 0, 0, 0, 0, 0];
+            }
+            else if (typeName === "mat3x4" || typeName === "mat3x4f" || typeName === "mat3x4i" || typeName === "mat3x4u") {
+                return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+            }
+            else if (typeName === "mat4x2" || typeName === "mat4x2f" || typeName === "mat4x2i" || typeName === "mat4x2u") {
+                return [0, 0, 0, 0, 0, 0, 0, 0];
+            }
+            else if (typeName === "mat4x3" || typeName === "mat4x3f" || typeName === "mat4x3i" || typeName === "mat4x3u") {
+                return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+            }
+            else if (typeName === "mat4x4" || typeName === "mat4x4f" || typeName === "mat4x4i" || typeName === "mat4x4u") {
+                return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+            }
+            console.error(`Invalid matrix constructor ${typeName}. Line ${node.line}`);
+            return null;
+        }
+        const values = [];
+        // TODO: make sure the number of args matches the matrix size.
+        for (const arg of node.args) {
+            values.push(this._evalExpression(arg, context));
+        }
+        return values;
+    }
+    _callAny(node, context) {
         const value = this._evalExpression(node.args[0], context);
         return value.some((v) => v);
     }
-    _callIntrinsicAll(node, context) {
+    _callAll(node, context) {
+        const value = this._evalExpression(node.args[0], context);
+        let isTrue = true;
+        value.forEach((x) => { if (!x)
+            isTrue = false; });
+        return isTrue;
+    }
+    _callSelect(node, context) {
         const value = this._evalExpression(node.args[0], context);
         let isTrue = true;
         value.forEach((x) => { if (!x)
@@ -4804,7 +4980,10 @@ class WgslExec {
         let name = type.name;
         if (type instanceof TemplateInfo) {
             if (type.format !== null) {
-                if (name === "vec2" || name === "vec3" || name === "vec4") {
+                if (name === "vec2" || name === "vec3" || name === "vec4" ||
+                    name === "mat2x2" || name === "mat2x3" || name === "mat2x4" ||
+                    name === "mat3x2" || name === "mat3x3" || name === "mat3x4" ||
+                    name === "mat4x2" || name === "mat4x3" || name === "mat4x4") {
                     if (type.format.name === "f32") {
                         name += "f";
                         return name;

@@ -1,7 +1,7 @@
 import { test, group } from "../test.js";
 import { WgslReflect, ResourceType } from "../../../wgsl_reflect.module.js";
 
-group("Reflect", function () {
+await group("Reflect", function () {
   test("array_no_format", function (test) {
     const t = new WgslReflect(`
       @vertex fn vs() -> VertexData {

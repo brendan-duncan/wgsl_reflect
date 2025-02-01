@@ -1,7 +1,7 @@
 import { test, group } from "../test.js";
 import { WgslScanner, TokenTypes } from "../../../wgsl_reflect.module.js";
 
-group("Scanner", function () {
+await group("Scanner", function () {
   test("(1+2)-3;", function (test) {
     const scanner = new WgslScanner("(1+2)-3;");
     const tokens = scanner.scanTokens();

@@ -1,7 +1,7 @@
 import { test, group } from "../test.js";
 import { WgslReflect } from "../../../wgsl_reflect.module.js";
 
-group("struct_layout", function () {
+await group("struct_layout", function () {
   const shader = `
 struct A {                                     //             align(8)  size(32)
     u: f32,                                    // offset(0)   align(4)  size(4)

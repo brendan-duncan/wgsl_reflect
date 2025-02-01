@@ -267,7 +267,7 @@ let __group = {
     skipCatchError: false
 };
 
-export function group(name, f, skipCatchError) {
+export async function group(name, f, skipCatchError) {
     let div = document.createElement("div");
     div.className = "test_group";
     div.innerText = name;
@@ -283,10 +283,10 @@ export function group(name, f, skipCatchError) {
     __group = group;
 
     if (skipCatchError) {
-        f()
+        await f()
     } else {
         try {
-            f();
+            await f();
         } catch (error) {
             div = document.createElement("div");
             div.className = "test_status_fail";
@@ -320,7 +320,7 @@ function _printLog(log) {
     }
 }
 
-export function test(name, func, skipCatchError) {
+export async function test(name, func, skipCatchError) {
     const t = new Test();
     const group = __group;
     group.numTests++;
@@ -328,10 +328,10 @@ export function test(name, func, skipCatchError) {
     skipCatchError = !!skipCatchError || group.skipCatchError;
 
     if (skipCatchError) {
-        func(t);
+        await func(t);
     } else {
         try {
-            func(t);
+            await func(t);
         } catch (error) {
             group.testsFailed++;
             const div = document.createElement("div");
