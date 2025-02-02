@@ -267,6 +267,118 @@ let __group = {
     skipCatchError: false
 };
 
+function _copy(src) {
+    const dst = new Uint8Array(src.byteLength);
+    dst.set(new Uint8Array(src));
+    return dst.buffer;
+}
+
+let __device = null;
+async function getWebGPUDevice() {
+    if (__device !== null) {
+        return __device;
+    }
+    const adapter = await navigator.gpu.requestAdapter();
+    __device = await adapter.requestDevice();
+    
+    __device.addEventListener('uncapturederror', (event) => {
+        console.error(event.error.message);
+    });
+
+    return __device;
+}
+
+export async function webgpuDispatch(shader, module, dispatchCount, bindgroupData) {
+    const device = await getWebGPUDevice();
+
+    if (dispatchCount.length === undefined) {
+        dispatchCount = [dispatchCount, 1, 1];
+    }
+
+    const readbackBuffers = [];
+    const bindGroups = {};
+
+    for (const group in bindgroupData) {
+        for (const binding in bindgroupData[group]) {
+            const data = bindgroupData[group][binding];
+            if (data.buffer instanceof ArrayBuffer) {
+                const bufferSize = data.byteLength;
+
+                const storageBuffer = device.createBuffer({
+                    size: bufferSize,
+                    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
+                });
+                device.queue.writeBuffer(storageBuffer, 0, data);
+
+                if (bindGroups[group] === undefined) {
+                    bindGroups[group] = [];
+                }
+                bindGroups[group].push({ binding: parseInt(binding), resource: { buffer: storageBuffer } });
+
+                const readbackBuffer = device.createBuffer({
+                    size: bufferSize,
+                    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+                });
+                readbackBuffers.push([storageBuffer, readbackBuffer, bufferSize]);
+            }
+        }
+    }
+
+    const shaderModule = device.createShaderModule({code: shader});
+    const info = await shaderModule.getCompilationInfo();
+    if (info.messages.length) {
+        for (const m of info.messages) {
+            console.log(`${m.lineNum}:${m.linePos}: ${m.message}`);
+        }
+        throw new Error("Shader compilation failed");
+    }
+
+    const computePipeline = device.createComputePipeline({
+        layout: "auto",
+        compute: { module: shaderModule, entryPoint: module }
+    });
+
+    const commandEncoder = device.createCommandEncoder();
+    const computePass = commandEncoder.beginComputePass();
+    computePass.setPipeline(computePipeline);
+
+    for (const group in bindGroups) {
+        const groupIndex = parseInt(group);
+        const bindings = bindGroups[group];
+        const bindGroup = device.createBindGroup({
+            layout: computePipeline.getBindGroupLayout(groupIndex),
+            entries: bindings
+        });
+        computePass.setBindGroup(groupIndex, bindGroup);
+    }
+
+    computePass.dispatchWorkgroups(...dispatchCount);
+    computePass.end();
+
+    device.queue.submit([commandEncoder.finish()]);
+
+    const copyEncoder = device.createCommandEncoder();
+    for (const b of readbackBuffers) {
+        copyEncoder.copyBufferToBuffer(b[0], 0, b[1], 0, b[2]);
+    }
+    device.queue.submit([copyEncoder.finish()]);
+
+    const results = [];
+    for (const b of readbackBuffers) {
+        await b[1].mapAsync(GPUMapMode.READ, 0, b[2]);
+        const mappedArray = _copy(b[1].getMappedRange(0, b[2]));
+        b[1].unmap();
+        b[0].destroy();
+        b[1].destroy();
+        results.push(mappedArray);
+    }
+
+    if (results.length === 1) {
+        return results[0];
+    }
+    return results;
+}
+
 export async function group(name, f, skipCatchError) {
     let div = document.createElement("div");
     div.className = "test_group";
