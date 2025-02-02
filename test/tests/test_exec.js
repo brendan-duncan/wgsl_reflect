@@ -183,8 +183,9 @@ await group("WgslExec", async function () {
         0, 0, 0, 0,
         0, 0, 0, 0]);
     const bg = {0: {0: dataBuffer}};
-    const _data = await webgpuDispatch(shader, "main", 3, bg);
+    const _data = await webgpuDispatch(shader, "main", 2, bg);
     const webgpuData = new Float32Array(_data);
+
     const wgsl = new WgslExec(shader);
     wgsl.dispatchWorkgroups("main", 2, bg);
     test.equals(dataBuffer, webgpuData);
