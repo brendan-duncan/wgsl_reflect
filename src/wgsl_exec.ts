@@ -194,9 +194,14 @@ export class WgslExec {
                             }
                         }
                         if (binding == b && set == s) {
-                            if (entry.data !== undefined && entry.size !== undefined) {
-                                v.value = new Data(entry.data, this._getTypeInfo(node.type), 0, entry.size);
+                            if (entry.texture !== undefined && entry.size !== undefined) {
+                                // Texture
+                                v.value = new Data(entry.texture, this._getTypeInfo(node.type), 0, entry.size);
+                            } else if (entry.uniform !== undefined) {
+                                // Uniform buffer
+                                v.value = new Data(entry, this._getTypeInfo(node.type));
                             } else {
+                                // Storage buffer
                                 v.value = new Data(entry, this._getTypeInfo(node.type));
                             }
                         }

@@ -353,7 +353,7 @@ await group("WgslExec", async function () {
     test.equals(valid, true);
   });
 
-  await test("texture", async function (test) {
+  await test("textureLoad", async function (test) {
     const shader = `
         @group(0) @binding(0) var<storage, read_write> bins: array<u32>;
         @group(0) @binding(1) var ourTexture: texture_2d<f32>;
@@ -363,7 +363,7 @@ await group("WgslExec", async function () {
         fn srgbLuminance(color: vec3f) -> f32 {
             return saturate(dot(color, kSRGBLuminanceFactors));
         }
-        @compute @workgroup_size(1) fn cs() {
+        @compute @workgroup_size(1) fn main() {
             let size = textureDimensions(ourTexture, 0);
             let numBins = f32(arrayLength(&bins));
             let lastBinIndex = u32(numBins - 1);
@@ -381,19 +381,25 @@ await group("WgslExec", async function () {
         const numBins = 256;
         const histogramBuffer = new Uint32Array(numBins);
 
-        const texture = new Uint8Array(16 * 16 * 4);
-        for (let y = 0, idx = 0; y < 16; ++y) {
-            for (let x = 0; x < 16; ++x, idx += 4) {
-                texture[idx + 0] = x * 16;
-                texture[idx + 1] = y * 16;
+        const size = [16, 16];
+        const texture = new Uint8Array(size[0] * size[1] * 4);
+        for (let y = 0, idx = 0; y < size[1]; ++y) {
+            for (let x = 0; x < size[0]; ++x, idx += 4) {
+                texture[idx + 0] = x * (255 / size[0]);
+                texture[idx + 1] = y * (255 / size[1]);
                 texture[idx + 2] = 0;
                 texture[idx + 3] = 255;
             }
         }
 
-        const bg = {0: {0: histogramBuffer, 1: {data: texture, size: [16, 16]}}};
+        const bg = {0: {0: histogramBuffer, 1: {texture, size}}};
+
+        const _data = await webgpuDispatch(shader, "main", 1, bg);
+        const webgpuData = new Uint32Array(_data);
 
         const wgsl = new WgslExec(shader);
-        wgsl.dispatchWorkgroups("cs", 1, bg);
+        wgsl.dispatchWorkgroups("main", 1, bg);
+
+        test.equals(histogramBuffer, webgpuData);
   });
 });

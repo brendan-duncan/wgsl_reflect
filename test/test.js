@@ -299,8 +299,9 @@ export async function webgpuDispatch(shader, module, dispatchCount, bindgroupDat
     const bindGroups = {};
 
     for (const group in bindgroupData) {
-        for (const binding in bindgroupData[group]) {
-            const data = bindgroupData[group][binding];
+        for (const _binding in bindgroupData[group]) {
+            const binding = parseInt(_binding);
+            const data = bindgroupData[group][_binding];
             if (data.buffer instanceof ArrayBuffer) {
                 const bufferSize = data.byteLength;
 
@@ -313,13 +314,26 @@ export async function webgpuDispatch(shader, module, dispatchCount, bindgroupDat
                 if (bindGroups[group] === undefined) {
                     bindGroups[group] = [];
                 }
-                bindGroups[group].push({ binding: parseInt(binding), resource: { buffer: storageBuffer } });
+                bindGroups[group].push({ binding, resource: { buffer: storageBuffer } });
 
                 const readbackBuffer = device.createBuffer({
                     size: bufferSize,
                     usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
                 });
                 readbackBuffers.push([storageBuffer, readbackBuffer, bufferSize]);
+            } else if (data.texture !== undefined && data.size !== undefined) {
+                const texture = device.createTexture({
+                    dimension: "2d",
+                    format: "rgba8unorm",
+                    mipLevelCount: 1,
+                    sampleCount: 1,
+                    size: data.size,
+                    usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+                });
+                device.queue.writeTexture({ texture }, data.texture, {bytesPerRow: data.size[0] * 4},
+                    {width: data.size[0], height: data.size[1]});
+
+                bindGroups[group].push({ binding, resource: texture.createView() });
             }
         }
     }
