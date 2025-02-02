@@ -95,7 +95,7 @@ await group("WgslExec", async function () {
     return results;
   }
 
-  test("set variable", function (test) {
+  await test("set variable", function (test) {
     const shader = `let foo = 1 + 2;`;
     const wgsl = new WgslExec(shader);
     wgsl.execute();
@@ -103,7 +103,7 @@ await group("WgslExec", async function () {
     test.equals(wgsl.getVariableValue("foo"), 3);
   });
 
-  test("multiple variables", function (test) {
+  await test("multiple variables", function (test) {
     const shader = `let foo = 1 + 2;
     let bar = foo * 4;`;
 
@@ -114,7 +114,7 @@ await group("WgslExec", async function () {
     test.equals(wgsl.getVariableValue("bar"), 12);
   });
 
-  test("call function", function (test) {
+  await test("call function", function (test) {
     const shader = `fn foo(a: int, b: int) -> int {
       if (b != 0) {
         return a / b;
@@ -172,7 +172,7 @@ await group("WgslExec", async function () {
     test.equals(buffer, data);
   });
 
-  test("vec3f buffer stride", async function (test) {
+  await test("vec3f buffer stride", async function (test) {
     const shader = `@group(0) @binding(0) var<storage, read_write> data: array<vec3f>;
     @compute @workgroup_size(1) fn main(@builtin(global_invocation_id) id: vec3<u32>) {
         let i = id.x;
@@ -191,7 +191,7 @@ await group("WgslExec", async function () {
     test.equals(buffer, data);
   });
 
-  test("shadow variable", async function (test) {
+  await test("shadow variable", async function (test) {
     const shader = `@group(0) @binding(0) var<storage, read_write> data: array<vec3f>;
     @compute @workgroup_size(1) fn main(@builtin(global_invocation_id) id: vec3<u32>) {
         let i = id.x;
@@ -218,7 +218,7 @@ await group("WgslExec", async function () {
     test.equals(buffer, data);
   });
 
-  test("struct buffer", async function (test) {
+  await test("struct buffer", async function (test) {
     const shader = `
     struct Ray {
         origin: vec3<f32>,
@@ -247,7 +247,7 @@ await group("WgslExec", async function () {
     test.equals(dataBuffer, data);
   });
 
-  test("struct construction", async function (test) {
+  await test("struct construction", async function (test) {
     const shader = `
     struct Ray {
         origin: vec3f,
@@ -275,7 +275,7 @@ await group("WgslExec", async function () {
     test.equals(dataBuffer, data);
   });
 
-  test("compute dispatch builtin variables", async function (test) {
+  await test("compute dispatch builtin variables", async function (test) {
     const dispatchCount = [4, 3, 2];
     const workgroupSize = [2, 3, 4];
 
@@ -338,7 +338,7 @@ await group("WgslExec", async function () {
     }
   });
 
-  test("override / structs", function (test) {
+  await test("override / structs", function (test) {
     const shader = `
         struct Uniforms {
             viewportSize: vec2<u32>
@@ -435,7 +435,7 @@ await group("WgslExec", async function () {
     test.equals(valid, true);
   });
 
-  test("texture", async function (test) {
+  await test("texture", async function (test) {
     const shader = `
         @group(0) @binding(0) var<storage, read_write> bins: array<u32>;
         @group(0) @binding(1) var ourTexture: texture_2d<f32>;
@@ -464,6 +464,14 @@ await group("WgslExec", async function () {
         const histogramBuffer = new Uint32Array(numBins);
 
         const texture = new Uint8Array(16 * 16 * 4);
+        for (let y = 0, idx = 0; y < 16; ++y) {
+            for (let x = 0; x < 16; ++x, idx += 4) {
+                texture[idx + 0] = x * 16;
+                texture[idx + 1] = y * 16;
+                texture[idx + 2] = 0;
+                texture[idx + 3] = 255;
+            }
+        }
 
         const bindGroups = {0: {0: histogramBuffer, 1: {data: texture, size: [16, 16]}}};
         const wgsl = new WgslExec(shader);

@@ -69,15 +69,15 @@ export declare class WgslExec {
     _callMin(node: AST.CallExpr, context: ExecContext): any;
     _callMax(node: AST.CallExpr, context: ExecContext): any;
     _callSaturate(node: AST.CallExpr, context: ExecContext): any;
-    _callTextureLoad(node: AST.CallExpr, context: ExecContext): number[];
     _callArrayLength(node: AST.CallExpr, context: ExecContext): any;
     _callConstructorValue(node: AST.CallExpr | AST.CreateExpr, context: ExecContext): any;
     _callConstructorArray(node: AST.CallExpr | AST.CreateExpr, context: ExecContext): any[];
-    _callConstructorVec(node: AST.CallExpr | AST.CreateExpr, context: ExecContext): any[];
+    _callConstructorVec(node: AST.CallExpr | AST.CreateExpr, context: ExecContext): any;
     _callConstructorMatrix(node: AST.CallExpr | AST.CreateExpr, context: ExecContext): any[];
     _callAny(node: AST.CallExpr, context: ExecContext): any;
     _callAll(node: AST.CallExpr, context: ExecContext): boolean;
-    _callSelect(node: AST.CallExpr, context: ExecContext): boolean;
+    _callSelect(node: AST.CallExpr, context: ExecContext): any;
+    _callTextureLoad(node: AST.CallExpr, context: ExecContext): number[];
     _callTextureDimensions(node: AST.CallExpr, context: ExecContext): number[];
     _getTypeInfo(type: AST.Type): TypeInfo;
     _getTypeName(type: TypeInfo | AST.Type): string;

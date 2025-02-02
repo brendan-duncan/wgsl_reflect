@@ -4464,7 +4464,98 @@ class WgslExec {
             console.error(`Variable ${name} not found. Line ${node.line}`);
             return;
         }
-        const value = this._evalExpression(node.value, context);
+        let value = this._evalExpression(node.value, context);
+        if (node.operator !== "=") {
+            const currentValue = this._getDataValue(v.value, node.variable.postfix, context);
+            if (currentValue.length !== undefined && value.length !== undefined) {
+                if (currentValue.length !== value.length) {
+                    console.error(`Vector length mismatch. Line ${node.line}`);
+                    return;
+                }
+                if (node.operator === "+=") {
+                    for (let i = 0; i < currentValue.length; ++i) {
+                        value[i] = currentValue[i] + value[i];
+                    }
+                }
+                else if (node.operator === "-=") {
+                    for (let i = 0; i < currentValue.length; ++i) {
+                        value[i] = currentValue[i] - value[i];
+                    }
+                }
+                else if (node.operator === "*=") {
+                    for (let i = 0; i < currentValue.length; ++i) {
+                        value[i] = currentValue[i] * value[i];
+                    }
+                }
+                else if (node.operator === "/=") {
+                    for (let i = 0; i < currentValue.length; ++i) {
+                        value[i] = currentValue[i] / value[i];
+                    }
+                }
+                else if (node.operator === "%=") {
+                    for (let i = 0; i < currentValue.length; ++i) {
+                        value[i] = currentValue[i] % value[i];
+                    }
+                }
+                else if (node.operator === "&=") {
+                    for (let i = 0; i < currentValue.length; ++i) {
+                        value[i] = currentValue[i] & value[i];
+                    }
+                }
+                else if (node.operator === "|=") {
+                    for (let i = 0; i < currentValue.length; ++i) {
+                        value[i] = currentValue[i] | value[i];
+                    }
+                }
+                else if (node.operator === "^=") {
+                    for (let i = 0; i < currentValue.length; ++i) {
+                        value[i] = currentValue[i] ^ value[i];
+                    }
+                }
+                else if (node.operator === "<<=") {
+                    for (let i = 0; i < currentValue.length; ++i) {
+                        value[i] = currentValue[i] << value[i];
+                    }
+                }
+                else if (node.operator === ">>=") {
+                    for (let i = 0; i < currentValue.length; ++i) {
+                        value[i] = currentValue[i] >> value[i];
+                    }
+                }
+            }
+            else {
+                if (node.operator === "+=") {
+                    value = currentValue + value;
+                }
+                else if (node.operator === "-=") {
+                    value = currentValue - value;
+                }
+                else if (node.operator === "*=") {
+                    value = currentValue * value;
+                }
+                else if (node.operator === "/=") {
+                    value = currentValue / value;
+                }
+                else if (node.operator === "%=") {
+                    value = currentValue % value;
+                }
+                else if (node.operator === "&=") {
+                    value = currentValue & value;
+                }
+                else if (node.operator === "|=") {
+                    value = currentValue | value;
+                }
+                else if (node.operator === "^=") {
+                    value = currentValue - value;
+                }
+                else if (node.operator === "<<=") {
+                    value = currentValue << value;
+                }
+                else if (node.operator === ">>=") {
+                    value = currentValue >> value;
+                }
+            }
+        }
         if (v.value instanceof Data) {
             this._setDataValue(v.value, value, node.variable.postfix, context);
         }
@@ -4623,11 +4714,13 @@ class WgslExec {
             // Constructor Built-in Functions
             // Value Constructor Built-in Functions
             case "bool":
+                this._callConstructorValue(node, context) ? 1 : 0;
             case "i32":
             case "u32":
+                return Math.floor(this._callConstructorValue(node, context));
             case "f32":
             case "f16":
-                return this._callConstructorValue(node, context);
+                this._callConstructorValue(node, context);
             case "vec2":
             case "vec3":
             case "vec4":
@@ -4870,9 +4963,12 @@ class WgslExec {
                 return this._callTextureLoad(node, context);
             // Constructor Built-in Functions
             // Value Constructor Built-in Functions
+            // TODO: thise should have been Create operators
             case "bool":
+                return this._callConstructorValue(node, context) ? 1 : 0;
             case "i32":
             case "u32":
+                return Math.floor(this._callConstructorValue(node, context));
             case "f32":
             case "f16":
                 return this._callConstructorValue(node, context);
@@ -4937,9 +5033,6 @@ class WgslExec {
     _callSaturate(node, context) {
         const value = this._evalExpression(node.args[0], context);
         return Math.min(Math.max(value, 0), 1);
-    }
-    _callTextureLoad(node, context) {
-        return [0, 0, 0, 0];
     }
     _callArrayLength(node, context) {
         let arrayArg = node.args[0];
@@ -5035,10 +5128,18 @@ class WgslExec {
             console.error(`Invalid vec constructor ${typeName}. Line ${node.line}`);
             return null;
         }
+        const isInt = typeName.endsWith("i") || typeName.endsWith("u");
         const values = [];
         // TODO: make sure the number of args matches the vector length.
         for (const arg of node.args) {
-            values.push(this._evalExpression(arg, context));
+            let v = this._evalExpression(arg, context);
+            if (isInt) {
+                v = Math.floor(v);
+            }
+            values.push(v);
+        }
+        if (typeName == "f32" || typeName == "f16" || typeName == "i32" || typeName == "u32") {
+            return values[0];
         }
         return values;
     }
@@ -5075,10 +5176,15 @@ class WgslExec {
             console.error(`Invalid matrix constructor ${typeName}. Line ${node.line}`);
             return null;
         }
+        const isInt = typeName.endsWith("i") || typeName.endsWith("u");
         const values = [];
         // TODO: make sure the number of args matches the matrix size.
         for (const arg of node.args) {
-            values.push(this._evalExpression(arg, context));
+            let v = this._evalExpression(arg, context);
+            if (isInt) {
+                v = Math.floor(v);
+            }
+            values.push(v);
         }
         return values;
     }
@@ -5094,11 +5200,38 @@ class WgslExec {
         return isTrue;
     }
     _callSelect(node, context) {
-        const value = this._evalExpression(node.args[0], context);
-        let isTrue = true;
-        value.forEach((x) => { if (!x)
-            isTrue = false; });
-        return isTrue;
+        const condition = this._evalExpression(node.args[2], context);
+        if (condition) {
+            return this._evalExpression(node.args[0], context);
+        }
+        else {
+            return this._evalExpression(node.args[1], context);
+        }
+    }
+    _callTextureLoad(node, context) {
+        const textureArg = node.args[0];
+        const uv = this._evalExpression(node.args[1], context);
+        node.args.length > 2 ? this._evalExpression(node.args[2], context) : 0;
+        if (textureArg instanceof VariableExpr) {
+            const textureName = textureArg.name;
+            const texture = context.getVariableValue(textureName);
+            if (texture instanceof Data) {
+                const textureSize = texture.textureSize;
+                const x = Math.floor(uv[0]);
+                const y = Math.floor(uv[1]);
+                console.log(x);
+                // TODO non RGBA8 textures
+                const offset = (y * textureSize[0] + x) * 4;
+                const texel = new Uint8Array(texture.buffer, offset, 4);
+                // TODO: non-f32 textures
+                return [texel[0] / 255, texel[1] / 255, texel[2] / 255, texel[3] / 255];
+            }
+            else {
+                console.error(`Texture ${textureName} not found. Line ${node.line}`);
+                return null;
+            }
+        }
+        return null;
     }
     _callTextureDimensions(node, context) {
         const textureArg = node.args[0];
