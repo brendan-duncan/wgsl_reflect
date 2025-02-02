@@ -20,7 +20,32 @@ await group("WgslExec", async function () {
         dispatchCount = [dispatchCount, 1, 1];
     }
 
-    const bufferSize = initialData.byteLength;
+    if (!(initialData instanceof Array)) {
+        initialData = [initialData];
+    }
+
+    const readbackBuffers = [];
+    const bindings = [];
+    let index = 0;
+    for (const data of initialData) {
+        const bufferSize = data.byteLength;
+
+        const storageBuffer = device.createBuffer({
+            size: bufferSize,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
+        });
+        device.queue.writeBuffer(storageBuffer, 0, data);
+
+        bindings.push({ binding: index, resource: { buffer: storageBuffer } });
+        index++;
+
+        const readbackBuffer = device.createBuffer({
+            size: bufferSize,
+            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+        });
+        readbackBuffers.push([storageBuffer, readbackBuffer, bufferSize]);
+    }
+
     const shaderModule = device.createShaderModule({code: shader});
     const info = await shaderModule.getCompilationInfo();
     if (info.messages.length) {
@@ -29,21 +54,14 @@ await group("WgslExec", async function () {
         }
         throw new Error("Shader compilation failed");
     }
-    const storageBuffer = device.createBuffer({
-        size: bufferSize,
-        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
-    });
-    const readbackBuffer = device.createBuffer({
-        size: bufferSize,
-        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
-    });
+
     const computePipeline = device.createComputePipeline({
         layout: "auto",
         compute: { module: shaderModule, entryPoint: module }
     });
     const bindGroup = device.createBindGroup({
         layout: computePipeline.getBindGroupLayout(0),
-        entries: [ { binding: 0, resource: { buffer: storageBuffer, bufferSize } } ]
+        entries: bindings
     });
 
     const commandEncoder = device.createCommandEncoder();
@@ -53,20 +71,28 @@ await group("WgslExec", async function () {
     computePass.dispatchWorkgroups(...dispatchCount);
     computePass.end();
 
-    device.queue.writeBuffer(storageBuffer, 0, initialData);
     device.queue.submit([commandEncoder.finish()]);
 
     const copyEncoder = device.createCommandEncoder();
-    copyEncoder.copyBufferToBuffer(storageBuffer, 0, readbackBuffer, 0, bufferSize);
+    for (const b of readbackBuffers) {
+        copyEncoder.copyBufferToBuffer(b[0], 0, b[1], 0, b[2]);
+    }
     device.queue.submit([copyEncoder.finish()]);
-    
-    await readbackBuffer.mapAsync(GPUMapMode.READ, 0, bufferSize);
-    const mappedArray = _copy(readbackBuffer.getMappedRange(0, bufferSize));
-    readbackBuffer.unmap();
-    readbackBuffer.destroy();
-    storageBuffer.destroy();
 
-    return mappedArray;
+    const results = [];
+    for (const b of readbackBuffers) {
+        await b[1].mapAsync(GPUMapMode.READ, 0, b[2]);
+        const mappedArray = _copy(b[1].getMappedRange(0, b[2]));
+        b[1].unmap();
+        b[0].destroy();
+        b[1].destroy();
+        results.push(mappedArray);
+    }
+
+    if (results.length === 1) {
+        return results[0];
+    }
+    return results;
   }
 
   test("set variable", function (test) {
@@ -165,9 +191,9 @@ await group("WgslExec", async function () {
     test.equals(buffer, data);
   });
 
-  test("shadow variable", function (test) {
+  test("shadow variable", async function (test) {
     const shader = `@group(0) @binding(0) var<storage, read_write> data: array<vec3f>;
-    @compute @workgroup_size(1) fn foo(@builtin(global_invocation_id) id: vec3<u32>) {
+    @compute @workgroup_size(1) fn main(@builtin(global_invocation_id) id: vec3<u32>) {
         let i = id.x;
         let j = 2.0;
         data[i].x = data[i].x * j;
@@ -178,22 +204,25 @@ await group("WgslExec", async function () {
         }
         data[i].z = data[i].z * j;
     }`;
+
+    const buffer = new Float32Array([1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9, 0]);
+    const _data = await webgpuDispatch(shader, "main", 3, buffer);
+    const data = new Float32Array(_data);
     const wgsl = new WgslExec(shader);
-    const dataBuffer = new Float32Array([1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9, 0]);
-    const bindGroups = {0: {0: dataBuffer}};
+
     // Ensure we can dispatch a compute shader and get the expected results from the output buffer.
-    wgsl.dispatchWorkgroups("foo", 3, bindGroups);
-    test.equals(dataBuffer, [1*2, 2*3, 3*2, 0, 4*2, 5*3, 6*2, 0, 7*2, 8*3, 9*2, 0]);
+    wgsl.dispatchWorkgroups("main", 3, {0: {0: buffer}});
+    test.equals(buffer, data);
   });
 
-  test("struct buffer", function (test) {
+  test("struct buffer", async function (test) {
     const shader = `
     struct Ray {
         origin: vec3<f32>,
         direction: vec3<f32>
     };
     @group(0) @binding(0) var<storage, read_write> data: array<Ray>;
-    @compute @workgroup_size(1) fn computeSomething(@builtin(global_invocation_id) id: vec3<u32>) {
+    @compute @workgroup_size(1) fn main(@builtin(global_invocation_id) id: vec3<u32>) {
         let i = id.x;
         data[i].origin.x = data[i].origin.x + 2.0;
         data[i].origin.y = data[i].origin.y + 3.0;
@@ -202,47 +231,48 @@ await group("WgslExec", async function () {
         data[i].direction.y = data[i].direction.y + 3.0;
         data[i].direction.z = data[i].direction.z + 4.0;
     }`;
-    const wgsl = new WgslExec(shader);
     const dataBuffer = new Float32Array([
         1, 2, 3, 0,
         4, 5, 6, 0,
         7, 8, 9, 0,
         10, 11, 12, 0]);
-    const bindGroups = {0: {0: dataBuffer}};
+    const _data = await webgpuDispatch(shader, "main", 3, dataBuffer);
+    const data = new Float32Array(_data);
     // Ensure we can dispatch a compute shader and get the expected results from the output buffer.
-    wgsl.dispatchWorkgroups("computeSomething", 2, bindGroups);
-    test.equals(dataBuffer, [1+2, 2+3, 3+4, 0, 4+2, 5+3, 6+4, 0, 7+2, 8+3, 9+4, 0, 10+2, 11+3, 12+4, 0]);
+    const wgsl = new WgslExec(shader);
+    wgsl.dispatchWorkgroups("main", 2, {0: {0: dataBuffer}});
+    test.equals(dataBuffer, data);
   });
 
-  test("struct construction", function (test) {
+  test("struct construction", async function (test) {
     const shader = `
     struct Ray {
         origin: vec3f,
         direction: vec3f
     };
-    @group(0) @binding(0) var<storage, write> data: array<Ray>;
-    @compute @workgroup_size(1) fn computeSomething(@builtin(global_invocation_id) id: vec3<u32>) {
+    @group(0) @binding(0) var<storage, read_write> data: array<Ray>;
+    @compute @workgroup_size(1) fn main(@builtin(global_invocation_id) id: vec3<u32>) {
         let i = id.x;
-        let j = i * 10;
+        let j = f32(i * 10);
         let ray = Ray(
             vec3f(j + 1.0, j + 2.0, j + 3.0),
             vec3f(j + 4.0, j + 5.0, j + 6.0)
         );
         data[i] = ray;
     }`;
-    const wgsl = new WgslExec(shader);
     const dataBuffer = new Float32Array([
         0, 0, 0, 0,
         0, 0, 0, 0,
         0, 0, 0, 0,
         0, 0, 0, 0]);
-    const bindGroups = {0: {0: dataBuffer}};
-    // Ensure we can dispatch a compute shader and get the expected results from the output buffer.
-    wgsl.dispatchWorkgroups("computeSomething", 2, bindGroups);
-    test.equals(dataBuffer, [1, 2, 3, 0, 4, 5, 6, 0, 11, 12, 13, 0, 14, 15, 16, 0]);
+    const _data = await webgpuDispatch(shader, "main", 3, dataBuffer);
+    const data = new Float32Array(_data);
+    const wgsl = new WgslExec(shader);
+    wgsl.dispatchWorkgroups("main", 2, {0: {0: dataBuffer}});
+    test.equals(dataBuffer, data);
   });
 
-  test("compute dispatch builtin variables", function (test) {
+  test("compute dispatch builtin variables", async function (test) {
     const dispatchCount = [4, 3, 2];
     const workgroupSize = [2, 3, 4];
 
@@ -256,7 +286,7 @@ await group("WgslExec", async function () {
     @group(0) @binding(1) var<storage, read_write> localResult: array<vec3u>;
     @group(0) @binding(2) var<storage, read_write> globalResult: array<vec3u>;
 
-    @compute @workgroup_size(${workgroupSize}) fn computeSomething(
+    @compute @workgroup_size(${workgroupSize}) fn main(
         @builtin(workgroup_id) workgroup_id : vec3<u32>,
         @builtin(local_invocation_id) local_invocation_id : vec3<u32>,
         @builtin(global_invocation_id) global_invocation_id : vec3<u32>,
@@ -285,7 +315,6 @@ await group("WgslExec", async function () {
         localResult[global_invocation_index] = local_invocation_id;
         globalResult[global_invocation_index] = global_invocation_id;
     }`;
-    const wgsl = new WgslExec(shader);
 
     const numWorkgroups = arrayProd(dispatchCount);
     const numResults = numWorkgroups * numThreadsPerWorkgroup;
@@ -295,13 +324,15 @@ await group("WgslExec", async function () {
     const localBuffer = new Uint32Array(size);
     const globalBuffer = new Uint32Array(size);
 
-    const bindGroups = {0: {0: workgroupBuffer, 1: localBuffer, 2: globalBuffer}};
+    const _data = await webgpuDispatch(shader, "main", dispatchCount, [workgroupBuffer, localBuffer, globalBuffer]);
 
-    wgsl.dispatchWorkgroups("computeSomething", dispatchCount, bindGroups);
-    //test.equals(workgroupBuffer[586], 2);
-    //test.equals(workgroupBuffer[586], 2);
-    //test.equals(localBuffer[3], 1);
-    //test.equals(globalBuffer[3], 1);
+    const wgsl = new WgslExec(shader);
+    wgsl.dispatchWorkgroups("main", dispatchCount, {0: {0: workgroupBuffer, 1: localBuffer, 2: globalBuffer}});
+    const execData = [workgroupBuffer, localBuffer, globalBuffer];
+    for (let i = 0; i < 3; i++) {
+        const a = new Uint32Array(_data[i]);
+        test.equals(execData[i], a);
+    }
   });
 
   test("override / structs", function (test) {
@@ -400,4 +431,39 @@ await group("WgslExec", async function () {
 
     test.equals(valid, true);
   });
+
+  /*test("texture", async function (test) {
+    const shader = `
+        @group(0) @binding(0) var<storage, read_write> bins: array<u32>;
+        @group(0) @binding(1) var ourTexture: texture_2d<f32>;
+
+        // from: https://www.w3.org/WAI/GL/wiki/Relative_luminance
+        const kSRGBLuminanceFactors = vec3f(0.2126, 0.7152, 0.0722);
+        fn srgbLuminance(color: vec3f) -> f32 {
+            return saturate(dot(color, kSRGBLuminanceFactors));
+        }
+        @compute @workgroup_size(1) fn cs() {
+            let size = textureDimensions(ourTexture, 0);
+            let numBins = f32(arrayLength(&bins));
+            let lastBinIndex = u32(numBins - 1);
+            for (var y = 0u; y < size.y; y++) {
+                for (var x = 0u; x < size.x; x++) {
+                    let position = vec2u(x, y);
+                    let color = textureLoad(ourTexture, position, 0);
+                    let v = srgbLuminance(color.rgb);
+                    let bin = min(u32(v * numBins), lastBinIndex);
+                    bins[bin] += 1;
+                }
+            }
+        }`;
+
+        const numBins = 256;
+        const histogramBuffer = new Uint32Array(numBins);
+
+        const texture = new Uint8Array(16 * 16 * 4);
+
+        const bindGroups = {0: {0: histogramBuffer, 1: {data: texture, size: [16, 16]}}};
+        const wgsl = new WgslExec(shader);
+        wgsl.dispatchWorkgroups("cs", 1, bindGroups);
+  });*/
 });

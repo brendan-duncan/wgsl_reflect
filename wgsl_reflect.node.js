@@ -4118,10 +4118,14 @@ WgslReflect._samplerTypes = TokenTypes.sampler_type.map((t) => {
 });
 
 class Data {
-    constructor(data, typeInfo, offset = 0) {
+    constructor(data, typeInfo, offset = 0, textureSize) {
+        this.textureSize = [0, 0, 0];
         this.buffer = data instanceof ArrayBuffer ? data : data.buffer;
         this.typeInfo = typeInfo;
         this.offset = offset;
+        if (textureSize !== undefined) {
+            this.textureSize = textureSize;
+        }
     }
 }
 class Var {
@@ -4249,7 +4253,12 @@ class WgslExec {
                             }
                         }
                         if (binding == b && set == s) {
-                            v.value = new Data(entry, this._getTypeInfo(node.type));
+                            if (entry.data !== undefined && entry.size !== undefined) {
+                                v.value = new Data(entry.data, this._getTypeInfo(node.type), 0, entry.size);
+                            }
+                            else {
+                                v.value = new Data(entry, this._getTypeInfo(node.type));
+                            }
                         }
                     }
                 });
@@ -4369,6 +4378,9 @@ class WgslExec {
         else if (stmt instanceof Var$1) {
             this._var(stmt, context);
         }
+        else if (stmt instanceof Const) {
+            this._const(stmt, context);
+        }
         else if (stmt instanceof Function$1) {
             this._function(stmt, context);
         }
@@ -4467,6 +4479,13 @@ class WgslExec {
         const f = new Function(node);
         context.functions.set(node.name, f);
     }
+    _const(node, context) {
+        let value = null;
+        if (node.value != null) {
+            value = this._evalExpression(node.value, context);
+        }
+        context.setVariable(node.name, value, node);
+    }
     _let(node, context) {
         let value = null;
         if (node.value != null) {
@@ -4498,7 +4517,8 @@ class WgslExec {
         return null;
     }
     _for(node, context) {
-        this._evalExpression(node.init, context);
+        context = context.clone();
+        this._execStatement(node.init, context);
         this._evalExpression(node.condition, context);
         this._evalExpression(node.increment, context);
         /*for (let i = start; i < end; i += step) {
@@ -4789,8 +4809,12 @@ class WgslExec {
                 return this._callAll(node, context);
             case "any":
                 return this._callAny(node, context);
+            case "arrayLength":
+                return this._callArrayLength(node, context);
             case "select":
                 return this._callSelect(node, context);
+            case "textureDimensions":
+                return this._callTextureDimensions(node, context);
             // Constructor Built-in Functions
             // Value Constructor Built-in Functions
             case "bool":
@@ -4827,6 +4851,19 @@ class WgslExec {
         }
         console.error(`Function ${node.name} not found. Line ${node.line}`);
         return null;
+    }
+    _callArrayLength(node, context) {
+        let arrayArg = node.args[0];
+        // TODO: handle "&" operator
+        if (arrayArg instanceof UnaryOperator) {
+            arrayArg = arrayArg.right;
+        }
+        const arrayData = this._evalExpression(arrayArg, context);
+        if (arrayData.typeInfo.size === 0) {
+            const count = arrayData.buffer.byteLength / arrayData.typeInfo.stride;
+            return count;
+        }
+        return arrayData.typeInfo.size;
     }
     _callConstructorValue(node, context) {
         if (node.args.length === 0) {
@@ -4973,6 +5010,23 @@ class WgslExec {
         value.forEach((x) => { if (!x)
             isTrue = false; });
         return isTrue;
+    }
+    _callTextureDimensions(node, context) {
+        const textureArg = node.args[0];
+        node.args.length > 1 ? this._evalExpression(node.args[1], context) : 0;
+        if (textureArg instanceof VariableExpr) {
+            const textureName = textureArg.name;
+            const texture = context.getVariableValue(textureName);
+            if (texture instanceof Data) {
+                return texture.textureSize;
+            }
+            else {
+                console.error(`Texture ${textureName} not found. Line ${node.line}`);
+                return null;
+            }
+        }
+        console.error(`Invalid texture argument for textureDimensions. Line ${node.line}`);
+        return null;
     }
     _getTypeInfo(type) {
         return this.reflection._types.get(type);

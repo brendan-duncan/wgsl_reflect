@@ -6,12 +6,16 @@ class Data {
     buffer: ArrayBuffer;
     typeInfo: TypeInfo;
     offset: number;
+    textureSize: number[] = [0, 0, 0];
 
     constructor(data: ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array,
-        typeInfo: TypeInfo, offset: number = 0) {
+        typeInfo: TypeInfo, offset: number = 0, textureSize?: number[]) {
         this.buffer = data instanceof ArrayBuffer ? data : data.buffer;
         this.typeInfo = typeInfo;
         this.offset = offset;
+        if (textureSize !== undefined) {
+            this.textureSize = textureSize;
+        }
     }
 };
 
@@ -165,7 +169,11 @@ export class WgslExec {
                             }
                         }
                         if (binding == b && set == s) {
-                            v.value = new Data(entry, this._getTypeInfo(node.type));
+                            if (entry.data !== undefined && entry.size !== undefined) {
+                                v.value = new Data(entry.data, this._getTypeInfo(node.type), 0, entry.size);
+                            } else {
+                                v.value = new Data(entry, this._getTypeInfo(node.type));
+                            }
                         }
                     }
                 });
@@ -288,6 +296,8 @@ export class WgslExec {
             this._let(stmt as AST.Let, context);
         } else if (stmt instanceof AST.Var) {
             this._var(stmt as AST.Var, context);
+        } else if (stmt instanceof AST.Const) {
+            this._const(stmt as AST.Const, context);
         } else if (stmt instanceof AST.Function) {
             this._function(stmt as AST.Function, context);
         } else if (stmt instanceof AST.If) {
@@ -376,6 +386,14 @@ export class WgslExec {
         context.functions.set(node.name, f);
     }
 
+    _const(node: AST.Const, context: ExecContext) {
+        let value = null;
+        if (node.value != null) {
+            value = this._evalExpression(node.value, context);
+        }
+        context.setVariable(node.name, value, node);
+    }
+
     _let(node: AST.Let, context: ExecContext) {
         let value = null;
         if (node.value != null) {
@@ -413,9 +431,10 @@ export class WgslExec {
     }
 
     _for(node: AST.For, context: ExecContext) {
-        const start = this._evalExpression(node.init, context);
-        const end = this._evalExpression(node.condition, context);
-        const step = this._evalExpression(node.increment, context);
+        context = context.clone();
+        const start = this._execStatement(node.init, context);
+        const condition = this._evalExpression(node.condition, context);
+        const step = this._execStatement(node.increment, context);
 
         /*for (let i = start; i < end; i += step) {
             
@@ -706,8 +725,14 @@ export class WgslExec {
                 return this._callAll(node, context);
             case "any":
                 return this._callAny(node, context);
+            case "arrayLength":
+                return this._callArrayLength(node, context);
             case "select":
                 return this._callSelect(node, context);
+
+            case "textureDimensions":
+                return this._callTextureDimensions(node, context);
+
             // Constructor Built-in Functions
             // Value Constructor Built-in Functions
             case "bool":
@@ -744,6 +769,20 @@ export class WgslExec {
         }
         console.error(`Function ${node.name} not found. Line ${node.line}`);
         return null;
+    }
+
+    _callArrayLength(node: AST.CallExpr, context: ExecContext) {
+        let arrayArg = node.args[0];
+        // TODO: handle "&" operator
+        if (arrayArg instanceof AST.UnaryOperator) {
+            arrayArg = (arrayArg as AST.UnaryOperator).right;
+        }
+        const arrayData = this._evalExpression(arrayArg, context);
+        if (arrayData.typeInfo.size === 0) {
+            const count = arrayData.buffer.byteLength / arrayData.typeInfo.stride;
+            return count;
+        }
+        return arrayData.typeInfo.size;
     }
 
     _callConstructorValue(node: AST.CallExpr | AST.CreateExpr, context: ExecContext) {
@@ -875,6 +914,23 @@ export class WgslExec {
         let isTrue = true;
         value.forEach((x: any) => { if (!x) isTrue = false; });
         return isTrue;
+    }
+
+    _callTextureDimensions(node: AST.CallExpr, context: ExecContext) {
+        const textureArg = node.args[0];
+        const level = node.args.length > 1 ? this._evalExpression(node.args[1], context) : 0;
+        if (textureArg instanceof AST.VariableExpr) {
+            const textureName = (textureArg as AST.VariableExpr).name;
+            const texture = context.getVariableValue(textureName);
+            if (texture instanceof Data) {
+                return texture.textureSize;
+            } else {
+                console.error(`Texture ${textureName} not found. Line ${node.line}`);
+                return null;
+            }
+        }
+        console.error(`Invalid texture argument for textureDimensions. Line ${node.line}`);
+        return null;
     }
 
     _getTypeInfo(type: AST.Type): TypeInfo {

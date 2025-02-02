@@ -4,7 +4,8 @@ declare class Data {
     buffer: ArrayBuffer;
     typeInfo: TypeInfo;
     offset: number;
-    constructor(data: ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array, typeInfo: TypeInfo, offset?: number);
+    textureSize: number[];
+    constructor(data: ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array, typeInfo: TypeInfo, offset?: number, textureSize?: number[]);
 }
 type ASTVarNode = AST.Let | AST.Var | AST.Argument;
 declare class Var {
@@ -43,6 +44,7 @@ export declare class WgslExec {
     _getVariableName(node: AST.Node, context: ExecContext): string;
     _assign(node: AST.Assign, context: ExecContext): void;
     _function(node: AST.Function, context: ExecContext): void;
+    _const(node: AST.Const, context: ExecContext): void;
     _let(node: AST.Let, context: ExecContext): void;
     _var(node: AST.Var, context: ExecContext): void;
     _if(node: AST.If, context: ExecContext): any;
@@ -56,6 +58,7 @@ export declare class WgslExec {
     _evalBinaryOp(node: AST.BinaryOperator, context: ExecContext): any;
     _evalCall(node: AST.CallExpr, context: ExecContext): any;
     _callIntrinsicFunction(node: AST.CallExpr, context: ExecContext): any;
+    _callArrayLength(node: AST.CallExpr, context: ExecContext): any;
     _callConstructorValue(node: AST.CallExpr | AST.CreateExpr, context: ExecContext): any;
     _callConstructorArray(node: AST.CallExpr | AST.CreateExpr, context: ExecContext): any[];
     _callConstructorVec(node: AST.CallExpr | AST.CreateExpr, context: ExecContext): any[];
@@ -63,6 +66,7 @@ export declare class WgslExec {
     _callAny(node: AST.CallExpr, context: ExecContext): any;
     _callAll(node: AST.CallExpr, context: ExecContext): boolean;
     _callSelect(node: AST.CallExpr, context: ExecContext): boolean;
+    _callTextureDimensions(node: AST.CallExpr, context: ExecContext): number[];
     _getTypeInfo(type: AST.Type): TypeInfo;
     _getTypeName(type: TypeInfo | AST.Type): string;
     _setDataValue(data: Data, value: any, postfix: AST.Expression | null, context: ExecContext): void;
