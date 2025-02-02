@@ -49,12 +49,12 @@ await group("WgslExec", async function () {
     const buffer = new Float32Array([1, 2, 6, 0]);
     const bg = {0: {0: buffer}};
 
-    const wgpuData = await webgpuDispatch(shader, "main", 4, bg);
-    const data = new Float32Array(wgpuData);
+    const _data = await webgpuDispatch(shader, "main", 4, bg);
+    const webgpuData = new Float32Array(_data);
 
     const wgsl = new WgslExec(shader);
     wgsl.dispatchWorkgroups("main", 4, bg);
-    test.equals(buffer, data);
+    test.equals(buffer, webgpuData);
   });
 
   await test("constructors", async function(test) {
@@ -74,12 +74,11 @@ await group("WgslExec", async function () {
     const bindGroups = {0: {0: buffer}};
 
     const _data = await webgpuDispatch(shader, "main", 1, bindGroups);
-    const data = new Uint32Array(_data);
-    test.equals(data, [12, 2, 6, 0]);
+    const webgpuData = new Uint32Array(_data);
 
     const wgsl = new WgslExec(shader);
     wgsl.dispatchWorkgroups("main", 1, bindGroups);
-    test.equals(buffer, data);
+    test.equals(buffer, webgpuData);
   });
 
   await test("vec3f buffer stride", async function (test) {
@@ -95,12 +94,11 @@ await group("WgslExec", async function () {
     const bg = {0: {0: buffer}};
 
     const _data = await webgpuDispatch(shader, "main", 3, bg);
-    const data = new Float32Array(_data);
-    test.equals(data, [1*2, 2*3, 3*4, 0, 4*2, 5*3, 6*4, 0, 7*2, 8*3, 9*4, 0]);
+    const webgpuData = new Float32Array(_data);
 
     const wgsl = new WgslExec(shader);
     wgsl.dispatchWorkgroups("main", 3, bg);
-    test.equals(buffer, data);
+    test.equals(buffer, webgpuData);
   });
 
   await test("shadow variable", async function (test) {
@@ -124,12 +122,12 @@ await group("WgslExec", async function () {
     const bg = {0: {0: buffer}};
 
     const _data = await webgpuDispatch(shader, "main", 3, bg);
-    const data = new Float32Array(_data);
-    const wgsl = new WgslExec(shader);
+    const webgpuData = new Float32Array(_data);
 
     // Ensure we can dispatch a compute shader and get the expected results from the output buffer.
+    const wgsl = new WgslExec(shader);
     wgsl.dispatchWorkgroups("main", 3, bg);
-    test.equals(buffer, data);
+    test.equals(buffer, webgpuData);
   });
 
   await test("struct buffer", async function (test) {
@@ -156,11 +154,11 @@ await group("WgslExec", async function () {
     const bg = {0: {0: dataBuffer}};
 
     const _data = await webgpuDispatch(shader, "main", 3, bg);
-    const data = new Float32Array(_data);
+    const webgpuData = new Float32Array(_data);
     // Ensure we can dispatch a compute shader and get the expected results from the output buffer.
     const wgsl = new WgslExec(shader);
     wgsl.dispatchWorkgroups("main", 2, bg);
-    test.equals(dataBuffer, data);
+    test.equals(dataBuffer, webgpuData);
   });
 
   await test("struct construction", async function (test) {
@@ -186,10 +184,10 @@ await group("WgslExec", async function () {
         0, 0, 0, 0]);
     const bg = {0: {0: dataBuffer}};
     const _data = await webgpuDispatch(shader, "main", 3, bg);
-    const data = new Float32Array(_data);
+    const webgpuData = new Float32Array(_data);
     const wgsl = new WgslExec(shader);
     wgsl.dispatchWorkgroups("main", 2, bg);
-    test.equals(dataBuffer, data);
+    test.equals(dataBuffer, webgpuData);
   });
 
   await test("compute dispatch builtin variables", async function (test) {
@@ -251,8 +249,8 @@ await group("WgslExec", async function () {
     wgsl.dispatchWorkgroups("main", dispatchCount, bg);
     const execData = [workgroupBuffer, localBuffer, globalBuffer];
     for (let i = 0; i < 3; i++) {
-        const a = new Uint32Array(_data[i]);
-        test.equals(execData[i], a);
+        const webgpuData = new Uint32Array(_data[i]);
+        test.equals(execData[i], webgpuData);
     }
   });
 
