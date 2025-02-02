@@ -435,7 +435,7 @@ await group("WgslExec", async function () {
     test.equals(valid, true);
   });
 
-  /*test("texture", async function (test) {
+  test("texture", async function (test) {
     const shader = `
         @group(0) @binding(0) var<storage, read_write> bins: array<u32>;
         @group(0) @binding(1) var ourTexture: texture_2d<f32>;
@@ -468,5 +468,5 @@ await group("WgslExec", async function () {
         const bindGroups = {0: {0: histogramBuffer, 1: {data: texture, size: [16, 16]}}};
         const wgsl = new WgslExec(shader);
         wgsl.dispatchWorkgroups("cs", 1, bindGroups);
-  });*/
+  });
 });

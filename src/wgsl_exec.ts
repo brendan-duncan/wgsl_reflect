@@ -66,20 +66,6 @@ class ExecContext {
         }
     }
 
-    getVariables(): Map<string, Var> {
-        const vars = new Map<string, Var>();
-
-        let self: ExecContext | null = this;
-        while (self !== null) {
-            self.variables.forEach((v) => {
-                vars.set(v.name, v.clone());
-            });
-            self = self.parent;
-        }
-
-        return vars;
-    }
-
     getVariable(name: string): Var | null {
         if (this.variables.has(name)) {
             return this.variables.get(name);
@@ -347,6 +333,8 @@ export class WgslExec {
             return this._while(stmt as AST.While, context);
         } else if (stmt instanceof AST.Assign) {
             return this._assign(stmt as AST.Assign, context);
+        } else if (stmt instanceof AST.Increment) {
+            this._increment(stmt as AST.Increment, context);
         } else if (stmt instanceof AST.Struct) {
             return null;
         } else if (stmt instanceof AST.Override) {
@@ -359,6 +347,21 @@ export class WgslExec {
             console.error(`Unknown statement type.`, stmt, `Line ${stmt.line}`);
         }
         return null;
+    }
+
+    _increment(node: AST.Increment, context: ExecContext) {
+        const name = this._getVariableName(node.variable, context);
+        const v = context.getVariable(name);
+        if (!v) {
+            console.error(`Variable ${name} not found. Line ${node.line}`);
+            return;
+        }
+        if (node.operator === "++") {
+            v.value++;
+        } else if (node.operator === "--") {
+            v.value--;
+        }
+        return v.value;
     }
 
     _getVariableName(node: AST.Node, context: ExecContext) {
@@ -450,6 +453,7 @@ export class WgslExec {
     }
 
     _if(node: AST.If, context: ExecContext) {
+        context = context.clone();
         const condition = this._evalExpression(node.condition, context);
         if (condition) {
             return this._execStatements(node.body, context);
@@ -471,23 +475,20 @@ export class WgslExec {
 
     _for(node: AST.For, context: ExecContext) {
         context = context.clone();
-        const start = this._execStatement(node.init, context);
-        const condition = this._evalExpression(node.condition, context);
-        const step = this._execStatement(node.increment, context);
-
-        /*for (let i = start; i < end; i += step) {
-            
-            context.setVariable(node.name, i);
+        this._execStatement(node.init, context);
+        while (this._evalExpression(node.condition, context)) {
             const res = this._execStatements(node.body, context);
             if (res) {
                 return res;
             }
-        }*/
+            this._execStatement(node.increment, context);
+        }
 
         return null;
     }
 
     _while(node: AST.While, context: ExecContext) {
+        context = context.clone();
         let condition = this._evalExpression(node.condition, context);
         while (condition) {
             const res = this._execStatements(node.body, context);
@@ -519,9 +520,16 @@ export class WgslExec {
             return this._evalCall(node as AST.CallExpr, context);
         } else if (node instanceof AST.CreateExpr) {
             return this._evalCreate(node as AST.CreateExpr, context);
+        } else if (node instanceof AST.ConstExpr) {
+            return this._evalConst(node as AST.ConstExpr, context);
         }
         console.error(`Unknown expression type`, node, `Line ${node.line}`);
         return null;
+    }
+
+    _evalConst(node: AST.ConstExpr, context: ExecContext) {
+        const v = context.getVariableValue(node.name);
+        return v;
     }
 
     _evalCreate(node: AST.CreateExpr, context: ExecContext) {
@@ -766,11 +774,21 @@ export class WgslExec {
                 return this._callAny(node, context);
             case "arrayLength":
                 return this._callArrayLength(node, context);
+            case "dot":
+                return this._callDot(node, context);
+            case "min":
+                return this._callMin(node, context);
+            case "max":
+                return this._callMax(node, context);
+            case "saturate":
+                return this._callSaturate(node, context);
             case "select":
                 return this._callSelect(node, context);
 
             case "textureDimensions":
                 return this._callTextureDimensions(node, context);
+            case "textureLoad":
+                return this._callTextureLoad(node, context);
 
             // Constructor Built-in Functions
             // Value Constructor Built-in Functions
@@ -806,8 +824,51 @@ export class WgslExec {
             case "array":
                 return this._callConstructorArray(node, context);
         }
+
+        const f = context.getFunction(node.name);
+        if (f) {
+            const subContext = context.clone();
+            for (let ai = 0; ai < f.node.args.length; ++ai) {
+                const arg = f.node.args[ai];
+                const value = this._evalExpression(node.args[ai], subContext);
+                subContext.setVariable(arg.name, value, arg);
+            }
+            return this._execStatements(f.node.body, subContext);
+        }
+
         console.error(`Function ${node.name} not found. Line ${node.line}`);
         return null;
+    }
+
+    _callDot(node: AST.CallExpr, context: ExecContext) {
+        const l = this._evalExpression(node.args[0], context);
+        const r = this._evalExpression(node.args[1], context);
+        let sum = 0;
+        for (let i = 0; i < l.length; ++i) {
+            sum += l[i] * r[i];
+        }
+        return sum;
+    }
+
+    _callMin(node: AST.CallExpr, context: ExecContext) {
+        const l = this._evalExpression(node.args[0], context);
+        const r = this._evalExpression(node.args[1], context);
+        return Math.min(l, r);
+    }
+
+    _callMax(node: AST.CallExpr, context: ExecContext) {
+        const l = this._evalExpression(node.args[0], context);
+        const r = this._evalExpression(node.args[1], context);
+        return Math.max(l, r);
+    }
+
+    _callSaturate(node: AST.CallExpr, context: ExecContext) {
+        const value = this._evalExpression(node.args[0], context);
+        return Math.min(Math.max(value, 0), 1);
+    }
+
+    _callTextureLoad(node: AST.CallExpr, context: ExecContext) {
+        return [0, 0, 0, 0];
     }
 
     _callArrayLength(node: AST.CallExpr, context: ExecContext) {

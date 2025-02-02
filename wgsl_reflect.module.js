@@ -4155,17 +4155,6 @@ class ExecContext {
             this.parent = parent;
         }
     }
-    getVariables() {
-        const vars = new Map();
-        let self = this;
-        while (self !== null) {
-            self.variables.forEach((v) => {
-                vars.set(v.name, v.clone());
-            });
-            self = self.parent;
-        }
-        return vars;
-    }
     getVariable(name) {
         if (this.variables.has(name)) {
             return this.variables.get(name);
@@ -4422,6 +4411,9 @@ class WgslExec {
         else if (stmt instanceof Assign) {
             return this._assign(stmt, context);
         }
+        else if (stmt instanceof Increment) {
+            this._increment(stmt, context);
+        }
         else if (stmt instanceof Struct) {
             return null;
         }
@@ -4436,6 +4428,21 @@ class WgslExec {
             console.error(`Unknown statement type.`, stmt, `Line ${stmt.line}`);
         }
         return null;
+    }
+    _increment(node, context) {
+        const name = this._getVariableName(node.variable, context);
+        const v = context.getVariable(name);
+        if (!v) {
+            console.error(`Variable ${name} not found. Line ${node.line}`);
+            return;
+        }
+        if (node.operator === "++") {
+            v.value++;
+        }
+        else if (node.operator === "--") {
+            v.value--;
+        }
+        return v.value;
     }
     _getVariableName(node, context) {
         if (node instanceof VariableExpr) {
@@ -4527,6 +4534,7 @@ class WgslExec {
         context.createVariable(node.name, value, node);
     }
     _if(node, context) {
+        context = context.clone();
         const condition = this._evalExpression(node.condition, context);
         if (condition) {
             return this._execStatements(node.body, context);
@@ -4545,19 +4553,17 @@ class WgslExec {
     _for(node, context) {
         context = context.clone();
         this._execStatement(node.init, context);
-        this._evalExpression(node.condition, context);
-        this._execStatement(node.increment, context);
-        /*for (let i = start; i < end; i += step) {
-            
-            context.setVariable(node.name, i);
+        while (this._evalExpression(node.condition, context)) {
             const res = this._execStatements(node.body, context);
             if (res) {
                 return res;
             }
-        }*/
+            this._execStatement(node.increment, context);
+        }
         return null;
     }
     _while(node, context) {
+        context = context.clone();
         let condition = this._evalExpression(node.condition, context);
         while (condition) {
             const res = this._execStatements(node.body, context);
@@ -4597,8 +4603,15 @@ class WgslExec {
         else if (node instanceof CreateExpr) {
             return this._evalCreate(node, context);
         }
+        else if (node instanceof ConstExpr) {
+            return this._evalConst(node, context);
+        }
         console.error(`Unknown expression type`, node, `Line ${node.line}`);
         return null;
+    }
+    _evalConst(node, context) {
+        const v = context.getVariableValue(node.name);
+        return v;
     }
     _evalCreate(node, context) {
         const typeName = this._getTypeName(node.type);
@@ -4837,10 +4850,20 @@ class WgslExec {
                 return this._callAny(node, context);
             case "arrayLength":
                 return this._callArrayLength(node, context);
+            case "dot":
+                return this._callDot(node, context);
+            case "min":
+                return this._callMin(node, context);
+            case "max":
+                return this._callMax(node, context);
+            case "saturate":
+                return this._callSaturate(node, context);
             case "select":
                 return this._callSelect(node, context);
             case "textureDimensions":
                 return this._callTextureDimensions(node, context);
+            case "textureLoad":
+                return this._callTextureLoad(node, context);
             // Constructor Built-in Functions
             // Value Constructor Built-in Functions
             case "bool":
@@ -4875,8 +4898,44 @@ class WgslExec {
             case "array":
                 return this._callConstructorArray(node, context);
         }
+        const f = context.getFunction(node.name);
+        if (f) {
+            const subContext = context.clone();
+            for (let ai = 0; ai < f.node.args.length; ++ai) {
+                const arg = f.node.args[ai];
+                const value = this._evalExpression(node.args[ai], subContext);
+                subContext.setVariable(arg.name, value, arg);
+            }
+            return this._execStatements(f.node.body, subContext);
+        }
         console.error(`Function ${node.name} not found. Line ${node.line}`);
         return null;
+    }
+    _callDot(node, context) {
+        const l = this._evalExpression(node.args[0], context);
+        const r = this._evalExpression(node.args[1], context);
+        let sum = 0;
+        for (let i = 0; i < l.length; ++i) {
+            sum += l[i] * r[i];
+        }
+        return sum;
+    }
+    _callMin(node, context) {
+        const l = this._evalExpression(node.args[0], context);
+        const r = this._evalExpression(node.args[1], context);
+        return Math.min(l, r);
+    }
+    _callMax(node, context) {
+        const l = this._evalExpression(node.args[0], context);
+        const r = this._evalExpression(node.args[1], context);
+        return Math.max(l, r);
+    }
+    _callSaturate(node, context) {
+        const value = this._evalExpression(node.args[0], context);
+        return Math.min(Math.max(value, 0), 1);
+    }
+    _callTextureLoad(node, context) {
+        return [0, 0, 0, 0];
     }
     _callArrayLength(node, context) {
         let arrayArg = node.args[0];

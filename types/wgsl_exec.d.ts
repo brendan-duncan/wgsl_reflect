@@ -27,7 +27,6 @@ declare class ExecContext {
     variables: Map<string, Var>;
     functions: Map<string, Function>;
     constructor(parent?: ExecContext);
-    getVariables(): Map<string, Var>;
     getVariable(name: string): Var | null;
     getFunction(name: string): Function | null;
     createVariable(name: string, value: any, node?: ASTVarNode): void;
@@ -47,6 +46,7 @@ export declare class WgslExec {
     _dispatchExec(f: Function, context: ExecContext): void;
     _execStatements(statements: Array<AST.Node>, context: ExecContext): any;
     _execStatement(stmt: AST.Node, context: ExecContext): any;
+    _increment(node: AST.Increment, context: ExecContext): any;
     _getVariableName(node: AST.Node, context: ExecContext): string;
     _assign(node: AST.Assign, context: ExecContext): void;
     _function(node: AST.Function, context: ExecContext): void;
@@ -57,6 +57,7 @@ export declare class WgslExec {
     _for(node: AST.For, context: ExecContext): any;
     _while(node: AST.While, context: ExecContext): any;
     _evalExpression(node: AST.Node, context: ExecContext): any;
+    _evalConst(node: AST.ConstExpr, context: ExecContext): any;
     _evalCreate(node: AST.CreateExpr, context: ExecContext): any;
     _evalLiteral(node: AST.LiteralExpr, context: ExecContext): number;
     _getArraySwizzle(value: any, member: string): any;
@@ -64,6 +65,11 @@ export declare class WgslExec {
     _evalBinaryOp(node: AST.BinaryOperator, context: ExecContext): any;
     _evalCall(node: AST.CallExpr, context: ExecContext): any;
     _callIntrinsicFunction(node: AST.CallExpr, context: ExecContext): any;
+    _callDot(node: AST.CallExpr, context: ExecContext): number;
+    _callMin(node: AST.CallExpr, context: ExecContext): any;
+    _callMax(node: AST.CallExpr, context: ExecContext): any;
+    _callSaturate(node: AST.CallExpr, context: ExecContext): any;
+    _callTextureLoad(node: AST.CallExpr, context: ExecContext): number[];
     _callArrayLength(node: AST.CallExpr, context: ExecContext): any;
     _callConstructorValue(node: AST.CallExpr | AST.CreateExpr, context: ExecContext): any;
     _callConstructorArray(node: AST.CallExpr | AST.CreateExpr, context: ExecContext): any[];
