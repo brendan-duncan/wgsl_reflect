@@ -1124,7 +1124,6 @@ export class WgslExec {
                 const textureSize = texture.textureSize;
                 const x = Math.floor(uv[0]);
                 const y = Math.floor(uv[1]);
-                console.log(x);
                 // TODO non RGBA8 textures
                 const offset = (y * textureSize[0] + x) * 4; 
                 const texel = new Uint8Array(texture.buffer, offset, 4);
