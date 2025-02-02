@@ -15,35 +15,43 @@ await group("WgslExec", async function () {
     console.error(event.error.message);
   });
 
-  async function webgpuDispatch(shader, module, dispatchCount, initialData) {
+  async function webgpuDispatch(shader, module, dispatchCount, bindgroupData) {
     if (dispatchCount.length === undefined) {
         dispatchCount = [dispatchCount, 1, 1];
     }
 
-    if (!(initialData instanceof Array)) {
+    /*if (!(initialData instanceof Array)) {
         initialData = [initialData];
-    }
+    }*/
 
+    //let index = 0;
     const readbackBuffers = [];
-    const bindings = [];
-    let index = 0;
-    for (const data of initialData) {
-        const bufferSize = data.byteLength;
+    const bindGroups = {};
 
-        const storageBuffer = device.createBuffer({
-            size: bufferSize,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
-        });
-        device.queue.writeBuffer(storageBuffer, 0, data);
+    for (const group in bindgroupData) {
+        for (const binding in bindgroupData[group]) {
+            const data = bindgroupData[group][binding];
+            if (data.buffer instanceof ArrayBuffer) {
+                const bufferSize = data.byteLength;
 
-        bindings.push({ binding: index, resource: { buffer: storageBuffer } });
-        index++;
+                const storageBuffer = device.createBuffer({
+                    size: bufferSize,
+                    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
+                });
+                device.queue.writeBuffer(storageBuffer, 0, data);
 
-        const readbackBuffer = device.createBuffer({
-            size: bufferSize,
-            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
-        });
-        readbackBuffers.push([storageBuffer, readbackBuffer, bufferSize]);
+                if (bindGroups[group] === undefined) {
+                    bindGroups[group] = [];
+                }
+                bindGroups[group].push({ binding: parseInt(binding), resource: { buffer: storageBuffer } });
+
+                const readbackBuffer = device.createBuffer({
+                    size: bufferSize,
+                    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+                });
+                readbackBuffers.push([storageBuffer, readbackBuffer, bufferSize]);
+            }
+        }
     }
 
     const shaderModule = device.createShaderModule({code: shader});
@@ -59,15 +67,21 @@ await group("WgslExec", async function () {
         layout: "auto",
         compute: { module: shaderModule, entryPoint: module }
     });
-    const bindGroup = device.createBindGroup({
-        layout: computePipeline.getBindGroupLayout(0),
-        entries: bindings
-    });
 
     const commandEncoder = device.createCommandEncoder();
     const computePass = commandEncoder.beginComputePass();
     computePass.setPipeline(computePipeline);
-    computePass.setBindGroup(0, bindGroup);
+
+    for (const group in bindGroups) {
+        const groupIndex = parseInt(group);
+        const bindings = bindGroups[group];
+        const bindGroup = device.createBindGroup({
+            layout: computePipeline.getBindGroupLayout(groupIndex),
+            entries: bindings
+        });
+        computePass.setBindGroup(groupIndex, bindGroup);
+    }
+
     computePass.dispatchWorkgroups(...dispatchCount);
     computePass.end();
 
@@ -140,11 +154,13 @@ await group("WgslExec", async function () {
 
     // Verify the emulated dispatch has the same results as the WebGPU dispatch.
     const buffer = new Float32Array([1, 2, 6, 0]);
-    const wgpuData = await webgpuDispatch(shader, "main", 4, buffer);
+    const bg = {0: {0: buffer}};
+
+    const wgpuData = await webgpuDispatch(shader, "main", 4, bg);
     const data = new Float32Array(wgpuData);
 
     const wgsl = new WgslExec(shader);
-    wgsl.dispatchWorkgroups("main", 4, {0: {0: buffer}});
+    wgsl.dispatchWorkgroups("main", 4, bg);
     test.equals(buffer, data);
   });
 
@@ -162,12 +178,13 @@ await group("WgslExec", async function () {
         }`;
 
     const buffer = new Uint32Array([1, 2, 6, 0]);
-    const _data = await webgpuDispatch(shader, "main", 1, buffer);
+    const bindGroups = {0: {0: buffer}};
+
+    const _data = await webgpuDispatch(shader, "main", 1, bindGroups);
     const data = new Uint32Array(_data);
     test.equals(data, [12, 2, 6, 0]);
 
     const wgsl = new WgslExec(shader);
-    const bindGroups = {0: {0: buffer}};
     wgsl.dispatchWorkgroups("main", 1, bindGroups);
     test.equals(buffer, data);
   });
@@ -182,12 +199,14 @@ await group("WgslExec", async function () {
     }`;
 
     const buffer = new Float32Array([1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9, 0]);
-    const _data = await webgpuDispatch(shader, "main", 3, buffer);
+    const bg = {0: {0: buffer}};
+
+    const _data = await webgpuDispatch(shader, "main", 3, bg);
     const data = new Float32Array(_data);
     test.equals(data, [1*2, 2*3, 3*4, 0, 4*2, 5*3, 6*4, 0, 7*2, 8*3, 9*4, 0]);
 
     const wgsl = new WgslExec(shader);
-    wgsl.dispatchWorkgroups("main", 3, {0: {0: buffer}});
+    wgsl.dispatchWorkgroups("main", 3, bg);
     test.equals(buffer, data);
   });
 
@@ -209,12 +228,14 @@ await group("WgslExec", async function () {
     }`;
 
     const buffer = new Float32Array([1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9, 0]);
-    const _data = await webgpuDispatch(shader, "main", 3, buffer);
+    const bg = {0: {0: buffer}};
+
+    const _data = await webgpuDispatch(shader, "main", 3, bg);
     const data = new Float32Array(_data);
     const wgsl = new WgslExec(shader);
 
     // Ensure we can dispatch a compute shader and get the expected results from the output buffer.
-    wgsl.dispatchWorkgroups("main", 3, {0: {0: buffer}});
+    wgsl.dispatchWorkgroups("main", 3, bg);
     test.equals(buffer, data);
   });
 
@@ -239,11 +260,13 @@ await group("WgslExec", async function () {
         4, 5, 6, 0,
         7, 8, 9, 0,
         10, 11, 12, 0]);
-    const _data = await webgpuDispatch(shader, "main", 3, dataBuffer);
+    const bg = {0: {0: dataBuffer}};
+
+    const _data = await webgpuDispatch(shader, "main", 3, bg);
     const data = new Float32Array(_data);
     // Ensure we can dispatch a compute shader and get the expected results from the output buffer.
     const wgsl = new WgslExec(shader);
-    wgsl.dispatchWorkgroups("main", 2, {0: {0: dataBuffer}});
+    wgsl.dispatchWorkgroups("main", 2, bg);
     test.equals(dataBuffer, data);
   });
 
@@ -268,10 +291,11 @@ await group("WgslExec", async function () {
         0, 0, 0, 0,
         0, 0, 0, 0,
         0, 0, 0, 0]);
-    const _data = await webgpuDispatch(shader, "main", 3, dataBuffer);
+    const bg = {0: {0: dataBuffer}};
+    const _data = await webgpuDispatch(shader, "main", 3, bg);
     const data = new Float32Array(_data);
     const wgsl = new WgslExec(shader);
-    wgsl.dispatchWorkgroups("main", 2, {0: {0: dataBuffer}});
+    wgsl.dispatchWorkgroups("main", 2, bg);
     test.equals(dataBuffer, data);
   });
 
@@ -326,11 +350,12 @@ await group("WgslExec", async function () {
     const workgroupBuffer = new Uint32Array(size);
     const localBuffer = new Uint32Array(size);
     const globalBuffer = new Uint32Array(size);
+    const bg = {0: {0: workgroupBuffer, 1: localBuffer, 2: globalBuffer}};
 
-    const _data = await webgpuDispatch(shader, "main", dispatchCount, [workgroupBuffer, localBuffer, globalBuffer]);
+    const _data = await webgpuDispatch(shader, "main", dispatchCount, bg);
 
     const wgsl = new WgslExec(shader);
-    wgsl.dispatchWorkgroups("main", dispatchCount, {0: {0: workgroupBuffer, 1: localBuffer, 2: globalBuffer}});
+    wgsl.dispatchWorkgroups("main", dispatchCount, bg);
     const execData = [workgroupBuffer, localBuffer, globalBuffer];
     for (let i = 0; i < 3; i++) {
         const a = new Uint32Array(_data[i]);
@@ -370,7 +395,6 @@ await group("WgslExec", async function () {
                 imageBuffer[idx] = r.direction;
             }
         }`;
-    const wgsl = new WgslExec(shader);
 
     const width = 10;
     const height = 10;
@@ -400,6 +424,8 @@ await group("WgslExec", async function () {
     }
 
     const bindGroups = {0: {0: uniforms}, 1: {0: rayBuffer, 1: imageBuffer}};
+
+    const wgsl = new WgslExec(shader);
     wgsl.dispatchWorkgroups("main", [width, height, 1], bindGroups, {
         constants: {
             "WORKGROUP_SIZE_X": 1,
@@ -473,8 +499,9 @@ await group("WgslExec", async function () {
             }
         }
 
-        const bindGroups = {0: {0: histogramBuffer, 1: {data: texture, size: [16, 16]}}};
+        const bg = {0: {0: histogramBuffer, 1: {data: texture, size: [16, 16]}}};
+
         const wgsl = new WgslExec(shader);
-        wgsl.dispatchWorkgroups("cs", 1, bindGroups);
+        wgsl.dispatchWorkgroups("cs", 1, bg);
   });
 });
