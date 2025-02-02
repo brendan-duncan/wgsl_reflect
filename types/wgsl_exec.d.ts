@@ -23,8 +23,14 @@ declare class Function {
     clone(): Function;
 }
 declare class ExecContext {
+    parent: ExecContext | null;
     variables: Map<string, Var>;
     functions: Map<string, Function>;
+    constructor(parent?: ExecContext);
+    getVariables(): Map<string, Var>;
+    getVariable(name: string): Var | null;
+    getFunction(name: string): Function | null;
+    createVariable(name: string, value: any, node?: ASTVarNode): void;
     setVariable(name: string, value: any, node?: ASTVarNode): void;
     getVariableValue(name: string): any;
     clone(): ExecContext;
@@ -37,7 +43,7 @@ export declare class WgslExec {
     getVariableValue(name: string): any;
     execute(config?: Object): void;
     dispatchWorkgroups(kernel: string, dispatchCount: number | number[], bindGroups: Object, config?: Object): void;
-    _dispatchWorkgroup(f: Function, workgroup_id: number[], bindGroups: Object, context: ExecContext): void;
+    _dispatchWorkgroup(f: Function, workgroup_id: number[], context: ExecContext): void;
     _dispatchExec(f: Function, context: ExecContext): void;
     _execStatements(statements: Array<AST.Node>, context: ExecContext): any;
     _execStatement(stmt: AST.Node, context: ExecContext): any;

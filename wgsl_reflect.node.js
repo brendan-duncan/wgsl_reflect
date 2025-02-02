@@ -4151,32 +4151,62 @@ class Function {
     }
 }
 class ExecContext {
-    constructor() {
+    constructor(parent) {
+        this.parent = null;
         this.variables = new Map();
         this.functions = new Map();
+        if (parent) {
+            this.parent = parent;
+        }
+    }
+    getVariables() {
+        const vars = new Map();
+        let self = this;
+        while (self !== null) {
+            self.variables.forEach((v) => {
+                vars.set(v.name, v.clone());
+            });
+            self = self.parent;
+        }
+        return vars;
+    }
+    getVariable(name) {
+        if (this.variables.has(name)) {
+            return this.variables.get(name);
+        }
+        if (this.parent) {
+            return this.parent.getVariable(name);
+        }
+        return null;
+    }
+    getFunction(name) {
+        if (this.functions.has(name)) {
+            return this.functions.get(name);
+        }
+        if (this.parent) {
+            return this.parent.getFunction(name);
+        }
+        return null;
+    }
+    createVariable(name, value, node) {
+        this.variables.set(name, new Var(name, value, node !== null && node !== void 0 ? node : null));
     }
     setVariable(name, value, node) {
-        if (this.variables.has(name)) {
-            this.variables.get(name).value = value;
+        const v = this.getVariable(name);
+        if (v !== null) {
+            v.value = value;
         }
         else {
-            this.variables.set(name, new Var(name, value, node !== null && node !== void 0 ? node : null));
+            this.createVariable(name, value, node);
         }
     }
     getVariableValue(name) {
         var _a;
-        const v = this.variables.get(name);
+        const v = this.getVariable(name);
         return (_a = v === null || v === void 0 ? void 0 : v.value) !== null && _a !== void 0 ? _a : null;
     }
     clone() {
-        const c = new ExecContext();
-        for (const [k, v] of this.variables) {
-            c.variables.set(k, v.clone());
-        }
-        for (const [k, v] of this.functions) {
-            c.functions.set(k, v.clone());
-        }
-        return c;
+        return new ExecContext(this);
     }
 }
 class WgslExec {
@@ -4268,12 +4298,12 @@ class WgslExec {
             for (let y = 0; y < height; ++y) {
                 for (let x = 0; x < width; ++x) {
                     context.setVariable("@workgroup_id", [x, y, z]);
-                    this._dispatchWorkgroup(f, [x, y, z], bindGroups, context);
+                    this._dispatchWorkgroup(f, [x, y, z], context);
                 }
             }
         }
     }
-    _dispatchWorkgroup(f, workgroup_id, bindGroups, context) {
+    _dispatchWorkgroup(f, workgroup_id, context) {
         const workgroupSize = [1, 1, 1];
         for (const attr of f.node.attributes) {
             if (attr.name === "workgroup_size") {
@@ -4335,7 +4365,7 @@ class WgslExec {
             for (const attr of arg.attributes) {
                 if (attr.name === "builtin") {
                     const globalName = `@${attr.value}`;
-                    const globalVar = context.variables.get(globalName);
+                    const globalVar = context.getVariable(globalName);
                     if (globalVar !== undefined) {
                         context.variables.set(arg.name, globalVar);
                     }
@@ -4401,7 +4431,7 @@ class WgslExec {
         }
         else if (stmt instanceof Override) {
             const name = stmt.name;
-            if (!context.variables.has(name)) {
+            if (context.getVariable(name) === null) {
                 console.error(`Override constant ${name} not found. Line ${stmt.line}`);
                 return null;
             }
@@ -4422,7 +4452,7 @@ class WgslExec {
     }
     _assign(node, context) {
         const name = this._getVariableName(node.variable, context);
-        const v = context.variables.get(name);
+        const v = context.getVariable(name);
         if (!v) {
             console.error(`Variable ${name} not found. Line ${node.line}`);
             return;
@@ -4484,21 +4514,21 @@ class WgslExec {
         if (node.value != null) {
             value = this._evalExpression(node.value, context);
         }
-        context.setVariable(node.name, value, node);
+        context.createVariable(node.name, value, node);
     }
     _let(node, context) {
         let value = null;
         if (node.value != null) {
             value = this._evalExpression(node.value, context);
         }
-        context.setVariable(node.name, value, node);
+        context.createVariable(node.name, value, node);
     }
     _var(node, context) {
         let value = null;
         if (node.value != null) {
             value = this._evalExpression(node.value, context);
         }
-        context.setVariable(node.name, value, node);
+        context.createVariable(node.name, value, node);
     }
     _if(node, context) {
         const condition = this._evalExpression(node.condition, context);
@@ -4520,7 +4550,7 @@ class WgslExec {
         context = context.clone();
         this._execStatement(node.init, context);
         this._evalExpression(node.condition, context);
-        this._evalExpression(node.increment, context);
+        this._execStatement(node.increment, context);
         /*for (let i = start; i < end; i += step) {
             
             context.setVariable(node.name, i);
@@ -4719,7 +4749,7 @@ class WgslExec {
                     return this._getArraySwizzle(value, member);
                 }
                 else {
-                    const variable = context.variables.get(node.name);
+                    const variable = context.getVariable(node.name);
                     if (variable) {
                         if ((_a = variable.node.type) === null || _a === void 0 ? void 0 : _a.isStruct) {
                             const structInfo = this.reflection.getStructInfo(variable.node.type.name);

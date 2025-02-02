@@ -196,13 +196,16 @@ await group("WgslExec", async function () {
     @compute @workgroup_size(1) fn main(@builtin(global_invocation_id) id: vec3<u32>) {
         let i = id.x;
         let j = 2.0;
+        var k = f32(id.x);
         data[i].x = data[i].x * j;
         {
-            // Make sure variables defined in blocks shadow outer variables.
+            // Make sure variables defined in blocks shadow outer variables, and that
+            // changes to non-shadowed variables are reflected in the outer scope.
+            k = 3.0;
             let j = 3.0;
             data[i].y = data[i].y * 3.0;
         }
-        data[i].z = data[i].z * j;
+        data[i].z = k * j;
     }`;
 
     const buffer = new Float32Array([1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9, 0]);
