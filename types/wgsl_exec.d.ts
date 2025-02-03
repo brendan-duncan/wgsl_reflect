@@ -100,7 +100,8 @@ export declare class WgslExec {
     _callDegrees(node: AST.CallExpr, context: ExecContext): any;
     _callDeterminant(node: AST.CallExpr, context: ExecContext): any;
     _callDistance(node: AST.CallExpr, context: ExecContext): number;
-    _callDot(node: AST.CallExpr, context: ExecContext): number;
+    _dot(e1: number[], e2: number[]): number;
+    _callDot(node: AST.CallExpr, context: ExecContext): any;
     _callDot4U8Packed(node: AST.CallExpr, context: ExecContext): any;
     _callDot4I8Packed(node: AST.CallExpr, context: ExecContext): any;
     _callExp(node: AST.CallExpr, context: ExecContext): any;

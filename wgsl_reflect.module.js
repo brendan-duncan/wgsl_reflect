@@ -6107,14 +6107,17 @@ class WgslExec {
         }
         return Math.sqrt(sum);
     }
+    _dot(e1, e2) {
+        let dot = 0;
+        for (let i = 0; i < e1.length; ++i) {
+            dot += e2[i] * e1[i];
+        }
+        return dot;
+    }
     _callDot(node, context) {
         const l = this._evalExpression(node.args[0], context);
         const r = this._evalExpression(node.args[1], context);
-        let sum = 0;
-        for (let i = 0; i < l.length; ++i) {
-            sum += l[i] * r[i];
-        }
-        return sum;
+        return this._dot(l, r);
     }
     _callDot4U8Packed(node, context) {
         console.error("TODO: dot4U8Packed");
@@ -6204,10 +6207,7 @@ class WgslExec {
     }
     _callLength(node, context) {
         const value = this._evalExpression(node.args[0], context);
-        let sum = 0;
-        for (let i = 0; i < value.length; ++i) {
-            sum += value[i] * value[i];
-        }
+        let sum = this._dot(value, value);
         return Math.sqrt(sum);
     }
     _callLog(node, context) {
@@ -6282,12 +6282,23 @@ class WgslExec {
         return value * Math.PI / 180;
     }
     _callReflect(node, context) {
-        console.error("TODO: reflect");
-        return null;
+        // e1 - 2 * dot(e2, e1) * e2
+        let e1 = this._evalExpression(node.args[0], context);
+        let e2 = this._evalExpression(node.args[1], context);
+        let dot = this._dot(e1, e2);
+        return e1.map((v, i) => v - 2 * dot * e2[i]);
     }
     _callRefract(node, context) {
-        console.error("TODO: refract");
-        return null;
+        let e1 = this._evalExpression(node.args[0], context);
+        let e2 = this._evalExpression(node.args[1], context);
+        let e3 = this._evalExpression(node.args[2], context);
+        let dot = this._callDot(e2, e1);
+        const k = 1.0 - e3 * e3 * (1.0 - dot * dot);
+        if (k < 0) {
+            return e1.map((v) => 0);
+        }
+        const sqrtK = Math.sqrt(k);
+        return e1.map((v, i) => e3 * v - (e3 * dot + sqrtK) * e2[i]);
     }
     _callReverseBits(node, context) {
         console.error("TODO: reverseBits");
