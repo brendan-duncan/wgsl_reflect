@@ -4402,7 +4402,7 @@ class WgslExec {
                             }
                             else if (entry.uniform !== undefined) {
                                 // Uniform buffer
-                                v.value = new Data(entry, this._getTypeInfo(node.type));
+                                v.value = new Data(entry.uniform, this._getTypeInfo(node.type));
                             }
                             else {
                                 // Storage buffer

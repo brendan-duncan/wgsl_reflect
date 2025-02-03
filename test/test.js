@@ -142,55 +142,83 @@ export class Test {
         }
 
         if (typeof(object) != "object") {
-            if (object !== validator)
+            if (object !== validator) {
                 return this._error(message || `value mismatch: ${object} != ${validator}`);
+            }
             return true;
         }
 
         for (let p in validator) {
             let gp = object[p];
             let vp = validator[p];
-            if (!this.validateObject(gp, vp))
+            if (!this.validateObject(gp, vp)) {
                 return false;
+            }
         }
 
         return true;
     }
 
-    equals(a, b, message) {
+    equals(a, b, epsilon_message, message) {
         if (a === b) {
             return;
         }
+
+        let epsilon = typeof(epsilon_message) === "number" ? epsilon_message : undefined;
+        message = typeof(epsilon_message) === "string" ? epsilon_message : message;
+
         if (Test.isArray(a) && Test.isArray(b)) {
             let al = a.length;
             let bl = b.length;
             if (al != bl) {
                 this.state = false;
-                if (message)
+                if (message) {
                     this.messages.push(message);
-                else
+                } else {
                     this.messages.push(a.toString(), "!=", b.toString());
+                }
                 return;
             }
             for (let i = 0, l = a.length; i < l; ++i) {
-                if (a[i] != b[i]) {
+                if (epsilon !== this.undefined) {
+                    if (Math.abs(a[i] - b[i]) > epsilon) {
+                        this.state = false;
+                        if (message) {
+                            this.messages.push(message);
+                        } else {
+                            this.messages.push(a.toString(), "!=", b.toString());
+                        }
+                        return;
+                    }
+                } else if (a[i] != b[i]) {
                     this.state = false;
-                    if (message)
+                    if (message) {
                         this.messages.push(message);
-                    else
+                    } else {
                         this.messages.push(a, "!=", b);
+                    }
                     return;
                 }
             }
             return;
         }
 
-        if (a != b) {
+        if (epsilon !== this.undefined) {
+            if (Math.abs(a - b) > epsilon) {
+                this.state = false;
+                if (message) {
+                    this.messages.push(message);
+                } else {
+                    this.messages.push(a, "!=", b);
+                }
+            }
+        } else if (a != b) {
             this.state = false;
-            if (message)
+            if (message) {
                 this.messages.push(message);
-            else
+            } else {
                 this.messages.push(a, "!=", b);
+            }
         }
     }
 
@@ -288,7 +316,7 @@ async function getWebGPUDevice() {
     return __device;
 }
 
-export async function webgpuDispatch(shader, module, dispatchCount, bindgroupData) {
+export async function webgpuDispatch(shader, module, dispatchCount, bindgroupData, options) {
     const device = await getWebGPUDevice();
 
     if (dispatchCount.length === undefined) {
@@ -321,6 +349,19 @@ export async function webgpuDispatch(shader, module, dispatchCount, bindgroupDat
                     usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
                 });
                 readbackBuffers.push([storageBuffer, readbackBuffer, bufferSize]);
+            } else if (data.uniform !== undefined) {
+                const bufferSize = data.uniform.byteLength;
+
+                const uniformBuffer = device.createBuffer({
+                    size: bufferSize,
+                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+                });
+                device.queue.writeBuffer(uniformBuffer, 0, data.uniform);
+
+                if (bindGroups[group] === undefined) {
+                    bindGroups[group] = [];
+                }
+                bindGroups[group].push({ binding, resource: { buffer: uniformBuffer } });
             } else if (data.texture !== undefined && data.size !== undefined) {
                 const texture = device.createTexture({
                     dimension: "2d",
@@ -330,6 +371,7 @@ export async function webgpuDispatch(shader, module, dispatchCount, bindgroupDat
                     size: data.size,
                     usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
                 });
+
                 device.queue.writeTexture({ texture }, data.texture, {bytesPerRow: data.size[0] * 4},
                     {width: data.size[0], height: data.size[1]});
 
@@ -347,9 +389,16 @@ export async function webgpuDispatch(shader, module, dispatchCount, bindgroupDat
         throw new Error("Shader compilation failed");
     }
 
+    let constants = {};
+    if (options !== undefined) {
+        if (options.constants !== undefined) {
+            constants = options.constants
+        }
+    }
+
     const computePipeline = device.createComputePipeline({
         layout: "auto",
-        compute: { module: shaderModule, entryPoint: module }
+        compute: { module: shaderModule, entryPoint: module, constants }
     });
 
     const commandEncoder = device.createCommandEncoder();

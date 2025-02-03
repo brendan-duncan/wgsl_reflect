@@ -255,7 +255,7 @@ await group("WgslExec", async function () {
     }
   });
 
-  await test("override / structs", function (test) {
+  await test("override / structs", async function (test) {
     const shader = `
         struct Uniforms {
             viewportSize: vec2<u32>
@@ -315,42 +315,20 @@ await group("WgslExec", async function () {
         }
     }
 
-    const bindGroups = {0: {0: uniforms}, 1: {0: rayBuffer, 1: imageBuffer}};
+    const bindGroups = {0: {0: {uniform: uniforms}}, 1: {0: rayBuffer, 1: imageBuffer}};
+
+    const constants = {
+        "WORKGROUP_SIZE_X": 1,
+        "WORKGROUP_SIZE_Y": 1
+    };
+
+    const _webgpuData = await webgpuDispatch(shader, "main", [width, height], bindGroups, { constants });
+    const webgpuData = new Float32Array(_webgpuData[1]);
 
     const wgsl = new WgslExec(shader);
-    wgsl.dispatchWorkgroups("main", [width, height, 1], bindGroups, {
-        constants: {
-            "WORKGROUP_SIZE_X": 1,
-            "WORKGROUP_SIZE_Y": 1
-        }
-    });
+    wgsl.dispatchWorkgroups("main", [width, height, 1], bindGroups, { constants });
 
-    let valid = true;
-    for (let y = 0, idx = 0; y < height; ++y) {
-      for (let x = 0; x < width; ++x, idx += 4) {
-        if (x > width / 2 && y > height / 2) {
-            let gx = x / 10.0;
-            let gy = y / 10.0;
-            let r = imageBuffer[idx];
-            let g = imageBuffer[idx + 1];
-            // stupid floating point errors
-            let dr = Math.abs(r - gx);
-            let dg = Math.abs(g - gy);
-            if (dr > 1.0e-4) {
-              valid = false;
-            }
-            if (dg > 1.0e-4) {
-              valid = false;
-            }
-        } else {
-          if (imageBuffer[idx] != -1.0) {
-            valid = false;
-          }
-        }
-      }
-    }
-
-    test.equals(valid, true);
+    test.equals(imageBuffer, webgpuData, 1.0e-4);
   });
 
   await test("textureLoad", async function (test) {

@@ -199,7 +199,7 @@ export class WgslExec {
                                 v.value = new Data(entry.texture, this._getTypeInfo(node.type), 0, entry.size);
                             } else if (entry.uniform !== undefined) {
                                 // Uniform buffer
-                                v.value = new Data(entry, this._getTypeInfo(node.type));
+                                v.value = new Data(entry.uniform, this._getTypeInfo(node.type));
                             } else {
                                 // Storage buffer
                                 v.value = new Data(entry, this._getTypeInfo(node.type));
