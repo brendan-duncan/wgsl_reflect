@@ -203,7 +203,7 @@ export class Test {
             return;
         }
 
-        if (epsilon !== this.undefined) {
+        if (epsilon !== undefined) {
             if (Math.abs(a - b) > epsilon) {
                 this.state = false;
                 if (message) {

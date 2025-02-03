@@ -7,7 +7,7 @@ import * as struct from "./tests/struct.js";
 import * as reflect from "./tests/test_reflect.js";
 import * as struct_layout from "./tests/struct_layout.js";
 import * as exec from "./tests/test_exec.js";
-import * as exec from "./tests/test_debug.js";
+import * as debug from "./tests/test_debug.js";
 
 function displayResults() {
   document.body.appendChild(document.createElement("p"));
@@ -22,4 +22,15 @@ function displayResults() {
   );
 }
 
-displayResults();
+async function runTests() {
+  await scanner.run();
+  await parser.run();
+  await struct.run();
+  await reflect.run();
+  await struct_layout.run();
+  await exec.run();
+  await debug.run();
+  displayResults();
+}
+
+await runTests();
