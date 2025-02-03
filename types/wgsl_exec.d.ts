@@ -26,6 +26,7 @@ declare class ExecContext {
     parent: ExecContext | null;
     variables: Map<string, Var>;
     functions: Map<string, Function>;
+    currentFunctionName: string;
     constructor(parent?: ExecContext);
     getVariable(name: string): Var | null;
     getFunction(name: string): Function | null;
@@ -69,7 +70,7 @@ export declare class WgslExec {
     _evalVariable(node: AST.VariableExpr, context: ExecContext): any;
     _evalBinaryOp(node: AST.BinaryOperator, context: ExecContext): any;
     _evalCall(node: AST.CallExpr, context: ExecContext): any;
-    _callFunction(node: AST.CallExpr, context: ExecContext): any;
+    _callBuiltinFunction(node: AST.CallExpr, context: ExecContext): any;
     _callConstructorValue(node: AST.CreateExpr, context: ExecContext): any;
     _callConstructorArray(node: AST.CreateExpr, context: ExecContext): any[];
     _callConstructorVec(node: AST.CallExpr | AST.CreateExpr, context: ExecContext): any;

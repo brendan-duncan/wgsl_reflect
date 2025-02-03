@@ -59,10 +59,12 @@ class ExecContext {
     parent: ExecContext | null = null;
     variables: Map<string, Var> = new Map<string, Var>();
     functions: Map<string, Function> = new Map<string, Function>();
+    currentFunctionName: string = "";
 
     constructor(parent?: ExecContext) {
         if (parent) {
             this.parent = parent;
+            this.currentFunctionName = parent.currentFunctionName;
         }
     }
 
@@ -1170,12 +1172,14 @@ export class WgslExec {
     }
 
     _evalCall(node: AST.CallExpr, context: ExecContext) {
+        const subContext = context.clone();
+        subContext.currentFunctionName = node.name;
+
         const f = context.functions.get(node.name);
         if (!f) {
-            return this._callFunction(node, context);
+            return this._callBuiltinFunction(node, subContext);
         }
 
-        const subContext = context.clone();
         for (let ai = 0; ai < f.node.args.length; ++ai) {
             const arg = f.node.args[ai];
             const value = this._evalExpression(node.args[ai], subContext);
@@ -1185,7 +1189,7 @@ export class WgslExec {
         return this._execStatements(f.node.body, subContext);
     }
 
-    _callFunction(node: AST.CallExpr, context: ExecContext) {
+    _callBuiltinFunction(node: AST.CallExpr, context: ExecContext) {
         switch (node.name) {
             // Logical Built-in Functions
             case "all":

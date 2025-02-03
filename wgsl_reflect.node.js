@@ -4279,8 +4279,10 @@ class ExecContext {
         this.parent = null;
         this.variables = new Map();
         this.functions = new Map();
+        this.currentFunctionName = "";
         if (parent) {
             this.parent = parent;
+            this.currentFunctionName = parent.currentFunctionName;
         }
     }
     getVariable(name) {
@@ -5441,11 +5443,12 @@ class WgslExec {
         return null;
     }
     _evalCall(node, context) {
+        const subContext = context.clone();
+        subContext.currentFunctionName = node.name;
         const f = context.functions.get(node.name);
         if (!f) {
-            return this._callFunction(node, context);
+            return this._callBuiltinFunction(node, subContext);
         }
-        const subContext = context.clone();
         for (let ai = 0; ai < f.node.args.length; ++ai) {
             const arg = f.node.args[ai];
             const value = this._evalExpression(node.args[ai], subContext);
@@ -5453,7 +5456,7 @@ class WgslExec {
         }
         return this._execStatements(f.node.body, subContext);
     }
-    _callFunction(node, context) {
+    _callBuiltinFunction(node, context) {
         switch (node.name) {
             // Logical Built-in Functions
             case "all":
