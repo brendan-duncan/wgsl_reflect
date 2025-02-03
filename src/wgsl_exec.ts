@@ -111,6 +111,56 @@ class ExecContext {
     }
 };
 
+enum _CommandType {
+    Break,
+    Goto,
+    Statement
+}
+
+class _Command {
+    type: _CommandType;
+    data: AST.Node | number | null;
+
+    constructor(type: _CommandType, data: AST.Node | number | null = null) {
+        this.type = type;
+        this.data = data;
+    }
+
+    get node(): AST.Node { return this.data as AST.Node; }
+
+    get position(): number { return this.data as number; }
+}
+
+class _ExecState {
+    context: ExecContext;
+    commands: Array<_Command> = [];
+    current: number = 0;
+
+    constructor(context: ExecContext) {
+        this.context = context;
+    }
+
+    get isAtEnd(): boolean { return this.current >= this.commands.length; }
+
+    getNextCommand() {
+        const command = this.commands[this.current];
+        this.current++;
+        return command;
+    }
+}
+
+class _ExecStack {
+    states: Array<_ExecState> = [];
+
+    get isEmpty(): boolean { return this.states.length == 0; }
+
+    get last(): _ExecState { return this.states[this.states.length - 1]; }
+
+    pop() {
+        this.states.pop();
+    }
+}
+
 export class WgslExec {
     ast: Array<AST.Node>;
     context: ExecContext;
@@ -123,6 +173,56 @@ export class WgslExec {
         this.reflection.updateAST(this.ast);
 
         this.context = context?.clone() ?? new ExecContext();
+    }
+
+    _execStack: _ExecStack;
+
+    initDebug() {
+        this._execStack = new _ExecStack();
+        const state = new _ExecState(this.context);
+        this._execStack.states.push(state);
+        for (const statement of this.ast) {
+            state.commands.push(new _Command(_CommandType.Statement, statement));
+        }
+    }
+
+    // Returns true if execution is not finished, false if execution is complete
+    stepNextCommand(): boolean {
+        if (this._execStack.isEmpty) {
+            return false;
+        }
+
+        let state = this._execStack.last;
+        if (state.isAtEnd) {
+            this._execStack.pop();
+            if (this._execStack.isEmpty) {
+                return false;
+            }
+            state = this._execStack.last;
+        }
+       
+        const command = state.getNextCommand();
+
+        if (command.type === _CommandType.Break) {
+            let doBreak = true;
+            // Check for conditional break
+            if (command.node) {
+                const condition = this._evalExpression(command.node as AST.Statement, state.context);
+                if (!condition) {
+                    doBreak = false;
+                }
+            }
+
+            if (doBreak) {
+                this._execStack.pop();
+            }
+        } else if (command.type === _CommandType.Goto) {
+            state.current = command.position;
+        } else {
+            this._execStatement(command.node, state.context);
+        }
+
+        return true;
     }
 
     getVariableValue(name: string) {
@@ -628,8 +728,7 @@ export class WgslExec {
             return new Uint32Array(data.buffer, offset, 4);
         }
 
-        const newData = new Data(data.buffer, typeInfo, offset);
-        return newData;
+        return new Data(data.buffer, typeInfo, offset);
     }
 
     _getVariableName(node: AST.Node, context: ExecContext) {
@@ -1815,12 +1914,12 @@ export class WgslExec {
     }
 
     _countTrailingZeros(value: number) {
-        if (x === 0) {
+        if (value === 0) {
             return 32; // Special case for 0
         }
         let count = 0;
-        while ((x & 1) === 0) {
-            x >>= 1;
+        while ((value & 1) === 0) {
+            value >>= 1;
             count++;
         }
         return count;
