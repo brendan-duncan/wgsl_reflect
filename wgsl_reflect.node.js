@@ -2717,6 +2717,12 @@ class WgslParser {
         }
         return null;
     }
+    /*_getType(name: string): AST.Type {
+      const struct = this._getStruct(name);
+      if (struct !== null) {
+        return struct;
+      }
+    }*/
     _primary_expression() {
         // ident argument_expression_list?
         if (this._match(TokenTypes.tokens.ident)) {
@@ -2724,7 +2730,7 @@ class WgslParser {
             if (this._check(TokenTypes.tokens.paren_left)) {
                 const args = this._argument_expression_list();
                 const struct = this._getStruct(name);
-                if (struct != null) {
+                if (struct !== null) {
                     return this._updateNode(new CreateExpr(struct, args));
                 }
                 return this._updateNode(new CallExpr(name, args));
