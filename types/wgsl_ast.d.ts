@@ -325,6 +325,7 @@ export declare class Discard extends Statement {
  * @category AST
  */
 export declare class Break extends Statement {
+    condition: Expression | null;
     constructor();
     get astNodeType(): string;
 }
@@ -349,6 +350,11 @@ export declare class Type extends Statement {
     get astNodeType(): string;
     get isStruct(): boolean;
     get isArray(): boolean;
+    static f32: Type;
+    static i32: Type;
+    static u32: Type;
+    static f16: Type;
+    static bool: Type;
 }
 /**
  * @class StructType
@@ -374,6 +380,36 @@ export declare class TemplateType extends Type {
     access: string | null;
     constructor(name: string, format: Type | null, access: string | null);
     get astNodeType(): string;
+    static vec2f: TemplateType;
+    static vec3f: TemplateType;
+    static vec4f: TemplateType;
+    static vec2i: TemplateType;
+    static vec3i: TemplateType;
+    static vec4i: TemplateType;
+    static vec2u: TemplateType;
+    static vec3u: TemplateType;
+    static vec4u: TemplateType;
+    static vec2h: TemplateType;
+    static vec3h: TemplateType;
+    static vec4h: TemplateType;
+    static mat2x2f: TemplateType;
+    static mat2x3f: TemplateType;
+    static mat2x4f: TemplateType;
+    static mat3x2f: TemplateType;
+    static mat3x3f: TemplateType;
+    static mat3x4f: TemplateType;
+    static mat4x2f: TemplateType;
+    static mat4x3f: TemplateType;
+    static mat4x4f: TemplateType;
+    static mat2x2h: TemplateType;
+    static mat2x3h: TemplateType;
+    static mat2x4h: TemplateType;
+    static mat3x2h: TemplateType;
+    static mat3x3h: TemplateType;
+    static mat3x4h: TemplateType;
+    static mat4x2h: TemplateType;
+    static mat4x3h: TemplateType;
+    static mat4x4h: TemplateType;
 }
 /**
  * @class PointerType

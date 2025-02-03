@@ -676,8 +676,11 @@ export class Discard extends Statement {
  * @category AST
  */
 export class Break extends Statement {
+  condition: Expression | null;
+
   constructor() {
     super();
+    this.condition = null;
   }
 
   get astNodeType() {
@@ -725,6 +728,12 @@ export class Type extends Statement {
   get isArray(): boolean {
     return false;
   }
+
+  static f32 = new Type("f32");
+  static i32 = new Type("i32");
+  static u32 = new Type("u32");
+  static f16 = new Type("f16");
+  static bool = new Type("bool");
 }
 
 /**
@@ -779,6 +788,39 @@ export class TemplateType extends Type {
   get astNodeType() {
     return "template";
   }
+
+  static vec2f = new TemplateType("vec2", Type.f32, null);
+  static vec3f = new TemplateType("vec3", Type.f32, null);
+  static vec4f = new TemplateType("vec4", Type.f32, null);
+  static vec2i = new TemplateType("vec2", Type.i32, null);
+  static vec3i = new TemplateType("vec3", Type.i32, null);
+  static vec4i = new TemplateType("vec4", Type.i32, null);
+  static vec2u = new TemplateType("vec2", Type.u32, null);
+  static vec3u = new TemplateType("vec3", Type.u32, null);
+  static vec4u = new TemplateType("vec4", Type.u32, null);
+  static vec2h = new TemplateType("vec2", Type.f16, null);
+  static vec3h = new TemplateType("vec3", Type.f16, null);
+  static vec4h = new TemplateType("vec4", Type.f16, null);
+
+  static mat2x2f = new TemplateType("mat2x2", Type.f32, null);
+  static mat2x3f = new TemplateType("mat2x3", Type.f32, null);
+  static mat2x4f = new TemplateType("mat2x4", Type.f32, null);
+  static mat3x2f = new TemplateType("mat3x2", Type.f32, null);
+  static mat3x3f = new TemplateType("mat3x3", Type.f32, null);
+  static mat3x4f = new TemplateType("mat3x4", Type.f32, null);
+  static mat4x2f = new TemplateType("mat4x2", Type.f32, null);
+  static mat4x3f = new TemplateType("mat4x3", Type.f32, null);
+  static mat4x4f = new TemplateType("mat4x4", Type.f32, null);
+
+  static mat2x2h = new TemplateType("mat2x2", Type.f16, null);
+  static mat2x3h = new TemplateType("mat2x3", Type.f16, null);
+  static mat2x4h = new TemplateType("mat2x4", Type.f16, null);
+  static mat3x2h = new TemplateType("mat3x2", Type.f16, null);
+  static mat3x3h = new TemplateType("mat3x3", Type.f16, null);
+  static mat3x4h = new TemplateType("mat3x4", Type.f16, null);
+  static mat4x2h = new TemplateType("mat4x2", Type.f16, null);
+  static mat4x3h = new TemplateType("mat4x3", Type.f16, null);
+  static mat4x4h = new TemplateType("mat4x4", Type.f16, null);
 }
 
 /**

@@ -64,14 +64,14 @@ export declare class WgslExec {
     _evalVariable(node: AST.VariableExpr, context: ExecContext): any;
     _evalBinaryOp(node: AST.BinaryOperator, context: ExecContext): any;
     _evalCall(node: AST.CallExpr, context: ExecContext): any;
-    _callIntrinsicFunction(node: AST.CallExpr, context: ExecContext): any;
+    _callFunction(node: AST.CallExpr, context: ExecContext): any;
     _callDot(node: AST.CallExpr, context: ExecContext): number;
     _callMin(node: AST.CallExpr, context: ExecContext): any;
     _callMax(node: AST.CallExpr, context: ExecContext): any;
     _callSaturate(node: AST.CallExpr, context: ExecContext): any;
     _callArrayLength(node: AST.CallExpr, context: ExecContext): any;
-    _callConstructorValue(node: AST.CallExpr | AST.CreateExpr, context: ExecContext): any;
-    _callConstructorArray(node: AST.CallExpr | AST.CreateExpr, context: ExecContext): any[];
+    _callConstructorValue(node: AST.CreateExpr, context: ExecContext): any;
+    _callConstructorArray(node: AST.CreateExpr, context: ExecContext): any[];
     _callConstructorVec(node: AST.CallExpr | AST.CreateExpr, context: ExecContext): any;
     _callConstructorMatrix(node: AST.CallExpr | AST.CreateExpr, context: ExecContext): any[];
     _callAny(node: AST.CallExpr, context: ExecContext): any;

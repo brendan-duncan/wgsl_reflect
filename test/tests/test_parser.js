@@ -398,18 +398,17 @@ struct S {
     test.equals(t1[0].body[0].elseif.length, 2);
   });
 
-  test("continuing", function (test) {
+  test("loop", function (test) {
     const parser = new WgslParser();
     const t = parser.parse(`fn test() {
         var i: i32 = 0;
         loop {
           if i >= 4 { break; }
           if i % 2 == 0 { continue; } // <3>
-        
           let step: i32 = 2;
-        
           continuing {
             i = i + step;
+            break if i >= 4;
           }
         }
       }`);
@@ -501,5 +500,19 @@ struct S {
           astNodeType: "const",
         }
       ]);
+  });
+
+  test("create vs call [1]", function (test) {
+    const shader = `let foo = vec2f(1.0, 2.0);`;
+    const parser = new WgslParser();
+    const t = parser.parse(shader);
+    test.equals(t[0].value.astNodeType, "createExpr");
+  });
+
+  test("create vs call [2]", function (test) {
+    const shader = `let foo = vec2<f32>(1.0, 2.0);`;
+    const parser = new WgslParser();
+    const t = parser.parse(shader);
+    test.equals(t[0].value.astNodeType, "createExpr");
   });
 });

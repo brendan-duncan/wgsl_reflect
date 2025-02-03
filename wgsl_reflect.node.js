@@ -504,6 +504,7 @@ class Discard extends Statement {
 class Break extends Statement {
     constructor() {
         super();
+        this.condition = null;
     }
     get astNodeType() {
         return "break";
@@ -542,6 +543,11 @@ class Type extends Statement {
         return false;
     }
 }
+Type.f32 = new Type("f32");
+Type.i32 = new Type("i32");
+Type.u32 = new Type("u32");
+Type.f16 = new Type("f16");
+Type.bool = new Type("bool");
 /**
  * @class StructType
  * @extends Type
@@ -584,6 +590,36 @@ class TemplateType extends Type {
         return "template";
     }
 }
+TemplateType.vec2f = new TemplateType("vec2", Type.f32, null);
+TemplateType.vec3f = new TemplateType("vec3", Type.f32, null);
+TemplateType.vec4f = new TemplateType("vec4", Type.f32, null);
+TemplateType.vec2i = new TemplateType("vec2", Type.i32, null);
+TemplateType.vec3i = new TemplateType("vec3", Type.i32, null);
+TemplateType.vec4i = new TemplateType("vec4", Type.i32, null);
+TemplateType.vec2u = new TemplateType("vec2", Type.u32, null);
+TemplateType.vec3u = new TemplateType("vec3", Type.u32, null);
+TemplateType.vec4u = new TemplateType("vec4", Type.u32, null);
+TemplateType.vec2h = new TemplateType("vec2", Type.f16, null);
+TemplateType.vec3h = new TemplateType("vec3", Type.f16, null);
+TemplateType.vec4h = new TemplateType("vec4", Type.f16, null);
+TemplateType.mat2x2f = new TemplateType("mat2x2", Type.f32, null);
+TemplateType.mat2x3f = new TemplateType("mat2x3", Type.f32, null);
+TemplateType.mat2x4f = new TemplateType("mat2x4", Type.f32, null);
+TemplateType.mat3x2f = new TemplateType("mat3x2", Type.f32, null);
+TemplateType.mat3x3f = new TemplateType("mat3x3", Type.f32, null);
+TemplateType.mat3x4f = new TemplateType("mat3x4", Type.f32, null);
+TemplateType.mat4x2f = new TemplateType("mat4x2", Type.f32, null);
+TemplateType.mat4x3f = new TemplateType("mat4x3", Type.f32, null);
+TemplateType.mat4x4f = new TemplateType("mat4x4", Type.f32, null);
+TemplateType.mat2x2h = new TemplateType("mat2x2", Type.f16, null);
+TemplateType.mat2x3h = new TemplateType("mat2x3", Type.f16, null);
+TemplateType.mat2x4h = new TemplateType("mat2x4", Type.f16, null);
+TemplateType.mat3x2h = new TemplateType("mat3x2", Type.f16, null);
+TemplateType.mat3x3h = new TemplateType("mat3x3", Type.f16, null);
+TemplateType.mat3x4h = new TemplateType("mat3x4", Type.f16, null);
+TemplateType.mat4x2h = new TemplateType("mat4x2", Type.f16, null);
+TemplateType.mat4x3h = new TemplateType("mat4x3", Type.f16, null);
+TemplateType.mat4x4h = new TemplateType("mat4x4", Type.f16, null);
 /**
  * @class PointerType
  * @extends Type
@@ -2213,7 +2249,16 @@ class WgslParser {
             result = this._updateNode(new Discard());
         }
         else if (this._match(TokenTypes.keywords.break)) {
-            result = this._updateNode(new Break());
+            const breakStmt = this._updateNode(new Break());
+            result = breakStmt;
+            if (this._check(TokenTypes.keywords.if)) {
+                // break-if
+                this._advance();
+                breakStmt.condition = this._optional_paren_expression();
+                if (breakStmt.condition instanceof GroupingExpr && breakStmt.condition.contents.length === 1) {
+                    breakStmt.condition = breakStmt.condition.contents[0];
+                }
+            }
         }
         else if (this._match(TokenTypes.keywords.continue)) {
             result = this._updateNode(new Continue());
@@ -2717,21 +2762,94 @@ class WgslParser {
         }
         return null;
     }
-    /*_getType(name: string): AST.Type {
-      const struct = this._getStruct(name);
-      if (struct !== null) {
-        return struct;
-      }
-    }*/
+    _getType(name) {
+        const struct = this._getStruct(name);
+        if (struct !== null) {
+            return struct;
+        }
+        switch (name) {
+            case "bool":
+                return Type.bool;
+            case "i32":
+                return Type.i32;
+            case "u32":
+                return Type.u32;
+            case "f32":
+                return Type.f32;
+            case "f16":
+                return Type.f16;
+            case "vec2f":
+                return TemplateType.vec2f;
+            case "vec3f":
+                return TemplateType.vec3f;
+            case "vec4f":
+                return TemplateType.vec4f;
+            case "vec2i":
+                return TemplateType.vec2i;
+            case "vec3i":
+                return TemplateType.vec3i;
+            case "vec4i":
+                return TemplateType.vec4i;
+            case "vec2u":
+                return TemplateType.vec2u;
+            case "vec3u":
+                return TemplateType.vec3u;
+            case "vec4u":
+                return TemplateType.vec4u;
+            case "vec2h":
+                return TemplateType.vec2h;
+            case "vec3h":
+                return TemplateType.vec3h;
+            case "vec4h":
+                return TemplateType.vec4h;
+            case "mat2x2f":
+                return TemplateType.mat2x2f;
+            case "mat2x3f":
+                return TemplateType.mat2x3f;
+            case "mat2x4f":
+                return TemplateType.mat2x4f;
+            case "mat3x2f":
+                return TemplateType.mat3x2f;
+            case "mat3x3f":
+                return TemplateType.mat3x3f;
+            case "mat3x4f":
+                return TemplateType.mat3x4f;
+            case "mat4x2f":
+                return TemplateType.mat4x2f;
+            case "mat4x3f":
+                return TemplateType.mat4x3f;
+            case "mat4x4f":
+                return TemplateType.mat4x4f;
+            case "mat2x2h":
+                return TemplateType.mat2x2h;
+            case "mat2x3h":
+                return TemplateType.mat2x3h;
+            case "mat2x4h":
+                return TemplateType.mat2x4h;
+            case "mat3x2h":
+                return TemplateType.mat3x2h;
+            case "mat3x3h":
+                return TemplateType.mat3x3h;
+            case "mat3x4h":
+                return TemplateType.mat3x4h;
+            case "mat4x2h":
+                return TemplateType.mat4x2h;
+            case "mat4x3h":
+                return TemplateType.mat4x3h;
+            case "mat4x4h":
+                return TemplateType.mat4x4h;
+        }
+        return null;
+    }
     _primary_expression() {
         // ident argument_expression_list?
         if (this._match(TokenTypes.tokens.ident)) {
             const name = this._previous().toString();
             if (this._check(TokenTypes.tokens.paren_left)) {
                 const args = this._argument_expression_list();
-                const struct = this._getStruct(name);
-                if (struct !== null) {
-                    return this._updateNode(new CreateExpr(struct, args));
+                const type = this._getType(name);
+                if (type !== null) {
+                    return this._updateNode(new CreateExpr(type, args));
                 }
                 return this._updateNode(new CallExpr(name, args));
             }
@@ -4941,7 +5059,7 @@ class WgslExec {
     _evalCall(node, context) {
         const f = context.functions.get(node.name);
         if (!f) {
-            return this._callIntrinsicFunction(node, context);
+            return this._callFunction(node, context);
         }
         const subContext = context.clone();
         for (let ai = 0; ai < f.node.args.length; ++ai) {
@@ -4951,7 +5069,7 @@ class WgslExec {
         }
         return this._execStatements(f.node.body, subContext);
     }
-    _callIntrinsicFunction(node, context) {
+    _callFunction(node, context) {
         switch (node.name) {
             case "all":
                 return this._callAll(node, context);
@@ -4973,42 +5091,6 @@ class WgslExec {
                 return this._callTextureDimensions(node, context);
             case "textureLoad":
                 return this._callTextureLoad(node, context);
-            // Constructor Built-in Functions
-            // Value Constructor Built-in Functions
-            // TODO: thise should have been Create operators
-            case "bool":
-                return this._callConstructorValue(node, context) ? 1 : 0;
-            case "i32":
-            case "u32":
-                return Math.floor(this._callConstructorValue(node, context));
-            case "f32":
-            case "f16":
-                return this._callConstructorValue(node, context);
-            case "vec2":
-            case "vec3":
-            case "vec4":
-            case "vec2f":
-            case "vec3f":
-            case "vec4f":
-            case "vec2i":
-            case "vec3i":
-            case "vec4i":
-            case "vec2u":
-            case "vec3u":
-            case "vec4u":
-                return this._callConstructorVec(node, context);
-            case "mat2x2":
-            case "mat2x3":
-            case "mat2x4":
-            case "mat3x2":
-            case "mat3x3":
-            case "mat3x4":
-            case "mat4x2":
-            case "mat4x3":
-            case "mat4x4":
-                return this._callConstructorMatrix(node, context);
-            case "array":
-                return this._callConstructorArray(node, context);
         }
         const f = context.getFunction(node.name);
         if (f) {
@@ -5067,53 +5149,51 @@ class WgslExec {
     }
     _callConstructorArray(node, context) {
         if (node.args.length === 0) {
-            if (node instanceof CreateExpr) {
-                if (node.type instanceof ArrayType) {
-                    if (node.type.count) {
-                        const format = node.type.format.name;
-                        if (format === "bool" || format === "i32" || format === "u32" || format === "f32" || format === "f16") {
-                            return new Array(node.type.count).fill(0);
-                        }
-                        else if (format === "vec2" || format === "vec2u" || format === "vec2i" || format === "vec2f") {
-                            return new Array(node.type.count).fill([0, 0]);
-                        }
-                        else if (format === "vec3" || format === "vec3u" || format === "vec3i" || format === "vec3f") {
-                            return new Array(node.type.count).fill([0, 0, 0]);
-                        }
-                        else if (format === "vec4" || format === "vec4u" || format === "vec4i" || format === "vec4f") {
-                            return new Array(node.type.count).fill([0, 0, 0, 0]);
-                        }
-                        else if (format === "mat2x2") {
-                            return new Array(node.type.count).fill([0, 0, 0, 0]);
-                        }
-                        else if (format === "mat2x3") {
-                            return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0]);
-                        }
-                        else if (format === "mat2x4") {
-                            return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0]);
-                        }
-                        else if (format === "mat3x2") {
-                            return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0]);
-                        }
-                        else if (format === "mat3x3") {
-                            return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0, 0]);
-                        }
-                        else if (format === "mat3x4") {
-                            return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-                        }
-                        else if (format === "mat4x2") {
-                            return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0]);
-                        }
-                        else if (format === "mat4x3") {
-                            return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-                        }
-                        else if (format === "mat4x4") {
-                            return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-                        }
-                        else {
-                            console.error(`TODO: support array format ${format}. Line ${node.line}`);
-                            return null;
-                        }
+            if (node.type instanceof ArrayType) {
+                if (node.type.count) {
+                    const format = node.type.format.name;
+                    if (format === "bool" || format === "i32" || format === "u32" || format === "f32" || format === "f16") {
+                        return new Array(node.type.count).fill(0);
+                    }
+                    else if (format === "vec2" || format === "vec2u" || format === "vec2i" || format === "vec2f") {
+                        return new Array(node.type.count).fill([0, 0]);
+                    }
+                    else if (format === "vec3" || format === "vec3u" || format === "vec3i" || format === "vec3f") {
+                        return new Array(node.type.count).fill([0, 0, 0]);
+                    }
+                    else if (format === "vec4" || format === "vec4u" || format === "vec4i" || format === "vec4f") {
+                        return new Array(node.type.count).fill([0, 0, 0, 0]);
+                    }
+                    else if (format === "mat2x2") {
+                        return new Array(node.type.count).fill([0, 0, 0, 0]);
+                    }
+                    else if (format === "mat2x3") {
+                        return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0]);
+                    }
+                    else if (format === "mat2x4") {
+                        return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0]);
+                    }
+                    else if (format === "mat3x2") {
+                        return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0]);
+                    }
+                    else if (format === "mat3x3") {
+                        return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0, 0]);
+                    }
+                    else if (format === "mat3x4") {
+                        return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+                    }
+                    else if (format === "mat4x2") {
+                        return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0]);
+                    }
+                    else if (format === "mat4x3") {
+                        return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+                    }
+                    else if (format === "mat4x4") {
+                        return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+                    }
+                    else {
+                        console.error(`TODO: support array format ${format}. Line ${node.line}`);
+                        return null;
                     }
                 }
             }

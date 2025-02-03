@@ -396,7 +396,16 @@ export class WgslParser {
     } else if (this._match(TokenTypes.keywords.discard)) {
       result = this._updateNode(new AST.Discard());
     } else if (this._match(TokenTypes.keywords.break)) {
-      result = this._updateNode(new AST.Break());
+      const breakStmt = this._updateNode(new AST.Break());
+      result = breakStmt;
+      if (this._check(TokenTypes.keywords.if)) {
+        // break-if
+        this._advance();
+        breakStmt.condition = this._optional_paren_expression();
+        if (breakStmt.condition instanceof AST.GroupingExpr && breakStmt.condition.contents.length === 1) {
+          breakStmt.condition = breakStmt.condition.contents[0];
+        }
+      }
     } else if (this._match(TokenTypes.keywords.continue)) {
       result = this._updateNode(new AST.Continue());
     } else {
@@ -1105,12 +1114,85 @@ export class WgslParser {
     return null;
   }
 
-  /*_getType(name: string): AST.Type {
+  _getType(name: string): AST.Type {
     const struct = this._getStruct(name);
     if (struct !== null) {
       return struct;
     }
-  }*/
+    switch (name) {
+      case "bool":
+        return AST.Type.bool;
+      case "i32":
+        return AST.Type.i32;
+      case "u32":
+        return AST.Type.u32;
+      case "f32":
+        return AST.Type.f32;
+      case "f16":
+        return AST.Type.f16;
+      case "vec2f":
+        return AST.TemplateType.vec2f;
+      case "vec3f":
+        return AST.TemplateType.vec3f;
+      case "vec4f":
+        return AST.TemplateType.vec4f;
+      case "vec2i":
+        return AST.TemplateType.vec2i;
+      case "vec3i":
+        return AST.TemplateType.vec3i;
+      case "vec4i":
+        return AST.TemplateType.vec4i;
+      case "vec2u":
+        return AST.TemplateType.vec2u;
+      case "vec3u":
+        return AST.TemplateType.vec3u;
+      case "vec4u":
+        return AST.TemplateType.vec4u;
+      case "vec2h":
+        return AST.TemplateType.vec2h;
+      case "vec3h":
+        return AST.TemplateType.vec3h;
+      case "vec4h":
+        return AST.TemplateType.vec4h;
+      case "mat2x2f":
+        return AST.TemplateType.mat2x2f;
+      case "mat2x3f":
+        return AST.TemplateType.mat2x3f;
+      case "mat2x4f":
+        return AST.TemplateType.mat2x4f;
+      case "mat3x2f":
+        return AST.TemplateType.mat3x2f;
+      case "mat3x3f":
+        return AST.TemplateType.mat3x3f;
+      case "mat3x4f":
+        return AST.TemplateType.mat3x4f;
+      case "mat4x2f":
+        return AST.TemplateType.mat4x2f;
+      case "mat4x3f":
+        return AST.TemplateType.mat4x3f;
+      case "mat4x4f":
+        return AST.TemplateType.mat4x4f;
+      case "mat2x2h":
+        return AST.TemplateType.mat2x2h;
+      case "mat2x3h":
+        return AST.TemplateType.mat2x3h;
+      case "mat2x4h":
+        return AST.TemplateType.mat2x4h;
+      case "mat3x2h":
+        return AST.TemplateType.mat3x2h;
+      case "mat3x3h":
+        return AST.TemplateType.mat3x3h;
+      case "mat3x4h":
+        return AST.TemplateType.mat3x4h;
+      case "mat4x2h":
+        return AST.TemplateType.mat4x2h;
+      case "mat4x3h":
+        return AST.TemplateType.mat4x3h;
+      case "mat4x4h":
+        return AST.TemplateType.mat4x4h;
+    }
+    return null;
+  }
 
   _primary_expression(): AST.Expression {
     // ident argument_expression_list?
@@ -1118,9 +1200,9 @@ export class WgslParser {
       const name = this._previous().toString();
       if (this._check(TokenTypes.tokens.paren_left)) {
         const args = this._argument_expression_list();
-        const struct = this._getStruct(name);
-        if (struct !== null) {
-          return this._updateNode(new AST.CreateExpr(struct, args));
+        const type = this._getType(name);
+        if (type !== null) {
+          return this._updateNode(new AST.CreateExpr(type, args));
         }
         return this._updateNode(new AST.CallExpr(name, args));
       }

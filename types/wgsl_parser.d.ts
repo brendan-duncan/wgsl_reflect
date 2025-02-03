@@ -57,6 +57,7 @@ export declare class WgslParser {
     _singular_expression(): AST.Expression;
     _postfix_expression(): AST.Expression | null;
     _getStruct(name: string): AST.Type | null;
+    _getType(name: string): AST.Type;
     _primary_expression(): AST.Expression;
     _argument_expression_list(): Array<AST.Expression> | null;
     _optional_paren_expression(): AST.GroupingExpr;

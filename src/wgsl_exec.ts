@@ -837,7 +837,7 @@ export class WgslExec {
     _evalCall(node: AST.CallExpr, context: ExecContext) {
         const f = context.functions.get(node.name);
         if (!f) {
-            return this._callIntrinsicFunction(node, context);
+            return this._callFunction(node, context);
         }
 
         const subContext = context.clone();
@@ -850,7 +850,7 @@ export class WgslExec {
         return this._execStatements(f.node.body, subContext);
     }
 
-    _callIntrinsicFunction(node: AST.CallExpr, context: ExecContext) {
+    _callFunction(node: AST.CallExpr, context: ExecContext) {
         switch (node.name) {
             case "all":
                 return this._callAll(node, context);
@@ -873,43 +873,6 @@ export class WgslExec {
                 return this._callTextureDimensions(node, context);
             case "textureLoad":
                 return this._callTextureLoad(node, context);
-
-            // Constructor Built-in Functions
-            // Value Constructor Built-in Functions
-            // TODO: thise should have been Create operators
-            case "bool":
-                return this._callConstructorValue(node, context) ? 1 : 0;
-            case "i32":
-            case "u32":
-                return Math.floor(this._callConstructorValue(node, context));
-            case "f32":
-            case "f16":
-                return this._callConstructorValue(node, context);
-            case "vec2":
-            case "vec3":
-            case "vec4":
-            case "vec2f":
-            case "vec3f":
-            case "vec4f":
-            case "vec2i":
-            case "vec3i":
-            case "vec4i":
-            case "vec2u":
-            case "vec3u":
-            case "vec4u":
-                return this._callConstructorVec(node, context);
-            case "mat2x2":
-            case "mat2x3":
-            case "mat2x4":
-            case "mat3x2":
-            case "mat3x3":
-            case "mat3x4":
-            case "mat4x2":
-            case "mat4x3":
-            case "mat4x4":
-                return this._callConstructorMatrix(node, context);
-            case "array":
-                return this._callConstructorArray(node, context);
         }
 
         const f = context.getFunction(node.name);
@@ -968,49 +931,47 @@ export class WgslExec {
         return arrayData.typeInfo.size;
     }
 
-    _callConstructorValue(node: AST.CallExpr | AST.CreateExpr, context: ExecContext) {
+    _callConstructorValue(node: AST.CreateExpr, context: ExecContext) {
         if (node.args.length === 0) {
             return 0;
         }
         return this._evalExpression(node.args[0], context);
     }
 
-    _callConstructorArray(node: AST.CallExpr | AST.CreateExpr, context: ExecContext) {
+    _callConstructorArray(node: AST.CreateExpr, context: ExecContext) {
         if (node.args.length === 0) {
-            if (node instanceof AST.CreateExpr) {
-                if (node.type instanceof AST.ArrayType) {
-                    if (node.type.count) {
-                        const format = node.type.format.name;
-                        if (format === "bool" || format === "i32" || format === "u32" || format === "f32" || format === "f16") {
-                            return new Array(node.type.count).fill(0);
-                        } else if (format === "vec2" || format === "vec2u" || format === "vec2i" || format === "vec2f") {
-                            return new Array(node.type.count).fill([0, 0]);
-                        } else if (format === "vec3" || format === "vec3u" || format === "vec3i" || format === "vec3f") {
-                            return new Array(node.type.count).fill([0, 0, 0]);
-                        } else if (format === "vec4" || format === "vec4u" || format === "vec4i" || format === "vec4f") {
-                            return new Array(node.type.count).fill([0, 0, 0, 0]);
-                        } else if (format === "mat2x2") {
-                            return new Array(node.type.count).fill([0, 0, 0, 0]);
-                        } else if (format === "mat2x3") {
-                            return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0]);
-                        } else if (format === "mat2x4") {
-                            return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0]);
-                        } else if (format === "mat3x2") {
-                            return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0]);
-                        } else if (format === "mat3x3") {
-                            return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0, 0]);
-                        } else if (format === "mat3x4") {
-                            return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-                        } else if (format === "mat4x2") {
-                            return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0]);
-                        } else if (format === "mat4x3") {
-                            return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-                        } else if (format === "mat4x4") {
-                            return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-                        } else {
-                            console.error(`TODO: support array format ${format}. Line ${node.line}`);
-                            return null;
-                        }
+            if (node.type instanceof AST.ArrayType) {
+                if (node.type.count) {
+                    const format = node.type.format.name;
+                    if (format === "bool" || format === "i32" || format === "u32" || format === "f32" || format === "f16") {
+                        return new Array(node.type.count).fill(0);
+                    } else if (format === "vec2" || format === "vec2u" || format === "vec2i" || format === "vec2f") {
+                        return new Array(node.type.count).fill([0, 0]);
+                    } else if (format === "vec3" || format === "vec3u" || format === "vec3i" || format === "vec3f") {
+                        return new Array(node.type.count).fill([0, 0, 0]);
+                    } else if (format === "vec4" || format === "vec4u" || format === "vec4i" || format === "vec4f") {
+                        return new Array(node.type.count).fill([0, 0, 0, 0]);
+                    } else if (format === "mat2x2") {
+                        return new Array(node.type.count).fill([0, 0, 0, 0]);
+                    } else if (format === "mat2x3") {
+                        return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0]);
+                    } else if (format === "mat2x4") {
+                        return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0]);
+                    } else if (format === "mat3x2") {
+                        return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0]);
+                    } else if (format === "mat3x3") {
+                        return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0, 0]);
+                    } else if (format === "mat3x4") {
+                        return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+                    } else if (format === "mat4x2") {
+                        return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0]);
+                    } else if (format === "mat4x3") {
+                        return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+                    } else if (format === "mat4x4") {
+                        return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+                    } else {
+                        console.error(`TODO: support array format ${format}. Line ${node.line}`);
+                        return null;
                     }
                 }
             }
