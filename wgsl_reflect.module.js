@@ -5943,75 +5943,119 @@ class WgslExec {
     // Numeric Built-in Functions
     _callAbs(node, context) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v) => Math.abs(v));
+        }
         return Math.abs(value);
     }
     _callAcos(node, context) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v) => Math.acos(v));
+        }
         return Math.acos(value);
     }
     _callAcosh(node, context) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v) => Math.acosh(v));
+        }
         return Math.acosh(value);
     }
     _callAsin(node, context) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v) => Math.asin(v));
+        }
         return Math.asin(value);
     }
     _callAsinh(node, context) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v) => Math.asinh(v));
+        }
         return Math.asinh(value);
     }
     _callAtan(node, context) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v) => Math.atan(v));
+        }
         return Math.atan(value);
     }
     _callAtanh(node, context) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v) => Math.atanh(v));
+        }
         return Math.atanh(value);
     }
     _callAtan2(node, context) {
         const y = this._evalExpression(node.args[0], context);
         const x = this._evalExpression(node.args[1], context);
+        if (y.length !== undefined) {
+            return y.map((v, i) => Math.atan2(v, x[i]));
+        }
         return Math.atan2(y, x);
     }
     _callCeil(node, context) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v) => Math.ceil(v));
+        }
         return Math.ceil(value);
+    }
+    _clamp(value, min, max) {
+        return Math.min(Math.max(value, min), max);
     }
     _callClamp(node, context) {
         const value = this._evalExpression(node.args[0], context);
         const min = this._evalExpression(node.args[1], context);
         const max = this._evalExpression(node.args[2], context);
-        return Math.min(Math.max(value, min), max);
+        if (value.length !== undefined) {
+            return value.map((v, i) => this._clamp(v, min[i], max[i]));
+        }
+        return this._clamp(value, min, max);
     }
     _callCos(node, context) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v) => Math.cos(v));
+        }
         return Math.cos(value);
     }
     _callCosh(node, context) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v) => Math.cosh(v));
+        }
         return Math.cosh(value);
     }
     _callCountLeadingZeros(node, context) {
-        // TODO: vecN support
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v) => Math.clz32(v));
+        }
         return Math.clz32(value);
     }
-    _callCountOneBits(node, context) {
-        // TODO: vecN support
-        let x = this._evalExpression(node.args[0], context);
+    _countOneBits(value) {
         let count = 0;
-        while (x !== 0) {
-            if (x & 1) {
+        while (value !== 0) {
+            if (value & 1) {
                 count++;
             }
-            x >>= 1;
+            value >>= 1;
         }
         return count;
     }
-    _callCountTrailingZeros(node, context) {
-        // TODO: vecN support
+    _callCountOneBits(node, context) {
         let x = this._evalExpression(node.args[0], context);
+        if (x.length !== undefined) {
+            return x.map((v) => this._countOneBits(v));
+        }
+        return this._countOneBits(x);
+    }
+    _countTrailingZeros(value) {
         if (x === 0) {
             return 32; // Special case for 0
         }
@@ -6021,6 +6065,13 @@ class WgslExec {
             count++;
         }
         return count;
+    }
+    _callCountTrailingZeros(node, context) {
+        let x = this._evalExpression(node.args[0], context);
+        if (x.length !== undefined) {
+            return x.map((v) => this._countTrailingZeros(v));
+        }
+        this._countTrailingZeros(x);
     }
     _callCross(node, context) {
         const l = this._evalExpression(node.args[0], context);
@@ -6033,6 +6084,9 @@ class WgslExec {
     }
     _callDegrees(node, context) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v) => v * 180 / Math.PI);
+        }
         return value * 180 / Math.PI;
     }
     _callDeterminant(node, context) {
@@ -6072,10 +6126,16 @@ class WgslExec {
     }
     _callExp(node, context) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v) => Math.exp(v));
+        }
         return Math.exp(value);
     }
     _callExp2(node, context) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v) => Math.pow(2, v));
+        }
         return Math.pow(2, value);
     }
     _callExtractBits(node, context) {
@@ -6098,16 +6158,25 @@ class WgslExec {
     }
     _callFloor(node, context) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v) => Math.floor(v));
+        }
         return Math.floor(value);
     }
     _callFma(node, context) {
         const a = this._evalExpression(node.args[0], context);
         const b = this._evalExpression(node.args[1], context);
         const c = this._evalExpression(node.args[2], context);
+        if (a.length !== undefined) {
+            return a.map((v, i) => v * b[i] + c[i]);
+        }
         return a * b + c;
     }
     _callFract(node, context) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v) => v - Math.floor(v));
+        }
         return value - Math.floor(value);
     }
     _callFrexp(node, context) {
@@ -6124,6 +6193,9 @@ class WgslExec {
     }
     _callInverseSqrt(node, context) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v) => 1 / Math.sqrt(v));
+        }
         return 1 / Math.sqrt(value);
     }
     _callLdexp(node, context) {
@@ -6140,31 +6212,50 @@ class WgslExec {
     }
     _callLog(node, context) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v) => Math.log(v));
+        }
         return Math.log(value);
     }
     _callLog2(node, context) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v) => Math.log2(v));
+        }
         return Math.log2(value);
     }
     _callMax(node, context) {
         const l = this._evalExpression(node.args[0], context);
         const r = this._evalExpression(node.args[1], context);
+        if (l.length !== undefined) {
+            return l.map((v, i) => Math.max(v, r[i]));
+        }
         return Math.max(l, r);
     }
     _callMin(node, context) {
         const l = this._evalExpression(node.args[0], context);
         const r = this._evalExpression(node.args[1], context);
+        if (l.length !== undefined) {
+            return l.map((v, i) => Math.min(v, r[i]));
+        }
         return Math.min(l, r);
     }
     _callMix(node, context) {
         const x = this._evalExpression(node.args[0], context);
         const y = this._evalExpression(node.args[1], context);
         const a = this._evalExpression(node.args[2], context);
+        if (x.length !== undefined) {
+            return x.map((v, i) => x[i] * (1 - a[i]) + y[i] * a[i]);
+        }
         return x * (1 - a) + y * a;
     }
     _callModf(node, context) {
-        console.error("TODO: modf");
-        return null;
+        const x = this._evalExpression(node.args[0], context);
+        const y = this._evalExpression(node.args[1], context);
+        if (x.length !== undefined) {
+            return x.map((v, i) => v % y[i]);
+        }
+        return x % y;
     }
     _callNormalize(node, context) {
         const value = this._evalExpression(node.args[0], context);
@@ -6174,6 +6265,9 @@ class WgslExec {
     _callPow(node, context) {
         const x = this._evalExpression(node.args[0], context);
         const y = this._evalExpression(node.args[1], context);
+        if (x.length !== undefined) {
+            return x.map((v, i) => Math.pow(v, y[i]));
+        }
         return Math.pow(x, y);
     }
     _callQuantizeToF16(node, context) {
@@ -6182,6 +6276,9 @@ class WgslExec {
     }
     _callRadians(node, context) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v) => v * Math.PI / 180);
+        }
         return value * Math.PI / 180;
     }
     _callReflect(node, context) {
@@ -6198,46 +6295,79 @@ class WgslExec {
     }
     _callRound(node, context) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v) => Math.round(v));
+        }
         return Math.round(value);
     }
     _callSaturate(node, context) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v) => Math.min(Math.max(v, 0), 1));
+        }
         return Math.min(Math.max(value, 0), 1);
     }
     _callSign(node, context) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v) => Math.sign(v));
+        }
         return Math.sign(value);
     }
     _callSin(node, context) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v) => Math.sin(v));
+        }
         return Math.sin(value);
     }
     _callSinh(node, context) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v) => Math.sinh(v));
+        }
         return Math.sinh(value);
+    }
+    _smoothstep(edge0, edge1, x) {
+        const t = Math.min(Math.max((x - edge0) / (edge1 - edge0), 0), 1);
+        return t * t * (3 - 2 * t);
     }
     _callSmoothStep(node, context) {
         const edge0 = this._evalExpression(node.args[0], context);
         const edge1 = this._evalExpression(node.args[1], context);
         const x = this._evalExpression(node.args[2], context);
-        const t = Math.min(Math.max((x - edge0) / (edge1 - edge0), 0), 1);
-        return t * t * (3 - 2 * t);
+        if (x.length !== undefined) {
+            return x.map((v, i) => this._smoothstep(edge0[i], edge1[i], v));
+        }
+        return this._smoothstep(edge0, edge1, x);
     }
     _callSqrt(node, context) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v) => Math.sqrt(v));
+        }
         return Math.sqrt(value);
     }
     _callStep(node, context) {
         const edge = this._evalExpression(node.args[0], context);
         const x = this._evalExpression(node.args[1], context);
+        if (x.length !== undefined) {
+            return x.map((v, i) => v < edge[i] ? 0 : 1);
+        }
         return x < edge ? 0 : 1;
     }
     _callTan(node, context) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v) => Math.tan(v));
+        }
         return Math.tan(value);
     }
     _callTanh(node, context) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v) => Math.tanh(v));
+        }
         return Math.tanh(value);
     }
     _callTranspose(node, context) {
@@ -6246,6 +6376,9 @@ class WgslExec {
     }
     _callTrunc(node, context) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v) => Math.trunc(v));
+        }
         return Math.trunc(value);
     }
     // Derivative Built-in Functions

@@ -1682,89 +1682,135 @@ export class WgslExec {
     // Numeric Built-in Functions
     _callAbs(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v: number) => Math.abs(v));
+        }
         return Math.abs(value);
     }
 
     _callAcos(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v: number) => Math.acos(v));
+        }
         return Math.acos(value);
     }
 
     _callAcosh(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v: number) => Math.acosh(v));
+        }
         return Math.acosh(value);
     }
 
     _callAsin(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v: number) => Math.asin(v));
+        }
         return Math.asin(value);
     }
 
     _callAsinh(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v: number) => Math.asinh(v));
+        }
         return Math.asinh(value);
     }
 
     _callAtan(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v: number) => Math.atan(v));
+        }
         return Math.atan(value);
     }
 
     _callAtanh(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v: number) => Math.atanh(v));
+        }
         return Math.atanh(value);
     }
 
     _callAtan2(node: AST.CallExpr, context: ExecContext) {
         const y = this._evalExpression(node.args[0], context);
         const x = this._evalExpression(node.args[1], context);
+        if (y.length !== undefined) {
+            return y.map((v: number, i: number) => Math.atan2(v, x[i]));
+        }
         return Math.atan2(y, x);
     }
 
     _callCeil(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v: number) => Math.ceil(v));
+        }
         return Math.ceil(value);
+    }
+
+    _clamp(value: number, min: number, max: number) {
+        return Math.min(Math.max(value, min), max);
     }
 
     _callClamp(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
         const min = this._evalExpression(node.args[1], context);
         const max = this._evalExpression(node.args[2], context);
-        return Math.min(Math.max(value, min), max);
+        if (value.length !== undefined) {
+            return value.map((v: number, i: number) => this._clamp(v, min[i], max[i]));
+        }
+        return this._clamp(value, min, max);
     }
 
     _callCos(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v: number) => Math.cos(v));
+        }
         return Math.cos(value);
     }
 
     _callCosh(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v: number) => Math.cosh(v));
+        }
         return Math.cosh(value);
     }
 
     _callCountLeadingZeros(node: AST.CallExpr, context: ExecContext) {
-        // TODO: vecN support
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v: number) => Math.clz32(v));
+        }
         return Math.clz32(value);
     }
 
-    _callCountOneBits(node: AST.CallExpr, context: ExecContext) {
-        // TODO: vecN support
-        let x = this._evalExpression(node.args[0], context);
+    _countOneBits(value: number) {
         let count = 0;
-        while (x !== 0) {
-            if (x & 1) {
+        while (value !== 0) {
+            if (value & 1) {
                 count++;
             }
-            x >>= 1;
+            value >>= 1;
         }
         return count;
     }
 
-    _callCountTrailingZeros(node: AST.CallExpr, context: ExecContext) {
-        // TODO: vecN support
+    _callCountOneBits(node: AST.CallExpr, context: ExecContext) {
         let x = this._evalExpression(node.args[0], context);
+        if (x.length !== undefined) {
+            return x.map((v: number) => this._countOneBits(v));
+        }
+        return this._countOneBits(x);
+    }
+
+    _countTrailingZeros(value: number) {
         if (x === 0) {
             return 32; // Special case for 0
         }
@@ -1774,6 +1820,14 @@ export class WgslExec {
             count++;
         }
         return count;
+    }
+
+    _callCountTrailingZeros(node: AST.CallExpr, context: ExecContext) {
+        let x = this._evalExpression(node.args[0], context);
+        if (x.length !== undefined) {
+            return x.map((v: number) => this._countTrailingZeros(v));
+        }
+        this._countTrailingZeros(x);
     }
 
     _callCross(node: AST.CallExpr, context: ExecContext) {
@@ -1788,6 +1842,9 @@ export class WgslExec {
 
     _callDegrees(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v: number) => v * 180 / Math.PI);
+        }
         return value * 180 / Math.PI;
     }
 
@@ -1833,11 +1890,17 @@ export class WgslExec {
 
     _callExp(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v: number) => Math.exp(v));
+        }
         return Math.exp(value);
     }
 
     _callExp2(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v: number) => Math.pow(2, v));
+        }
         return Math.pow(2, value);
     }
 
@@ -1865,6 +1928,9 @@ export class WgslExec {
 
     _callFloor(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v: number) => Math.floor(v));
+        }
         return Math.floor(value);
     }
 
@@ -1872,11 +1938,17 @@ export class WgslExec {
         const a = this._evalExpression(node.args[0], context);
         const b = this._evalExpression(node.args[1], context);
         const c = this._evalExpression(node.args[2], context);
+        if (a.length !== undefined) {
+            return a.map((v: number, i: number) => v * b[i] + c[i]);
+        }
         return a * b + c;
     }
 
     _callFract(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v: number) => v - Math.floor(v));
+        }
         return value - Math.floor(value);
     }
 
@@ -1896,6 +1968,9 @@ export class WgslExec {
 
     _callInverseSqrt(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v: number) => 1 / Math.sqrt(v));
+        }
         return 1 / Math.sqrt(value);
     }
 
@@ -1915,23 +1990,35 @@ export class WgslExec {
 
     _callLog(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v: number) => Math.log(v));
+        }
         return Math.log(value);
     }
 
     _callLog2(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v: number) => Math.log2(v));
+        }
         return Math.log2(value);
     }
 
     _callMax(node: AST.CallExpr, context: ExecContext) {
         const l = this._evalExpression(node.args[0], context);
         const r = this._evalExpression(node.args[1], context);
+        if (l.length !== undefined) {
+            return l.map((v: number, i: number) => Math.max(v, r[i]));
+        }
         return Math.max(l, r);
     }
 
     _callMin(node: AST.CallExpr, context: ExecContext) {
         const l = this._evalExpression(node.args[0], context);
         const r = this._evalExpression(node.args[1], context);
+        if (l.length !== undefined) {
+            return l.map((v: number, i: number) => Math.min(v, r[i]));
+        }
         return Math.min(l, r);
     }
 
@@ -1939,12 +2026,19 @@ export class WgslExec {
         const x = this._evalExpression(node.args[0], context);
         const y = this._evalExpression(node.args[1], context);
         const a = this._evalExpression(node.args[2], context);
+        if (x.length !== undefined) {
+            return x.map((v: number, i: number) => x[i] * (1 - a[i]) + y[i] * a[i]);
+        }
         return x * (1 - a) + y * a;
     }
 
     _callModf(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: modf");
-        return null;
+        const x = this._evalExpression(node.args[0], context);
+        const y = this._evalExpression(node.args[1], context);
+        if (x.length !== undefined) {
+            return x.map((v: number, i: number) => v % y[i]);
+        }
+        return x % y;
     }
 
     _callNormalize(node: AST.CallExpr, context: ExecContext) {
@@ -1956,6 +2050,9 @@ export class WgslExec {
     _callPow(node: AST.CallExpr, context: ExecContext) {
         const x = this._evalExpression(node.args[0], context);
         const y = this._evalExpression(node.args[1], context);
+        if (x.length !== undefined) {
+            return x.map((v: number, i: number) => Math.pow(v, y[i]));
+        }
         return Math.pow(x, y);
     }
 
@@ -1966,6 +2063,9 @@ export class WgslExec {
 
     _callRadians(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v: number) => v * Math.PI / 180);
+        }
         return value * Math.PI / 180;
     }
 
@@ -1986,55 +2086,89 @@ export class WgslExec {
 
     _callRound(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v: number) => Math.round(v));
+        }
         return Math.round(value);
     }
 
     _callSaturate(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v: number) => Math.min(Math.max(v, 0), 1));
+        }
         return Math.min(Math.max(value, 0), 1);
     }
 
     _callSign(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v: number) => Math.sign(v));
+        }
         return Math.sign(value);
     }
 
     _callSin(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v: number) => Math.sin(v));
+        }
         return Math.sin(value);
     }
 
     _callSinh(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v: number) => Math.sinh(v));
+        }
         return Math.sinh(value);
+    }
+
+    _smoothstep(edge0: number, edge1: number, x: number) {
+        const t = Math.min(Math.max((x - edge0) / (edge1 - edge0), 0), 1);
+        return t * t * (3 - 2 * t);
     }
 
     _callSmoothStep(node: AST.CallExpr, context: ExecContext) {
         const edge0 = this._evalExpression(node.args[0], context);
         const edge1 = this._evalExpression(node.args[1], context);
         const x = this._evalExpression(node.args[2], context);
-        const t = Math.min(Math.max((x - edge0) / (edge1 - edge0), 0), 1);
-        return t * t * (3 - 2 * t);
+        if (x.length !== undefined) {
+            return x.map((v: number, i: number) => this._smoothstep(edge0[i], edge1[i], v));
+        }
+        return this._smoothstep(edge0, edge1, x);
     }
 
     _callSqrt(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v: number) => Math.sqrt(v));
+        }
         return Math.sqrt(value);
     }
 
     _callStep(node: AST.CallExpr, context: ExecContext) {
         const edge = this._evalExpression(node.args[0], context);
         const x = this._evalExpression(node.args[1], context);
+        if (x.length !== undefined) {
+            return x.map((v: number, i: number) => v < edge[i] ? 0 : 1);
+        }
         return x < edge ? 0 : 1;
     }
 
     _callTan(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v: number) => Math.tan(v));
+        }
         return Math.tan(value);
     }
 
     _callTanh(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v: number) => Math.tanh(v));
+        }
         return Math.tanh(value);
     }
 
@@ -2045,6 +2179,9 @@ export class WgslExec {
 
     _callTrunc(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
+        if (value.length !== undefined) {
+            return value.map((v: number) => Math.trunc(v));
+        }
         return Math.trunc(value);
     }
 

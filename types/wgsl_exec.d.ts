@@ -87,12 +87,15 @@ export declare class WgslExec {
     _callAtanh(node: AST.CallExpr, context: ExecContext): any;
     _callAtan2(node: AST.CallExpr, context: ExecContext): any;
     _callCeil(node: AST.CallExpr, context: ExecContext): any;
+    _clamp(value: number, min: number, max: number): number;
     _callClamp(node: AST.CallExpr, context: ExecContext): any;
     _callCos(node: AST.CallExpr, context: ExecContext): any;
     _callCosh(node: AST.CallExpr, context: ExecContext): any;
     _callCountLeadingZeros(node: AST.CallExpr, context: ExecContext): any;
-    _callCountOneBits(node: AST.CallExpr, context: ExecContext): number;
-    _callCountTrailingZeros(node: AST.CallExpr, context: ExecContext): number;
+    _countOneBits(value: number): number;
+    _callCountOneBits(node: AST.CallExpr, context: ExecContext): any;
+    _countTrailingZeros(value: number): number;
+    _callCountTrailingZeros(node: AST.CallExpr, context: ExecContext): any;
     _callCross(node: AST.CallExpr, context: ExecContext): any;
     _callDegrees(node: AST.CallExpr, context: ExecContext): any;
     _callDeterminant(node: AST.CallExpr, context: ExecContext): any;
@@ -132,7 +135,8 @@ export declare class WgslExec {
     _callSign(node: AST.CallExpr, context: ExecContext): any;
     _callSin(node: AST.CallExpr, context: ExecContext): any;
     _callSinh(node: AST.CallExpr, context: ExecContext): any;
-    _callSmoothStep(node: AST.CallExpr, context: ExecContext): number;
+    _smoothstep(edge0: number, edge1: number, x: number): number;
+    _callSmoothStep(node: AST.CallExpr, context: ExecContext): any;
     _callSqrt(node: AST.CallExpr, context: ExecContext): any;
     _callStep(node: AST.CallExpr, context: ExecContext): any;
     _callTan(node: AST.CallExpr, context: ExecContext): any;
