@@ -11,7 +11,9 @@ export class ParseContext {
  * Base class for AST nodes parsed from a WGSL shader.
  */
 export class Node {
-    constructor() { }
+    constructor() {
+        this.line = 0;
+    }
     get isAstNode() {
         return true;
     }
@@ -498,6 +500,7 @@ export class Discard extends Statement {
 export class Break extends Statement {
     constructor() {
         super();
+        this.condition = null;
     }
     get astNodeType() {
         return "break";
@@ -536,6 +539,11 @@ export class Type extends Statement {
         return false;
     }
 }
+Type.f32 = new Type("f32");
+Type.i32 = new Type("i32");
+Type.u32 = new Type("u32");
+Type.f16 = new Type("f16");
+Type.bool = new Type("bool");
 /**
  * @class StructType
  * @extends Type
@@ -578,6 +586,36 @@ export class TemplateType extends Type {
         return "template";
     }
 }
+TemplateType.vec2f = new TemplateType("vec2", Type.f32, null);
+TemplateType.vec3f = new TemplateType("vec3", Type.f32, null);
+TemplateType.vec4f = new TemplateType("vec4", Type.f32, null);
+TemplateType.vec2i = new TemplateType("vec2", Type.i32, null);
+TemplateType.vec3i = new TemplateType("vec3", Type.i32, null);
+TemplateType.vec4i = new TemplateType("vec4", Type.i32, null);
+TemplateType.vec2u = new TemplateType("vec2", Type.u32, null);
+TemplateType.vec3u = new TemplateType("vec3", Type.u32, null);
+TemplateType.vec4u = new TemplateType("vec4", Type.u32, null);
+TemplateType.vec2h = new TemplateType("vec2", Type.f16, null);
+TemplateType.vec3h = new TemplateType("vec3", Type.f16, null);
+TemplateType.vec4h = new TemplateType("vec4", Type.f16, null);
+TemplateType.mat2x2f = new TemplateType("mat2x2", Type.f32, null);
+TemplateType.mat2x3f = new TemplateType("mat2x3", Type.f32, null);
+TemplateType.mat2x4f = new TemplateType("mat2x4", Type.f32, null);
+TemplateType.mat3x2f = new TemplateType("mat3x2", Type.f32, null);
+TemplateType.mat3x3f = new TemplateType("mat3x3", Type.f32, null);
+TemplateType.mat3x4f = new TemplateType("mat3x4", Type.f32, null);
+TemplateType.mat4x2f = new TemplateType("mat4x2", Type.f32, null);
+TemplateType.mat4x3f = new TemplateType("mat4x3", Type.f32, null);
+TemplateType.mat4x4f = new TemplateType("mat4x4", Type.f32, null);
+TemplateType.mat2x2h = new TemplateType("mat2x2", Type.f16, null);
+TemplateType.mat2x3h = new TemplateType("mat2x3", Type.f16, null);
+TemplateType.mat2x4h = new TemplateType("mat2x4", Type.f16, null);
+TemplateType.mat3x2h = new TemplateType("mat3x2", Type.f16, null);
+TemplateType.mat3x3h = new TemplateType("mat3x3", Type.f16, null);
+TemplateType.mat3x4h = new TemplateType("mat3x4", Type.f16, null);
+TemplateType.mat4x2h = new TemplateType("mat4x2", Type.f16, null);
+TemplateType.mat4x3h = new TemplateType("mat4x3", Type.f16, null);
+TemplateType.mat4x4h = new TemplateType("mat4x4", Type.f16, null);
 /**
  * @class PointerType
  * @extends Type
@@ -1035,20 +1073,20 @@ export class BinaryOperator extends Operator {
                 return this.left.evaluate(context) / this.right.evaluate(context);
             case "%":
                 return this.left.evaluate(context) % this.right.evaluate(context);
-            case "==":
-                return this.left.evaluate(context) == this.right.evaluate(context)
-                    ? 1
-                    : 0;
-            case "!=":
-                return this.left.evaluate(context) != this.right.evaluate(context)
-                    ? 1
-                    : 0;
             case "<":
                 return this.left.evaluate(context) < this.right.evaluate(context)
                     ? 1
                     : 0;
             case ">":
                 return this.left.evaluate(context) > this.right.evaluate(context)
+                    ? 1
+                    : 0;
+            case "==":
+                return this.left.evaluate(context) == this.right.evaluate(context)
+                    ? 1
+                    : 0;
+            case "!=":
+                return this.left.evaluate(context) != this.right.evaluate(context)
                     ? 1
                     : 0;
             case "<=":

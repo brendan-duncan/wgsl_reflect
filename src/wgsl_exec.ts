@@ -828,7 +828,7 @@ export class WgslExec {
         if (node.operator !== "=") {
             const currentValue = this._getDataValue(v.value, node.variable.postfix, context);
 
-            if (currentValue.length !== undefined && value.length !== undefined) {
+            if (currentValue instanceof Array && value instanceof Array) {
                 if (currentValue.length !== value.length) {
                     console.error(`Vector length mismatch. Line ${node.line}`);
                     return;
@@ -906,7 +906,7 @@ export class WgslExec {
             if (node.variable.postfix instanceof AST.ArrayIndex) {
                 const idx = this._evalExpression(node.variable.postfix.index, context);
                 // TODO: use array format to determine how to set the value
-                if (v.value.length !== undefined) {
+                if (v.value instanceof Array) {
                     if (v.node.type.isArray) {
                         const arrayType = v.node.type as AST.ArrayType;
                         if (arrayType.format.name === "vec3" ||
@@ -1785,7 +1785,7 @@ export class WgslExec {
     // Numeric Built-in Functions
     _callAbs(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        if (value.length !== undefined) {
+        if (value instanceof Array) {
             return value.map((v: number) => Math.abs(v));
         }
         return Math.abs(value);
@@ -1793,7 +1793,7 @@ export class WgslExec {
 
     _callAcos(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        if (value.length !== undefined) {
+        if (value instanceof Array) {
             return value.map((v: number) => Math.acos(v));
         }
         return Math.acos(value);
@@ -1801,7 +1801,7 @@ export class WgslExec {
 
     _callAcosh(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        if (value.length !== undefined) {
+        if (value instanceof Array) {
             return value.map((v: number) => Math.acosh(v));
         }
         return Math.acosh(value);
@@ -1809,7 +1809,7 @@ export class WgslExec {
 
     _callAsin(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        if (value.length !== undefined) {
+        if (value instanceof Array) {
             return value.map((v: number) => Math.asin(v));
         }
         return Math.asin(value);
@@ -1817,7 +1817,7 @@ export class WgslExec {
 
     _callAsinh(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        if (value.length !== undefined) {
+        if (value instanceof Array) {
             return value.map((v: number) => Math.asinh(v));
         }
         return Math.asinh(value);
@@ -1825,7 +1825,7 @@ export class WgslExec {
 
     _callAtan(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        if (value.length !== undefined) {
+        if (value instanceof Array) {
             return value.map((v: number) => Math.atan(v));
         }
         return Math.atan(value);
@@ -1833,7 +1833,7 @@ export class WgslExec {
 
     _callAtanh(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        if (value.length !== undefined) {
+        if (value instanceof Array) {
             return value.map((v: number) => Math.atanh(v));
         }
         return Math.atanh(value);
@@ -1850,7 +1850,7 @@ export class WgslExec {
 
     _callCeil(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        if (value.length !== undefined) {
+        if (value instanceof Array) {
             return value.map((v: number) => Math.ceil(v));
         }
         return Math.ceil(value);
@@ -1864,7 +1864,7 @@ export class WgslExec {
         const value = this._evalExpression(node.args[0], context);
         const min = this._evalExpression(node.args[1], context);
         const max = this._evalExpression(node.args[2], context);
-        if (value.length !== undefined) {
+        if (value instanceof Array) {
             return value.map((v: number, i: number) => this._clamp(v, min[i], max[i]));
         }
         return this._clamp(value, min, max);
@@ -1872,7 +1872,7 @@ export class WgslExec {
 
     _callCos(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        if (value.length !== undefined) {
+        if (value instanceof Array) {
             return value.map((v: number) => Math.cos(v));
         }
         return Math.cos(value);
@@ -1880,7 +1880,7 @@ export class WgslExec {
 
     _callCosh(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        if (value.length !== undefined) {
+        if (value instanceof Array) {
             return value.map((v: number) => Math.cosh(v));
         }
         return Math.cosh(value);
@@ -1888,7 +1888,7 @@ export class WgslExec {
 
     _callCountLeadingZeros(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        if (value.length !== undefined) {
+        if (value instanceof Array) {
             return value.map((v: number) => Math.clz32(v));
         }
         return Math.clz32(value);
@@ -1907,7 +1907,7 @@ export class WgslExec {
 
     _callCountOneBits(node: AST.CallExpr, context: ExecContext) {
         let x = this._evalExpression(node.args[0], context);
-        if (x.length !== undefined) {
+        if (x instanceof Array) {
             return x.map((v: number) => this._countOneBits(v));
         }
         return this._countOneBits(x);
@@ -1927,7 +1927,7 @@ export class WgslExec {
 
     _callCountTrailingZeros(node: AST.CallExpr, context: ExecContext) {
         let x = this._evalExpression(node.args[0], context);
-        if (x.length !== undefined) {
+        if (x instanceof Array) {
             return x.map((v: number) => this._countTrailingZeros(v));
         }
         this._countTrailingZeros(x);
@@ -1945,10 +1945,11 @@ export class WgslExec {
 
     _callDegrees(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        if (value.length !== undefined) {
-            return value.map((v: number) => v * 180 / Math.PI);
+        const radToDeg = 180.0 / Math.PI;
+        if (value instanceof Array) {
+            return value.map((v: number) => v * radToDeg);
         }
-        return value * 180 / Math.PI;
+        return value * radToDeg;
     }
 
     _callDeterminant(node: AST.CallExpr, context: ExecContext) {
@@ -1997,7 +1998,7 @@ export class WgslExec {
 
     _callExp(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        if (value.length !== undefined) {
+        if (value instanceof Array) {
             return value.map((v: number) => Math.exp(v));
         }
         return Math.exp(value);
@@ -2005,7 +2006,7 @@ export class WgslExec {
 
     _callExp2(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        if (value.length !== undefined) {
+        if (value instanceof Array) {
             return value.map((v: number) => Math.pow(2, v));
         }
         return Math.pow(2, value);
@@ -2035,7 +2036,7 @@ export class WgslExec {
 
     _callFloor(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        if (value.length !== undefined) {
+        if (value instanceof Array) {
             return value.map((v: number) => Math.floor(v));
         }
         return Math.floor(value);
@@ -2053,7 +2054,7 @@ export class WgslExec {
 
     _callFract(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        if (value.length !== undefined) {
+        if (value instanceof Array) {
             return value.map((v: number) => v - Math.floor(v));
         }
         return value - Math.floor(value);
@@ -2075,7 +2076,7 @@ export class WgslExec {
 
     _callInverseSqrt(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        if (value.length !== undefined) {
+        if (value instanceof Array) {
             return value.map((v: number) => 1 / Math.sqrt(v));
         }
         return 1 / Math.sqrt(value);
@@ -2094,7 +2095,7 @@ export class WgslExec {
 
     _callLog(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        if (value.length !== undefined) {
+        if (value instanceof Array) {
             return value.map((v: number) => Math.log(v));
         }
         return Math.log(value);
@@ -2102,7 +2103,7 @@ export class WgslExec {
 
     _callLog2(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        if (value.length !== undefined) {
+        if (value instanceof Array) {
             return value.map((v: number) => Math.log2(v));
         }
         return Math.log2(value);
@@ -2111,7 +2112,7 @@ export class WgslExec {
     _callMax(node: AST.CallExpr, context: ExecContext) {
         const l = this._evalExpression(node.args[0], context);
         const r = this._evalExpression(node.args[1], context);
-        if (l.length !== undefined) {
+        if (l instanceof Array) {
             return l.map((v: number, i: number) => Math.max(v, r[i]));
         }
         return Math.max(l, r);
@@ -2120,7 +2121,7 @@ export class WgslExec {
     _callMin(node: AST.CallExpr, context: ExecContext) {
         const l = this._evalExpression(node.args[0], context);
         const r = this._evalExpression(node.args[1], context);
-        if (l.length !== undefined) {
+        if (l instanceof Array) {
             return l.map((v: number, i: number) => Math.min(v, r[i]));
         }
         return Math.min(l, r);
@@ -2130,7 +2131,7 @@ export class WgslExec {
         const x = this._evalExpression(node.args[0], context);
         const y = this._evalExpression(node.args[1], context);
         const a = this._evalExpression(node.args[2], context);
-        if (x.length !== undefined) {
+        if (x instanceof Array) {
             return x.map((v: number, i: number) => x[i] * (1 - a[i]) + y[i] * a[i]);
         }
         return x * (1 - a) + y * a;
@@ -2139,7 +2140,7 @@ export class WgslExec {
     _callModf(node: AST.CallExpr, context: ExecContext) {
         const x = this._evalExpression(node.args[0], context);
         const y = this._evalExpression(node.args[1], context);
-        if (x.length !== undefined) {
+        if (x instanceof Array) {
             return x.map((v: number, i: number) => v % y[i]);
         }
         return x % y;
@@ -2154,7 +2155,7 @@ export class WgslExec {
     _callPow(node: AST.CallExpr, context: ExecContext) {
         const x = this._evalExpression(node.args[0], context);
         const y = this._evalExpression(node.args[1], context);
-        if (x.length !== undefined) {
+        if (x instanceof Array) {
             return x.map((v: number, i: number) => Math.pow(v, y[i]));
         }
         return Math.pow(x, y);
@@ -2167,7 +2168,7 @@ export class WgslExec {
 
     _callRadians(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        if (value.length !== undefined) {
+        if (value instanceof Array) {
             return value.map((v: number) => v * Math.PI / 180);
         }
         return value * Math.PI / 180;
@@ -2201,7 +2202,7 @@ export class WgslExec {
 
     _callRound(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        if (value.length !== undefined) {
+        if (value instanceof Array) {
             return value.map((v: number) => Math.round(v));
         }
         return Math.round(value);
@@ -2209,7 +2210,7 @@ export class WgslExec {
 
     _callSaturate(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        if (value.length !== undefined) {
+        if (value instanceof Array) {
             return value.map((v: number) => Math.min(Math.max(v, 0), 1));
         }
         return Math.min(Math.max(value, 0), 1);
@@ -2217,7 +2218,7 @@ export class WgslExec {
 
     _callSign(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        if (value.length !== undefined) {
+        if (value instanceof Array) {
             return value.map((v: number) => Math.sign(v));
         }
         return Math.sign(value);
@@ -2225,7 +2226,7 @@ export class WgslExec {
 
     _callSin(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        if (value.length !== undefined) {
+        if (value instanceof Array) {
             return value.map((v: number) => Math.sin(v));
         }
         return Math.sin(value);
@@ -2233,7 +2234,7 @@ export class WgslExec {
 
     _callSinh(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        if (value.length !== undefined) {
+        if (value instanceof Array) {
             return value.map((v: number) => Math.sinh(v));
         }
         return Math.sinh(value);
@@ -2248,7 +2249,7 @@ export class WgslExec {
         const edge0 = this._evalExpression(node.args[0], context);
         const edge1 = this._evalExpression(node.args[1], context);
         const x = this._evalExpression(node.args[2], context);
-        if (x.length !== undefined) {
+        if (x instanceof Array) {
             return x.map((v: number, i: number) => this._smoothstep(edge0[i], edge1[i], v));
         }
         return this._smoothstep(edge0, edge1, x);
@@ -2256,7 +2257,7 @@ export class WgslExec {
 
     _callSqrt(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        if (value.length !== undefined) {
+        if (value instanceof Array) {
             return value.map((v: number) => Math.sqrt(v));
         }
         return Math.sqrt(value);
@@ -2265,7 +2266,7 @@ export class WgslExec {
     _callStep(node: AST.CallExpr, context: ExecContext) {
         const edge = this._evalExpression(node.args[0], context);
         const x = this._evalExpression(node.args[1], context);
-        if (x.length !== undefined) {
+        if (x instanceof Array) {
             return x.map((v: number, i: number) => v < edge[i] ? 0 : 1);
         }
         return x < edge ? 0 : 1;
@@ -2273,7 +2274,7 @@ export class WgslExec {
 
     _callTan(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        if (value.length !== undefined) {
+        if (value instanceof Array) {
             return value.map((v: number) => Math.tan(v));
         }
         return Math.tan(value);
@@ -2281,7 +2282,7 @@ export class WgslExec {
 
     _callTanh(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        if (value.length !== undefined) {
+        if (value instanceof Array) {
             return value.map((v: number) => Math.tanh(v));
         }
         return Math.tanh(value);
@@ -2294,7 +2295,7 @@ export class WgslExec {
 
     _callTrunc(node: AST.CallExpr, context: ExecContext) {
         const value = this._evalExpression(node.args[0], context);
-        if (value.length !== undefined) {
+        if (value instanceof Array) {
             return value.map((v: number) => Math.trunc(v));
         }
         return Math.trunc(value);

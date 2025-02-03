@@ -35,11 +35,40 @@ declare class ExecContext {
     getVariableValue(name: string): any;
     clone(): ExecContext;
 }
+declare enum _CommandType {
+    Break = 0,
+    Goto = 1,
+    Statement = 2
+}
+declare class _Command {
+    type: _CommandType;
+    data: AST.Node | number | null;
+    constructor(type: _CommandType, data?: AST.Node | number | null);
+    get node(): AST.Node;
+    get position(): number;
+}
+declare class _ExecState {
+    context: ExecContext;
+    commands: Array<_Command>;
+    current: number;
+    constructor(context: ExecContext);
+    get isAtEnd(): boolean;
+    getNextCommand(): _Command;
+}
+declare class _ExecStack {
+    states: Array<_ExecState>;
+    get isEmpty(): boolean;
+    get last(): _ExecState;
+    pop(): void;
+}
 export declare class WgslExec {
     ast: Array<AST.Node>;
     context: ExecContext;
     reflection: WgslReflect;
     constructor(code: string, context?: ExecContext);
+    _execStack: _ExecStack;
+    initDebug(): void;
+    stepNextCommand(): boolean;
     getVariableValue(name: string): any;
     execute(config?: Object): void;
     dispatchWorkgroups(kernel: string, dispatchCount: number | number[], bindGroups: Object, config?: Object): void;
@@ -97,7 +126,7 @@ export declare class WgslExec {
     _callCountOneBits(node: AST.CallExpr, context: ExecContext): any;
     _countTrailingZeros(value: number): number;
     _callCountTrailingZeros(node: AST.CallExpr, context: ExecContext): any;
-    _callCross(node: AST.CallExpr, context: ExecContext): any;
+    _callCross(node: AST.CallExpr, context: ExecContext): number[];
     _callDegrees(node: AST.CallExpr, context: ExecContext): any;
     _callDeterminant(node: AST.CallExpr, context: ExecContext): any;
     _callDistance(node: AST.CallExpr, context: ExecContext): number;
