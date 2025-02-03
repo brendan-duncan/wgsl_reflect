@@ -1,115 +1,10 @@
 import * as AST from "./wgsl_ast.js";
 import { WgslParser } from "./wgsl_parser.js";
 import { WgslReflect, TypeInfo, ArrayInfo, StructInfo, TemplateInfo } from "./wgsl_reflect.js";
-
-class Data {
-    buffer: ArrayBuffer;
-    typeInfo: TypeInfo;
-    offset: number;
-    textureSize: number[] = [0, 0, 0];
-
-    constructor(data: ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array,
-        typeInfo: TypeInfo, offset: number = 0, textureSize?: number[]) {
-        this.buffer = data instanceof ArrayBuffer ? data : data.buffer;
-        this.typeInfo = typeInfo;
-        this.offset = offset;
-        if (textureSize !== undefined) {
-            this.textureSize = textureSize;
-        }
-    }
-};
-
-type ASTVarNode = AST.Let | AST.Var | AST.Argument;
-
-class Var {
-    name: string;
-    value: any;
-    node: ASTVarNode | null;
-
-    constructor(n: string, v: any, node: ASTVarNode | null) {
-        this.name = n;
-        this.value = v;
-        this.node = node;
-    }
-
-    clone(): Var {
-        return new Var(this.name, this.value, this.node);
-    }
-
-    getValue() {
-        return this.value;
-    }
-};
-
-class Function {
-    name: string;
-    node: AST.Function;
-
-    constructor(node: AST.Function) {
-        this.name = node.name;
-        this.node = node;
-    }
-
-    clone(): Function {
-        return new Function(this.node);
-    }
-};
-
-class ExecContext {
-    parent: ExecContext | null = null;
-    variables: Map<string, Var> = new Map<string, Var>();
-    functions: Map<string, Function> = new Map<string, Function>();
-    currentFunctionName: string = "";
-
-    constructor(parent?: ExecContext) {
-        if (parent) {
-            this.parent = parent;
-            this.currentFunctionName = parent.currentFunctionName;
-        }
-    }
-
-    getVariable(name: string): Var | null {
-        if (this.variables.has(name)) {
-            return this.variables.get(name);
-        }
-        if (this.parent) {
-            return this.parent.getVariable(name);
-        }
-        return null;
-    }
-
-    getFunction(name: string): Function | null {
-        if (this.functions.has(name)) {
-            return this.functions.get(name);
-        }
-        if (this.parent) {
-            return this.parent.getFunction(name);
-        }
-        return null
-    }
-
-    createVariable(name: string, value: any, node?: ASTVarNode) {
-        this.variables.set(name, new Var(name, value, node ?? null));
-    }
-
-    setVariable(name: string, value: any, node?: ASTVarNode) {
-        const v = this.getVariable(name);
-        if (v !== null) {
-            v.value = value;
-        } else {
-            this.createVariable(name, value, node);
-        }
-    }
-
-    getVariableValue(name: string) {
-        const v = this.getVariable(name);
-        return v?.value ?? null;
-    }
-
-    clone(): ExecContext {
-        return new ExecContext(this);
-    }
-};
+import { ExecContext, Function } from "./exec/exec_context.js";
+import { ExecInterface } from "./exec/exec_interface.js";
+import { BuiltinFunctions } from "./exec/builtin_functions.js";
+import { Data } from "./exec/data.js";
 
 enum _CommandType {
     Break,
@@ -161,18 +56,21 @@ class _ExecStack {
     }
 }
 
-export class WgslExec {
+export class WgslExec extends ExecInterface {
     ast: Array<AST.Node>;
     context: ExecContext;
     reflection: WgslReflect;
+    builtins: BuiltinFunctions;
 
     constructor(code: string, context?: ExecContext) {
+        super();
         const parser = new WgslParser();
         this.ast = parser.parse(code);
         this.reflection = new WgslReflect();
         this.reflection.updateAST(this.ast);
 
         this.context = context?.clone() ?? new ExecContext();
+        this.builtins = new BuiltinFunctions(this);
     }
 
     _execStack: _ExecStack;
@@ -1292,315 +1190,315 @@ export class WgslExec {
         switch (node.name) {
             // Logical Built-in Functions
             case "all":
-                return this._callAll(node, context);
+                return this.builtins.All(node, context);
             case "any":
-                return this._callAny(node, context);
+                return this.builtins.Any(node, context);
             case "select":
-                return this._callSelect(node, context);
+                return this.builtins.Select(node, context);
 
             // Array Built-in Functions
             case "arrayLength":
-                return this._callArrayLength(node, context);
+                return this.builtins.ArrayLength(node, context);
 
             // Numeric Built-in Functions
             case "abs":
-                return this._callAbs(node, context);
+                return this.builtins.Abs(node, context);
             case "acos":
-                return this._callAcos(node, context);
+                return this.builtins.Acos(node, context);
             case "acosh":
-                return this._callAcosh(node, context);
+                return this.builtins.Acosh(node, context);
             case "asin":
-                return this._callAsin(node, context);
+                return this.builtins.Asin(node, context);
             case "asinh":
-                return this._callAsinh(node, context);
+                return this.builtins.Asinh(node, context);
             case "atan":
-                return this._callAtan(node, context);
+                return this.builtins.Atan(node, context);
             case "atanh":
-                return this._callAtanh(node, context);
+                return this.builtins.Atanh(node, context);
             case "atan2":
-                return this._callAtan2(node, context);
+                return this.builtins.Atan2(node, context);
             case "ceil":
-                return this._callCeil(node, context);
+                return this.builtins.Ceil(node, context);
             case "clamp":
-                return this._callClamp(node, context);
+                return this.builtins.Clamp(node, context);
             case "cos":
-                return this._callCos(node, context);
+                return this.builtins.Cos(node, context);
             case "cosh":
-                return this._callCosh(node, context);
+                return this.builtins.Cosh(node, context);
             case "countLeadingZeros":
-                return this._callCountLeadingZeros(node, context);
+                return this.builtins.CountLeadingZeros(node, context);
             case "countOneBits":
-                return this._callCountOneBits(node, context);
+                return this.builtins.CountOneBits(node, context);
             case "countTrailingZeros":
-                return this._callCountTrailingZeros(node, context);
+                return this.builtins.CountTrailingZeros(node, context);
             case "cross":
-                return this._callCross(node, context);
+                return this.builtins.Cross(node, context);
             case "degrees":
-                return this._callDegrees(node, context);
+                return this.builtins.Degrees(node, context);
             case "determinant":
-                return this._callDeterminant(node, context);
+                return this.builtins.Determinant(node, context);
             case "distance":
-                return this._callDistance(node, context);
+                return this.builtins.Distance(node, context);
             case "dot":
-                return this._callDot(node, context);
+                return this.builtins.Dot(node, context);
             case "dot4U8Packed":
-                return this._callDot4U8Packed(node, context);
+                return this.builtins.Dot4U8Packed(node, context);
             case "dot4I8Packed":
-                return this._callDot4I8Packed(node, context);
+                return this.builtins.Dot4I8Packed(node, context);
             case "exp":
-                return this._callExp(node, context);
+                return this.builtins.Exp(node, context);
             case "exp2":
-                return this._callExp2(node, context);
+                return this.builtins.Exp2(node, context);
             case "extractBits":
-                return this._callExtractBits(node, context);
+                return this.builtins.ExtractBits(node, context);
             case "faceForward":
-                return this._callFaceForward(node, context);
+                return this.builtins.FaceForward(node, context);
             case "firstLeadingBit":
-                return this._callFirstLeadingBit(node, context);
+                return this.builtins.FirstLeadingBit(node, context);
             case "firstTrailingBit":
-                return this._callFirstTrailingBit(node, context);
+                return this.builtins.FirstTrailingBit(node, context);
             case "floor":
-                return this._callFloor(node, context);
+                return this.builtins.Floor(node, context);
             case "fma":
-                return this._callFma(node, context);
+                return this.builtins.Fma(node, context);
             case "fract":
-                return this._callFract(node, context);
+                return this.builtins.Fract(node, context);
             case "frexp":
-                return this._callFrexp(node, context);
+                return this.builtins.Frexp(node, context);
             case "insertBits":
-                return this._callInsertBits(node, context);
+                return this.builtins.InsertBits(node, context);
             case "inverseSqrt":
-                return this._callInverseSqrt(node, context);
+                return this.builtins.InverseSqrt(node, context);
             case "ldexp":
-                return this._callLdexp(node, context);
+                return this.builtins.Ldexp(node, context);
             case "length":
-                return this._callLength(node, context);
+                return this.builtins.Length(node, context);
             case "log":
-                return this._callLog(node, context);
+                return this.builtins.Log(node, context);
             case "log2":
-                return this._callLog2(node, context);
+                return this.builtins.Log2(node, context);
             case "max":
-                return this._callMax(node, context);
+                return this.builtins.Max(node, context);
             case "min":
-                return this._callMin(node, context);
+                return this.builtins.Min(node, context);
             case "mix":
-                return this._callMix(node, context);
+                return this.builtins.Mix(node, context);
             case "modf":
-                return this._callModf(node, context);
+                return this.builtins.Modf(node, context);
             case "normalize":
-                return this._callNormalize(node, context);
+                return this.builtins.Normalize(node, context);
             case "pow":
-                return this._callPow(node, context);
+                return this.builtins.Pow(node, context);
             case "quantizeToF16":
-                return this._callQuantizeToF16(node, context);
+                return this.builtins.QuantizeToF16(node, context);
             case "radians":
-                return this._callRadians(node, context);
+                return this.builtins.Radians(node, context);
             case "reflect":
-                return this._callReflect(node, context);
+                return this.builtins.Reflect(node, context);
             case "refract":
-                return this._callRefract(node, context);
+                return this.builtins.Refract(node, context);
             case "reverseBits":
-                return this._callReverseBits(node, context);
+                return this.builtins.ReverseBits(node, context);
             case "round":
-                return this._callRound(node, context);
+                return this.builtins.Round(node, context);
             case "saturate":
-                return this._callSaturate(node, context);
+                return this.builtins.Saturate(node, context);
             case "sign":
-                return this._callSign(node, context);
+                return this.builtins.Sign(node, context);
             case "sin":
-                return this._callSin(node, context);
+                return this.builtins.Sin(node, context);
             case "sinh":
-                return this._callSinh(node, context);
+                return this.builtins.Sinh(node, context);
             case "smoothStep":
-                return this._callSmoothStep(node, context);
+                return this.builtins.SmoothStep(node, context);
             case "sqrt":
-                return this._callSqrt(node, context);
+                return this.builtins.Sqrt(node, context);
             case "step":
-                return this._callStep(node, context);
+                return this.builtins.Step(node, context);
             case "tan":
-                return this._callTan(node, context);
+                return this.builtins.Tan(node, context);
             case "tanh":
-                return this._callTanh(node, context);
+                return this.builtins.Tanh(node, context);
             case "transpose":
-                return this._callTranspose(node, context);
+                return this.builtins.Transpose(node, context);
             case "trunc":
-                return this._callTrunc(node, context);
+                return this.builtins.Trunc(node, context);
 
             // Derivative Built-in Functions
             case "dpdx":
-                return this._callDpdx(node, context);
+                return this.builtins.Dpdx(node, context);
             case "dpdxCoarse":
-                return this._callDpdxCoarse(node, context);
+                return this.builtins.DpdxCoarse(node, context);
             case "dpdxFine":
-                return this._callDpdxFine(node, context);
+                return this.builtins.DpdxFine(node, context);
             case "dpdy":
-                return this._callDpdy(node, context);
+                return this.builtins.Dpdy(node, context);
             case "dpdyCoarse":
-                return this._callDpdyCoarse(node, context);
+                return this.builtins.DpdyCoarse(node, context);
             case "dpdyFine":
-                return this._callDpdyFine(node, context);
+                return this.builtins.DpdyFine(node, context);
             case "fwidth":
-                return this._callFwidth(node, context);
+                return this.builtins.Fwidth(node, context);
             case "fwidthCoarse":
-                return this._callFwidthCoarse(node, context);
+                return this.builtins.FwidthCoarse(node, context);
             case "fwidthFine":
-                return this._callFwidthFine(node, context);
+                return this.builtins.FwidthFine(node, context);
 
             // Texture Built-in Functions
             case "textureDimensions":
-                return this._callTextureDimensions(node, context);
+                return this.builtins.TextureDimensions(node, context);
             case "textureGather":
-                return this._callTextureGather(node, context);
+                return this.builtins.TextureGather(node, context);
             case "textureGatherCompare":
-                return this._callTextureGatherCompare(node, context);
+                return this.builtins.TextureGatherCompare(node, context);
             case "textureLoad":
-                return this._callTextureLoad(node, context);
+                return this.builtins.TextureLoad(node, context);
             case "textureNumLayers":
-                return this._callTextureNumLayers(node, context);
+                return this.builtins.TextureNumLayers(node, context);
             case "textureNumLevels":
-                return this._callTextureNumLevels(node, context);
+                return this.builtins.TextureNumLevels(node, context);
             case "textureNumSamples":
-                return this._callTextureNumSamples(node, context);
+                return this.builtins.TextureNumSamples(node, context);
             case "textureSample":
-                return this._callTextureSample(node, context);
+                return this.builtins.TextureSample(node, context);
             case "textureSampleBias":
-                return this._callTextureSampleBias(node, context);
+                return this.builtins.TextureSampleBias(node, context);
             case "textureSampleCompare":
-                return this._callTextureSampleCompare(node, context);
+                return this.builtins.TextureSampleCompare(node, context);
             case "textureSampleCompareLevel":
-                return this._callTextureSampleCompareLevel(node, context);
+                return this.builtins.TextureSampleCompareLevel(node, context);
             case "textureSampleGrad":
-                return this._callTextureSampleGrad(node, context);
+                return this.builtins.TextureSampleGrad(node, context);
             case "textureSampleLevel":
-                return this._callTextureSampleLevel(node, context);
+                return this.builtins.TextureSampleLevel(node, context);
             case "textureSampleBaseClampToEdge":
-                return this._callTextureSampleBaseClampToEdge(node, context);
+                return this.builtins.TextureSampleBaseClampToEdge(node, context);
             case "textureStore":
-                return this._callTextureStore(node, context);
+                return this.builtins.TextureStore(node, context);
 
             // Atomic Built-in Functions
             case "atomicLoad":
-                return this._callAtomicLoad(node, context);
+                return this.builtins.AtomicLoad(node, context);
             case "atomicStore":
-                return this._callAtomicStore(node, context);
+                return this.builtins.AtomicStore(node, context);
             case "atomicAdd":
-                return this._callAtomicAdd(node, context);
+                return this.builtins.AtomicAdd(node, context);
             case "atomicSub":
-                return this._callAtomicSub(node, context);
+                return this.builtins.AtomicSub(node, context);
             case "atomicMax":
-                return this._callAtomicMax(node, context);
+                return this.builtins.AtomicMax(node, context);
             case "atomicMin":
-                return this._callAtomicMin(node, context);
+                return this.builtins.AtomicMin(node, context);
             case "atomicAnd":
-                return this._callAtomicAnd(node, context);
+                return this.builtins.AtomicAnd(node, context);
             case "atomicOr":
-                return this._callAtomicOr(node, context);
+                return this.builtins.AtomicOr(node, context);
             case "atomicXor":
-                return this._callAtomicXor(node, context);
+                return this.builtins.AtomicXor(node, context);
             case "atomicExchange":
-                return this._callAtomicExchange(node, context);
+                return this.builtins.AtomicExchange(node, context);
             case "atomicCompareExchangeWeak":
-                return this._callAtomicCompareExchangeWeak(node, context);
+                return this.builtins.AtomicCompareExchangeWeak(node, context);
 
             // Data Packing Built-in Functions
             case "pack4x8snorm":
-                return this._callPack4x8snorm(node, context);
+                return this.builtins.Pack4x8snorm(node, context);
             case "pack4x8unorm":
-                return this._callPack4x8unorm(node, context);
+                return this.builtins.Pack4x8unorm(node, context);
             case "pack4xI8":
-                return this._callPack4xI8(node, context);
+                return this.builtins.Pack4xI8(node, context);
             case "pack4xU8":
-                return this._callPack4xU8(node, context);
+                return this.builtins.Pack4xU8(node, context);
             case "pack4x8Clamp":
-                return this._callPack4x8Clamp(node, context);
+                return this.builtins.Pack4x8Clamp(node, context);
             case "pack4xU8Clamp":
-                return this._callPack4xU8Clamp(node, context);
+                return this.builtins.Pack4xU8Clamp(node, context);
             case "pack2x16snorm":
-                return this._callPack2x16snorm(node, context);
+                return this.builtins.Pack2x16snorm(node, context);
             case "pack2x16unorm":
-                return this._callPack2x16unorm(node, context);
+                return this.builtins.Pack2x16unorm(node, context);
             case "pack2x16float":
-                return this._callPack2x16float(node, context);
+                return this.builtins.Pack2x16float(node, context);
 
             // Data Unpacking Built-in Functions
             case "unpack4x8snorm":
-                return this._callUnpack4x8snorm(node, context);
+                return this.builtins.Unpack4x8snorm(node, context);
             case "unpack4x8unorm":
-                return this._callUnpack4x8unorm(node, context);
+                return this.builtins.Unpack4x8unorm(node, context);
             case "unpack4xI8":
-                return this._callUnpack4xI8(node, context);
+                return this.builtins.Unpack4xI8(node, context);
             case "unpack4xU8":
-                return this._callUnpack4xU8(node, context);
+                return this.builtins.Unpack4xU8(node, context);
             case "unpack2x16snorm":
-                return this._callUnpack2x16snorm(node, context);
+                return this.builtins.Unpack2x16snorm(node, context);
             case "unpack2x16unorm":
-                return this._callUnpack2x16unorm(node, context);
+                return this.builtins.Unpack2x16unorm(node, context);
             case "unpack2x16float":
-                return this._callUnpack2x16float(node, context);
+                return this.builtins.Unpack2x16float(node, context);
 
             // Synchronization Built-in Functions
             case "storageBarrier":
-                return this._callStorageBarrier(node, context);
+                return this.builtins.StorageBarrier(node, context);
             case "textureBarrier":
-                return this._callTextureBarrier(node, context);
+                return this.builtins.TextureBarrier(node, context);
             case "workgroupBarrier":
-                return this._callWorkgroupBarrier(node, context);
+                return this.builtins.WorkgroupBarrier(node, context);
             case "workgroupUniformLoad":
-                return this._callWorkgroupUniformLoad(node, context);
+                return this.builtins.WorkgroupUniformLoad(node, context);
 
             // Subgroup Built-in Functions
             case "subgroupAdd":
-                return this._callSubgroupAdd(node, context);
+                return this.builtins.SubgroupAdd(node, context);
             case "subgroupExclusiveAdd":
-                return this._callSubgroupExclusiveAdd(node, context);
+                return this.builtins.SubgroupExclusiveAdd(node, context);
             case "subgroupInclusiveAdd":
-                return this._callSubgroupInclusiveAdd(node, context);
+                return this.builtins.SubgroupInclusiveAdd(node, context);
             case "subgroupAll":
-                return this._callSubgroupAll(node, context);
+                return this.builtins.SubgroupAll(node, context);
             case "subgroupAnd":
-                return this._callSubgroupAnd(node, context);
+                return this.builtins.SubgroupAnd(node, context);
             case "subgroupAny":
-                return this._callSubgroupAny(node, context);
+                return this.builtins.SubgroupAny(node, context);
             case "subgroupBallot":
-                return this._callSubgroupBallot(node, context);
+                return this.builtins.SubgroupBallot(node, context);
             case "subgroupBroadcast":
-                return this._callSubgroupBroadcast(node, context);
+                return this.builtins.SubgroupBroadcast(node, context);
             case "subgroupBroadcastFirst":
-                return this._callSubgroupBroadcastFirst(node, context);
+                return this.builtins.SubgroupBroadcastFirst(node, context);
             case "subgroupElect":
-                return this._callSubgroupElect(node, context);
+                return this.builtins.SubgroupElect(node, context);
             case "subgroupMax":
-                return this._callSubgroupMax(node, context);
+                return this.builtins.SubgroupMax(node, context);
             case "subgroupMin":
-                return this._callSubgroupMin(node, context);
+                return this.builtins.SubgroupMin(node, context);
             case "subgroupMul":
-                return this._callSubgroupMul(node, context);
+                return this.builtins.SubgroupMul(node, context);
             case "subgroupExclusiveMul":
-                return this._callSubgroupExclusiveMul(node, context);
+                return this.builtins.SubgroupExclusiveMul(node, context);
             case "subgroupInclusiveMul":
-                return this._callSubgroupInclusiveMul(node, context);
+                return this.builtins.SubgroupInclusiveMul(node, context);
             case "subgroupOr":
-                return this._callSubgroupOr(node, context);
+                return this.builtins.SubgroupOr(node, context);
             case "subgroupShuffle":
-                return this._callSubgroupShuffle(node, context);
+                return this.builtins.SubgroupShuffle(node, context);
             case "subgroupShuffleDown":
-                return this._callSubgroupShuffleDown(node, context);
+                return this.builtins.SubgroupShuffleDown(node, context);
             case "subgroupShuffleUp":
-                return this._callSubgroupShuffleUp(node, context);
+                return this.builtins.SubgroupShuffleUp(node, context);
             case "subgroupShuffleXor":
-                return this._callSubgroupShuffleXor(node, context);
+                return this.builtins.SubgroupShuffleXor(node, context);
             case "subgroupXor":
-                return this._callSubgroupXor(node, context);
+                return this.builtins.SubgroupXor(node, context);
 
             // Quad Operations
             case "quadBroadcast":
-                return this._callQuadBroadcast(node, context);
+                return this.builtins.QuadBroadcast(node, context);
             case "quadSwapDiagonal":
-                return this._callQuadSwapDiagonal(node, context);
+                return this.builtins.QuadSwapDiagonal(node, context);
             case "quadSwapX":
-                return this._callQuadSwapX(node, context);
+                return this.builtins.QuadSwapX(node, context);
             case "quadSwapY":
-                return this._callQuadSwapY(node, context);
+                return this.builtins.QuadSwapY(node, context);
         }
 
         const f = context.getFunction(node.name);
@@ -1743,1000 +1641,5 @@ export class WgslExec {
         }
 
         return values;
-    }
-
-    // Logical Built-in Functions
-    _callAll(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        let isTrue = true;
-        value.forEach((x: any) => { if (!x) isTrue = false; });
-        return isTrue;
-    }
-
-    _callAny(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        return value.some((v: any) => v);
-    }
-
-    _callSelect(node: AST.CallExpr, context: ExecContext) {
-        const condition = this._evalExpression(node.args[2], context);
-        if (condition) {
-            return this._evalExpression(node.args[0], context);
-        } else {
-            return this._evalExpression(node.args[1], context);
-        }
-    }
-
-    // Array Built-in Functions
-    _callArrayLength(node: AST.CallExpr, context: ExecContext) {
-        let arrayArg = node.args[0];
-        // TODO: handle "&" operator
-        if (arrayArg instanceof AST.UnaryOperator) {
-            arrayArg = (arrayArg as AST.UnaryOperator).right;
-        }
-        const arrayData = this._evalExpression(arrayArg, context);
-        if (arrayData.typeInfo.size === 0) {
-            const count = arrayData.buffer.byteLength / arrayData.typeInfo.stride;
-            return count;
-        }
-        return arrayData.typeInfo.size;
-    }
-
-    // Numeric Built-in Functions
-    _callAbs(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v: number) => Math.abs(v));
-        }
-        return Math.abs(value);
-    }
-
-    _callAcos(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v: number) => Math.acos(v));
-        }
-        return Math.acos(value);
-    }
-
-    _callAcosh(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v: number) => Math.acosh(v));
-        }
-        return Math.acosh(value);
-    }
-
-    _callAsin(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v: number) => Math.asin(v));
-        }
-        return Math.asin(value);
-    }
-
-    _callAsinh(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v: number) => Math.asinh(v));
-        }
-        return Math.asinh(value);
-    }
-
-    _callAtan(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v: number) => Math.atan(v));
-        }
-        return Math.atan(value);
-    }
-
-    _callAtanh(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v: number) => Math.atanh(v));
-        }
-        return Math.atanh(value);
-    }
-
-    _callAtan2(node: AST.CallExpr, context: ExecContext) {
-        const y = this._evalExpression(node.args[0], context);
-        const x = this._evalExpression(node.args[1], context);
-        if (y.length !== undefined) {
-            return y.map((v: number, i: number) => Math.atan2(v, x[i]));
-        }
-        return Math.atan2(y, x);
-    }
-
-    _callCeil(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v: number) => Math.ceil(v));
-        }
-        return Math.ceil(value);
-    }
-
-    _clamp(value: number, min: number, max: number) {
-        return Math.min(Math.max(value, min), max);
-    }
-
-    _callClamp(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        const min = this._evalExpression(node.args[1], context);
-        const max = this._evalExpression(node.args[2], context);
-        if (value instanceof Array) {
-            return value.map((v: number, i: number) => this._clamp(v, min[i], max[i]));
-        }
-        return this._clamp(value, min, max);
-    }
-
-    _callCos(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v: number) => Math.cos(v));
-        }
-        return Math.cos(value);
-    }
-
-    _callCosh(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v: number) => Math.cosh(v));
-        }
-        return Math.cosh(value);
-    }
-
-    _callCountLeadingZeros(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v: number) => Math.clz32(v));
-        }
-        return Math.clz32(value);
-    }
-
-    _countOneBits(value: number) {
-        let count = 0;
-        while (value !== 0) {
-            if (value & 1) {
-                count++;
-            }
-            value >>= 1;
-        }
-        return count;
-    }
-
-    _callCountOneBits(node: AST.CallExpr, context: ExecContext) {
-        let x = this._evalExpression(node.args[0], context);
-        if (x instanceof Array) {
-            return x.map((v: number) => this._countOneBits(v));
-        }
-        return this._countOneBits(x);
-    }
-
-    _countTrailingZeros(value: number) {
-        if (value === 0) {
-            return 32; // Special case for 0
-        }
-        let count = 0;
-        while ((value & 1) === 0) {
-            value >>= 1;
-            count++;
-        }
-        return count;
-    }
-
-    _callCountTrailingZeros(node: AST.CallExpr, context: ExecContext) {
-        let x = this._evalExpression(node.args[0], context);
-        if (x instanceof Array) {
-            return x.map((v: number) => this._countTrailingZeros(v));
-        }
-        this._countTrailingZeros(x);
-    }
-
-    _callCross(node: AST.CallExpr, context: ExecContext) {
-        const l = this._evalExpression(node.args[0], context);
-        const r = this._evalExpression(node.args[1], context);
-        return [
-            l[1] * r[2] - r[1] * l[2],
-            l[2] * r[0] - r[2] * l[0],
-            l[0] * r[1] - r[0] * l[1],
-        ];
-    }
-
-    _callDegrees(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        const radToDeg = 180.0 / Math.PI;
-        if (value instanceof Array) {
-            return value.map((v: number) => v * radToDeg);
-        }
-        return value * radToDeg;
-    }
-
-    _callDeterminant(node: AST.CallExpr, context: ExecContext) {
-        const m = this._evalExpression(node.args[0], context);
-        // TODO: get the dimensions of the matrix
-        if (m.length === 4) {
-            return m[0] * m[3] - m[1] * m[2];
-        }
-        console.error(`TODO: determinant for matrix. Line ${node.line}`);
-        return null;
-    }
-
-    _callDistance(node: AST.CallExpr, context: ExecContext) {
-        const l = this._evalExpression(node.args[0], context);
-        const r = this._evalExpression(node.args[1], context);
-        let sum = 0;
-        for (let i = 0; i < l.length; ++i) {
-            sum += (l[i] - r[i]) * (l[i] - r[i]);
-        }
-        return Math.sqrt(sum);
-    }
-
-    _dot(e1: number[], e2: number[]) {
-        let dot = 0;
-        for (let i = 0; i < e1.length; ++i) {
-            dot += e2[i] * e1[i];
-        }
-        return dot;
-    }
-
-    _callDot(node: AST.CallExpr, context: ExecContext) {
-        const l = this._evalExpression(node.args[0], context);
-        const r = this._evalExpression(node.args[1], context);
-        return this._dot(l, r);
-    }
-
-    _callDot4U8Packed(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: dot4U8Packed");
-        return null;
-    }
-
-    _callDot4I8Packed(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: dot4I8Packed");
-        return null;
-    }
-
-    _callExp(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v: number) => Math.exp(v));
-        }
-        return Math.exp(value);
-    }
-
-    _callExp2(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v: number) => Math.pow(2, v));
-        }
-        return Math.pow(2, value);
-    }
-
-    _callExtractBits(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        const offset = this._evalExpression(node.args[1], context);
-        const count = this._evalExpression(node.args[2], context);
-        return (value >> offset) & ((1 << count) - 1);
-    }
-
-    _callFaceForward(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: faceForward");
-        return null;
-    }
-
-    _callFirstLeadingBit(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: firstLeadingBit");
-        return null;
-    }
-
-    _callFirstTrailingBit(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: firstTrailingBit");
-        return null;
-    }
-
-    _callFloor(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v: number) => Math.floor(v));
-        }
-        return Math.floor(value);
-    }
-
-    _callFma(node: AST.CallExpr, context: ExecContext) {
-        const a = this._evalExpression(node.args[0], context);
-        const b = this._evalExpression(node.args[1], context);
-        const c = this._evalExpression(node.args[2], context);
-        if (a.length !== undefined) {
-            return a.map((v: number, i: number) => v * b[i] + c[i]);
-        }
-        return a * b + c;
-    }
-
-    _callFract(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v: number) => v - Math.floor(v));
-        }
-        return value - Math.floor(value);
-    }
-
-    _callFrexp(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: frexp");
-        return null;
-    }
-
-    _callInsertBits(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        const insert = this._evalExpression(node.args[1], context);
-        const offset = this._evalExpression(node.args[2], context);
-        const count = this._evalExpression(node.args[3], context);
-        const mask = ((1 << count) - 1) << offset;
-        return (value & ~mask) | ((insert << offset) & mask);
-    }
-
-    _callInverseSqrt(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v: number) => 1 / Math.sqrt(v));
-        }
-        return 1 / Math.sqrt(value);
-    }
-
-    _callLdexp(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: ldexp");
-        return null;
-    }
-
-    _callLength(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        let sum = this._dot(value, value);
-        return Math.sqrt(sum);
-    }
-
-    _callLog(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v: number) => Math.log(v));
-        }
-        return Math.log(value);
-    }
-
-    _callLog2(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v: number) => Math.log2(v));
-        }
-        return Math.log2(value);
-    }
-
-    _callMax(node: AST.CallExpr, context: ExecContext) {
-        const l = this._evalExpression(node.args[0], context);
-        const r = this._evalExpression(node.args[1], context);
-        if (l instanceof Array) {
-            return l.map((v: number, i: number) => Math.max(v, r[i]));
-        }
-        return Math.max(l, r);
-    }
-
-    _callMin(node: AST.CallExpr, context: ExecContext) {
-        const l = this._evalExpression(node.args[0], context);
-        const r = this._evalExpression(node.args[1], context);
-        if (l instanceof Array) {
-            return l.map((v: number, i: number) => Math.min(v, r[i]));
-        }
-        return Math.min(l, r);
-    }
-
-    _callMix(node: AST.CallExpr, context: ExecContext) {
-        const x = this._evalExpression(node.args[0], context);
-        const y = this._evalExpression(node.args[1], context);
-        const a = this._evalExpression(node.args[2], context);
-        if (x instanceof Array) {
-            return x.map((v: number, i: number) => x[i] * (1 - a[i]) + y[i] * a[i]);
-        }
-        return x * (1 - a) + y * a;
-    }
-
-    _callModf(node: AST.CallExpr, context: ExecContext) {
-        const x = this._evalExpression(node.args[0], context);
-        const y = this._evalExpression(node.args[1], context);
-        if (x instanceof Array) {
-            return x.map((v: number, i: number) => v % y[i]);
-        }
-        return x % y;
-    }
-
-    _callNormalize(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        const length = this._callLength(node, context);
-        return value.map((v: any) => v / length);
-    }
-
-    _callPow(node: AST.CallExpr, context: ExecContext) {
-        const x = this._evalExpression(node.args[0], context);
-        const y = this._evalExpression(node.args[1], context);
-        if (x instanceof Array) {
-            return x.map((v: number, i: number) => Math.pow(v, y[i]));
-        }
-        return Math.pow(x, y);
-    }
-
-    _callQuantizeToF16(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: quantizeToF16");
-        return null;
-    }
-
-    _callRadians(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v: number) => v * Math.PI / 180);
-        }
-        return value * Math.PI / 180;
-    }
-
-    _callReflect(node: AST.CallExpr, context: ExecContext) {
-        // e1 - 2 * dot(e2, e1) * e2
-        let e1 = this._evalExpression(node.args[0], context);
-        let e2 = this._evalExpression(node.args[1], context);
-        let dot = this._dot(e1, e2);
-        return e1.map((v: number, i: number) => v - 2 * dot * e2[i]);
-    }
-
-    _callRefract(node: AST.CallExpr, context: ExecContext) {
-        let e1 = this._evalExpression(node.args[0], context);
-        let e2 = this._evalExpression(node.args[1], context);
-        let e3 = this._evalExpression(node.args[2], context);
-        let dot = this._callDot(e2, e1);
-        const k = 1.0 - e3 * e3 * (1.0 - dot * dot);
-        if (k < 0) {
-            return e1.map((v: number) => 0);
-        }
-        const sqrtK = Math.sqrt(k);
-        return e1.map((v: number, i: number) => e3 * v - (e3 * dot + sqrtK) * e2[i]);
-    }
-
-    _callReverseBits(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: reverseBits");
-        return null;
-    }
-
-    _callRound(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v: number) => Math.round(v));
-        }
-        return Math.round(value);
-    }
-
-    _callSaturate(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v: number) => Math.min(Math.max(v, 0), 1));
-        }
-        return Math.min(Math.max(value, 0), 1);
-    }
-
-    _callSign(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v: number) => Math.sign(v));
-        }
-        return Math.sign(value);
-    }
-
-    _callSin(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v: number) => Math.sin(v));
-        }
-        return Math.sin(value);
-    }
-
-    _callSinh(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v: number) => Math.sinh(v));
-        }
-        return Math.sinh(value);
-    }
-
-    _smoothstep(edge0: number, edge1: number, x: number) {
-        const t = Math.min(Math.max((x - edge0) / (edge1 - edge0), 0), 1);
-        return t * t * (3 - 2 * t);
-    }
-
-    _callSmoothStep(node: AST.CallExpr, context: ExecContext) {
-        const edge0 = this._evalExpression(node.args[0], context);
-        const edge1 = this._evalExpression(node.args[1], context);
-        const x = this._evalExpression(node.args[2], context);
-        if (x instanceof Array) {
-            return x.map((v: number, i: number) => this._smoothstep(edge0[i], edge1[i], v));
-        }
-        return this._smoothstep(edge0, edge1, x);
-    }
-
-    _callSqrt(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v: number) => Math.sqrt(v));
-        }
-        return Math.sqrt(value);
-    }
-
-    _callStep(node: AST.CallExpr, context: ExecContext) {
-        const edge = this._evalExpression(node.args[0], context);
-        const x = this._evalExpression(node.args[1], context);
-        if (x instanceof Array) {
-            return x.map((v: number, i: number) => v < edge[i] ? 0 : 1);
-        }
-        return x < edge ? 0 : 1;
-    }
-
-    _callTan(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v: number) => Math.tan(v));
-        }
-        return Math.tan(value);
-    }
-
-    _callTanh(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v: number) => Math.tanh(v));
-        }
-        return Math.tanh(value);
-    }
-
-    _callTranspose(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: transpose");
-        return null;
-    }
-
-    _callTrunc(node: AST.CallExpr, context: ExecContext) {
-        const value = this._evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v: number) => Math.trunc(v));
-        }
-        return Math.trunc(value);
-    }
-
-    // Derivative Built-in Functions
-    _callDpdx(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: dpdx");
-        return null;
-    }
-
-    _callDpdxCoarse(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: dpdxCoarse");
-        return null;
-    }
-
-    _callDpdxFine(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: dpdxFine");
-        return null;
-    }
-
-    _callDpdy(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: dpdy");
-        return null;
-    }
-
-    _callDpdyCoarse(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: dpdyCoarse");
-        return null;
-    }
-
-    _callDpdyFine(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: dpdyFine");
-        return null;
-    }
-
-    _callFwidth(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: fwidth");
-        return null;
-    }
-
-    _callFwidthCoarse(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: fwidthCoarse");
-        return null;
-    }
-
-    _callFwidthFine(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: fwidthFine");
-        return null;
-    }
-
-    // Texture Built-in Functions
-    _callTextureDimensions(node: AST.CallExpr, context: ExecContext) {
-        const textureArg = node.args[0];
-        const level = node.args.length > 1 ? this._evalExpression(node.args[1], context) : 0;
-        if (textureArg instanceof AST.VariableExpr) {
-            const textureName = (textureArg as AST.VariableExpr).name;
-            const texture = context.getVariableValue(textureName);
-            if (texture instanceof Data) {
-                return texture.textureSize;
-            } else {
-                console.error(`Texture ${textureName} not found. Line ${node.line}`);
-                return null;
-            }
-        }
-        console.error(`Invalid texture argument for textureDimensions. Line ${node.line}`);
-        return null;
-    }
-
-    _callTextureGather(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: textureGather");
-        return null;
-    }
-
-    _callTextureGatherCompare(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: textureGatherCompare");
-        return null;
-    }
-
-    _callTextureLoad(node: AST.CallExpr, context: ExecContext) {
-        const textureArg = node.args[0];
-        const uv = this._evalExpression(node.args[1], context);
-        const level = node.args.length > 2 ? this._evalExpression(node.args[2], context) : 0;
-        if (textureArg instanceof AST.VariableExpr) {
-            const textureName = (textureArg as AST.VariableExpr).name;
-            const texture = context.getVariableValue(textureName);
-            if (texture instanceof Data) {
-                const textureSize = texture.textureSize;
-                const x = Math.floor(uv[0]);
-                const y = Math.floor(uv[1]);
-                // TODO non RGBA8 textures
-                const offset = (y * textureSize[0] + x) * 4; 
-                const texel = new Uint8Array(texture.buffer, offset, 4);
-                // TODO: non-f32 textures
-                return [texel[0] / 255, texel[1] / 255, texel[2] / 255, texel[3] / 255];
-            } else {
-                console.error(`Texture ${textureName} not found. Line ${node.line}`);
-                return null;
-            }
-        }
-        return null;
-    }
-
-    _callTextureNumLayers(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: textureNumLayers");
-        return null;
-    }
-
-    _callTextureNumLevels(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: textureNumLevels");
-        return null;
-    }
-
-    _callTextureNumSamples(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: textureNumSamples");
-        return null;
-    }
-
-    _callTextureSample(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: textureSample");
-        return null;
-    }
-
-    _callTextureSampleBias(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: textureSampleBias");
-        return null;
-    }
-
-    _callTextureSampleCompare(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: textureSampleCompare");
-        return null;
-    }
-
-    _callTextureSampleCompareLevel(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: textureSampleCompareLevel");
-        return null;
-    }
-
-    _callTextureSampleGrad(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: textureSampleGrad");
-        return null;
-    }
-
-    _callTextureSampleLevel(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: textureSampleLevel");
-        return null;
-    }
-
-    _callTextureSampleBaseClampToEdge(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: textureSampleBaseClampToEdge");
-        return null;
-    }
-
-    _callTextureStore(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: textureStore");
-        return null;
-    }
-
-    // Atomic Built-in Functions
-    _callAtomicLoad(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: atomicLoad");
-        return null;
-    }
-
-    _callAtomicStore(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: atomicStore");
-        return null;
-    }
-
-    _callAtomicAdd(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: atomicAdd");
-        return null;
-    }
-
-    _callAtomicSub(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: atomicSub");
-        return null;
-    }
-
-    _callAtomicMax(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: atomicMax");
-        return null;
-    }
-
-    _callAtomicMin(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: atomicMin");
-        return null;
-    }
-
-    _callAtomicAnd(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: atomicAnd");
-        return null;
-    }
-
-    _callAtomicOr(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: atomicOr");
-        return null;
-    }
-
-    _callAtomicXor(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: atomicXor");
-        return null;
-    }
-
-    _callAtomicExchange(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: atomicExchange");
-        return null;
-    }
-
-    _callAtomicCompareExchangeWeak(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: atomicCompareExchangeWeak");
-        return null;
-    }
-
-    // Data Packing Built-in Functions
-    _callPack4x8snorm(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: pack4x8snorm");
-        return null;
-    }
-
-    _callPack4x8unorm(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: pack4x8unorm");
-        return null;
-    }
-
-    _callPack4xI8(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: pack4xI8");
-        return null;
-    }
-
-    _callPack4xU8(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: pack4xU8");
-        return null;
-    }
-
-    _callPack4x8Clamp(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: pack4x8Clamp");
-        return null;
-    }
-
-    _callPack4xU8Clamp(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: pack4xU8Clamp");
-        return null;
-    }
-
-    _callPack2x16snorm(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: pack2x16snorm");
-        return null;
-    }
-
-    _callPack2x16unorm(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: pack2x16unorm");
-        return null;
-    }
-
-    _callPack2x16float(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: pack2x16float");
-        return null;
-    }
-
-    // Data Unpacking Built-in Functions
-    _callUnpack4x8snorm(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: unpack4x8snorm");
-        return null;
-    }
-
-    _callUnpack4x8unorm(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: unpack4x8unorm");
-        return null;
-    }
-
-    _callUnpack4xI8(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: unpack4xI8");
-        return null;
-    }
-
-    _callUnpack4xU8(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: unpack4xU8");
-        return null;
-    }
-
-    _callUnpack2x16snorm(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: unpack2x16snorm");
-        return null;
-    }
-
-    _callUnpack2x16unorm(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: unpack2x16unorm");
-        return null;
-    }
-
-    _callUnpack2x16float(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: unpack2x16float");
-        return null;
-    }
-
-    // Synchronization Functions
-    _callStorageBarrier(node: AST.CallExpr, context: ExecContext) {
-        // Execution is single threaded, barriers not necessary.
-        return null;
-    }
-
-    _callTextureBarrier(node: AST.CallExpr, context: ExecContext) {
-        // Execution is single threaded, barriers not necessary.
-        return null;
-    }
-
-    _callWorkgroupBarrier(node: AST.CallExpr, context: ExecContext) {
-        // Execution is single threaded, barriers not necessary.
-        return null;
-    }
-
-    _callWorkgroupUniformLoad(node: AST.CallExpr, context: ExecContext) {
-        // Execution is single threaded, barriers not necessary.
-        return null;
-    }
-
-    // Subgroup Functions
-    _callSubgroupAdd(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: subgroupAdd");
-        return null;
-    }
-
-    _callSubgroupExclusiveAdd(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: subgroupExclusiveAdd");
-        return null;
-    }
-
-    _callSubgroupInclusiveAdd(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: subgroupInclusiveAdd");
-        return null;
-    }
-
-    _callSubgroupAll(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: subgroupAll");
-        return null;
-    }
-
-    _callSubgroupAnd(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: subgroupAnd");
-        return null;
-    }
-
-    _callSubgroupAny(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: subgroupAny");
-        return null;
-    }
-
-    _callSubgroupBallot(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: subgroupBallot");
-        return null;
-    }
-
-    _callSubgroupBroadcast(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: subgroupBroadcast");
-        return null;
-    }
-
-    _callSubgroupBroadcastFirst(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: subgroupBroadcastFirst");
-        return null;
-    }
-
-    _callSubgroupElect(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: subgroupElect");
-        return null;
-    }
-
-    _callSubgroupMax(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: subgroupMax");
-        return null;
-    }
-
-    _callSubgroupMin(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: subgroupMin");
-        return null;
-    }
-
-    _callSubgroupMul(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: subgroupMul");
-        return null;
-    }
-
-    _callSubgroupExclusiveMul(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: subgroupExclusiveMul");
-        return null;
-    }
-
-    _callSubgroupInclusiveMul(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: subgroupInclusiveMul");
-        return null;
-    }
-
-    _callSubgroupOr(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: subgroupOr");
-        return null;
-    }
-
-    _callSubgroupShuffle(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: subgroupShuffle");
-        return null;
-    }
-
-    _callSubgroupShuffleDown(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: subgroupShuffleDown");
-        return null;
-    }
-
-    _callSubgroupShuffleUp(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: subgroupShuffleUp");
-        return null;
-    }
-
-    _callSubgroupShuffleXor(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: subgroupShuffleXor");
-        return null;
-    }
-
-    _callSubgroupXor(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: subgroupXor");
-        return null;
-    }
-
-    // Quad Functions
-    _callQuadBroadcast(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: quadBroadcast");
-        return null;
-    }
-
-    _callQuadSwapDiagonal(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: quadSwapDiagonal");
-        return null;
-    }
-
-    _callQuadSwapX(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: quadSwapX");
-        return null;
-    }
-
-    _callQuadSwapY(node: AST.CallExpr, context: ExecContext) {
-        console.error("TODO: quadSwapY");
-        return null;
     }
 }
