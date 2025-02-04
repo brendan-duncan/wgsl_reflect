@@ -740,6 +740,9 @@ class CallExpr extends Expression {
     get astNodeType() {
         return "callExpr";
     }
+    get isBuiltin() {
+        return CallExpr.builtinFunctionNames.has(this.name);
+    }
     evaluate(context) {
         switch (this.name) {
             case "abs":
@@ -852,6 +855,154 @@ class CallExpr extends Expression {
         callback(this);
     }
 }
+CallExpr.builtinFunctionNames = new Set([
+    "all",
+    "all",
+    "any",
+    "select",
+    "arrayLength",
+    "abs",
+    "acos",
+    "acosh",
+    "asin",
+    "asinh",
+    "atan",
+    "atanh",
+    "atan2",
+    "ceil",
+    "clamp",
+    "cos",
+    "cosh",
+    "countLeadingZeros",
+    "countOneBits",
+    "countTrailingZeros",
+    "cross",
+    "degrees",
+    "determinant",
+    "distance",
+    "dot",
+    "dot4U8Packed",
+    "dot4I8Packed",
+    "exp",
+    "exp2",
+    "extractBits",
+    "faceForward",
+    "firstLeadingBit",
+    "firstTrailingBit",
+    "floor",
+    "fma",
+    "fract",
+    "frexp",
+    "insertBits",
+    "inverseSqrt",
+    "ldexp",
+    "length",
+    "log",
+    "log2",
+    "max",
+    "min",
+    "mix",
+    "modf",
+    "normalize",
+    "pow",
+    "quantizeToF16",
+    "radians",
+    "reflect",
+    "refract",
+    "reverseBits",
+    "round",
+    "saturate",
+    "sign",
+    "sin",
+    "sinh",
+    "smoothStep",
+    "sqrt",
+    "step",
+    "tan",
+    "tanh",
+    "transpose",
+    "trunc",
+    "dpdx",
+    "dpdxCoarse",
+    "dpdxFine",
+    "dpdy",
+    "dpdyCoarse",
+    "dpdyFine",
+    "fwidth",
+    "fwidthCoarse",
+    "fwidthFine",
+    "textureDimensions",
+    "textureGather",
+    "textureGatherCompare",
+    "textureLoad",
+    "textureNumLayers",
+    "textureNumLevels",
+    "textureNumSamples",
+    "textureSample",
+    "textureSampleBias",
+    "textureSampleCompare",
+    "textureSampleCompareLevel",
+    "textureSampleGrad",
+    "textureSampleLevel",
+    "textureSampleBaseClampToEdge",
+    "textureStore",
+    "atomicLoad",
+    "atomicStore",
+    "atomicAdd",
+    "atomicSub",
+    "atomicMax",
+    "atomicMin",
+    "atomicAnd",
+    "atomicOr",
+    "atomicXor",
+    "atomicExchange",
+    "atomicCompareExchangeWeak",
+    "pack4x8snorm",
+    "pack4x8unorm",
+    "pack4xI8",
+    "pack4xU8",
+    "pack4x8Clamp",
+    "pack4xU8Clamp",
+    "pack2x16snorm",
+    "pack2x16unorm",
+    "pack2x16float",
+    "unpack4x8snorm",
+    "unpack4x8unorm",
+    "unpack4xI8",
+    "unpack4xU8",
+    "unpack2x16snorm",
+    "unpack2x16unorm",
+    "unpack2x16float",
+    "storageBarrier",
+    "textureBarrier",
+    "workgroupBarrier",
+    "workgroupUniformLoad",
+    "subgroupAdd",
+    "subgroupExclusiveAdd",
+    "subgroupInclusiveAdd",
+    "subgroupAll",
+    "subgroupAnd",
+    "subgroupAny",
+    "subgroupBallot",
+    "subgroupBroadcast",
+    "subgroupBroadcastFirst",
+    "subgroupElect",
+    "subgroupMax",
+    "subgroupMin",
+    "subgroupMul",
+    "subgroupExclusiveMul",
+    "subgroupInclusiveMul",
+    "subgroupOr",
+    "subgroupShuffle",
+    "subgroupShuffleDown",
+    "subgroupShuffleUp",
+    "subgroupShuffleXor",
+    "subgroupXor",
+    "quadBroadcast",
+    "quadSwapDiagonal",
+    "quadSwapX",
+    "quadSwapY",
+]);
 /**
  * @class VariableExpr
  * @extends Expression
@@ -7017,8 +7168,56 @@ class WgslDebug {
         }
         const state = new _ExecState(context);
         this._execStack.states.push(state);
-        for (const statement of f.node.body) {
+        this._collectFunctionCommands(f.node.body, state);
+    }
+    _collectFunctionCommands(ast, state) {
+        for (const statement of ast) {
+            // A statement may have expressions that include function calls.
+            // Gather all of the internal function calls from the statement.
+            // We can then include them as commands to step through, storing their
+            // values with the call node so that when it is evaluated, it uses that
+            // already computed value. This allows us to step into the function
+            if (statement instanceof Let ||
+                statement instanceof Var$1 ||
+                statement instanceof Assign) {
+                const functionCalls = [];
+                this._collectFunctionCalls(statement.value, functionCalls);
+                if (functionCalls.length > 0) {
+                    console.log(functionCalls);
+                }
+            }
             state.commands.push(new Command(exports.CommandType.Statement, statement));
+        }
+    }
+    _collectFunctionCalls(node, functionCalls) {
+        if (node instanceof CallExpr) {
+            // Only collect custom function calls, not built-in functions.
+            if (!node.isBuiltin) {
+                functionCalls.push(node);
+            }
+        }
+        else if (node instanceof BinaryOperator) {
+            this._collectFunctionCalls(node.left, functionCalls);
+            this._collectFunctionCalls(node.right, functionCalls);
+        }
+        else if (node instanceof UnaryOperator) {
+            this._collectFunctionCalls(node.right, functionCalls);
+        }
+        else if (node instanceof GroupingExpr) {
+            for (const n of node.contents) {
+                this._collectFunctionCalls(n, functionCalls);
+            }
+        }
+        else if (node instanceof CreateExpr) {
+            for (const arg of node.args) {
+                this._collectFunctionCalls(arg, functionCalls);
+            }
+        }
+        else if (node instanceof BitcastExpr) {
+            this._collectFunctionCalls(node.value, functionCalls);
+        }
+        else if (node instanceof ArrayIndex) {
+            this._collectFunctionCalls(node.index, functionCalls);
         }
     }
     currentCommand() {
@@ -7026,7 +7225,8 @@ class WgslDebug {
         let state = this._execStack.last;
         return (_a = state === null || state === void 0 ? void 0 : state.getCurrentCommand()) !== null && _a !== void 0 ? _a : null;
     }
-    stepInfo() {
+    // Returns true if execution is not finished, false if execution is complete.
+    stepNext(stepInto = true) {
         if (this._execStack.isEmpty) {
             return false;
         }
@@ -7045,37 +7245,8 @@ class WgslDebug {
         if (command === null) {
             return false;
         }
-        const res = this._exec._execStatement(command.node, state.context);
-        if (res !== null && res !== undefined) {
-            return false;
-        }
-        if (state.isAtEnd) {
-            this._execStack.pop();
-            if (this._execStack.isEmpty) {
-                return false;
-            }
-        }
-        return true;
-    }
-    // Returns true if execution is not finished, false if execution is complete
-    stepNext() {
-        if (this._execStack.isEmpty) {
-            return false;
-        }
-        let state = this._execStack.last;
-        if (state === null) {
-            return false;
-        }
-        if (state.isAtEnd) {
-            this._execStack.pop();
-            if (this._execStack.isEmpty) {
-                return false;
-            }
-            state = this._execStack.last;
-        }
-        const command = state.getNextCommand();
-        if (command === null) {
-            return false;
+        if (stepInto && command.isStatement) {
+            command.node;
         }
         const res = this._exec._execStatement(command.node, state.context);
         if (res !== null && res !== undefined) {

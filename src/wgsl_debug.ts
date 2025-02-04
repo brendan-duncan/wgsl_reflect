@@ -278,8 +278,52 @@ export class WgslDebug {
 
         const state = new _ExecState(context);
         this._execStack.states.push(state);
-        for (const statement of f.node.body) {
+        this._collectFunctionCommands(f.node.body, state);
+    }
+
+    _collectFunctionCommands(ast: Array<AST.Node>, state: _ExecState) {
+        for (const statement of ast) {
+            // A statement may have expressions that include function calls.
+            // Gather all of the internal function calls from the statement.
+            // We can then include them as commands to step through, storing their
+            // values with the call node so that when it is evaluated, it uses that
+            // already computed value. This allows us to step into the function
+            if (statement instanceof AST.Let ||
+                statement instanceof AST.Var ||
+                statement instanceof AST.Assign) {
+                const functionCalls = [];
+                this._collectFunctionCalls(statement.value, functionCalls);
+                if (functionCalls.length > 0) {
+                    console.log(functionCalls);
+                }
+            }
             state.commands.push(new Command(CommandType.Statement, statement));
+        }
+    }
+
+    _collectFunctionCalls(node: AST.Expression, functionCalls: Array<AST.CallExpr>) {
+        if (node instanceof AST.CallExpr) {
+            // Only collect custom function calls, not built-in functions.
+            if (!node.isBuiltin) {
+                functionCalls.push(node);
+            }
+        } else if (node instanceof AST.BinaryOperator) {
+            this._collectFunctionCalls(node.left, functionCalls);
+            this._collectFunctionCalls(node.right, functionCalls);
+        } else if (node instanceof AST.UnaryOperator) {
+            this._collectFunctionCalls(node.right, functionCalls);
+        } else if (node instanceof AST.GroupingExpr) {
+            for (const n of node.contents) {
+                this._collectFunctionCalls(n, functionCalls);
+            }
+        } else if (node instanceof AST.CreateExpr) {
+            for (const arg of node.args) {
+                this._collectFunctionCalls(arg, functionCalls);
+            }
+        } else if (node instanceof AST.BitcastExpr) {
+            this._collectFunctionCalls(node.value, functionCalls);
+        } else if (node instanceof AST.ArrayIndex) {
+            this._collectFunctionCalls(node.index, functionCalls);
         }
     }
 
@@ -288,7 +332,8 @@ export class WgslDebug {
         return state?.getCurrentCommand() ?? null;
     }
 
-    stepInfo(): boolean {
+    // Returns true if execution is not finished, false if execution is complete.
+    stepNext(stepInto = true): boolean {
         if (this._execStack.isEmpty) {
             return false;
         }
@@ -305,51 +350,30 @@ export class WgslDebug {
             }
             state = this._execStack.last;
         }
-       
+
         const command = state!.getNextCommand();
 
         if (command === null) {
             return false;
         }
 
-        const res = this._exec._execStatement(command.node, state!.context);
-        if (res !== null && res !== undefined) {
-            return false;
-        }
-
-        if (state.isAtEnd) {
-            this._execStack.pop();
-            if (this._execStack.isEmpty) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    // Returns true if execution is not finished, false if execution is complete
-    stepNext(): boolean {
-        if (this._execStack.isEmpty) {
-            return false;
-        }
-
-        let state = this._execStack.last;
-        if (state === null) {
-            return false;
-        }
-
-        if (state.isAtEnd) {
-            this._execStack.pop();
-            if (this._execStack.isEmpty) {
-                return false;
-            }
-            state = this._execStack.last;
-        }
-       
-        const command = state!.getNextCommand();
-
-        if (command === null) {
-            return false;
+        let functionCalls = [];
+        if (stepInto && command.isStatement) {
+            const node = command.node;
+            // A statement may have expressions that include function calls.
+            // Gather all of the internal function calls from the statement.
+            // We can then include them as commands to step through, storing their
+            // values with the call node so that when it is evaluated, it uses that
+            // already computed value. This allows us to step into the function
+            if (node instanceof AST.Call) {
+                functionCalls.push(node);
+            }/* else if (node instanceof AST.Block) {
+                for (const statement of node.statements) {
+                    if (statement instanceof AST.Call) {
+                        functionCalls.push(statement);
+                    }
+                }
+            }*/
         }
 
         const res = this._exec._execStatement(command.node, state!.context);

@@ -68,7 +68,7 @@ export async function run() {
       const dbg = new WgslDebug(shader);
       dbg.debugWorkgroup("main", [1, 0, 0], 4, bg);
       dbg.stepNext(); // let
-      dbg.stepInfo(); // call
+      dbg.stepNext(); // call
       dbg.stepNext(); // return
       dbg.stepNext(); // assign
 

@@ -37,8 +37,9 @@ export declare class WgslDebug {
     debugWorkgroup(kernel: string, dispatchId: number[], dispatchCount: number | number[], bindGroups: Object, config?: Object): boolean;
     _dispatchWorkgroup(f: Function, workgroup_id: number[], context: ExecContext): boolean;
     _dispatchExec(f: Function, context: ExecContext): void;
+    _collectFunctionCommands(ast: Array<AST.Node>, state: _ExecState): void;
+    _collectFunctionCalls(node: AST.Expression, functionCalls: Array<AST.CallExpr>): void;
     currentCommand(): Command | null;
-    stepInfo(): boolean;
-    stepNext(): boolean;
+    stepNext(stepInto?: boolean): boolean;
 }
 export {};

@@ -491,6 +491,8 @@ export declare class CallExpr extends Expression {
     args: Array<Expression> | null;
     constructor(name: string, args: Array<Expression> | null);
     get astNodeType(): string;
+    static builtinFunctionNames: Set<string>;
+    get isBuiltin(): boolean;
     evaluate(context: ParseContext): number;
     search(callback: (node: Node) => void): void;
 }
