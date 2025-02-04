@@ -1,60 +1,10 @@
 import * as AST from "./wgsl_ast.js";
 import { WgslParser } from "./wgsl_parser.js";
-import { WgslReflect, TypeInfo, ArrayInfo, StructInfo, TemplateInfo } from "./wgsl_reflect.js";
+import { WgslReflect, TypeInfo, StructInfo, TemplateInfo } from "./wgsl_reflect.js";
 import { ExecContext, Function } from "./exec/exec_context.js";
 import { ExecInterface } from "./exec/exec_interface.js";
 import { BuiltinFunctions } from "./exec/builtin_functions.js";
 import { Data } from "./exec/data.js";
-
-enum _CommandType {
-    Break,
-    Goto,
-    Statement
-}
-
-class _Command {
-    type: _CommandType;
-    data: AST.Node | number | null;
-
-    constructor(type: _CommandType, data: AST.Node | number | null = null) {
-        this.type = type;
-        this.data = data;
-    }
-
-    get node(): AST.Node { return this.data as AST.Node; }
-
-    get position(): number { return this.data as number; }
-}
-
-class _ExecState {
-    context: ExecContext;
-    commands: Array<_Command> = [];
-    current: number = 0;
-
-    constructor(context: ExecContext) {
-        this.context = context;
-    }
-
-    get isAtEnd(): boolean { return this.current >= this.commands.length; }
-
-    getNextCommand() {
-        const command = this.commands[this.current];
-        this.current++;
-        return command;
-    }
-}
-
-class _ExecStack {
-    states: Array<_ExecState> = [];
-
-    get isEmpty(): boolean { return this.states.length == 0; }
-
-    get last(): _ExecState { return this.states[this.states.length - 1]; }
-
-    pop() {
-        this.states.pop();
-    }
-}
 
 export class WgslExec extends ExecInterface {
     ast: Array<AST.Node>;
@@ -71,56 +21,6 @@ export class WgslExec extends ExecInterface {
 
         this.context = context?.clone() ?? new ExecContext();
         this.builtins = new BuiltinFunctions(this);
-    }
-
-    _execStack: _ExecStack;
-
-    initDebug() {
-        this._execStack = new _ExecStack();
-        const state = new _ExecState(this.context);
-        this._execStack.states.push(state);
-        for (const statement of this.ast) {
-            state.commands.push(new _Command(_CommandType.Statement, statement));
-        }
-    }
-
-    // Returns true if execution is not finished, false if execution is complete
-    stepNextCommand(): boolean {
-        if (this._execStack.isEmpty) {
-            return false;
-        }
-
-        let state = this._execStack.last;
-        if (state.isAtEnd) {
-            this._execStack.pop();
-            if (this._execStack.isEmpty) {
-                return false;
-            }
-            state = this._execStack.last;
-        }
-       
-        const command = state.getNextCommand();
-
-        if (command.type === _CommandType.Break) {
-            let doBreak = true;
-            // Check for conditional break
-            if (command.node) {
-                const condition = this._evalExpression(command.node as AST.Statement, state.context);
-                if (!condition) {
-                    doBreak = false;
-                }
-            }
-
-            if (doBreak) {
-                this._execStack.pop();
-            }
-        } else if (command.type === _CommandType.Goto) {
-            state.current = command.position;
-        } else {
-            this._execStatement(command.node, state.context);
-        }
-
-        return true;
     }
 
     getVariableValue(name: string) {
@@ -329,306 +229,6 @@ export class WgslExec extends ExecInterface {
         return name;
     }
 
-    _setDataValue(data: Data, value: any, postfix: AST.Expression | null, context: ExecContext) {
-        if (value === null) {
-            console.log("_setDataValue: NULL data");
-            return;
-        }
-
-        let offset = data.offset;
-        let typeInfo = data.typeInfo;
-        while (postfix) {
-            if (postfix instanceof AST.ArrayIndex) {
-                if (typeInfo instanceof ArrayInfo) {
-                    const idx = postfix.index;
-                    if (idx instanceof AST.LiteralExpr) {
-                        offset += idx.value * typeInfo.stride;
-                    } else {
-                        const i = this._evalExpression(idx, context);
-                        if (i !== null) {
-                            offset += i * typeInfo.stride;
-                        } else {
-                            console.error(`SetDataValue: Unknown index type`, idx);
-                            return;
-                        }
-                    }
-                    typeInfo = typeInfo.format;
-                } else {
-                    console.error(`SetDataValue: Type ${this._getTypeName(typeInfo)} is not an array`);
-                }
-            } else if (postfix instanceof AST.StringExpr) {
-                const member = postfix.value;
-                if (typeInfo instanceof StructInfo) {
-                    let found = false;
-                    for (const m of typeInfo.members) {
-                        if (m.name === member) {
-                            offset += m.offset;
-                            typeInfo = m.type;
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (!found) {
-                        console.error(`SetDataValue: Member ${member} not found`);
-                        return;
-                    }
-                } else if (typeInfo instanceof TypeInfo) {
-                    const typeName = this._getTypeName(typeInfo);
-                    let element = 0;
-                    if (member === "x" || member === "r") {
-                        element = 0;
-                    } else if (member === "y" || member === "g") {
-                        element = 1;
-                    } else if (member === "z" || member === "b") {
-                        element = 2;
-                    } else if (member === "w" || member === "a") {
-                        element = 3;
-                    } else {
-                        console.error(`SetDataValue: Unknown member ${member}`);
-                        return;
-                    }
-                    if (typeName === "vec2f") {
-                        new Float32Array(data.buffer, offset, 2)[element] = value;
-                        return;
-                    } else if (typeName === "vec3f") {
-                        new Float32Array(data.buffer, offset, 3)[element] = value;
-                        return;
-                    } else if (typeName === "vec4f") {
-                        new Float32Array(data.buffer, offset, 4)[element] = value;
-                        return;
-                    } else if (typeName === "vec2i") {
-                        new Int32Array(data.buffer, offset, 2)[element] = value;
-                        return;
-                    } else if (typeName === "vec3i") {
-                        new Int32Array(data.buffer, offset, 3)[element] = value;
-                        return;
-                    } else if (typeName === "vec4i") {
-                        new Int32Array(data.buffer, offset, 4)[element] = value;
-                        return;
-                    } else if (typeName === "vec2u") {
-                        new Uint32Array(data.buffer, offset, 2)[element] = value;
-                        return;
-                    } else if (typeName === "vec3u") {
-                        new Uint32Array(data.buffer, offset, 3)[element] = value;
-                        return;
-                    } else if (typeName === "vec4u") {
-                        new Uint32Array(data.buffer, offset, 4)[element] = value;
-                        return;
-                    }
-                    console.error(`SetDataValue: Type ${typeName} is not a struct`);
-                    return;
-                }
-            } else {
-                console.error(`SetDataValue: Unknown postfix type`, postfix);
-                return;
-            }
-            postfix = postfix.postfix;
-        }
-
-        this._setData(data, value, typeInfo, offset, context);
-    }
-
-    _setData(data: Data, value: any, typeInfo: TypeInfo, offset: number, context: ExecContext) {
-        const typeName = this._getTypeName(typeInfo);
-
-        if (typeName === "f32") {
-            new Float32Array(data.buffer, offset, 1)[0] = value;
-            return;
-        } else if (typeName === "i32") {
-            new Int32Array(data.buffer, offset, 1)[0] = value;
-            return;
-        } else if (typeName === "u32") {
-            new Uint32Array(data.buffer, offset, 1)[0] = value;
-            return;
-        } else if (typeName === "vec2f") {
-            const x = new Float32Array(data.buffer, offset, 2);
-            x[0] = value[0];
-            x[1] = value[1];
-            return;
-        } else if (typeName === "vec3f") {
-            const x = new Float32Array(data.buffer, offset, 3);
-            x[0] = value[0];
-            x[1] = value[1];
-            x[2] = value[2];
-            return;
-        } else if (typeName === "vec4f") {
-            const x = new Float32Array(data.buffer, offset, 4);
-            x[0] = value[0];
-            x[1] = value[1];
-            x[2] = value[2];
-            x[3] = value[3];
-            return;
-        } else if (typeName === "vec2i") {
-            const x = new Int32Array(data.buffer, offset, 2);
-            x[0] = value[0];
-            x[1] = value[1];
-            return;
-        } else if (typeName === "vec3i") {
-            const x = new Int32Array(data.buffer, offset, 3);
-            x[0] = value[0];
-            x[1] = value[1];
-            x[2] = value[2];
-            return;
-        } else if (typeName === "vec4i") {
-            const x = new Int32Array(data.buffer, offset, 4);
-            x[0] = value[0];
-            x[1] = value[1];
-            x[2] = value[2];
-            x[3] = value[3];
-            return;
-        } else if (typeName === "vec2u") {
-            const x = new Uint32Array(data.buffer, offset, 2);
-            x[0] = value[0];
-            x[1] = value[1];
-            return;
-        } else if (typeName === "vec3u") {
-            const x = new Uint32Array(data.buffer, offset, 3);
-            x[0] = value[0];
-            x[1] = value[1];
-            x[2] = value[2];
-            return;
-        } else if (typeName === "vec4u") {
-            const x = new Uint32Array(data.buffer, offset, 4);
-            x[0] = value[0];
-            x[1] = value[1];
-            x[2] = value[2];
-            x[3] = value[3];
-            return;
-        }
-
-        if (value instanceof Data) {
-            if (typeInfo === value.typeInfo) {
-                const x = new Uint8Array(data.buffer, offset, value.buffer.byteLength);
-                x.set(new Uint8Array(value.buffer));
-                return;
-            } else {
-                console.error(`SetDataValue: Type mismatch`, typeName, this._getTypeName(value.typeInfo));
-                return;
-            }
-        }
-
-        console.error(`SetDataValue: Unknown type ${typeName}`);
-    }
-
-    _getDataValue(data: Data, postfix: AST.Expression | null, context: ExecContext): any {
-        let offset = data.offset;
-        let typeInfo = data.typeInfo;
-        while (postfix) {
-            if (postfix instanceof AST.ArrayIndex) {
-                if (typeInfo instanceof ArrayInfo) {
-                    const idx = postfix.index;
-                    if (idx instanceof AST.LiteralExpr) {
-                        offset += idx.value * typeInfo.stride;
-                    } else {
-                        const i = this._evalExpression(idx, context);
-                        if (i !== null) {
-                            offset += i * typeInfo.stride;
-                        } else {
-                            console.error(`GetDataValue: Unknown index type`, idx);
-                            return null;
-                        }
-                    }
-                    typeInfo = typeInfo.format;
-                } else {
-                    console.error(`Type ${this._getTypeName(typeInfo)} is not an array`);
-                }
-            } else if (postfix instanceof AST.StringExpr) {
-                const member = postfix.value;
-                if (typeInfo instanceof StructInfo) {
-                    let found = false;
-                    for (const m of typeInfo.members) {
-                        if (m.name === member) {
-                            offset += m.offset;
-                            typeInfo = m.type;
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (!found) {
-                        console.error(`GetDataValue: Member ${member} not found`);
-                        return null;
-                    }
-                } else if (typeInfo instanceof TypeInfo) {
-                    const typeName = this._getTypeName(typeInfo);
-                    let element = 0;
-                    if (member === "x" || member === "r") {
-                        element = 0;
-                    } else if (member === "y" || member === "g") {
-                        element = 1;
-                    } else if (member === "z" || member === "b") {
-                        element = 2;
-                    } else if (member === "w" || member === "a") {
-                        element = 3;
-                    } else {
-                        console.error(`Unknown member ${member}`);
-                        return null;
-                    }
-                    if (typeName === "vec2f") {
-                        return new Float32Array(data.buffer, offset, 2)[element];
-                    } else if (typeName === "vec3f") {
-                        if ((offset + 12) >= data.buffer.byteLength) {
-                            console.log("Insufficient buffer data");
-                            return null;
-                        }
-                        const fa = new Float32Array(data.buffer, offset, 3);
-                        return fa[element];
-                    } else if (typeName === "vec4f") {
-                        return new Float32Array(data.buffer, offset, 4)[element];
-                    } else if (typeName === "vec2i") {
-                        return new Int32Array(data.buffer, offset, 2)[element];
-                    } else if (typeName === "vec3i") {
-                        return new Int32Array(data.buffer, offset, 3)[element];
-                    } else if (typeName === "vec4i") {
-                        return new Int32Array(data.buffer, offset, 4)[element];
-                    } else if (typeName === "vec2u") {
-                        const ua = new Uint32Array(data.buffer, offset, 2);
-                        return ua[element];
-                    } else if (typeName === "vec3u") {
-                        return new Uint32Array(data.buffer, offset, 3)[element];
-                    } else if (typeName === "vec4u") {
-                        return new Uint32Array(data.buffer, offset, 4)[element];
-                    }
-                    console.error(`GetDataValue: Type ${typeName} is not a struct`);
-                    return null;
-                }
-            } else {
-                console.error(`GetDataValue: Unknown postfix type`, postfix);
-                return null;
-            }
-            postfix = postfix.postfix;
-        }
-
-        const typeName = this._getTypeName(typeInfo);
-
-        if (typeName === "f32") {
-            return new Float32Array(data.buffer, offset, 1)[0];
-        } else if (typeName === "i32") {
-            return new Int32Array(data.buffer, offset, 1)[0];
-        } else if (typeName === "u32") {
-            return new Uint32Array(data.buffer, offset, 1)[0];
-        } else if (typeName === "vec2f") {
-            return new Float32Array(data.buffer, offset, 2);
-        } else if (typeName === "vec3f") {
-            return new Float32Array(data.buffer, offset, 3);
-        } else if (typeName === "vec4f") {
-            return new Float32Array(data.buffer, offset, 4);
-        } else if (typeName === "vec2i") {
-            return new Int32Array(data.buffer, offset, 2);
-        } else if (typeName === "vec3i") {
-            return new Int32Array(data.buffer, offset, 3);
-        } else if (typeName === "vec4i") {
-            return new Int32Array(data.buffer, offset, 4);
-        } else if (typeName === "vec2u") {
-            return new Uint32Array(data.buffer, offset, 2);
-        } else if (typeName === "vec3u") {
-            return new Uint32Array(data.buffer, offset, 3);
-        } else if (typeName === "vec4u") {
-            return new Uint32Array(data.buffer, offset, 4);
-        }
-
-        return new Data(data.buffer, typeInfo, offset);
-    }
-
     _getVariableName(node: AST.Node, context: ExecContext) {
         if (node instanceof AST.VariableExpr) {
             return (node as AST.VariableExpr).name;
@@ -718,13 +318,13 @@ export class WgslExec extends ExecInterface {
 
         if (!v) {
             console.error(`Variable ${name} not found. Line ${node.line}`);
-            return;
+            return null;
         }
 
         let value = this._evalExpression(node.value, context);
 
         if (node.operator !== "=") {
-            const currentValue = this._getDataValue(v.value, node.variable.postfix, context);
+            const currentValue = v.value.getDataValue(this, node.variable.postfix, context);
 
             if (currentValue instanceof Array && value instanceof Array) {
                 if (currentValue.length !== value.length) {
@@ -799,7 +399,7 @@ export class WgslExec extends ExecInterface {
         }
 
         if (v.value instanceof Data) {
-            this._setDataValue(v.value, value, node.variable.postfix, context);
+            v.value.setDataValue(this, value, node.variable.postfix, context);
         } else if (node.variable.postfix) {
             if (node.variable.postfix instanceof AST.ArrayIndex) {
                 const idx = this._evalExpression(node.variable.postfix.index, context);
@@ -837,6 +437,7 @@ export class WgslExec extends ExecInterface {
         } else {
             v.value = value;
         }
+        return null;
     }
 
     _function(node: AST.Function, context: ExecContext) {
@@ -1030,7 +631,7 @@ export class WgslExec extends ExecInterface {
                 const memberInfo = typeInfo.members[i];
                 const arg = node.args[i];
                 const value = this._evalExpression(arg, context);
-                this._setData(data, value, memberInfo.type, memberInfo.offset, context);
+                data.setData(this, value, memberInfo.type, memberInfo.offset, context);
             }
         } else {
             console.error(`Unknown type "${typeName}". Line ${node.line}`);
@@ -1080,7 +681,7 @@ export class WgslExec extends ExecInterface {
     _evalVariable(node: AST.VariableExpr, context: ExecContext) {
         const value = context.getVariableValue(node.name);
         if (value instanceof Data) {
-            return this._getDataValue(value, node.postfix, context);
+            return value.getDataValue(this, node.postfix, context);
         }
         if (node.postfix) {
             if (node.postfix instanceof AST.ArrayIndex) {

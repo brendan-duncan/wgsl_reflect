@@ -3,42 +3,12 @@ import { WgslReflect, TypeInfo } from "./wgsl_reflect.js";
 import { ExecContext, Function } from "./exec/exec_context.js";
 import { ExecInterface } from "./exec/exec_interface.js";
 import { BuiltinFunctions } from "./exec/builtin_functions.js";
-import { Data } from "./exec/data.js";
-declare enum _CommandType {
-    Break = 0,
-    Goto = 1,
-    Statement = 2
-}
-declare class _Command {
-    type: _CommandType;
-    data: AST.Node | number | null;
-    constructor(type: _CommandType, data?: AST.Node | number | null);
-    get node(): AST.Node;
-    get position(): number;
-}
-declare class _ExecState {
-    context: ExecContext;
-    commands: Array<_Command>;
-    current: number;
-    constructor(context: ExecContext);
-    get isAtEnd(): boolean;
-    getNextCommand(): _Command;
-}
-declare class _ExecStack {
-    states: Array<_ExecState>;
-    get isEmpty(): boolean;
-    get last(): _ExecState;
-    pop(): void;
-}
 export declare class WgslExec extends ExecInterface {
     ast: Array<AST.Node>;
     context: ExecContext;
     reflection: WgslReflect;
     builtins: BuiltinFunctions;
     constructor(code: string, context?: ExecContext);
-    _execStack: _ExecStack;
-    initDebug(): void;
-    stepNextCommand(): boolean;
     getVariableValue(name: string): any;
     execute(config?: Object): void;
     dispatchWorkgroups(kernel: string, dispatchCount: number | number[], bindGroups: Object, config?: Object): void;
@@ -46,14 +16,11 @@ export declare class WgslExec extends ExecInterface {
     _dispatchExec(f: Function, context: ExecContext): void;
     _getTypeInfo(type: AST.Type): TypeInfo;
     _getTypeName(type: TypeInfo | AST.Type): string;
-    _setDataValue(data: Data, value: any, postfix: AST.Expression | null, context: ExecContext): void;
-    _setData(data: Data, value: any, typeInfo: TypeInfo, offset: number, context: ExecContext): void;
-    _getDataValue(data: Data, postfix: AST.Expression | null, context: ExecContext): any;
     _getVariableName(node: AST.Node, context: ExecContext): string;
     _execStatements(statements: Array<AST.Node>, context: ExecContext): any;
     _execStatement(stmt: AST.Node, context: ExecContext): any;
     _increment(node: AST.Increment, context: ExecContext): any;
-    _assign(node: AST.Assign, context: ExecContext): void;
+    _assign(node: AST.Assign, context: ExecContext): any;
     _function(node: AST.Function, context: ExecContext): void;
     _const(node: AST.Const, context: ExecContext): void;
     _let(node: AST.Let, context: ExecContext): void;
@@ -75,4 +42,3 @@ export declare class WgslExec extends ExecInterface {
     _callConstructorVec(node: AST.CallExpr | AST.CreateExpr, context: ExecContext): any;
     _callConstructorMatrix(node: AST.CallExpr | AST.CreateExpr, context: ExecContext): any[];
 }
-export {};

@@ -180,7 +180,7 @@ export class Test {
                 return;
             }
             for (let i = 0, l = a.length; i < l; ++i) {
-                if (epsilon !== this.undefined) {
+                if (epsilon !== undefined) {
                     if (Math.abs(a[i] - b[i]) > epsilon) {
                         this.state = false;
                         if (message) {
