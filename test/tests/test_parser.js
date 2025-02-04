@@ -2,6 +2,13 @@ import { test, group } from "../test.js";
 import { WgslParser } from "../../../wgsl_reflect.module.js";
 
 group("Parser", function () {
+  test("let foo = -1f;", function (test) {
+    const shader = `let foo = -1f;`;
+    const parser = new WgslParser();
+    const t = parser.parse(shader);
+    test.equals(t.length, 1);
+  });
+
   test("const2", function (test) {
     const shader = `const FOO = radians(90);
     const BAR = sin(FOO);

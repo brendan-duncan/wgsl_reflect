@@ -90,6 +90,13 @@ group("Scanner", function () {
     test.equals(tokens[0].type, TokenTypes.tokens.ident);
   });
 
+  test("-1f", function (test) {
+    const scanner = new WgslScanner("-1f");
+    const tokens = scanner.scanTokens();
+    test.equals(tokens.length, 2);
+    test.equals(tokens[0].type, TokenTypes.tokens.decimal_float_literal);
+  });
+
   test("123", function (test) {
     const scanner = new WgslScanner("123");
     const tokens = scanner.scanTokens();

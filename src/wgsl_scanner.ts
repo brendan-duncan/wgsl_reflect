@@ -266,7 +266,7 @@ export class TokenTypes {
     decimal_float_literal: new TokenType(
       "decimal_float_literal",
       TokenClass.token,
-      /((-?[0-9]*\.[0-9]+|-?[0-9]+\.[0-9]*)((e|E)(\+|-)?[0-9]+)?f?)|(-?[0-9]+(e|E)(\+|-)?[0-9]+f?)|([0-9]+f)/
+      /((-?[0-9]*\.[0-9]+|-?[0-9]+\.[0-9]*)((e|E)(\+|-)?[0-9]+)?f?)|(-?[0-9]+(e|E)(\+|-)?[0-9]+f?)|(-?[0-9]+f)/
     ),
     hex_float_literal: new TokenType(
       "hex_float_literal",
