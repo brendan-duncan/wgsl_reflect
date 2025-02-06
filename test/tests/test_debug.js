@@ -6,8 +6,6 @@ export async function run() {
     await test("set variable", async function (test) {
       const shader = `let foo = 1 + 2;`;
       const dbg = new WgslDebug(shader);
-
-      dbg.startDebug();
       let res = dbg.stepNext();
       test.equals(res, false);
       test.equals(dbg.getVariableValue("foo"), 3);
@@ -18,7 +16,6 @@ export async function run() {
       let bar = foo * 4;`;
 
       const dbg = new WgslDebug(shader);
-      dbg.startDebug();
       let res = dbg.stepNext();
       test.equals(res, true);
       res = dbg.stepNext();
@@ -27,7 +24,23 @@ export async function run() {
       test.equals(dbg.getVariableValue("foo"), 3);
       test.equals(dbg.getVariableValue("bar"), 12);
     });
-    
+
+    await test("call function", function (test) {
+      const shader = `
+      fn foo(a: int, b: int) -> int {
+        if (b != 0) {
+            return a / b;
+        } else {
+            return a * b;
+        }
+      }
+      let bar = foo(3, 4);`;
+      const dbg = new WgslDebug(shader);
+      while (dbg.stepNext());
+      // Ensure calling a function works as expected.
+      test.equals(dbg.getVariableValue("bar"), 0.75);
+    });
+
     await test("data", async function (test) {
       const shader = `
           @group(0) @binding(0) var<storage, read_write> buffer: array<f32>;
@@ -49,7 +62,7 @@ export async function run() {
       test.equals(buffer, [1, 4, 6, 0]);
     });
 
-    await test("function call", async function (test) {
+    await test("dispatch function call", async function (test) {
       const shader = `
           fn scale(x: f32, y: f32) -> f32 {
             return x * y;
@@ -75,6 +88,5 @@ export async function run() {
       // Test that we only executed the [1, 0, 0] global_invocation_id.
       test.equals(buffer, [1, 4, 6, 0]);
     });
-    
   });
 }

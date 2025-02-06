@@ -489,8 +489,10 @@ export declare class CreateExpr extends Expression {
 export declare class CallExpr extends Expression {
     name: string;
     args: Array<Expression> | null;
+    cachedReturnValue: any;
     constructor(name: string, args: Array<Expression> | null);
     get astNodeType(): string;
+    setCachedReturnValue(value: any): void;
     static builtinFunctionNames: Set<string>;
     get isBuiltin(): boolean;
     evaluate(context: ParseContext): number;

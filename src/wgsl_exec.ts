@@ -770,6 +770,10 @@ export class WgslExec extends ExecInterface {
     }
 
     _evalCall(node: AST.CallExpr, context: ExecContext) {
+        if (node.cachedReturnValue) {
+            return node.cachedReturnValue;
+        }
+
         const subContext = context.clone();
         subContext.currentFunctionName = node.name;
 

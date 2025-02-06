@@ -985,6 +985,7 @@ export class CreateExpr extends Expression {
 export class CallExpr extends Expression {
   name: string;
   args: Array<Expression> | null;
+  cachedReturnValue: any;
 
   constructor(name: string, args: Array<Expression> | null) {
     super();
@@ -994,6 +995,10 @@ export class CallExpr extends Expression {
 
   get astNodeType() {
     return "callExpr";
+  }
+
+  setCachedReturnValue(value: any) {
+    this.cachedReturnValue = value;
   }
 
   static builtinFunctionNames = new Set([

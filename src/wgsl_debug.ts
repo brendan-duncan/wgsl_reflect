@@ -3,33 +3,59 @@ import { WgslExec } from "./wgsl_exec.js";
 import { ExecContext, Function } from "./exec/exec_context.js";
 import { Data } from "./exec/data.js";
 
-export enum CommandType {
-    Statement,
-}
-
-export class Command {
-    type: CommandType;
-    data: AST.Node | number | null;
-
-    constructor(type: CommandType, data: AST.Node | number | null = null) {
-        this.type = type;
-        this.data = data;
+class Command {
+    constructor() {
     }
-
-    get isStatement(): boolean { return this.type === CommandType.Statement; }
-
-    get node(): AST.Node { return this.data as AST.Node; }
-
-    get position(): number { return this.data as number; }
 }
 
-class _ExecState {
+class StatementCommand extends Command {
+    node: AST.Node;
+
+    constructor(node: AST.Node) {
+        super();
+        this.node = node;
+    }
+}
+
+class CallExprCommand extends Command {
+    node: AST.CallExpr;
+
+    constructor(node: AST.CallExpr) {
+        super();
+        this.node = node;
+    }
+}
+
+class GotoCommand extends Command {
+    condition: AST.Node | null;
+    position: number;
+
+    constructor(condition: AST.Node | null, position: number) {
+        super();
+        this.condition = condition;
+        this.position = position;
+    }
+}
+
+class BlockCommand extends Command {
+    statements: Array<AST.Node> = [];
+
+    constructor(statements: Array<AST.Node>) {
+        super();
+        this.statements = statements;
+    }
+}
+
+class ExecState {
+    parent: ExecState | null = null;
     context: ExecContext;
     commands: Array<Command> = [];
     current: number = 0;
+    parentCallExpr: AST.CallExpr | null = null;
 
-    constructor(context: ExecContext) {
+    constructor(context: ExecContext, parent?: ExecState) {
         this.context = context;
+        this.parent = parent ?? null;
     }
 
     get isAtEnd(): boolean { return this.current >= this.commands.length; }
@@ -51,28 +77,21 @@ class _ExecState {
     }
 }
 
-class _ExecStack {
-    states: Array<_ExecState> = [];
+class ExecStack {
+    states: Array<ExecState> = [];
 
     get isEmpty(): boolean { return this.states.length == 0; }
 
-    get last(): _ExecState | null { return this.states[this.states.length - 1] ?? null; }
+    get last(): ExecState | null { return this.states[this.states.length - 1] ?? null; }
 
     pop() {
         this.states.pop();
     }
 }
 
-class _Dispatch {
-    kernel: string = "";
-    id: [number, number, number] = [0, 0, 0];
-    bindGroups: Object | null = null;
-    constants: Object | null = null;
-}
-
 export class WgslDebug {
     _exec: WgslExec;
-    _execStack: _ExecStack;
+    _execStack: ExecStack;
     _dispatchId: number[];
 
     constructor(code: string, context?: ExecContext) {
@@ -84,18 +103,15 @@ export class WgslDebug {
     }
 
     startDebug() {
-        this._execStack = new _ExecStack();
-        const state = new _ExecState(this._exec.context);
+        this._execStack = new ExecStack();
+        const state = this._createState(this._exec.ast, this._exec.context);
         this._execStack.states.push(state);
-        for (const statement of this._exec.ast) {
-            state.commands.push(new Command(CommandType.Statement, statement));
-        }
     }
 
     debugWorkgroup(kernel: string, dispatchId: number[], 
         dispatchCount: number | number[], bindGroups: Object, config?: Object): boolean {
-        
-        this._execStack = new _ExecStack();
+
+        this._execStack = new ExecStack();
 
         const context = this._exec.context;
 
@@ -276,12 +292,13 @@ export class WgslDebug {
             }
         }
 
-        const state = new _ExecState(context);
+        const state = this._createState(f.node.body, context);
         this._execStack.states.push(state);
-        this._collectFunctionCommands(f.node.body, state);
     }
 
-    _collectFunctionCommands(ast: Array<AST.Node>, state: _ExecState) {
+    _createState(ast: Array<AST.Node>, context: ExecContext, parent?: ExecState): ExecState {
+        const state = new ExecState(context, parent ?? null);
+
         for (const statement of ast) {
             // A statement may have expressions that include function calls.
             // Gather all of the internal function calls from the statement.
@@ -293,16 +310,88 @@ export class WgslDebug {
                 statement instanceof AST.Assign) {
                 const functionCalls = [];
                 this._collectFunctionCalls(statement.value, functionCalls);
-                if (functionCalls.length > 0) {
-                    console.log(functionCalls);
+                for (const call of functionCalls) {
+                    state.commands.push(new CallExprCommand(call));
                 }
+                state.commands.push(new StatementCommand(statement));
+            } else if (statement instanceof AST.Call) {
+                const functionCalls = [];
+                for (const arg of statement.args) {
+                    this._collectFunctionCalls(arg, functionCalls);
+                }
+                for (const call of functionCalls) {
+                    state.commands.push(new CallExprCommand(call));
+                }
+                state.commands.push(new StatementCommand(statement));
+            } else if (statement instanceof AST.Return) {
+                const functionCalls = [];
+                this._collectFunctionCalls(statement.value, functionCalls);
+                for (const call of functionCalls) {
+                    state.commands.push(new CallExprCommand(call));
+                }
+                state.commands.push(new StatementCommand(statement));
+            } else if (statement instanceof AST.Function) {
+                const f = new Function(statement);
+                state.context.functions.set(statement.name, f);
+                continue;
+            } else if (statement instanceof AST.While) {
+                const functionCalls = [];
+                this._collectFunctionCalls(statement.condition, functionCalls);
+                for (const call of functionCalls) {
+                    state.commands.push(new CallExprCommand(call));
+                }
+                const conditionCmd = new GotoCommand(statement.condition, 0);
+                state.commands.push(conditionCmd);
+                state.commands.push(new BlockCommand(statement.body));
+                state.commands.push(new GotoCommand(statement.condition, 0));
+                conditionCmd.position = state.commands.length;
+            } else if (statement instanceof AST.If) {
+                const functionCalls = [];
+                this._collectFunctionCalls(statement.condition, functionCalls);
+                for (const call of functionCalls) {
+                    state.commands.push(new CallExprCommand(call));
+                }
+
+                let conditionCmd = new GotoCommand(statement.condition, 0);
+                state.commands.push(conditionCmd);
+                state.commands.push(new BlockCommand(statement.body));
+                const gotoEnd = new GotoCommand(null, 0);
+                state.commands.push(gotoEnd);
+
+                for (const elseIf of statement.elseif) {
+                    conditionCmd.position = state.commands.length;
+
+                    const functionCalls = [];
+                    this._collectFunctionCalls(elseIf.condition, functionCalls);
+                    for (const call of functionCalls) {
+                        state.commands.push(new CallExprCommand(call));
+                    }
+
+                    conditionCmd = new GotoCommand(elseIf.condition, 0);
+                    state.commands.push(conditionCmd);
+                    state.commands.push(new BlockCommand(elseIf.body));
+                    state.commands.push(gotoEnd);
+                }
+
+                conditionCmd.position = state.commands.length;
+                if (statement.else) {
+                    state.commands.push(new BlockCommand(statement.else));
+                }
+
+                gotoEnd.position = state.commands.length;
+            } else {
+                console.error(`TODO: statement type ${statement.constructor.name}`);
             }
-            state.commands.push(new Command(CommandType.Statement, statement));
         }
+
+        return state;
     }
 
     _collectFunctionCalls(node: AST.Expression, functionCalls: Array<AST.CallExpr>) {
         if (node instanceof AST.CallExpr) {
+            for (const arg of node.args) {
+                this._collectFunctionCalls(arg, functionCalls);
+            }
             // Only collect custom function calls, not built-in functions.
             if (!node.isBuiltin) {
                 functionCalls.push(node);
@@ -324,6 +413,8 @@ export class WgslDebug {
             this._collectFunctionCalls(node.value, functionCalls);
         } else if (node instanceof AST.ArrayIndex) {
             this._collectFunctionCalls(node.index, functionCalls);
+        } else {
+            console.error(`TODO: expression type ${node.constructor.name}`);
         }
     }
 
@@ -334,60 +425,83 @@ export class WgslDebug {
 
     // Returns true if execution is not finished, false if execution is complete.
     stepNext(stepInto = true): boolean {
-        if (this._execStack.isEmpty) {
-            return false;
+        if (!this._execStack) {
+            this._execStack = new ExecStack();
+            const state = this._createState(this._exec.ast, this._exec.context);
+            this._execStack.states.push(state);
         }
 
-        let state = this._execStack.last;
-        if (state === null) {
-            return false;
-        }
-
-        if (state.isAtEnd) {
-            this._execStack.pop();
+        while (true) {
             if (this._execStack.isEmpty) {
                 return false;
             }
-            state = this._execStack.last;
-        }
 
-        const command = state!.getNextCommand();
+            let state = this._execStack.last;
+            if (state === null) {
+                return false;
+            }
 
-        if (command === null) {
-            return false;
-        }
+            if (state.isAtEnd) {
+                this._execStack.pop();
+                if (this._execStack.isEmpty) {
+                    return false;
+                }
+                state = this._execStack.last;
+            }
 
-        let functionCalls = [];
-        if (stepInto && command.isStatement) {
-            const node = command.node;
-            // A statement may have expressions that include function calls.
-            // Gather all of the internal function calls from the statement.
-            // We can then include them as commands to step through, storing their
-            // values with the call node so that when it is evaluated, it uses that
-            // already computed value. This allows us to step into the function
-            if (node instanceof AST.Call) {
-                functionCalls.push(node);
-            }/* else if (node instanceof AST.Block) {
-                for (const statement of node.statements) {
-                    if (statement instanceof AST.Call) {
-                        functionCalls.push(statement);
+            const command = state!.getNextCommand();
+
+            if (command === null) {
+                continue;
+            }
+
+            if (stepInto && command instanceof CallExprCommand) {
+                const node = command.node;
+                const fn = state.context.functions.get(node.name);
+                if (!fn) {
+                    continue; // it's not a custom function, step over it
+                }
+                const fnState = this._createState(fn.node.body, state.context.clone(), state);
+
+                for (let ai = 0; ai < fn.node.args.length; ++ai) {
+                    const arg = fn.node.args[ai];
+                    const value = this._exec._evalExpression(node.args[ai], fnState.context);
+                    fnState.context.setVariable(arg.name, value, arg);
+                }
+
+                fnState.parentCallExpr = node;
+                this._execStack.states.push(fnState);
+
+                continue; // step into the first statement of the function
+            } else if (command instanceof StatementCommand) {
+                const res = this._exec._execStatement(command.node, state.context);
+                if (res !== null && res !== undefined) {
+                    state.parent?.parentCallExpr?.setCachedReturnValue(res);
+                    return true;
+                }
+            } else if (command instanceof GotoCommand) {
+                if (command.condition) {
+                    const res = this._exec._evalExpression(command.condition, state.context);
+                    if (res) {
+                        return true;
                     }
                 }
-            }*/
-        }
-
-        const res = this._exec._execStatement(command.node, state!.context);
-        if (res !== null && res !== undefined) {
-            return false;
-        }
-
-        if (state.isAtEnd) {
-            this._execStack.pop();
-            if (this._execStack.isEmpty) {
-                return false;
+                state.current = command.position;
+                continue;
+            } else if (command instanceof BlockCommand) {
+                const blockState = this._createState(command.statements, state.context.clone(), state);
+                this._execStack.states.push(blockState);
+                continue; // step into the first statement of the block
             }
-        }
 
-        return true;
+            if (state.isAtEnd) {
+                this._execStack.pop();
+                if (this._execStack.isEmpty) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
     }
 }
