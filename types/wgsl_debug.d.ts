@@ -2,7 +2,7 @@ import * as AST from "./wgsl_ast.js";
 import { WgslExec } from "./wgsl_exec.js";
 import { ExecContext, Function } from "./exec/exec_context.js";
 declare class Command {
-    constructor();
+    get line(): number;
 }
 declare class ExecState {
     parent: ExecState | null;
@@ -28,12 +28,12 @@ export declare class WgslDebug {
     constructor(code: string, context?: ExecContext);
     getVariableValue(name: string): any;
     startDebug(): void;
+    get currentCommand(): Command | null;
     debugWorkgroup(kernel: string, dispatchId: number[], dispatchCount: number | number[], bindGroups: Object, config?: Object): boolean;
+    stepNext(stepInto?: boolean): boolean;
     _dispatchWorkgroup(f: Function, workgroup_id: number[], context: ExecContext): boolean;
     _dispatchExec(f: Function, context: ExecContext): void;
     _createState(ast: Array<AST.Node>, context: ExecContext, parent?: ExecState): ExecState;
     _collectFunctionCalls(node: AST.Expression, functionCalls: Array<AST.CallExpr>): void;
-    currentCommand(): Command | null;
-    stepNext(stepInto?: boolean): boolean;
 }
 export {};

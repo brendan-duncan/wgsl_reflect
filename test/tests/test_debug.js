@@ -37,7 +37,11 @@ export async function run() {
       let bar = foo(3, 4);
       let bar2 = foo(5, -2);`;
       const dbg = new WgslDebug(shader);
-      while (dbg.stepNext());
+      dbg.startDebug();
+      console.log(dbg.currentCommand?.line, dbg.currentCommand);
+      while (dbg.stepNext()) {
+        console.log(dbg.currentCommand?.line,dbg.currentCommand);
+      }
       // Ensure calling a function works as expected.
       test.equals(dbg.getVariableValue("bar"), 0.75);
       test.equals(dbg.getVariableValue("bar2"), -10);

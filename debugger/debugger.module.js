@@ -33828,6 +33828,10 @@ class GotoCommand extends Command {
         this.condition = condition;
         this.position = position;
     }
+    get line() {
+        var _a, _b;
+        return (_b = (_a = this.condition) === null || _a === void 0 ? void 0 : _a.line) !== null && _b !== void 0 ? _b : -1;
+    }
 }
 class BlockCommand extends Command {
     constructor(statements) {
@@ -33885,6 +33889,51 @@ class WgslDebug {
         this._execStack = new ExecStack();
         const state = this._createState(this._exec.ast, this._exec.context);
         this._execStack.states.push(state);
+    }
+    get context() {
+        return this._exec.context;
+    }
+    get currentState() {
+        while (true) {
+            if (this._execStack.isEmpty) {
+                return null;
+            }
+            let state = this._execStack.last;
+            if (state === null) {
+                return null;
+            }
+            if (state.isAtEnd) {
+                this._execStack.pop();
+                if (this._execStack.isEmpty) {
+                    return null;
+                }
+                state = this._execStack.last;
+            }
+            return state;
+        }
+    }
+    get currentCommand() {
+        while (true) {
+            if (this._execStack.isEmpty) {
+                return null;
+            }
+            let state = this._execStack.last;
+            if (state === null) {
+                return null;
+            }
+            if (state.isAtEnd) {
+                this._execStack.pop();
+                if (this._execStack.isEmpty) {
+                    return null;
+                }
+                state = this._execStack.last;
+            }
+            const command = state.getCurrentCommand();
+            if (command === null) {
+                continue;
+            }
+            return command;
+        }
     }
     debugWorkgroup(kernel, dispatchId, dispatchCount, bindGroups, config) {
         this._execStack = new ExecStack();
@@ -33976,6 +34025,116 @@ class WgslDebug {
             }
         }
         return found;
+    }
+    _shouldExecuteNectCommand() {
+        const command = this.currentCommand;
+        if (command === null) {
+            return false;
+        }
+        if (command instanceof GotoCommand) {
+            if (command.condition === null) {
+                return true;
+            }
+        }
+        else if (command instanceof StatementCommand) {
+            if (command.node instanceof Assign ||
+                command.node instanceof Let ||
+                command.node instanceof Var$1 ||
+                command.node instanceof Const) {
+                return true;
+            }
+        }
+        return false;
+    }
+    // Returns true if execution is not finished, false if execution is complete.
+    stepNext(stepInto = true) {
+        var _a, _b;
+        if (!this._execStack) {
+            this._execStack = new ExecStack();
+            const state = this._createState(this._exec.ast, this._exec.context);
+            this._execStack.states.push(state);
+        }
+        while (true) {
+            if (this._execStack.isEmpty) {
+                return false;
+            }
+            let state = this._execStack.last;
+            if (state === null) {
+                return false;
+            }
+            if (state.isAtEnd) {
+                this._execStack.pop();
+                if (this._execStack.isEmpty) {
+                    return false;
+                }
+                state = this._execStack.last;
+            }
+            const command = state.getNextCommand();
+            if (command === null) {
+                continue;
+            }
+            if (stepInto && command instanceof CallExprCommand) {
+                const node = command.node;
+                const fn = state.context.functions.get(node.name);
+                if (!fn) {
+                    continue; // it's not a custom function, step over it
+                }
+                const fnState = this._createState(fn.node.body, state.context.clone(), state);
+                for (let ai = 0; ai < fn.node.args.length; ++ai) {
+                    const arg = fn.node.args[ai];
+                    const value = this._exec._evalExpression(node.args[ai], fnState.context);
+                    fnState.context.setVariable(arg.name, value, arg);
+                }
+                fnState.parentCallExpr = node;
+                this._execStack.states.push(fnState);
+                fnState.context.currentFunctionName = fn.name;
+                if (this._shouldExecuteNectCommand()) {
+                    continue;
+                }
+                return true;
+            }
+            else if (command instanceof StatementCommand) {
+                const res = this._exec._execStatement(command.node, state.context);
+                if (res !== null && res !== undefined) {
+                    (_b = (_a = state.parent) === null || _a === void 0 ? void 0 : _a.parentCallExpr) === null || _b === void 0 ? void 0 : _b.setCachedReturnValue(res);
+                    if (this._shouldExecuteNectCommand()) {
+                        continue;
+                    }
+                    return true;
+                }
+            }
+            else if (command instanceof GotoCommand) {
+                if (command.condition) {
+                    const res = this._exec._evalExpression(command.condition, state.context);
+                    if (res) {
+                        if (this._shouldExecuteNectCommand()) {
+                            continue;
+                        }
+                        return true;
+                    }
+                }
+                state.current = command.position;
+                if (this._shouldExecuteNectCommand()) {
+                    continue;
+                }
+                return true;
+            }
+            else if (command instanceof BlockCommand) {
+                const blockState = this._createState(command.statements, state.context.clone(), state);
+                this._execStack.states.push(blockState);
+                continue; // step into the first statement of the block
+            }
+            if (state.isAtEnd) {
+                this._execStack.pop();
+                if (this._execStack.isEmpty) {
+                    return false;
+                }
+            }
+            if (this._shouldExecuteNectCommand()) {
+                continue;
+            }
+            return true;
+        }
     }
     _dispatchWorkgroup(f, workgroup_id, context) {
         const workgroupSize = [1, 1, 1];
@@ -34186,85 +34345,6 @@ class WgslDebug {
             console.error(`TODO: expression type ${node.constructor.name}`);
         }
     }
-    currentCommand() {
-        var _a;
-        let state = this._execStack.last;
-        return (_a = state === null || state === void 0 ? void 0 : state.getCurrentCommand()) !== null && _a !== void 0 ? _a : null;
-    }
-    // Returns true if execution is not finished, false if execution is complete.
-    stepNext(stepInto = true) {
-        var _a, _b;
-        if (!this._execStack) {
-            this._execStack = new ExecStack();
-            const state = this._createState(this._exec.ast, this._exec.context);
-            this._execStack.states.push(state);
-        }
-        while (true) {
-            if (this._execStack.isEmpty) {
-                return false;
-            }
-            let state = this._execStack.last;
-            if (state === null) {
-                return false;
-            }
-            if (state.isAtEnd) {
-                this._execStack.pop();
-                if (this._execStack.isEmpty) {
-                    return false;
-                }
-                state = this._execStack.last;
-            }
-            const command = state.getNextCommand();
-            if (command === null) {
-                continue;
-            }
-            if (stepInto && command instanceof CallExprCommand) {
-                const node = command.node;
-                const fn = state.context.functions.get(node.name);
-                if (!fn) {
-                    continue; // it's not a custom function, step over it
-                }
-                const fnState = this._createState(fn.node.body, state.context.clone(), state);
-                for (let ai = 0; ai < fn.node.args.length; ++ai) {
-                    const arg = fn.node.args[ai];
-                    const value = this._exec._evalExpression(node.args[ai], fnState.context);
-                    fnState.context.setVariable(arg.name, value, arg);
-                }
-                fnState.parentCallExpr = node;
-                this._execStack.states.push(fnState);
-                continue; // step into the first statement of the function
-            }
-            else if (command instanceof StatementCommand) {
-                const res = this._exec._execStatement(command.node, state.context);
-                if (res !== null && res !== undefined) {
-                    (_b = (_a = state.parent) === null || _a === void 0 ? void 0 : _a.parentCallExpr) === null || _b === void 0 ? void 0 : _b.setCachedReturnValue(res);
-                    return true;
-                }
-            }
-            else if (command instanceof GotoCommand) {
-                if (command.condition) {
-                    const res = this._exec._evalExpression(command.condition, state.context);
-                    if (res) {
-                        return true;
-                    }
-                }
-                state.current = command.position;
-                continue;
-            }
-            else if (command instanceof BlockCommand) {
-                const blockState = this._createState(command.statements, state.context.clone(), state);
-                this._execStack.states.push(blockState);
-                continue; // step into the first statement of the block
-            }
-            if (state.isAtEnd) {
-                this._execStack.pop();
-                if (this._execStack.isEmpty) {
-                    return false;
-                }
-            }
-            return true;
-        }
-    }
 }
 
 const breakpointEffect = StateEffect.define({
@@ -34373,13 +34453,10 @@ const shaderEditorSetup = (() => [
     ])
 ])();
 class Debugger {
-    constructor(code, parent) {
+    constructor(code, parent, watch) {
         this.code = code;
+        this.watch = watch;
         const self = this;
-        /*const startButton = document.getElementById("start");
-        startButton!.addEventListener("click", () => {
-          self.start();
-        });*/
         const stepOverButton = document.getElementById("step-over");
         stepOverButton.addEventListener("click", () => {
             self.stepOver();
@@ -34400,8 +34477,7 @@ class Debugger {
         this.updateHighlightLine();
     }
     updateHighlightLine() {
-        const cmd = this.debugger.currentCommand();
-        console.log(cmd);
+        const cmd = this.debugger.currentCommand;
         if (cmd !== null) {
             const line = cmd.line;
             if (line > -1) {
@@ -34413,6 +34489,37 @@ class Debugger {
         }
         else {
             this._highlightLine(0);
+        }
+        while (this.watch.childElementCount > 0) {
+            this.watch.removeChild(this.watch.children[0]);
+        }
+        let state = this.debugger.currentState;
+        if (state === null) {
+            const context = this.debugger.context;
+            const currentFunctionName = context.currentFunctionName;
+            const div = document.createElement("div");
+            div.innerText = currentFunctionName || "<shader>";
+            this.watch.appendChild(div);
+            context.variables.forEach((v) => {
+                const div = document.createElement("div");
+                div.innerText = `${v.name || "<var>"} : ${v.value}`;
+                this.watch.appendChild(div);
+            });
+        }
+        else {
+            while (state !== null) {
+                const context = state.context;
+                const currentFunctionName = context.currentFunctionName;
+                const div = document.createElement("div");
+                div.innerText = currentFunctionName || "<shader>";
+                this.watch.appendChild(div);
+                context.variables.forEach((v) => {
+                    const div = document.createElement("div");
+                    div.innerText = `${v.name || "<var>"} : ${v.value}`;
+                    this.watch.appendChild(div);
+                });
+                state = state.parent;
+            }
         }
     }
     stepOver() {
@@ -34448,7 +34555,8 @@ fn foo(a: int, b: int) -> int {
 let bar = foo(3, 4);
 let bar2 = foo(5, -1);`;
     const parent = document.getElementById("debugger");
-    new Debugger(code, parent);
+    const watch = document.getElementById("watch");
+    new Debugger(code, parent, watch);
 }
 main();
 

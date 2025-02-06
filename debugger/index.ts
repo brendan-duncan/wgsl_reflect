@@ -138,15 +138,13 @@ export class Debugger {
   code: string;
   editorView: EditorView;
   debugger: WgslDebug;
+  watch: HTMLElement;
 
-  constructor(code: string, parent: HTMLElement) {
+  constructor(code: string, parent: HTMLElement, watch: HTMLElement) {
     this.code = code;
+    this.watch = watch;
 
     const self = this;
-    /*const startButton = document.getElementById("start");
-    startButton!.addEventListener("click", () => {
-      self.start();
-    });*/
     const stepOverButton = document.getElementById("step-over");
     stepOverButton!.addEventListener("click", () => {
       self.stepOver();
@@ -171,8 +169,7 @@ export class Debugger {
   }
 
   updateHighlightLine() {
-    const cmd = this.debugger.currentCommand();
-    console.log(cmd);
+    const cmd = this.debugger.currentCommand;
     if (cmd !== null) {
       const line = cmd.line;
       if (line > -1) {
@@ -182,6 +179,41 @@ export class Debugger {
       }
     } else {
       this._highlightLine(0);   
+    }
+
+    while (this.watch.childElementCount > 0) {
+        this.watch.removeChild(this.watch.children[0]);
+    }
+
+    let state = this.debugger.currentState;
+    if (state === null) {
+        const context = this.debugger.context;
+        const currentFunctionName = context.currentFunctionName;
+        const div = document.createElement("div");
+        div.innerText = currentFunctionName || "<shader>";
+        this.watch.appendChild(div);
+
+        context.variables.forEach((v) => {
+            const div = document.createElement("div");
+            div.innerText = `${v.name || "<var>"} : ${v.value}`;
+            this.watch.appendChild(div);
+        });
+    } else {
+        while (state !== null) {
+            const context = state.context;
+            const currentFunctionName = context.currentFunctionName;
+            const div = document.createElement("div");
+            div.innerText = currentFunctionName || "<shader>";
+            this.watch.appendChild(div);
+
+            context.variables.forEach((v) => {
+                const div = document.createElement("div");
+                div.innerText = `${v.name || "<var>"} : ${v.value}`;
+                this.watch.appendChild(div);
+            });
+
+            state = state.parent;
+        }
     }
   }
 
@@ -220,7 +252,8 @@ fn foo(a: int, b: int) -> int {
 let bar = foo(3, 4);
 let bar2 = foo(5, -1);`;
   const parent = document.getElementById("debugger");
-  new Debugger(code, parent!);
+  const watch = document.getElementById("watch");
+  new Debugger(code, parent!, watch!);
 }
 
 main();
