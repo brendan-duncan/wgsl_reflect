@@ -1,9 +1,10 @@
 import typescript from "@rollup/plugin-typescript";
+import { nodeResolve } from "@rollup/plugin-node-resolve";
 
-function build(format, file, sourcemap) {
+function build(input, format, file, sourcemap) {
     return {
-        input: 'src/index.ts',
-        plugins: [typescript()],
+        input,
+        plugins: [typescript(), nodeResolve()],
         output: [
             {
                 format,
@@ -15,8 +16,10 @@ function build(format, file, sourcemap) {
 }
 
 let builds = [
-    build('esm', 'wgsl_reflect.module.js', true),
-    build('cjs', 'wgsl_reflect.node.js', true),
+    build('src/index.ts', 'esm', 'wgsl_reflect.module.js', true),
+    build('src/index.ts', 'cjs', 'wgsl_reflect.node.js', true),
+
+    build('debugger/index.ts', 'esm', 'debugger/debugger.module.js', true),
 ];
 
 export default builds;

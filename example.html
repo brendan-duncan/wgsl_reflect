@@ -93,9 +93,9 @@ fn main(input: VertexInput) -> VertexOutput {
           return;
         }
         const t2 = performance.now();
-        
+
         info += `<b>TIME: ${t2 - t1}ms</b><br>`;
-        
+
         info += "<b>Entry Points</b>";
         info += "<ul>";
         for (let s in reflect.entry) {

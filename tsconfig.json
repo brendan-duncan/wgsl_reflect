@@ -5,7 +5,6 @@
     "noEmitHelpers": false,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    
     "pretty": true,
     "allowUnreachableCode": true,
     "allowUnusedLabels": true,
@@ -16,10 +15,12 @@
     "allowSyntheticDefaultImports": true,
     "outDir": "js",
     "declaration": true,
-    "declarationDir": "types"
+    "declarationDir": "types",
+    "moduleResolution": "node",
   },
   "files": [
-    "src/index.ts"
+    "src/index.ts",
+    "debugger/index.ts"
   ],
   "exclude": ["node_modules"],
   "compileOnSave": true,
