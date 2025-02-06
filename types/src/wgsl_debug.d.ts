@@ -2,7 +2,7 @@ import * as AST from "./wgsl_ast.js";
 import { WgslExec } from "./wgsl_exec.js";
 import { ExecContext, Function } from "./exec/exec_context.js";
 declare class Command {
-    constructor();
+    get line(): number;
 }
 declare class ExecState {
     parent: ExecState | null;

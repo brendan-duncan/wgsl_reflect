@@ -6938,20 +6938,22 @@ class WgslExec extends ExecInterface {
 }
 
 class Command {
-    constructor() {
-    }
+    get line() { return -1; }
 }
 class StatementCommand extends Command {
     constructor(node) {
         super();
         this.node = node;
     }
+    get line() { return this.node.line; }
 }
 class CallExprCommand extends Command {
-    constructor(node) {
+    constructor(node, statement) {
         super();
         this.node = node;
+        this.statement = statement;
     }
+    get line() { return this.statement.line; }
 }
 class GotoCommand extends Command {
     constructor(condition, position) {
@@ -6965,6 +6967,9 @@ class BlockCommand extends Command {
         super();
         this.statements = [];
         this.statements = statements;
+    }
+    get line() {
+        return this.statements.length > 0 ? this.statements[0].line : -1;
     }
 }
 class ExecState {
@@ -7202,7 +7207,7 @@ class WgslDebug {
                 const functionCalls = [];
                 this._collectFunctionCalls(statement.value, functionCalls);
                 for (const call of functionCalls) {
-                    state.commands.push(new CallExprCommand(call));
+                    state.commands.push(new CallExprCommand(call, statement));
                 }
                 state.commands.push(new StatementCommand(statement));
             }
@@ -7212,7 +7217,7 @@ class WgslDebug {
                     this._collectFunctionCalls(arg, functionCalls);
                 }
                 for (const call of functionCalls) {
-                    state.commands.push(new CallExprCommand(call));
+                    state.commands.push(new CallExprCommand(call, statement));
                 }
                 state.commands.push(new StatementCommand(statement));
             }
@@ -7220,7 +7225,7 @@ class WgslDebug {
                 const functionCalls = [];
                 this._collectFunctionCalls(statement.value, functionCalls);
                 for (const call of functionCalls) {
-                    state.commands.push(new CallExprCommand(call));
+                    state.commands.push(new CallExprCommand(call, statement));
                 }
                 state.commands.push(new StatementCommand(statement));
             }
@@ -7233,7 +7238,7 @@ class WgslDebug {
                 const functionCalls = [];
                 this._collectFunctionCalls(statement.condition, functionCalls);
                 for (const call of functionCalls) {
-                    state.commands.push(new CallExprCommand(call));
+                    state.commands.push(new CallExprCommand(call, statement));
                 }
                 const conditionCmd = new GotoCommand(statement.condition, 0);
                 state.commands.push(conditionCmd);
@@ -7245,7 +7250,7 @@ class WgslDebug {
                 const functionCalls = [];
                 this._collectFunctionCalls(statement.condition, functionCalls);
                 for (const call of functionCalls) {
-                    state.commands.push(new CallExprCommand(call));
+                    state.commands.push(new CallExprCommand(call, statement));
                 }
                 let conditionCmd = new GotoCommand(statement.condition, 0);
                 state.commands.push(conditionCmd);
@@ -7257,7 +7262,7 @@ class WgslDebug {
                     const functionCalls = [];
                     this._collectFunctionCalls(elseIf.condition, functionCalls);
                     for (const call of functionCalls) {
-                        state.commands.push(new CallExprCommand(call));
+                        state.commands.push(new CallExprCommand(call, statement));
                     }
                     conditionCmd = new GotoCommand(elseIf.condition, 0);
                     state.commands.push(conditionCmd);
@@ -7309,6 +7314,7 @@ class WgslDebug {
         else if (node instanceof ArrayIndex) {
             this._collectFunctionCalls(node.index, functionCalls);
         }
+        else if (LiteralExpr) ;
         else {
             console.error(`TODO: expression type ${node.constructor.name}`);
         }

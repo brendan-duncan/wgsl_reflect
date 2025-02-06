@@ -28,17 +28,19 @@ export async function run() {
     await test("call function", function (test) {
       const shader = `
       fn foo(a: int, b: int) -> int {
-        if (b != 0) {
+        if (b > 0) {
             return a / b;
         } else {
             return a * b;
         }
       }
-      let bar = foo(3, 4);`;
+      let bar = foo(3, 4);
+      let bar2 = foo(5, -2);`;
       const dbg = new WgslDebug(shader);
       while (dbg.stepNext());
       // Ensure calling a function works as expected.
       test.equals(dbg.getVariableValue("bar"), 0.75);
+      test.equals(dbg.getVariableValue("bar2"), -10);
     });
 
     await test("data", async function (test) {
@@ -80,10 +82,10 @@ export async function run() {
 
       const dbg = new WgslDebug(shader);
       dbg.debugWorkgroup("main", [1, 0, 0], 4, bg);
-      dbg.stepNext(); // let
-      dbg.stepNext(); // call
-      dbg.stepNext(); // return
-      dbg.stepNext(); // assign
+      dbg.stepNext(); // LET: i = id.x;
+      dbg.stepNext(); // CALL: scale(buffer[i], 2.0)
+      dbg.stepNext(); // RETURN: x * y
+      dbg.stepNext(); // ASSIGN: buffer[i] = <value> 
 
       // Test that we only executed the [1, 0, 0] global_invocation_id.
       test.equals(buffer, [1, 4, 6, 0]);

@@ -1,6 +1,6 @@
 import { EditorView } from "codemirror";
-import { keymap, highlightSpecialChars, drawSelection, dropCursor,
-    crosshairCursor, lineNumbers, highlightActiveLineGutter } from "@codemirror/view";
+import { keymap, highlightSpecialChars, dropCursor,
+  crosshairCursor, lineNumbers, highlightActiveLineGutter, Decoration } from "@codemirror/view";
 import { EditorState, StateField, StateEffect, RangeSet } from "@codemirror/state";
 import { defaultHighlightStyle, syntaxHighlighting, indentOnInput, bracketMatching,
 foldGutter, foldKeymap } from "@codemirror/language";
@@ -11,12 +11,12 @@ import { lintKeymap } from "@codemirror/lint";
 import { wgsl } from "./thirdparty/codemirror_lang_wgsl.js";
 import { cobalt } from 'thememirror';
 import { gutter, GutterMarker } from '@codemirror/view';
+import { WgslDebug } from "../src/wgsl_debug.js";
 
 class BreakpointState {
   pos = 0;
   on = false;
 }
-
 const breakpointEffect = StateEffect.define<BreakpointState>({
   map: (val, mapping) => ({ pos: mapping.mapPos(val.pos), on: val.on })
 });
@@ -39,111 +39,188 @@ const breakpointState = StateField.define<RangeSet<GutterMarker>>({
 });
 
 function toggleBreakpoint(view, pos) {
-    let breakpoints = view.state.field(breakpointState);
-    let hasBreakpoint = false;
-    breakpoints.between(pos, pos, () => {hasBreakpoint = true});
-    view.dispatch({
-        effects: breakpointEffect.of({pos, on: !hasBreakpoint})
-    });
+  let breakpoints = view.state.field(breakpointState);
+  let hasBreakpoint = false;
+  breakpoints.between(pos, pos, () => {hasBreakpoint = true});
+  view.dispatch({
+    effects: breakpointEffect.of({pos, on: !hasBreakpoint})
+  });
 }
 
 const breakpointMarker = new class extends GutterMarker {
-    toDOM() { return document.createTextNode("🔴") }
+  toDOM() { return document.createTextNode("🔴") }
 }
 
 const breakpointGutter = [
-    breakpointState,
-    gutter({
-        class: "cm-breakpoint-gutter",
-        markers: v => v.state.field(breakpointState),
-        initialSpacer: () => breakpointMarker,
-        domEventHandlers: {
-            mousedown(view, line) {
-                toggleBreakpoint(view, line.from)
-                return true
-            }
-        }
-    }),
+  breakpointState,
+  gutter({
+    class: "cm-breakpoint-gutter",
+    markers: v => v.state.field(breakpointState),
+    initialSpacer: () => breakpointMarker,
+    domEventHandlers: {
+      mousedown(view, line) {
+        toggleBreakpoint(view, line.from)
+        return true
+      }
+    }
+  }),
 
-    EditorView.baseTheme({
-        ".cm-breakpoint-gutter .cm-gutterElement": {
-            color: "red",
-            paddingLeft: "5px",
-            cursor: "default"
-        }
-    })
+  EditorView.baseTheme({
+    ".cm-breakpoint-gutter .cm-gutterElement": {
+      color: "red",
+      paddingLeft: "5px",
+      cursor: "default"
+    }
+  })
 ];
 
+class HighlightLineState {
+  lineNo = 0;
+}
+const addLineHighlight = StateEffect.define<HighlightLineState>({
+  map: (val, mapping) => ({ lineNo: mapping.mapPos(val.lineNo) })
+});
+
+const lineHighlightField = StateField.define({
+  create() {
+    return Decoration.none;
+  },
+  update(lines, tr) {
+    lines = lines.map(tr.changes);
+    for (let e of tr.effects) {
+      if (e.is(addLineHighlight)) {
+        lines = Decoration.none;
+        if (e.value.lineNo > 0) {
+          lines = lines.update({ add: [lineHighlightMark.range(e.value.lineNo)] });
+        }
+      }
+    }
+    return lines;
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
+
+const lineHighlightMark = Decoration.line({
+  attributes: {style: 'background-color:rgb(64, 73, 14)'},
+});
+
 const shaderEditorSetup = (() => [
-    lineNumbers(),
-    highlightActiveLineGutter(),
-    highlightSpecialChars(),
-    history(),
-    foldGutter(),
-    //drawSelection(),
-    dropCursor(),
-    EditorState.allowMultipleSelections.of(true),
-    indentOnInput(),
-    syntaxHighlighting(defaultHighlightStyle, {fallback: true}),
-    bracketMatching(),
-    closeBrackets(),
-    autocompletion(),
-    crosshairCursor(),
-    cobalt,
-    wgsl(),
-    keymap.of([
-      indentWithTab,
-      ...closeBracketsKeymap,
-      ...defaultKeymap,
-      ...searchKeymap,
-      ...historyKeymap,
-      ...foldKeymap,
-      ...completionKeymap,
-      ...lintKeymap
-    ])
+  breakpointGutter,
+  lineHighlightField,
+  lineNumbers(),
+  highlightActiveLineGutter(),
+  highlightSpecialChars(),
+  history(),
+  foldGutter(),
+  dropCursor(),
+  EditorState.allowMultipleSelections.of(true),
+  indentOnInput(),
+  syntaxHighlighting(defaultHighlightStyle, {fallback: true}),
+  bracketMatching(),
+  closeBrackets(),
+  autocompletion(),
+  crosshairCursor(),
+  cobalt,
+  wgsl(),
+  keymap.of([
+    indentWithTab,
+    ...closeBracketsKeymap,
+    ...defaultKeymap,
+    ...searchKeymap,
+    ...historyKeymap,
+    ...foldKeymap,
+    ...completionKeymap,
+    ...lintKeymap
+  ])
 ])();
 
 export class Debugger {
-    constructor(code: string, parent: HTMLElement) {
-        const text = code;
+  code: string;
+  editorView: EditorView;
+  debugger: WgslDebug;
 
-        const startButton = document.getElementById("start");
-        startButton!.addEventListener("click", () => {
-            console.log("Start");
-        });
-        const stepOverButton = document.getElementById("step-over");
-        stepOverButton!.addEventListener("click", () => {
-            console.log("Step over");
-        });
-        const stepIntoButton = document.getElementById("step-into");
-        stepIntoButton!.addEventListener("click", () => {
-            console.log("Step in");
-        });
+  constructor(code: string, parent: HTMLElement) {
+    this.code = code;
 
-        const editor = new EditorView({
-            doc: text,
-            extensions: [
-                breakpointGutter,
-                shaderEditorSetup,
-            ],
-            parent
-        });
+    const self = this;
+    /*const startButton = document.getElementById("start");
+    startButton!.addEventListener("click", () => {
+      self.start();
+    });*/
+    const stepOverButton = document.getElementById("step-over");
+    stepOverButton!.addEventListener("click", () => {
+      self.stepOver();
+    });
+    const stepIntoButton = document.getElementById("step-into");
+    stepIntoButton!.addEventListener("click", () => {
+      self.stepInto();
+    });
+
+    this.editorView = new EditorView({
+      doc: code,
+      extensions: [
+        shaderEditorSetup,
+      ],
+      parent
+    });
+
+    this.debugger = new WgslDebug(code);
+    this.debugger.startDebug();
+
+    this.updateHighlightLine();
+  }
+
+  updateHighlightLine() {
+    const cmd = this.debugger.currentCommand();
+    console.log(cmd);
+    if (cmd !== null) {
+      const line = cmd.line;
+      if (line > -1) {
+        this._highlightLine(cmd.line);
+      } else {
+        this._highlightLine(0);   
+      }
+    } else {
+      this._highlightLine(0);   
     }
-}
+  }
 
+  stepOver() {
+    this.debugger.stepNext(false);
+    this.updateHighlightLine();
+  }
+
+  stepInto() {
+    this.debugger.stepNext(true);
+    this.updateHighlightLine();
+  }
+
+  _highlightLine(lineNo: number) {
+    if (lineNo < 0) {
+      return;
+    }
+    if (lineNo > 0) {
+        const docPosition = this.editorView.state.doc.line(lineNo).from;
+        this.editorView.dispatch({ effects: addLineHighlight.of({ lineNo: docPosition }) });
+    } else {
+        this.editorView.dispatch({ effects: addLineHighlight.of({ lineNo: 0 }) });
+    }
+  }
+}
 
 function main() {
-    const code = `
+  const code = `
 fn foo(a: int, b: int) -> int {
-    if (b != 0) {
-        return a / b;
-    } else {
-        return a * b;
-    }
+  if (b > 0) {
+    return a / b;
+  } else {
+    return a * b;
+  }
 }
-let bar = foo(3, 4);`;
-    const parent = document.getElementById("debugger");
-    new Debugger(code, parent!);
+let bar = foo(3, 4);
+let bar2 = foo(5, -1);`;
+  const parent = document.getElementById("debugger");
+  new Debugger(code, parent!);
 }
 
 main();

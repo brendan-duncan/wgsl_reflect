@@ -4,8 +4,7 @@ import { ExecContext, Function } from "./exec/exec_context.js";
 import { Data } from "./exec/data.js";
 
 class Command {
-    constructor() {
-    }
+    get line() { return -1; }
 }
 
 class StatementCommand extends Command {
@@ -15,15 +14,21 @@ class StatementCommand extends Command {
         super();
         this.node = node;
     }
+
+    get line() { return this.node.line; }
 }
 
 class CallExprCommand extends Command {
     node: AST.CallExpr;
+    statement: AST.Node;
 
-    constructor(node: AST.CallExpr) {
+    constructor(node: AST.CallExpr, statement: AST.Node) {
         super();
         this.node = node;
+        this.statement = statement;
     }
+
+    get line() { return this.statement.line; }
 }
 
 class GotoCommand extends Command {
@@ -41,8 +46,12 @@ class BlockCommand extends Command {
     statements: Array<AST.Node> = [];
 
     constructor(statements: Array<AST.Node>) {
-        super();
-        this.statements = statements;
+      super();
+      this.statements = statements;
+    }
+
+    get line() {
+      return this.statements.length > 0 ? this.statements[0].line : -1;
     }
 }
 
@@ -311,7 +320,7 @@ export class WgslDebug {
                 const functionCalls = [];
                 this._collectFunctionCalls(statement.value, functionCalls);
                 for (const call of functionCalls) {
-                    state.commands.push(new CallExprCommand(call));
+                    state.commands.push(new CallExprCommand(call, statement));
                 }
                 state.commands.push(new StatementCommand(statement));
             } else if (statement instanceof AST.Call) {
@@ -320,14 +329,14 @@ export class WgslDebug {
                     this._collectFunctionCalls(arg, functionCalls);
                 }
                 for (const call of functionCalls) {
-                    state.commands.push(new CallExprCommand(call));
+                    state.commands.push(new CallExprCommand(call, statement));
                 }
                 state.commands.push(new StatementCommand(statement));
             } else if (statement instanceof AST.Return) {
                 const functionCalls = [];
                 this._collectFunctionCalls(statement.value, functionCalls);
                 for (const call of functionCalls) {
-                    state.commands.push(new CallExprCommand(call));
+                    state.commands.push(new CallExprCommand(call, statement));
                 }
                 state.commands.push(new StatementCommand(statement));
             } else if (statement instanceof AST.Function) {
@@ -338,7 +347,7 @@ export class WgslDebug {
                 const functionCalls = [];
                 this._collectFunctionCalls(statement.condition, functionCalls);
                 for (const call of functionCalls) {
-                    state.commands.push(new CallExprCommand(call));
+                    state.commands.push(new CallExprCommand(call, statement));
                 }
                 const conditionCmd = new GotoCommand(statement.condition, 0);
                 state.commands.push(conditionCmd);
@@ -349,7 +358,7 @@ export class WgslDebug {
                 const functionCalls = [];
                 this._collectFunctionCalls(statement.condition, functionCalls);
                 for (const call of functionCalls) {
-                    state.commands.push(new CallExprCommand(call));
+                    state.commands.push(new CallExprCommand(call, statement));
                 }
 
                 let conditionCmd = new GotoCommand(statement.condition, 0);
@@ -364,7 +373,7 @@ export class WgslDebug {
                     const functionCalls = [];
                     this._collectFunctionCalls(elseIf.condition, functionCalls);
                     for (const call of functionCalls) {
-                        state.commands.push(new CallExprCommand(call));
+                        state.commands.push(new CallExprCommand(call, statement));
                     }
 
                     conditionCmd = new GotoCommand(elseIf.condition, 0);
@@ -413,6 +422,7 @@ export class WgslDebug {
             this._collectFunctionCalls(node.value, functionCalls);
         } else if (node instanceof AST.ArrayIndex) {
             this._collectFunctionCalls(node.index, functionCalls);
+        } else if (AST.LiteralExpr) {
         } else {
             console.error(`TODO: expression type ${node.constructor.name}`);
         }
