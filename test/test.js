@@ -511,10 +511,14 @@ export async function test(name, func, skipCatchError) {
             group.testsFailed++;
             const div = document.createElement("div");
             div.className = "test_fail";
-            if (error.fileName != undefined) {
-                div.innerText = `${name} FAILED: ${error.fileName}:${error.lineNumber}: ${error}. ${error.stack}`;
+            let stack = "";
+            if (error.stack !== undefined) {
+                stack = ` ${error.stack}`;
+            }
+            if (error.fileName !== undefined) {
+                div.innerText = `${name} FAILED: ${error.fileName}:${error.lineNumber}: ${error} ${stack}`;
             } else {
-                div.innerText = `${name} FAILED: ${error}. ${error.stack}`;
+                div.innerText = `${name} FAILED: ${error} ${stack}`;
             }
 
             if (group.group !== undefined) {

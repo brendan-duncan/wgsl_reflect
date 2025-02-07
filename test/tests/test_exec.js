@@ -12,7 +12,7 @@ export async function run() {
     });
 
     await test("multiple variables", function (test) {
-        const shader = `let foo = 1 + 2;
+        const shader = `let foo = 1.0 + 2;
         let bar = foo * 4;`;
 
         const wgsl = new WgslExec(shader);
@@ -23,7 +23,7 @@ export async function run() {
     });
 
     await test("call function", function (test) {
-        const shader = `fn foo(a: int, b: int) -> int {
+        const shader = `fn foo(a: i32, b: i32) -> i32 {
         if (b != 0) {
             return a / b;
         } else {
@@ -34,7 +34,7 @@ export async function run() {
         const wgsl = new WgslExec(shader);
         wgsl.execute();
         // Ensure calling a function works as expected.
-        test.equals(wgsl.getVariableValue("bar"), 0.75);
+        test.equals(wgsl.getVariableValue("bar"), 0);
     });
 
     await test("data", async function (test) {

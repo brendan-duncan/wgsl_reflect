@@ -4,7 +4,7 @@ import { ExecContext, Function } from "./exec/exec_context.js";
 declare class Command {
     get line(): number;
 }
-declare class ExecState {
+export declare class ExecState {
     parent: ExecState | null;
     context: ExecContext;
     commands: Array<Command>;
@@ -28,8 +28,11 @@ export declare class WgslDebug {
     constructor(code: string, context?: ExecContext);
     getVariableValue(name: string): any;
     startDebug(): void;
+    get context(): ExecContext;
+    get currentState(): ExecState | null;
     get currentCommand(): Command | null;
     debugWorkgroup(kernel: string, dispatchId: number[], dispatchCount: number | number[], bindGroups: Object, config?: Object): boolean;
+    _shouldExecuteNectCommand(): boolean;
     stepNext(stepInto?: boolean): boolean;
     _dispatchWorkgroup(f: Function, workgroup_id: number[], context: ExecContext): boolean;
     _dispatchExec(f: Function, context: ExecContext): void;

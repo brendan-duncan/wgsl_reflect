@@ -113,7 +113,7 @@ export class WgslParser {
     if (this._check(types)) {
       return this._advance();
     }
-    throw this._error(this._peek(), message);
+    throw this._error(this._peek(), `${message}. Line:${this._currentLine}`);
   }
 
   _check(types: TokenType | Array<TokenType>): boolean {
@@ -564,6 +564,9 @@ export class WgslParser {
       }
       this._consume(TokenTypes.tokens.equal, "Expected '=' for const.");
       const value = this._short_circuit_or_expression();
+      if (type === null && value instanceof AST.LiteralExpr) {
+        type = value.type;
+      }
       return this._updateNode(new AST.Const(name, type, null, null, value));
     }
 
@@ -1194,6 +1197,18 @@ export class WgslParser {
     return null;
   }
 
+  _validateTypeRange(value: number, type: AST.Type) {
+    if (type.name === "i32") {
+      if (value < -2147483648 || value > 2147483647) {
+        throw this._error(this._previous(), `Value out of range for i32: ${value}. Line: ${this._currentLine}.`);
+      }
+    } else if (type.name === "u32") {
+      if (value < 0 || value > 4294967295) {
+        throw this._error(this._previous(), `Value out of range for u32: ${value}. Line: ${this._currentLine}.`);
+      }
+    }
+  }
+
   _primary_expression(): AST.Expression {
     // ident argument_expression_list?
     if (this._match(TokenTypes.tokens.ident)) {
@@ -1214,8 +1229,29 @@ export class WgslParser {
     }
 
     // const_literal
-    if (this._match(TokenTypes.const_literal)) {
-      return this._updateNode(new AST.LiteralExpr(parseFloat(this._previous().toString())));
+    if (this._match(TokenTypes.tokens.int_literal)) {
+      const s = this._previous().toString();
+      let type = s.endsWith("i") || s.endsWith("i") ? AST.Type.i32 : 
+          s.endsWith("u") || s.endsWith("U") ? AST.Type.u32 : AST.Type.x32;
+      const i = parseInt(s);
+      this._validateTypeRange(i, type);
+      return this._updateNode(new AST.LiteralExpr(i, type));
+    } else if (this._match(TokenTypes.tokens.uint_literal)) {
+      const u = parseInt(this._previous().toString());
+      this._validateTypeRange(u, AST.Type.u32);
+      return this._updateNode(new AST.LiteralExpr(u, AST.Type.u32));
+    } else if (this._match([TokenTypes.tokens.decimal_float_literal, TokenTypes.tokens.hex_float_literal])) {
+      let fs = this._previous().toString();
+      let isF16 = fs.endsWith("h");
+      if (isF16) {
+        fs = fs.substring(0, fs.length - 1);
+      }
+      const f = parseFloat(fs);
+      this._validateTypeRange(f, isF16 ? AST.Type.f16 : AST.Type.f32);
+      return this._updateNode(new AST.LiteralExpr(f, isF16 ? AST.Type.f16 : AST.Type.f32));
+    } else if (this._match([TokenTypes.keywords.true, TokenTypes.keywords.false])) {
+      let b = this._previous().toString() === TokenTypes.keywords.true.rule;
+      return this._updateNode(new AST.LiteralExpr(b ? 1 : 0, AST.Type.bool));
     }
 
     // paren_expression
@@ -1343,7 +1379,25 @@ export class WgslParser {
     // attribute* variable_decl (equal const_expression)?
     const _var = this._variable_decl();
     if (_var && this._match(TokenTypes.tokens.equal)) {
-      _var.value = this._const_expression();
+      const expr = this._const_expression();
+      const type = [AST.Type.f32];
+      try {
+        const value = expr.evaluate(this._context, type);
+        _var.value = new AST.LiteralExpr(value, type[0]);
+      } catch (_) {
+      }
+    }
+    if (_var.type !== null && _var.value instanceof AST.LiteralExpr) {
+      if (_var.value.type.name !== "x32") {
+        if (_var.type.name !== _var.value.type.name) {
+          throw this._error(this._peek(), `Invalid cast from ${_var.value.type.name} to ${_var.type.name}. Line:${this._currentLine}`);
+        }
+      }
+      this._validateTypeRange(_var.value.value, _var.type);
+      _var.value.type = _var.type;
+    } else if (_var.type === null && _var.value instanceof AST.LiteralExpr) {
+      _var.type = _var.value.type.name === "x32" ? AST.Type.i32 : _var.value.type;
+      this._validateTypeRange(_var.value.value, _var.type);
     }
     return _var;
   }
@@ -1388,12 +1442,25 @@ export class WgslParser {
         value = valueExpr.initializer;
       } else {
         try {
-          const constValue = valueExpr.evaluate(this._context);
-          value = this._updateNode(new AST.LiteralExpr(constValue));
+          let type = [AST.Type.f32];
+          const constValue = valueExpr.evaluate(this._context, type);
+          this._validateTypeRange(constValue, type[0]);
+          value = this._updateNode(new AST.LiteralExpr(constValue, type[0]));
         } catch {
           value = valueExpr;
         }
       }
+    }
+    if (type !== null && value instanceof AST.LiteralExpr) {
+      if (value.type.name !== "x32") {
+        if (type.name !== value.type.name) {
+          throw this._error(this._peek(), `Invalid cast from ${value.type.name} to ${type.name}. Line:${this._currentLine}`);
+        }
+      }
+      value.type = type;
+      this._validateTypeRange(value.value, value.type);
+    } else if (type === null && value instanceof AST.LiteralExpr) {
+      type = value?.type ?? AST.Type.f32;
     }
     const c = this._updateNode(new AST.Const(name.toString(), type, "", "", value));
     this._context.constants.set(c.name, c);
@@ -1421,6 +1488,25 @@ export class WgslParser {
     let value: AST.Expression | null = null;
     if (this._match(TokenTypes.tokens.equal)) {
       value = this._const_expression();
+      const type = [AST.Type.f32];
+      try {
+        const v = value!.evaluate(this._context, type);
+        value = new AST.LiteralExpr(v, type[0]);
+      } catch (_) {
+      }
+    }
+    if (type !== null && value instanceof AST.LiteralExpr) {
+      if (value.type.name !== "x32") {
+        if (type.name !== value.type.name) {
+          throw this._error(this._peek(), `Invalid cast from ${value.type.name} to ${type.name}. Line:${this._currentLine}`);
+        }
+      }
+      value.type = type;
+    } else if (type === null && value instanceof AST.LiteralExpr) {
+      type = value.type.name === "x32" ? AST.Type.i32 : value.type;
+    }
+    if (value instanceof AST.LiteralExpr) {
+      this._validateTypeRange(value.value, type);
     }
     return this._updateNode(new AST.Let(name.toString(), type, "", "", value));
   }

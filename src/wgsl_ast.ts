@@ -24,7 +24,7 @@ export class Node {
     return "";
   }
 
-  evaluate(context: ParseContext): number {
+  evaluate(context: ParseContext, type?: Array<Type>): number {
     throw new Error("Cannot evaluate node");
   }
 
@@ -351,8 +351,8 @@ export class Const extends Statement {
     return "const";
   }
 
-  evaluate(context: ParseContext): number {
-    return this.value.evaluate(context);
+  evaluate(context: ParseContext, type?: Array<Type>): number {
+    return this.value.evaluate(context, type);
   }
 
   search(callback: (node: Node) => void) {
@@ -729,6 +729,7 @@ export class Type extends Statement {
     return false;
   }
 
+  static x32 = new Type("x32");
   static f32 = new Type("f32");
   static i32 = new Type("i32");
   static u32 = new Type("u32");
@@ -972,8 +973,12 @@ export class CreateExpr extends Expression {
     }
   }
 
-  evaluate(context: ParseContext): number {
-    return this.args[0].evaluate(context);
+  evaluate(context: ParseContext, type?: Array<Type>): number {
+    const t = this.type;
+    if (t.name === "f32" || t.name === "f16" || t.name === "i32" || t.name === "u32") {
+      return this.args[0].evaluate(context, type);
+    }
+    throw new Error(`Cannot evaluate node ${this.constructor.name}`);
   }
 }
 
@@ -1154,39 +1159,39 @@ export class CallExpr extends Expression {
     return CallExpr.builtinFunctionNames.has(this.name);
   }
 
-  evaluate(context: ParseContext): number {
+  evaluate(context: ParseContext, type?: Array<Type>): number {
     switch (this.name) {
       case "abs":
-        return Math.abs(this.args[0].evaluate(context));
+        return Math.abs(this.args[0].evaluate(context, type));
       case "acos":
-        return Math.acos(this.args[0].evaluate(context));
+        return Math.acos(this.args[0].evaluate(context, type));
       case "acosh":
-        return Math.acosh(this.args[0].evaluate(context));
+        return Math.acosh(this.args[0].evaluate(context, type));
       case "asin":
-        return Math.asin(this.args[0].evaluate(context));
+        return Math.asin(this.args[0].evaluate(context, type));
       case "asinh":
-        return Math.asinh(this.args[0].evaluate(context));
+        return Math.asinh(this.args[0].evaluate(context, type));
       case "atan":
-        return Math.atan(this.args[0].evaluate(context));
+        return Math.atan(this.args[0].evaluate(context, type));
       case "atan2":
         return Math.atan2(
-          this.args[0].evaluate(context),
-          this.args[1].evaluate(context)
+          this.args[0].evaluate(context, type),
+          this.args[1].evaluate(context, type)
         );
       case "atanh":
-        return Math.atanh(this.args[0].evaluate(context));
+        return Math.atanh(this.args[0].evaluate(context, type));
       case "ceil":
-        return Math.ceil(this.args[0].evaluate(context));
+        return Math.ceil(this.args[0].evaluate(context, type));
       case "clamp":
         return Math.min(
           Math.max(
-            this.args[0].evaluate(context),
-            this.args[1].evaluate(context)
+            this.args[0].evaluate(context, type),
+            this.args[1].evaluate(context, type)
           ),
-          this.args[2].evaluate(context)
+          this.args[2].evaluate(context, type)
         );
       case "cos":
-        return Math.cos(this.args[0].evaluate(context));
+        return Math.cos(this.args[0].evaluate(context, type));
       //case "cross":
       //TODO: (x[i] * y[j] - x[j] * y[i])
       case "degrees":
@@ -1196,98 +1201,101 @@ export class CallExpr extends Expression {
       case "distance":
         return Math.sqrt(
           Math.pow(
-            this.args[0].evaluate(context) - this.args[1].evaluate(context),
+            this.args[0].evaluate(context, type) - this.args[1].evaluate(context, type),
             2
           )
         );
       case "dot":
       //TODO: (x[i] * y[i])
       case "exp":
-        return Math.exp(this.args[0].evaluate(context));
+        return Math.exp(this.args[0].evaluate(context, type));
       case "exp2":
-        return Math.pow(2, this.args[0].evaluate(context));
+        return Math.pow(2, this.args[0].evaluate(context, type));
       //case "extractBits":
       //TODO: implement
       //case "firstLeadingBit":
       //TODO: implement
       case "floor":
-        return Math.floor(this.args[0].evaluate(context));
+        return Math.floor(this.args[0].evaluate(context, type));
       case "fma":
         return (
-          this.args[0].evaluate(context) * this.args[1].evaluate(context) +
-          this.args[2].evaluate(context)
+          this.args[0].evaluate(context, type) * this.args[1].evaluate(context, type) +
+          this.args[2].evaluate(context, type)
         );
       case "fract":
         return (
-          this.args[0].evaluate(context) -
-          Math.floor(this.args[0].evaluate(context))
+          this.args[0].evaluate(context, type) -
+          Math.floor(this.args[0].evaluate(context, type))
         );
       //case "frexp":
       //TODO: implement
       case "inverseSqrt":
-        return 1 / Math.sqrt(this.args[0].evaluate(context));
+        return 1 / Math.sqrt(this.args[0].evaluate(context, type));
       //case "length":
       //TODO: implement
       case "log":
-        return Math.log(this.args[0].evaluate(context));
+        return Math.log(this.args[0].evaluate(context, type));
       case "log2":
-        return Math.log2(this.args[0].evaluate(context));
+        return Math.log2(this.args[0].evaluate(context, type));
       case "max":
         return Math.max(
-          this.args[0].evaluate(context),
-          this.args[1].evaluate(context)
+          this.args[0].evaluate(context, type),
+          this.args[1].evaluate(context, type)
         );
       case "min":
         return Math.min(
-          this.args[0].evaluate(context),
-          this.args[1].evaluate(context)
+          this.args[0].evaluate(context, type),
+          this.args[1].evaluate(context, type)
         );
       case "mix":
         return (
-          this.args[0].evaluate(context) *
-            (1 - this.args[2].evaluate(context)) +
-          this.args[1].evaluate(context) * this.args[2].evaluate(context)
+          this.args[0].evaluate(context, type) *
+            (1 - this.args[2].evaluate(context, type)) +
+          this.args[1].evaluate(context, type) * this.args[2].evaluate(context, type)
         );
       case "modf":
         return (
-          this.args[0].evaluate(context) -
-          Math.floor(this.args[0].evaluate(context))
+          this.args[0].evaluate(context, type) -
+          Math.floor(this.args[0].evaluate(context, type))
         );
       case "pow":
         return Math.pow(
-          this.args[0].evaluate(context),
-          this.args[1].evaluate(context)
+          this.args[0].evaluate(context, type),
+          this.args[1].evaluate(context, type)
         );
       case "radians":
-        return (this.args[0].evaluate(context) * Math.PI) / 180;
+        return (this.args[0].evaluate(context, type) * Math.PI) / 180;
       case "round":
-        return Math.round(this.args[0].evaluate(context));
+        return Math.round(this.args[0].evaluate(context, type));
       case "sign":
-        return Math.sign(this.args[0].evaluate(context));
+        return Math.sign(this.args[0].evaluate(context, type));
       case "sin":
-        return Math.sin(this.args[0].evaluate(context));
+        return Math.sin(this.args[0].evaluate(context, type));
       case "sinh":
-        return Math.sinh(this.args[0].evaluate(context));
+        return Math.sinh(this.args[0].evaluate(context, type));
       case "saturate":
-        return Math.min(Math.max(this.args[0].evaluate(context), 0), 1);
+        return Math.min(Math.max(this.args[0].evaluate(context, type), 0), 1);
       case "smoothstep":
         return (
-          this.args[0].evaluate(context) *
-          this.args[0].evaluate(context) *
-          (3 - 2 * this.args[0].evaluate(context))
+          this.args[0].evaluate(context, type) *
+          this.args[0].evaluate(context, type) *
+          (3 - 2 * this.args[0].evaluate(context, type))
         );
       case "sqrt":
-        return Math.sqrt(this.args[0].evaluate(context));
+        return Math.sqrt(this.args[0].evaluate(context, type));
       case "step":
+        if (type !== undefined) {
+          type[0] = Type.bool;
+        }
         return this.args[0].evaluate(context) < this.args[1].evaluate(context)
           ? 0
           : 1;
       case "tan":
-        return Math.tan(this.args[0].evaluate(context));
+        return Math.tan(this.args[0].evaluate(context, type));
       case "tanh":
-        return Math.tanh(this.args[0].evaluate(context));
+        return Math.tanh(this.args[0].evaluate(context, type));
       case "trunc":
-        return Math.trunc(this.args[0].evaluate(context));
+        return Math.trunc(this.args[0].evaluate(context, type));
       default:
         throw new Error("Non const function: " + this.name);
     }
@@ -1325,12 +1333,12 @@ export class VariableExpr extends Expression {
     }
   }
 
-  evaluate(context: ParseContext): number {
+  evaluate(context: ParseContext, type?: Array<Type>): number {
     const constant = context.constants.get(this.name);
     if (!constant) {
       throw new Error("Cannot evaluate node");
     }
-    return constant.evaluate(context);
+    return constant.evaluate(context, type);
   }
 }
 
@@ -1353,23 +1361,23 @@ export class ConstExpr extends Expression {
     return "constExpr";
   }
 
-  evaluate(context: ParseContext): number {
+  evaluate(context: ParseContext, type?: Array<Type>): number {
     if (this.initializer instanceof CreateExpr) {
       // This is a struct constant
       const property = this.postfix?.evaluateString(context);
-      const type = this.initializer.type?.name;
-      const struct = context.structs.get(type);
+      const t = this.initializer.type?.name;
+      const struct = context.structs.get(t);
       const memberIndex = struct?.getMemberIndex(property);
       if (memberIndex !== undefined && memberIndex != -1) {
-        const value = this.initializer.args[memberIndex].evaluate(context);
+        const value = this.initializer.args[memberIndex].evaluate(context, type);
         return value;
       } else {
-        return this.initializer.evaluate(context);
+        return this.initializer.evaluate(context, type);
       }
       console.log(memberIndex);
     }
 
-    return this.initializer.evaluate(context);
+    return this.initializer.evaluate(context, type);
   }
 
   search(callback: (node: Node) => void) {
@@ -1384,17 +1392,22 @@ export class ConstExpr extends Expression {
  */
 export class LiteralExpr extends Expression {
   value: number;
+  type: Type;
 
-  constructor(value: number) {
+  constructor(value: number, type: Type) {
     super();
     this.value = value;
+    this.type = type;
   }
 
   get astNodeType() {
     return "literalExpr";
   }
 
-  evaluate(): number {
+  evaluate(context: ParseContext, type?: Array<Type>): number {
+    if (type !== undefined) {
+      type[0] = this.type;
+    }
     return this.value;
   }
 }
@@ -1442,7 +1455,10 @@ export class TypecastExpr extends Expression {
     return "typecastExpr";
   }
 
-  evaluate(context: ParseContext): number {
+  evaluate(context: ParseContext, type?: Array<Type>): number {
+    if (type !== undefined) {
+      type[0] = this.type;
+    }
     return this.args[0].evaluate(context);
   }
 
@@ -1468,8 +1484,8 @@ export class GroupingExpr extends Expression {
     return "groupExpr";
   }
 
-  evaluate(context: ParseContext): number {
-    return this.contents[0].evaluate(context);
+  evaluate(context: ParseContext, type?: Array<Type>): number {
+    return this.contents[0].evaluate(context, type);
   }
 
   search(callback: (node: Node) => void): void {
@@ -1525,16 +1541,19 @@ export class UnaryOperator extends Operator {
     return "unaryOp";
   }
 
-  evaluate(context: ParseContext): number {
+  evaluate(context: ParseContext, type?: Array<Type>): number {
     switch (this.operator) {
       case "+":
-        return this.right.evaluate(context);
+        return this.right.evaluate(context, type);
       case "-":
-        return -this.right.evaluate(context);
+        return -this.right.evaluate(context, type);
       case "!":
+        if (type !== undefined) {
+          type[0] = Type.bool;
+        }
         return this.right.evaluate(context) ? 0 : 1;
       case "~":
-        return ~this.right.evaluate(context);
+        return ~this.right.evaluate(context, type);
       default:
         throw new Error("Unknown unary operator: " + this.operator);
     }
@@ -1567,47 +1586,126 @@ export class BinaryOperator extends Operator {
     return "binaryOp";
   }
 
-  evaluate(context: ParseContext): number {
+  _getPromotedType(t1: Type, t2: Type) {
+    if (t1.name === t2.name) {
+      return t1;
+    }
+    if (t1.name === "f32" || t2.name === "f32") {
+      return Type.f32;
+    }
+    if (t1.name === "u32" || t2.name === "u32") {
+      return Type.u32;
+    }
+    return Type.i32;
+  }
+
+  evaluate(context: ParseContext, type?: Array<Type>): number {
+    const t1 = [Type.i32];
+    const t2 = [Type.i32];
     switch (this.operator) {
-      case "+":
-        return this.left.evaluate(context) + this.right.evaluate(context);
-      case "-":
-        return this.left.evaluate(context) - this.right.evaluate(context);
-      case "*":
-        return this.left.evaluate(context) * this.right.evaluate(context);
-      case "/":
-        return this.left.evaluate(context) / this.right.evaluate(context);
-      case "%":
-        return this.left.evaluate(context) % this.right.evaluate(context);
+      case "+": {
+        const value = this.left.evaluate(context, t1) + this.right.evaluate(context, t2);
+        if (type !== undefined) {
+          type[0] = this._getPromotedType(t1[0], t2[0]);
+          if (type[0] === Type.i32 || type[0] === Type.u32) {
+            return Math.floor(value);
+          }
+        }
+        return value;
+      }
+      case "-": {
+        const value = this.left.evaluate(context, t1) - this.right.evaluate(context, t2);
+        if (type !== undefined) {
+          type[0] = this._getPromotedType(t1[0], t2[0]);
+          if (type[0] === Type.i32 || type[0] === Type.u32) {
+            return Math.floor(value);
+          }
+        }
+        return value;
+      }
+      case "*": {
+        const value = this.left.evaluate(context, type) * this.right.evaluate(context, type);
+        if (type !== undefined) {
+          type[0] = this._getPromotedType(t1[0], t2[0]);
+          if (type[0] === Type.i32 || type[0] === Type.u32) {
+            return Math.floor(value);
+          }
+        }
+        return value;
+      }
+      case "/": {
+        const value = this.left.evaluate(context, type) / this.right.evaluate(context, type);
+        if (type !== undefined) {
+          type[0] = this._getPromotedType(t1[0], t2[0]);
+          if (type[0] === Type.i32 || type[0] === Type.u32) {
+            return Math.floor(value);
+          }
+        }
+        return value;
+      }
+      case "%": {
+        const value = this.left.evaluate(context, type) % this.right.evaluate(context, type);
+        if (type !== undefined) {
+          type[0] = this._getPromotedType(t1[0], t2[0]);
+          if (type[0] === Type.i32 || type[0] === Type.u32) {
+            return Math.floor(value);
+          }
+        }
+        return value;
+      }
       case "<":
+        if (type !== undefined) {
+          type[0] = Type.bool;
+        }
         return this.left.evaluate(context) < this.right.evaluate(context)
           ? 1
           : 0;
       case ">":
+        if (type !== undefined) {
+          type[0] = Type.bool;
+        }
         return this.left.evaluate(context) > this.right.evaluate(context)
           ? 1
           : 0;
       case "==":
+        if (type !== undefined) {
+          type[0] = Type.bool;
+        }
         return this.left.evaluate(context) == this.right.evaluate(context)
             ? 1
             : 0;
       case "!=":
+        if (type !== undefined) {
+          type[0] = Type.bool;
+        }
         return this.left.evaluate(context) != this.right.evaluate(context)
             ? 1
             : 0;
       case "<=":
+        if (type !== undefined) {
+          type[0] = Type.bool;
+        }
         return this.left.evaluate(context) <= this.right.evaluate(context)
           ? 1
           : 0;
       case ">=":
+        if (type !== undefined) {
+          type[0] = Type.bool;
+        }
         return this.left.evaluate(context) >= this.right.evaluate(context)
           ? 1
           : 0;
       case "&&":
+        if (type !== undefined) {
+          type[0] = Type.bool;
+        }
         return this.left.evaluate(context) && this.right.evaluate(context)
           ? 1
           : 0;
       case "||":
+        if (type !== undefined) {
+          type[0] = Type.bool;
+        }
         return this.left.evaluate(context) || this.right.evaluate(context)
           ? 1
           : 0;

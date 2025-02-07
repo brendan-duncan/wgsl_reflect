@@ -24,7 +24,7 @@ class Node {
     get astNodeType() {
         return "";
     }
-    evaluate(context) {
+    evaluate(context, type) {
         throw new Error("Cannot evaluate node");
     }
     evaluateString(context) {
@@ -247,8 +247,8 @@ class Const extends Statement {
     get astNodeType() {
         return "const";
     }
-    evaluate(context) {
-        return this.value.evaluate(context);
+    evaluate(context, type) {
+        return this.value.evaluate(context, type);
     }
     search(callback) {
         var _a;
@@ -543,6 +543,7 @@ class Type extends Statement {
         return false;
     }
 }
+Type.x32 = new Type("x32");
 Type.f32 = new Type("f32");
 Type.i32 = new Type("i32");
 Type.u32 = new Type("u32");
@@ -722,8 +723,12 @@ class CreateExpr extends Expression {
             }
         }
     }
-    evaluate(context) {
-        return this.args[0].evaluate(context);
+    evaluate(context, type) {
+        const t = this.type;
+        if (t.name === "f32" || t.name === "f16" || t.name === "i32" || t.name === "u32") {
+            return this.args[0].evaluate(context, type);
+        }
+        throw new Error(`Cannot evaluate node ${this.constructor.name}`);
     }
 }
 /**
@@ -746,30 +751,30 @@ class CallExpr extends Expression {
     get isBuiltin() {
         return CallExpr.builtinFunctionNames.has(this.name);
     }
-    evaluate(context) {
+    evaluate(context, type) {
         switch (this.name) {
             case "abs":
-                return Math.abs(this.args[0].evaluate(context));
+                return Math.abs(this.args[0].evaluate(context, type));
             case "acos":
-                return Math.acos(this.args[0].evaluate(context));
+                return Math.acos(this.args[0].evaluate(context, type));
             case "acosh":
-                return Math.acosh(this.args[0].evaluate(context));
+                return Math.acosh(this.args[0].evaluate(context, type));
             case "asin":
-                return Math.asin(this.args[0].evaluate(context));
+                return Math.asin(this.args[0].evaluate(context, type));
             case "asinh":
-                return Math.asinh(this.args[0].evaluate(context));
+                return Math.asinh(this.args[0].evaluate(context, type));
             case "atan":
-                return Math.atan(this.args[0].evaluate(context));
+                return Math.atan(this.args[0].evaluate(context, type));
             case "atan2":
-                return Math.atan2(this.args[0].evaluate(context), this.args[1].evaluate(context));
+                return Math.atan2(this.args[0].evaluate(context, type), this.args[1].evaluate(context, type));
             case "atanh":
-                return Math.atanh(this.args[0].evaluate(context));
+                return Math.atanh(this.args[0].evaluate(context, type));
             case "ceil":
-                return Math.ceil(this.args[0].evaluate(context));
+                return Math.ceil(this.args[0].evaluate(context, type));
             case "clamp":
-                return Math.min(Math.max(this.args[0].evaluate(context), this.args[1].evaluate(context)), this.args[2].evaluate(context));
+                return Math.min(Math.max(this.args[0].evaluate(context, type), this.args[1].evaluate(context, type)), this.args[2].evaluate(context, type));
             case "cos":
-                return Math.cos(this.args[0].evaluate(context));
+                return Math.cos(this.args[0].evaluate(context, type));
             //case "cross":
             //TODO: (x[i] * y[j] - x[j] * y[i])
             case "degrees":
@@ -777,76 +782,79 @@ class CallExpr extends Expression {
             //case "determinant":
             //TODO implement
             case "distance":
-                return Math.sqrt(Math.pow(this.args[0].evaluate(context) - this.args[1].evaluate(context), 2));
+                return Math.sqrt(Math.pow(this.args[0].evaluate(context, type) - this.args[1].evaluate(context, type), 2));
             case "dot":
             //TODO: (x[i] * y[i])
             case "exp":
-                return Math.exp(this.args[0].evaluate(context));
+                return Math.exp(this.args[0].evaluate(context, type));
             case "exp2":
-                return Math.pow(2, this.args[0].evaluate(context));
+                return Math.pow(2, this.args[0].evaluate(context, type));
             //case "extractBits":
             //TODO: implement
             //case "firstLeadingBit":
             //TODO: implement
             case "floor":
-                return Math.floor(this.args[0].evaluate(context));
+                return Math.floor(this.args[0].evaluate(context, type));
             case "fma":
-                return (this.args[0].evaluate(context) * this.args[1].evaluate(context) +
-                    this.args[2].evaluate(context));
+                return (this.args[0].evaluate(context, type) * this.args[1].evaluate(context, type) +
+                    this.args[2].evaluate(context, type));
             case "fract":
-                return (this.args[0].evaluate(context) -
-                    Math.floor(this.args[0].evaluate(context)));
+                return (this.args[0].evaluate(context, type) -
+                    Math.floor(this.args[0].evaluate(context, type)));
             //case "frexp":
             //TODO: implement
             case "inverseSqrt":
-                return 1 / Math.sqrt(this.args[0].evaluate(context));
+                return 1 / Math.sqrt(this.args[0].evaluate(context, type));
             //case "length":
             //TODO: implement
             case "log":
-                return Math.log(this.args[0].evaluate(context));
+                return Math.log(this.args[0].evaluate(context, type));
             case "log2":
-                return Math.log2(this.args[0].evaluate(context));
+                return Math.log2(this.args[0].evaluate(context, type));
             case "max":
-                return Math.max(this.args[0].evaluate(context), this.args[1].evaluate(context));
+                return Math.max(this.args[0].evaluate(context, type), this.args[1].evaluate(context, type));
             case "min":
-                return Math.min(this.args[0].evaluate(context), this.args[1].evaluate(context));
+                return Math.min(this.args[0].evaluate(context, type), this.args[1].evaluate(context, type));
             case "mix":
-                return (this.args[0].evaluate(context) *
-                    (1 - this.args[2].evaluate(context)) +
-                    this.args[1].evaluate(context) * this.args[2].evaluate(context));
+                return (this.args[0].evaluate(context, type) *
+                    (1 - this.args[2].evaluate(context, type)) +
+                    this.args[1].evaluate(context, type) * this.args[2].evaluate(context, type));
             case "modf":
-                return (this.args[0].evaluate(context) -
-                    Math.floor(this.args[0].evaluate(context)));
+                return (this.args[0].evaluate(context, type) -
+                    Math.floor(this.args[0].evaluate(context, type)));
             case "pow":
-                return Math.pow(this.args[0].evaluate(context), this.args[1].evaluate(context));
+                return Math.pow(this.args[0].evaluate(context, type), this.args[1].evaluate(context, type));
             case "radians":
-                return (this.args[0].evaluate(context) * Math.PI) / 180;
+                return (this.args[0].evaluate(context, type) * Math.PI) / 180;
             case "round":
-                return Math.round(this.args[0].evaluate(context));
+                return Math.round(this.args[0].evaluate(context, type));
             case "sign":
-                return Math.sign(this.args[0].evaluate(context));
+                return Math.sign(this.args[0].evaluate(context, type));
             case "sin":
-                return Math.sin(this.args[0].evaluate(context));
+                return Math.sin(this.args[0].evaluate(context, type));
             case "sinh":
-                return Math.sinh(this.args[0].evaluate(context));
+                return Math.sinh(this.args[0].evaluate(context, type));
             case "saturate":
-                return Math.min(Math.max(this.args[0].evaluate(context), 0), 1);
+                return Math.min(Math.max(this.args[0].evaluate(context, type), 0), 1);
             case "smoothstep":
-                return (this.args[0].evaluate(context) *
-                    this.args[0].evaluate(context) *
-                    (3 - 2 * this.args[0].evaluate(context)));
+                return (this.args[0].evaluate(context, type) *
+                    this.args[0].evaluate(context, type) *
+                    (3 - 2 * this.args[0].evaluate(context, type)));
             case "sqrt":
-                return Math.sqrt(this.args[0].evaluate(context));
+                return Math.sqrt(this.args[0].evaluate(context, type));
             case "step":
+                if (type !== undefined) {
+                    type[0] = Type.bool;
+                }
                 return this.args[0].evaluate(context) < this.args[1].evaluate(context)
                     ? 0
                     : 1;
             case "tan":
-                return Math.tan(this.args[0].evaluate(context));
+                return Math.tan(this.args[0].evaluate(context, type));
             case "tanh":
-                return Math.tanh(this.args[0].evaluate(context));
+                return Math.tanh(this.args[0].evaluate(context, type));
             case "trunc":
-                return Math.trunc(this.args[0].evaluate(context));
+                return Math.trunc(this.args[0].evaluate(context, type));
             default:
                 throw new Error("Non const function: " + this.name);
         }
@@ -1025,12 +1033,12 @@ class VariableExpr extends Expression {
             this.postfix.search(callback);
         }
     }
-    evaluate(context) {
+    evaluate(context, type) {
         const constant = context.constants.get(this.name);
         if (!constant) {
             throw new Error("Cannot evaluate node");
         }
-        return constant.evaluate(context);
+        return constant.evaluate(context, type);
     }
 }
 /**
@@ -1047,23 +1055,23 @@ class ConstExpr extends Expression {
     get astNodeType() {
         return "constExpr";
     }
-    evaluate(context) {
+    evaluate(context, type) {
         var _a, _b;
         if (this.initializer instanceof CreateExpr) {
             // This is a struct constant
             const property = (_a = this.postfix) === null || _a === void 0 ? void 0 : _a.evaluateString(context);
-            const type = (_b = this.initializer.type) === null || _b === void 0 ? void 0 : _b.name;
-            const struct = context.structs.get(type);
+            const t = (_b = this.initializer.type) === null || _b === void 0 ? void 0 : _b.name;
+            const struct = context.structs.get(t);
             const memberIndex = struct === null || struct === void 0 ? void 0 : struct.getMemberIndex(property);
             if (memberIndex !== undefined && memberIndex != -1) {
-                const value = this.initializer.args[memberIndex].evaluate(context);
+                const value = this.initializer.args[memberIndex].evaluate(context, type);
                 return value;
             }
             else {
-                return this.initializer.evaluate(context);
+                return this.initializer.evaluate(context, type);
             }
         }
-        return this.initializer.evaluate(context);
+        return this.initializer.evaluate(context, type);
     }
     search(callback) {
         this.initializer.search(callback);
@@ -1075,14 +1083,18 @@ class ConstExpr extends Expression {
  * @category AST
  */
 class LiteralExpr extends Expression {
-    constructor(value) {
+    constructor(value, type) {
         super();
         this.value = value;
+        this.type = type;
     }
     get astNodeType() {
         return "literalExpr";
     }
-    evaluate() {
+    evaluate(context, type) {
+        if (type !== undefined) {
+            type[0] = this.type;
+        }
         return this.value;
     }
 }
@@ -1118,7 +1130,10 @@ class TypecastExpr extends Expression {
     get astNodeType() {
         return "typecastExpr";
     }
-    evaluate(context) {
+    evaluate(context, type) {
+        if (type !== undefined) {
+            type[0] = this.type;
+        }
         return this.args[0].evaluate(context);
     }
     search(callback) {
@@ -1138,8 +1153,8 @@ class GroupingExpr extends Expression {
     get astNodeType() {
         return "groupExpr";
     }
-    evaluate(context) {
-        return this.contents[0].evaluate(context);
+    evaluate(context, type) {
+        return this.contents[0].evaluate(context, type);
     }
     search(callback) {
         this.searchBlock(this.contents, callback);
@@ -1184,16 +1199,19 @@ class UnaryOperator extends Operator {
     get astNodeType() {
         return "unaryOp";
     }
-    evaluate(context) {
+    evaluate(context, type) {
         switch (this.operator) {
             case "+":
-                return this.right.evaluate(context);
+                return this.right.evaluate(context, type);
             case "-":
-                return -this.right.evaluate(context);
+                return -this.right.evaluate(context, type);
             case "!":
+                if (type !== undefined) {
+                    type[0] = Type.bool;
+                }
                 return this.right.evaluate(context) ? 0 : 1;
             case "~":
-                return ~this.right.evaluate(context);
+                return ~this.right.evaluate(context, type);
             default:
                 throw new Error("Unknown unary operator: " + this.operator);
         }
@@ -1218,47 +1236,125 @@ class BinaryOperator extends Operator {
     get astNodeType() {
         return "binaryOp";
     }
-    evaluate(context) {
+    _getPromotedType(t1, t2) {
+        if (t1.name === t2.name) {
+            return t1;
+        }
+        if (t1.name === "f32" || t2.name === "f32") {
+            return Type.f32;
+        }
+        if (t1.name === "u32" || t2.name === "u32") {
+            return Type.u32;
+        }
+        return Type.i32;
+    }
+    evaluate(context, type) {
+        const t1 = [Type.i32];
+        const t2 = [Type.i32];
         switch (this.operator) {
-            case "+":
-                return this.left.evaluate(context) + this.right.evaluate(context);
-            case "-":
-                return this.left.evaluate(context) - this.right.evaluate(context);
-            case "*":
-                return this.left.evaluate(context) * this.right.evaluate(context);
-            case "/":
-                return this.left.evaluate(context) / this.right.evaluate(context);
-            case "%":
-                return this.left.evaluate(context) % this.right.evaluate(context);
+            case "+": {
+                const value = this.left.evaluate(context, t1) + this.right.evaluate(context, t2);
+                if (type !== undefined) {
+                    type[0] = this._getPromotedType(t1[0], t2[0]);
+                    if (type[0] === Type.i32 || type[0] === Type.u32) {
+                        return Math.floor(value);
+                    }
+                }
+                return value;
+            }
+            case "-": {
+                const value = this.left.evaluate(context, t1) - this.right.evaluate(context, t2);
+                if (type !== undefined) {
+                    type[0] = this._getPromotedType(t1[0], t2[0]);
+                    if (type[0] === Type.i32 || type[0] === Type.u32) {
+                        return Math.floor(value);
+                    }
+                }
+                return value;
+            }
+            case "*": {
+                const value = this.left.evaluate(context, type) * this.right.evaluate(context, type);
+                if (type !== undefined) {
+                    type[0] = this._getPromotedType(t1[0], t2[0]);
+                    if (type[0] === Type.i32 || type[0] === Type.u32) {
+                        return Math.floor(value);
+                    }
+                }
+                return value;
+            }
+            case "/": {
+                const value = this.left.evaluate(context, type) / this.right.evaluate(context, type);
+                if (type !== undefined) {
+                    type[0] = this._getPromotedType(t1[0], t2[0]);
+                    if (type[0] === Type.i32 || type[0] === Type.u32) {
+                        return Math.floor(value);
+                    }
+                }
+                return value;
+            }
+            case "%": {
+                const value = this.left.evaluate(context, type) % this.right.evaluate(context, type);
+                if (type !== undefined) {
+                    type[0] = this._getPromotedType(t1[0], t2[0]);
+                    if (type[0] === Type.i32 || type[0] === Type.u32) {
+                        return Math.floor(value);
+                    }
+                }
+                return value;
+            }
             case "<":
+                if (type !== undefined) {
+                    type[0] = Type.bool;
+                }
                 return this.left.evaluate(context) < this.right.evaluate(context)
                     ? 1
                     : 0;
             case ">":
+                if (type !== undefined) {
+                    type[0] = Type.bool;
+                }
                 return this.left.evaluate(context) > this.right.evaluate(context)
                     ? 1
                     : 0;
             case "==":
+                if (type !== undefined) {
+                    type[0] = Type.bool;
+                }
                 return this.left.evaluate(context) == this.right.evaluate(context)
                     ? 1
                     : 0;
             case "!=":
+                if (type !== undefined) {
+                    type[0] = Type.bool;
+                }
                 return this.left.evaluate(context) != this.right.evaluate(context)
                     ? 1
                     : 0;
             case "<=":
+                if (type !== undefined) {
+                    type[0] = Type.bool;
+                }
                 return this.left.evaluate(context) <= this.right.evaluate(context)
                     ? 1
                     : 0;
             case ">=":
+                if (type !== undefined) {
+                    type[0] = Type.bool;
+                }
                 return this.left.evaluate(context) >= this.right.evaluate(context)
                     ? 1
                     : 0;
             case "&&":
+                if (type !== undefined) {
+                    type[0] = Type.bool;
+                }
                 return this.left.evaluate(context) && this.right.evaluate(context)
                     ? 1
                     : 0;
             case "||":
+                if (type !== undefined) {
+                    type[0] = Type.bool;
+                }
                 return this.left.evaluate(context) || this.right.evaluate(context)
                     ? 1
                     : 0;
@@ -1549,8 +1645,8 @@ TokenTypes.keywords = {
         pointer: new TokenType("ptr", TokenClass.keyword, "ptr"),*/
 };
 TokenTypes.tokens = {
-    decimal_float_literal: new TokenType("decimal_float_literal", exports.TokenClass.token, /((-?[0-9]*\.[0-9]+|-?[0-9]+\.[0-9]*)((e|E)(\+|-)?[0-9]+)?f?)|(-?[0-9]+(e|E)(\+|-)?[0-9]+f?)|(-?[0-9]+f)/),
-    hex_float_literal: new TokenType("hex_float_literal", exports.TokenClass.token, /-?0x((([0-9a-fA-F]*\.[0-9a-fA-F]+|[0-9a-fA-F]+\.[0-9a-fA-F]*)((p|P)(\+|-)?[0-9]+f?)?)|([0-9a-fA-F]+(p|P)(\+|-)?[0-9]+f?))/),
+    decimal_float_literal: new TokenType("decimal_float_literal", exports.TokenClass.token, /((-?[0-9]*\.[0-9]+|-?[0-9]+\.[0-9]*)((e|E)(\+|-)?[0-9]+)?[fh]?)|(-?[0-9]+(e|E)(\+|-)?[0-9]+[fh]?)|(-?[0-9]+[fh])/),
+    hex_float_literal: new TokenType("hex_float_literal", exports.TokenClass.token, /-?0x((([0-9a-fA-F]*\.[0-9a-fA-F]+|[0-9a-fA-F]+\.[0-9a-fA-F]*)((p|P)(\+|-)?[0-9]+[fh]?)?)|([0-9a-fA-F]+(p|P)(\+|-)?[0-9]+[fh]?))/),
     int_literal: new TokenType("int_literal", exports.TokenClass.token, /-?0x[0-9a-fA-F]+|0i?|-?[1-9][0-9]*i?/),
     uint_literal: new TokenType("uint_literal", exports.TokenClass.token, /0x[0-9a-fA-F]+u|0u|[1-9][0-9]*u/),
     ident: new TokenType("ident", exports.TokenClass.token, /[_a-zA-Z][0-9a-zA-Z_]*/),
@@ -2179,7 +2275,7 @@ class WgslParser {
         if (this._check(types)) {
             return this._advance();
         }
-        throw this._error(this._peek(), message);
+        throw this._error(this._peek(), `${message}. Line:${this._currentLine}`);
     }
     _check(types) {
         if (this._isAtEnd()) {
@@ -2532,6 +2628,9 @@ class WgslParser {
             }
             this._consume(TokenTypes.tokens.equal, "Expected '=' for const.");
             const value = this._short_circuit_or_expression();
+            if (type === null && value instanceof LiteralExpr) {
+                type = value.type;
+            }
             return this._updateNode(new Const(name, type, null, null, value));
         }
         return null;
@@ -2995,6 +3094,18 @@ class WgslParser {
         }
         return null;
     }
+    _validateTypeRange(value, type) {
+        if (type.name === "i32") {
+            if (value < -2147483648 || value > 2147483647) {
+                throw this._error(this._previous(), `Value out of range for i32: ${value}. Line: ${this._currentLine}.`);
+            }
+        }
+        else if (type.name === "u32") {
+            if (value < 0 || value > 4294967295) {
+                throw this._error(this._previous(), `Value out of range for u32: ${value}. Line: ${this._currentLine}.`);
+            }
+        }
+    }
     _primary_expression() {
         // ident argument_expression_list?
         if (this._match(TokenTypes.tokens.ident)) {
@@ -3014,8 +3125,32 @@ class WgslParser {
             return this._updateNode(new VariableExpr(name));
         }
         // const_literal
-        if (this._match(TokenTypes.const_literal)) {
-            return this._updateNode(new LiteralExpr(parseFloat(this._previous().toString())));
+        if (this._match(TokenTypes.tokens.int_literal)) {
+            const s = this._previous().toString();
+            let type = s.endsWith("i") || s.endsWith("i") ? Type.i32 :
+                s.endsWith("u") || s.endsWith("U") ? Type.u32 : Type.x32;
+            const i = parseInt(s);
+            this._validateTypeRange(i, type);
+            return this._updateNode(new LiteralExpr(i, type));
+        }
+        else if (this._match(TokenTypes.tokens.uint_literal)) {
+            const u = parseInt(this._previous().toString());
+            this._validateTypeRange(u, Type.u32);
+            return this._updateNode(new LiteralExpr(u, Type.u32));
+        }
+        else if (this._match([TokenTypes.tokens.decimal_float_literal, TokenTypes.tokens.hex_float_literal])) {
+            let fs = this._previous().toString();
+            let isF16 = fs.endsWith("h");
+            if (isF16) {
+                fs = fs.substring(0, fs.length - 1);
+            }
+            const f = parseFloat(fs);
+            this._validateTypeRange(f, isF16 ? Type.f16 : Type.f32);
+            return this._updateNode(new LiteralExpr(f, isF16 ? Type.f16 : Type.f32));
+        }
+        else if (this._match([TokenTypes.keywords.true, TokenTypes.keywords.false])) {
+            let b = this._previous().toString() === TokenTypes.keywords.true.rule;
+            return this._updateNode(new LiteralExpr(b ? 1 : 0, Type.bool));
         }
         // paren_expression
         if (this._check(TokenTypes.tokens.paren_left)) {
@@ -3102,7 +3237,27 @@ class WgslParser {
         // attribute* variable_decl (equal const_expression)?
         const _var = this._variable_decl();
         if (_var && this._match(TokenTypes.tokens.equal)) {
-            _var.value = this._const_expression();
+            const expr = this._const_expression();
+            const type = [Type.f32];
+            try {
+                const value = expr.evaluate(this._context, type);
+                _var.value = new LiteralExpr(value, type[0]);
+            }
+            catch (_) {
+            }
+        }
+        if (_var.type !== null && _var.value instanceof LiteralExpr) {
+            if (_var.value.type.name !== "x32") {
+                if (_var.type.name !== _var.value.type.name) {
+                    throw this._error(this._peek(), `Invalid cast from ${_var.value.type.name} to ${_var.type.name}. Line:${this._currentLine}`);
+                }
+            }
+            this._validateTypeRange(_var.value.value, _var.type);
+            _var.value.type = _var.type;
+        }
+        else if (_var.type === null && _var.value instanceof LiteralExpr) {
+            _var.type = _var.value.type.name === "x32" ? Type.i32 : _var.value.type;
+            this._validateTypeRange(_var.value.value, _var.type);
         }
         return _var;
     }
@@ -3115,6 +3270,7 @@ class WgslParser {
         return _override;
     }
     _global_const_decl() {
+        var _a;
         // attribute* const (ident variable_ident_decl) global_const_initializer?
         if (!this._match(TokenTypes.keywords.const)) {
             return null;
@@ -3140,13 +3296,27 @@ class WgslParser {
             }
             else {
                 try {
-                    const constValue = valueExpr.evaluate(this._context);
-                    value = this._updateNode(new LiteralExpr(constValue));
+                    let type = [Type.f32];
+                    const constValue = valueExpr.evaluate(this._context, type);
+                    this._validateTypeRange(constValue, type[0]);
+                    value = this._updateNode(new LiteralExpr(constValue, type[0]));
                 }
-                catch (_a) {
+                catch (_b) {
                     value = valueExpr;
                 }
             }
+        }
+        if (type !== null && value instanceof LiteralExpr) {
+            if (value.type.name !== "x32") {
+                if (type.name !== value.type.name) {
+                    throw this._error(this._peek(), `Invalid cast from ${value.type.name} to ${type.name}. Line:${this._currentLine}`);
+                }
+            }
+            value.type = type;
+            this._validateTypeRange(value.value, value.type);
+        }
+        else if (type === null && value instanceof LiteralExpr) {
+            type = (_a = value === null || value === void 0 ? void 0 : value.type) !== null && _a !== void 0 ? _a : Type.f32;
         }
         const c = this._updateNode(new Const(name.toString(), type, "", "", value));
         this._context.constants.set(c.name, c);
@@ -3169,6 +3339,27 @@ class WgslParser {
         let value = null;
         if (this._match(TokenTypes.tokens.equal)) {
             value = this._const_expression();
+            const type = [Type.f32];
+            try {
+                const v = value.evaluate(this._context, type);
+                value = new LiteralExpr(v, type[0]);
+            }
+            catch (_) {
+            }
+        }
+        if (type !== null && value instanceof LiteralExpr) {
+            if (value.type.name !== "x32") {
+                if (type.name !== value.type.name) {
+                    throw this._error(this._peek(), `Invalid cast from ${value.type.name} to ${type.name}. Line:${this._currentLine}`);
+                }
+            }
+            value.type = type;
+        }
+        else if (type === null && value instanceof LiteralExpr) {
+            type = value.type.name === "x32" ? Type.i32 : value.type;
+        }
+        if (value instanceof LiteralExpr) {
+            this._validateTypeRange(value.value, type);
         }
         return this._updateNode(new Let(name.toString(), type, "", "", value));
     }
@@ -5931,7 +6122,14 @@ class WgslExec extends ExecInterface {
     }
     _execStatement(stmt, context) {
         if (stmt instanceof Return) {
-            return this._evalExpression(stmt.value, context);
+            const v = this._evalExpression(stmt.value, context);
+            const f = context.getFunction(context.currentFunctionName);
+            if (f === null || f === void 0 ? void 0 : f.node.returnType) {
+                if (f.node.returnType.name === "i32" || f.node.returnType.name === "u32") {
+                    return Math.floor(v);
+                }
+            }
+            return v;
         }
         else if (stmt instanceof Break) {
             return stmt;
@@ -6481,7 +6679,13 @@ class WgslExec extends ExecInterface {
             const value = this._evalExpression(node.args[ai], subContext);
             subContext.setVariable(arg.name, value, arg);
         }
-        return this._execStatements(f.node.body, subContext);
+        const res = this._execStatements(f.node.body, subContext);
+        if (f.node.returnType) {
+            if (f.node.returnType.name === "i32" || f.node.returnType.name === "u32") {
+                return Math.floor(res);
+            }
+        }
+        return res;
     }
     _callBuiltinFunction(node, context) {
         switch (node.name) {

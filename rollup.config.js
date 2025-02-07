@@ -5,14 +5,8 @@ function build(input, format, file, sourcemap) {
     return {
         input,
         plugins: [typescript(), nodeResolve()],
-        output: [
-            {
-                format,
-                file,
-                sourcemap,
-            }
-        ]
-    }
+        output: [ { format, file, sourcemap, } ]
+    };
 }
 
 let builds = [

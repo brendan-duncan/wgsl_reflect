@@ -260,7 +260,14 @@ export class WgslExec extends ExecInterface {
 
     _execStatement(stmt: AST.Node, context: ExecContext): any {
         if (stmt instanceof AST.Return) {
-            return this._evalExpression(stmt.value, context);
+            const v = this._evalExpression(stmt.value, context);
+            const f = context.getFunction(context.currentFunctionName);
+            if (f?.node.returnType) {
+                if (f.node.returnType.name === "i32" || f.node.returnType.name === "u32") {
+                    return Math.floor(v);
+                }
+            }
+            return v;
         } else if (stmt instanceof AST.Break) {
             return stmt;
         } else if (stmt instanceof AST.Continue) {
@@ -788,7 +795,13 @@ export class WgslExec extends ExecInterface {
             subContext.setVariable(arg.name, value, arg);
         }
 
-        return this._execStatements(f.node.body, subContext);
+        const res = this._execStatements(f.node.body, subContext);
+        if (f.node.returnType) {
+            if (f.node.returnType.name === "i32" || f.node.returnType.name === "u32") {
+                return Math.floor(res);
+            }
+        }
+        return res;
     }
 
     _callBuiltinFunction(node: AST.CallExpr, context: ExecContext) {

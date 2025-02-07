@@ -16,10 +16,8 @@ export async function run() {
       let bar = foo * 4;`;
 
       const dbg = new WgslDebug(shader);
-      let res = dbg.stepNext();
-      test.equals(res, true);
-      res = dbg.stepNext();
-      test.equals(res, false);
+      dbg.stepNext();
+      dbg.stepNext();
       // Ensure as the top-level instructions are executed, variables are correctly evaluated.
       test.equals(dbg.getVariableValue("foo"), 3);
       test.equals(dbg.getVariableValue("bar"), 12);
@@ -37,13 +35,9 @@ export async function run() {
       let bar = foo(3, 4);
       let bar2 = foo(5, -2);`;
       const dbg = new WgslDebug(shader);
-      dbg.startDebug();
-      console.log(dbg.currentCommand?.line, dbg.currentCommand);
-      while (dbg.stepNext()) {
-        console.log(dbg.currentCommand?.line,dbg.currentCommand);
-      }
+      while (dbg.stepNext());
       // Ensure calling a function works as expected.
-      test.equals(dbg.getVariableValue("bar"), 0.75);
+      test.equals(dbg.getVariableValue("bar"), 0);
       test.equals(dbg.getVariableValue("bar2"), -10);
     });
 

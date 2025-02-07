@@ -3,6 +3,57 @@ import { WgslParser } from "../../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Parser", function () {
+    test("type inference", function (test) {
+      const shader = `
+//var u32_1 = 1u; // u32
+//var i32_1 = 1i; // i32
+//var f32_1 = 1f; // f32
+//let some_i32 = 1; // i32
+//var i32_from_type : i32 = 1; // i32
+//var u32_from_type : u32 = 1; // u32
+//var f32_promotion : f32 = 1; // f32
+//let u32_large : u32 = 2147483649; // u32
+//let i32_min = -2147483648;  // i32
+var u32_expr1 = (1 + (1 + (1 + (1 + 1)))) + 1u; // u32
+var u32_expr2 = 1u + (1 + (1 + (1 + (1 + 1)))); // u32
+var u32_expr3 = (1 + (1 + (1 + (1u + 1)))) + 1; // u32
+var u32_expr4 = 1 + (1 + (1 + (1 + (1u + 1)))); // u32
+let i32_clamp = clamp(1, -5, 5); // i32
+let f32_promotion1 = 1.0 + 2 + 3 + 4; // f32
+let f32_promotion2 = 2 + 1.0 + 3 + 4; // f32
+let f32_promotion3 = 1f + ((2 + 3) + 4); // f32
+let f32_promotion4 = ((2 + (3 + 1f)) + 4); // f32
+let ambiguous_clamp = clamp(1u, 0, 1i); // invalid, ambiguous types
+let some_i32 = 1; // i32
+let some_f32 : f32 = some_i32; // Type error: i32 cannot be assigned to f32
+let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
+let out_and_in_again = (0x1ffffffff / 8); // i32
+let out_of_range = (0x1ffffffff / 8u); // u32
+//var u32_neg = -1u; // invalid: unary minus does not support u32
+//var i32_demotion : i32 = 1.0; // Invalid
+//var u32_from_expr = 1 + u32_1; // u32 (at runtime)
+//var i32_from_expr = 1 + i32_1; // i32 (at runtime)
+//let u32_clamp = clamp(5, 0, u32_from_expr); // u32 (at runtime)
+//let f32_clamp = clamp(0, f32_1, 1); // f32 (at runtime)
+//let mismatch : u32 = 1.0; // invalid, mismatched types`;
+      const parser = new WgslParser();
+      const t = parser.parse(shader);
+      //test.equals(t[0].type.name, "u32");
+      //test.equals(t[1].type.name, "i32");
+      //test.equals(t[2].type.name, "f32");
+      //test.equals(t[3].type.name, "i32");
+      //test.equals(t[4].type.name, "i32");
+      //test.equals(t[5].type.name, "u32");
+      //test.equals(t[6].type.name, "f32");
+      //test.equals(t[7].type.name, "u32");
+
+      //test.equals(t[20].type.name, "u32");
+      //test.equals(t[21].type?.name, "i32");
+      //test.equals(t[24].type?.name, "f32");
+      //test.equals(t[7].type.name, "u32");
+      //test.equals(t[8].type.name, "i32");
+    });
+
     test("const2", function (test) {
       const shader = `const FOO = radians(90);
       const BAR = sin(FOO);
