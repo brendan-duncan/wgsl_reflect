@@ -27,8 +27,8 @@ export async function run() {
 
     await test("call function", function (test) {
       const shader = `
-      fn foo(a: int, b: int) -> int {
-        if (b > 0) {
+      fn foo(a: i32, b: i32) -> i32 {
+        if b > 0 {
             return a / b;
         } else {
             return a * b;

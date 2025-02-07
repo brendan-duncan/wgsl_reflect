@@ -34545,15 +34545,15 @@ class Debugger {
 }
 function main() {
     const code = `
-fn foo(a: int, b: int) -> int {
-  if (b > 0) {
+fn foo(a: i32, b: i32) -> i32 {
+  if b > 0 {
     return a / b;
   } else {
     return a * b;
   }
 }
 let bar = foo(3, 4);
-let bar2 = foo(5, -1);`;
+let bar2 = foo(5, -2);`;
     const parent = document.getElementById("debugger");
     const watch = document.getElementById("watch");
     new Debugger(code, parent, watch);
