@@ -1,7 +1,7 @@
 import * as AST from "./wgsl_ast.js";
 import { WgslExec } from "./wgsl_exec.js";
 import { ExecContext, Function } from "./exec/exec_context.js";
-import { Data } from "./exec/data.js";
+import { TypedData } from "./exec/data.js";
 
 class Command {
     get line() { return -1; }
@@ -246,13 +246,13 @@ export class WgslDebug {
                         if (binding == b && set == s) {
                             if (entry.texture !== undefined && entry.size !== undefined) {
                                 // Texture
-                                v.value = new Data(entry.texture, this._exec._getTypeInfo(node.type), 0, entry.size);
+                                v.value = new TypedData(entry.texture, this._exec._getTypeInfo(node.type), 0, entry.size);
                             } else if (entry.uniform !== undefined) {
                                 // Uniform buffer
-                                v.value = new Data(entry.uniform, this._exec._getTypeInfo(node.type));
+                                v.value = new TypedData(entry.uniform, this._exec._getTypeInfo(node.type));
                             } else {
                                 // Storage buffer
-                                v.value = new Data(entry, this._exec._getTypeInfo(node.type));
+                                v.value = new TypedData(entry, this._exec._getTypeInfo(node.type));
                             }
                         }
                     }

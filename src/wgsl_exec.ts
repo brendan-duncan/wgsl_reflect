@@ -4,7 +4,7 @@ import { WgslReflect, TypeInfo, StructInfo, TemplateInfo } from "./wgsl_reflect.
 import { ExecContext, Function } from "./exec/exec_context.js";
 import { ExecInterface } from "./exec/exec_interface.js";
 import { BuiltinFunctions } from "./exec/builtin_functions.js";
-import { Data } from "./exec/data.js";
+import { TypedData } from "./exec/data.js";
 
 export class WgslExec extends ExecInterface {
     ast: Array<AST.Node>;
@@ -96,13 +96,13 @@ export class WgslExec extends ExecInterface {
                         if (binding == b && set == s) {
                             if (entry.texture !== undefined && entry.size !== undefined) {
                                 // Texture
-                                v.value = new Data(entry.texture, this._getTypeInfo(node.type), 0, entry.size);
+                                v.value = new TypedData(entry.texture, this._getTypeInfo(node.type), 0, entry.size);
                             } else if (entry.uniform !== undefined) {
                                 // Uniform buffer
-                                v.value = new Data(entry.uniform, this._getTypeInfo(node.type));
+                                v.value = new TypedData(entry.uniform, this._getTypeInfo(node.type));
                             } else {
                                 // Storage buffer
-                                v.value = new Data(entry, this._getTypeInfo(node.type));
+                                v.value = new TypedData(entry, this._getTypeInfo(node.type));
                             }
                         }
                     }
@@ -334,7 +334,7 @@ export class WgslExec extends ExecInterface {
         let value = this._evalExpression(node.value, context);
 
         if (node.operator !== "=") {
-            const currentValue = v.value instanceof Data ? 
+            const currentValue = v.value instanceof TypedData ? 
                 v.value.getDataValue(this, node.variable.postfix, context) :
                 v.value;
 
@@ -410,7 +410,7 @@ export class WgslExec extends ExecInterface {
             }
         }
 
-        if (v.value instanceof Data) {
+        if (v.value instanceof TypedData) {
             v.value.setDataValue(this, value, node.variable.postfix, context);
         } else if (node.variable.postfix) {
             if (node.variable.postfix instanceof AST.ArrayIndex) {
@@ -635,7 +635,7 @@ export class WgslExec extends ExecInterface {
             return null;
         }
 
-        const data = new Data(new ArrayBuffer(typeInfo.size), typeInfo, 0);
+        const data = new TypedData(new ArrayBuffer(typeInfo.size), typeInfo, 0);
 
         // Assign the values in node.args to the data.
         if (typeInfo instanceof StructInfo) {
@@ -692,7 +692,7 @@ export class WgslExec extends ExecInterface {
 
     _evalVariable(node: AST.VariableExpr, context: ExecContext) {
         const value = context.getVariableValue(node.name);
-        if (value instanceof Data) {
+        if (value instanceof TypedData) {
             return value.getDataValue(this, node.postfix, context);
         }
         if (node.postfix) {

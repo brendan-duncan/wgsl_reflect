@@ -1,5 +1,5 @@
 import * as AST from "../wgsl_ast.js";
-import { Data } from "./data.js";
+import { TypedData } from "./data.js";
 import { ExecContext } from "./exec_context.js";
 import { ExecInterface } from "./exec_interface.js";
 
@@ -619,7 +619,7 @@ export class BuiltinFunctions {
         if (textureArg instanceof AST.VariableExpr) {
             const textureName = (textureArg as AST.VariableExpr).name;
             const texture = context.getVariableValue(textureName);
-            if (texture instanceof Data) {
+            if (texture instanceof TypedData) {
                 return texture.textureSize;
             } else {
                 console.error(`Texture ${textureName} not found. Line ${node.line}`);
@@ -647,7 +647,7 @@ export class BuiltinFunctions {
         if (textureArg instanceof AST.VariableExpr) {
             const textureName = (textureArg as AST.VariableExpr).name;
             const texture = context.getVariableValue(textureName);
-            if (texture instanceof Data) {
+            if (texture instanceof TypedData) {
                 const textureSize = texture.textureSize;
                 const x = Math.floor(uv[0]);
                 const y = Math.floor(uv[1]);

@@ -4,15 +4,113 @@ import { ExecInterface } from "./exec_interface.js";
 import { TypeInfo, ArrayInfo, StructInfo } from "../wgsl_reflect.js";
 
 export class Data {
-    buffer: ArrayBuffer;
     typeInfo: TypeInfo;
+    constructor(typeInfo: TypeInfo) {
+        this.typeInfo = typeInfo;
+    }
+
+    setDataValue(exec: ExecInterface, value: any, postfix: AST.Expression | null, context: ExecContext) {
+        console.error(`SetDataValue: Not implemented`, value, postfix);
+    }
+
+    getDataValue(exec: ExecInterface, postfix: AST.Expression | null, context: ExecContext): any {
+        console.error(`GetDataValue: Not implemented`, postfix);
+        return null;
+    }
+}
+
+// Used to store scalar data
+export class ScalarData extends Data {
+    value: number;
+
+    constructor(value: number, typeInfo: TypeInfo) {
+        super(typeInfo);
+        this.value = value;
+    }
+
+    setDataValue(exec: ExecInterface, value: any, postfix: AST.Expression | null, context: ExecContext) {
+        if (postfix) {
+            console.error(`SetDataValue: Scalar data does not support postfix`, postfix);
+            return;
+        }
+
+        this.value = value;
+    }
+
+    getDataValue(exec: ExecInterface, postfix: AST.Expression | null, context: ExecContext): any {
+        if (postfix) {
+            console.error(`GetDataValue: Scalar data does not support postfix`, postfix);
+            return null;
+        }
+
+        return this.value;
+    }
+}
+
+export class VectorData extends Data {
+    value: number[];
+
+    constructor(value: number[], typeInfo: TypeInfo) {
+        super(typeInfo);
+        this.value = value;
+    }
+
+    setDataValue(exec: ExecInterface, value: any, postfix: AST.Expression | null, context: ExecContext) {
+        if (postfix instanceof AST.StringExpr) {
+            console.error("TODO: Set vector postfix");
+            return;
+        }
+
+        this.value = value;
+    }
+
+    getDataValue(exec: ExecInterface, postfix: AST.Expression | null, context: ExecContext): any {
+        if (postfix) {
+            console.error(`TODO: Get vector postfix`, postfix);
+            return null;
+        }
+
+        return this.value;
+    }
+}
+
+export class MatrixData extends Data {
+    value: number[];
+
+    constructor(value: number[], typeInfo: TypeInfo) {
+        super(typeInfo);
+        this.value = value;
+    }
+
+    setDataValue(exec: ExecInterface, value: any, postfix: AST.Expression | null, context: ExecContext) {
+        if (postfix instanceof AST.StringExpr) {
+            console.error("TODO: Set matrix postfix");
+            return;
+        }
+
+        this.value = value;
+    }
+
+    getDataValue(exec: ExecInterface, postfix: AST.Expression | null, context: ExecContext): any {
+        if (postfix) {
+            console.error(`TODO: Get matrix postfix`, postfix);
+            return null;
+        }
+
+        return this.value;
+    }
+}
+
+// Used to store array and struct data
+export class TypedData extends Data {
+    buffer: ArrayBuffer;
     offset: number;
     textureSize: number[] = [0, 0, 0];
 
     constructor(data: ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array,
         typeInfo: TypeInfo, offset: number = 0, textureSize?: number[]) {
+        super(typeInfo);
         this.buffer = data instanceof ArrayBuffer ? data : data.buffer;
-        this.typeInfo = typeInfo;
         this.offset = offset;
         if (textureSize !== undefined) {
             this.textureSize = textureSize;
@@ -186,7 +284,7 @@ export class Data {
             return;
         }
 
-        if (value instanceof Data) {
+        if (value instanceof TypedData) {
             if (typeInfo === value.typeInfo) {
                 const x = new Uint8Array(this.buffer, offset, value.buffer.byteLength);
                 x.set(new Uint8Array(value.buffer));
@@ -340,6 +438,6 @@ export class Data {
             return new Uint32Array(this.buffer, offset, 4);
         }
 
-        return new Data(this.buffer, typeInfo, offset);
+        return new TypedData(this.buffer, typeInfo, offset);
     }
 };

@@ -294,13 +294,16 @@ export class OverrideInfo {
 export class ArgumentInfo {
   name: string;
   type: TypeInfo;
+  attributes: Array<AST.Attribute> | null;
 
   constructor(
     name: string,
     type: TypeInfo,
+    attributes: Array<AST.Attribute> | null
   ) {
     this.name = name;
     this.type = type;
+    this.attributes = attributes;
   }
 }
 
@@ -313,14 +316,16 @@ export class FunctionInfo {
   returnType: TypeInfo | null = null;
   resources: Array<VariableInfo> = [];
   overrides: Array<OverrideInfo> = [];
+  attributes: Array<AST.Attribute> | null;
   startLine: number = -1;
   endLine: number = -1;
   inUse: boolean = false;
   calls: Set<FunctionInfo> = new Set();
 
-  constructor(name: string, stage: string | null = null) {
+  constructor(name: string, stage: string | null = null, attributes: Array<AST.Attribute> | null) {
     this.name = name;
     this.stage = stage;
+    this.attributes = attributes;
   }
 }
 
@@ -499,7 +504,8 @@ export class WgslReflect {
         const computeStage = this._getAttribute(node, "compute");
         const stage = vertexStage || fragmentStage || computeStage;
 
-        const fn = new FunctionInfo(node.name, stage?.name);
+        const fn = new FunctionInfo(node.name, stage?.name, node.attributes);
+        fn.attributes = node.attributes;
         fn.startLine = node.startLine;
         fn.endLine = node.endLine;
         this.functions.push(fn);
@@ -518,7 +524,8 @@ export class WgslReflect {
           (arg) =>
             new ArgumentInfo(
               arg.name,
-              this._getTypeInfo(arg.type, arg.attributes)
+              this._getTypeInfo(arg.type, arg.attributes),
+              arg.attributes
             )
         );
         

@@ -107,7 +107,8 @@ export declare class OverrideInfo {
 export declare class ArgumentInfo {
     name: string;
     type: TypeInfo;
-    constructor(name: string, type: TypeInfo);
+    attributes: Array<AST.Attribute> | null;
+    constructor(name: string, type: TypeInfo, attributes: Array<AST.Attribute> | null);
 }
 export declare class FunctionInfo {
     name: string;
@@ -118,11 +119,12 @@ export declare class FunctionInfo {
     returnType: TypeInfo | null;
     resources: Array<VariableInfo>;
     overrides: Array<OverrideInfo>;
+    attributes: Array<AST.Attribute> | null;
     startLine: number;
     endLine: number;
     inUse: boolean;
     calls: Set<FunctionInfo>;
-    constructor(name: string, stage?: string | null);
+    constructor(name: string, stage: string | null, attributes: Array<AST.Attribute> | null);
 }
 export declare class EntryFunctions {
     vertex: Array<FunctionInfo>;

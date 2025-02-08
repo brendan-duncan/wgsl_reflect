@@ -30658,13 +30658,14 @@ class OverrideInfo {
     }
 }
 class ArgumentInfo {
-    constructor(name, type) {
+    constructor(name, type, attributes) {
         this.name = name;
         this.type = type;
+        this.attributes = attributes;
     }
 }
 class FunctionInfo {
-    constructor(name, stage = null) {
+    constructor(name, stage = null, attributes) {
         this.stage = null;
         this.inputs = [];
         this.outputs = [];
@@ -30678,6 +30679,7 @@ class FunctionInfo {
         this.calls = new Set();
         this.name = name;
         this.stage = stage;
+        this.attributes = attributes;
     }
 }
 class EntryFunctions {
@@ -30806,7 +30808,8 @@ class WgslReflect {
                 const fragmentStage = this._getAttribute(node, "fragment");
                 const computeStage = this._getAttribute(node, "compute");
                 const stage = vertexStage || fragmentStage || computeStage;
-                const fn = new FunctionInfo(node.name, stage === null || stage === void 0 ? void 0 : stage.name);
+                const fn = new FunctionInfo(node.name, stage === null || stage === void 0 ? void 0 : stage.name, node.attributes);
+                fn.attributes = node.attributes;
                 fn.startLine = node.startLine;
                 fn.endLine = node.endLine;
                 this.functions.push(fn);
@@ -30819,7 +30822,7 @@ class WgslReflect {
                     fn.outputs = this._getOutputs(node.returnType);
                     this.entry[stage.name].push(fn);
                 }
-                fn.arguments = node.args.map((arg) => new ArgumentInfo(arg.name, this._getTypeInfo(arg.type, arg.attributes)));
+                fn.arguments = node.args.map((arg) => new ArgumentInfo(arg.name, this._getTypeInfo(arg.type, arg.attributes), arg.attributes));
                 fn.returnType = node.returnType
                     ? this._getTypeInfo(node.returnType, node.attributes)
                     : null;
@@ -31531,10 +31534,23 @@ class ExecInterface {
 }
 
 class Data {
+    constructor(typeInfo) {
+        this.typeInfo = typeInfo;
+    }
+    setDataValue(exec, value, postfix, context) {
+        console.error(`SetDataValue: Not implemented`, value, postfix);
+    }
+    getDataValue(exec, postfix, context) {
+        console.error(`GetDataValue: Not implemented`, postfix);
+        return null;
+    }
+}
+// Used to store array and struct data
+class TypedData extends Data {
     constructor(data, typeInfo, offset = 0, textureSize) {
+        super(typeInfo);
         this.textureSize = [0, 0, 0];
         this.buffer = data instanceof ArrayBuffer ? data : data.buffer;
-        this.typeInfo = typeInfo;
         this.offset = offset;
         if (textureSize !== undefined) {
             this.textureSize = textureSize;
@@ -31731,7 +31747,7 @@ class Data {
             x[3] = value[3];
             return;
         }
-        if (value instanceof Data) {
+        if (value instanceof TypedData) {
             if (typeInfo === value.typeInfo) {
                 const x = new Uint8Array(this.buffer, offset, value.buffer.byteLength);
                 x.set(new Uint8Array(value.buffer));
@@ -31907,7 +31923,7 @@ class Data {
         else if (typeName === "vec4u") {
             return new Uint32Array(this.buffer, offset, 4);
         }
-        return new Data(this.buffer, typeInfo, offset);
+        return new TypedData(this.buffer, typeInfo, offset);
     }
 }
 
@@ -32447,7 +32463,7 @@ class BuiltinFunctions {
         if (textureArg instanceof VariableExpr) {
             const textureName = textureArg.name;
             const texture = context.getVariableValue(textureName);
-            if (texture instanceof Data) {
+            if (texture instanceof TypedData) {
                 return texture.textureSize;
             }
             else {
@@ -32473,7 +32489,7 @@ class BuiltinFunctions {
         if (textureArg instanceof VariableExpr) {
             const textureName = textureArg.name;
             const texture = context.getVariableValue(textureName);
-            if (texture instanceof Data) {
+            if (texture instanceof TypedData) {
                 const textureSize = texture.textureSize;
                 const x = Math.floor(uv[0]);
                 const y = Math.floor(uv[1]);
@@ -32844,15 +32860,15 @@ class WgslExec extends ExecInterface {
                         if (binding == b && set == s) {
                             if (entry.texture !== undefined && entry.size !== undefined) {
                                 // Texture
-                                v.value = new Data(entry.texture, this._getTypeInfo(node.type), 0, entry.size);
+                                v.value = new TypedData(entry.texture, this._getTypeInfo(node.type), 0, entry.size);
                             }
                             else if (entry.uniform !== undefined) {
                                 // Uniform buffer
-                                v.value = new Data(entry.uniform, this._getTypeInfo(node.type));
+                                v.value = new TypedData(entry.uniform, this._getTypeInfo(node.type));
                             }
                             else {
                                 // Storage buffer
-                                v.value = new Data(entry, this._getTypeInfo(node.type));
+                                v.value = new TypedData(entry, this._getTypeInfo(node.type));
                             }
                         }
                     }
@@ -33087,7 +33103,7 @@ class WgslExec extends ExecInterface {
         }
         let value = this._evalExpression(node.value, context);
         if (node.operator !== "=") {
-            const currentValue = v.value instanceof Data ?
+            const currentValue = v.value instanceof TypedData ?
                 v.value.getDataValue(this, node.variable.postfix, context) :
                 v.value;
             if (currentValue instanceof Array && value instanceof Array) {
@@ -33179,7 +33195,7 @@ class WgslExec extends ExecInterface {
                 }
             }
         }
-        if (v.value instanceof Data) {
+        if (v.value instanceof TypedData) {
             v.value.setDataValue(this, value, node.variable.postfix, context);
         }
         else if (node.variable.postfix) {
@@ -33403,7 +33419,7 @@ class WgslExec extends ExecInterface {
             console.error(`Unknown type ${typeName}. Line ${node.line}`);
             return null;
         }
-        const data = new Data(new ArrayBuffer(typeInfo.size), typeInfo, 0);
+        const data = new TypedData(new ArrayBuffer(typeInfo.size), typeInfo, 0);
         // Assign the values in node.args to the data.
         if (typeInfo instanceof StructInfo) {
             for (let i = 0; i < node.args.length; ++i) {
@@ -33460,7 +33476,7 @@ class WgslExec extends ExecInterface {
     _evalVariable(node, context) {
         var _a;
         const value = context.getVariableValue(node.name);
-        if (value instanceof Data) {
+        if (value instanceof TypedData) {
             return value.getDataValue(this, node.postfix, context);
         }
         if (node.postfix) {
@@ -34246,15 +34262,15 @@ class WgslDebug {
                         if (binding == b && set == s) {
                             if (entry.texture !== undefined && entry.size !== undefined) {
                                 // Texture
-                                v.value = new Data(entry.texture, this._exec._getTypeInfo(node.type), 0, entry.size);
+                                v.value = new TypedData(entry.texture, this._exec._getTypeInfo(node.type), 0, entry.size);
                             }
                             else if (entry.uniform !== undefined) {
                                 // Uniform buffer
-                                v.value = new Data(entry.uniform, this._exec._getTypeInfo(node.type));
+                                v.value = new TypedData(entry.uniform, this._exec._getTypeInfo(node.type));
                             }
                             else {
                                 // Storage buffer
-                                v.value = new Data(entry, this._exec._getTypeInfo(node.type));
+                                v.value = new TypedData(entry, this._exec._getTypeInfo(node.type));
                             }
                         }
                     }
