@@ -13,16 +13,12 @@
     "noImplicitUseStrict": false,
     "noFallthroughCasesInSwitch": false,
     "allowSyntheticDefaultImports": true,
-    "outDir": "js",
     "declaration": true,
     "declarationDir": "types",
     "moduleResolution": "node",
   },
   "files": [
-    "src/index.ts",
-    "debugger/index.ts"
+    "src/index.ts"
   ],
-  "exclude": ["node_modules"],
-  "compileOnSave": true,
-  "buildOnSave": true
+  "exclude": ["node_modules"]
 }

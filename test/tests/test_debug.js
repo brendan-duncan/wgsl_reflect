@@ -1,4 +1,4 @@
-import { test, group, webgpuDispatch } from "../test.js";
+import { test, group } from "../test.js";
 import { WgslDebug } from "../../../wgsl_reflect.module.js";
 
 export async function run() {

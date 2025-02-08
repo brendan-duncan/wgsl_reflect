@@ -4,7 +4,15 @@ import { nodeResolve } from "@rollup/plugin-node-resolve";
 function build(input, format, file, sourcemap) {
     return {
         input,
-        plugins: [typescript(), nodeResolve()],
+        plugins: [typescript()],
+        output: [ { format, file, sourcemap, } ]
+    };
+}
+
+function build2(input, format, file, sourcemap) {
+    return {
+        input,
+        plugins: [nodeResolve()],
         output: [ { format, file, sourcemap, } ]
     };
 }
@@ -13,7 +21,7 @@ let builds = [
     build('src/index.ts', 'esm', 'wgsl_reflect.module.js', true),
     build('src/index.ts', 'cjs', 'wgsl_reflect.node.js', true),
 
-    build('debugger/index.ts', 'esm', 'debugger/debugger.module.js', true),
+    build2('debugger/debugger.js', 'esm', 'debugger/debugger.module.js', true),
 ];
 
 export default builds;

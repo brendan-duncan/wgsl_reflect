@@ -350,6 +350,7 @@ export declare class Type extends Statement {
     get astNodeType(): string;
     get isStruct(): boolean;
     get isArray(): boolean;
+    static x32: Type;
     static f32: Type;
     static i32: Type;
     static u32: Type;
@@ -533,7 +534,7 @@ export declare class LiteralExpr extends Expression {
     type: Type;
     constructor(value: number, type: Type);
     get astNodeType(): string;
-    evaluate(): number;
+    evaluate(context: ParseContext, type?: Array<Type>): number;
 }
 /**
  * @class BitcastExpr
@@ -616,6 +617,7 @@ export declare class BinaryOperator extends Operator {
     right: Expression;
     constructor(operator: string, left: Expression, right: Expression);
     get astNodeType(): string;
+    _getPromotedType(t1: Type, t2: Type): Type;
     evaluate(context: ParseContext, type?: Array<Type>): number;
     search(callback: (node: Node) => void): void;
 }

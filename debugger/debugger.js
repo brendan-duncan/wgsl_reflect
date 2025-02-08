@@ -1,17 +1,15 @@
-import { EditorView } from "codemirror";
-import { keymap, highlightSpecialChars, dropCursor,
-  crosshairCursor, lineNumbers, highlightActiveLineGutter, Decoration } from "@codemirror/view";
+import { EditorView, keymap, highlightSpecialChars, dropCursor, gutter, GutterMarker,
+    crosshairCursor, lineNumbers, highlightActiveLineGutter, Decoration } from "@codemirror/view";
 import { EditorState, StateField, StateEffect, RangeSet } from "@codemirror/state";
 import { defaultHighlightStyle, syntaxHighlighting, indentOnInput, bracketMatching,
-foldGutter, foldKeymap } from "@codemirror/language";
+    foldGutter, foldKeymap } from "@codemirror/language";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { searchKeymap } from "@codemirror/search";
 import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
 import { lintKeymap } from "@codemirror/lint";
 import { wgsl } from "./thirdparty/codemirror_lang_wgsl.js";
 import { cobalt } from 'thememirror';
-import { gutter, GutterMarker } from '@codemirror/view';
-import { WgslDebug } from "../src/wgsl_debug.js";
+import { WgslDebug } from "../wgsl_reflect.module.js";
 
 class BreakpointState {
   pos = 0;
@@ -74,7 +72,7 @@ const breakpointGutter = [
   })
 ];
 
-class HighlightLineState {
+/*class HighlightLineState {
   lineNo = 0;
 }
 const addLineHighlight = StateEffect.define<HighlightLineState>({
@@ -102,11 +100,11 @@ const lineHighlightField = StateField.define({
 
 const lineHighlightMark = Decoration.line({
   attributes: {style: 'background-color:rgb(64, 73, 14)'},
-});
+});*/
 
 const shaderEditorSetup = (() => [
   breakpointGutter,
-  lineHighlightField,
+  //lineHighlightField,
   lineNumbers(),
   highlightActiveLineGutter(),
   highlightSpecialChars(),
@@ -135,22 +133,17 @@ const shaderEditorSetup = (() => [
 ])();
 
 export class Debugger {
-  code: string;
-  editorView: EditorView;
-  debugger: WgslDebug;
-  watch: HTMLElement;
-
-  constructor(code: string, parent: HTMLElement, watch: HTMLElement) {
+  constructor(code, parent, watch) {
     this.code = code;
     this.watch = watch;
 
     const self = this;
     const stepOverButton = document.getElementById("step-over");
-    stepOverButton!.addEventListener("click", () => {
+    stepOverButton.addEventListener("click", () => {
       self.stepOver();
     });
     const stepIntoButton = document.getElementById("step-into");
-    stepIntoButton!.addEventListener("click", () => {
+    stepIntoButton.addEventListener("click", () => {
       self.stepInto();
     });
 
@@ -227,8 +220,8 @@ export class Debugger {
     this.updateHighlightLine();
   }
 
-  _highlightLine(lineNo: number) {
-    if (lineNo < 0) {
+  _highlightLine(lineNo) {
+    /*if (lineNo < 0) {
       return;
     }
     if (lineNo > 0) {
@@ -236,7 +229,7 @@ export class Debugger {
         this.editorView.dispatch({ effects: addLineHighlight.of({ lineNo: docPosition }) });
     } else {
         this.editorView.dispatch({ effects: addLineHighlight.of({ lineNo: 0 }) });
-    }
+    }*/
   }
 }
 
@@ -253,7 +246,7 @@ let bar = foo(3, 4);
 let bar2 = foo(5, -2);`;
   const parent = document.getElementById("debugger");
   const watch = document.getElementById("watch");
-  new Debugger(code, parent!, watch!);
+  new Debugger(code, parent, watch);
 }
 
 main();
