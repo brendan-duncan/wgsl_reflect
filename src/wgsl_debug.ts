@@ -182,6 +182,7 @@ export class WgslDebug {
         this._execStack = new ExecStack();
 
         const context = this._exec.context;
+        context.currentFunctionName = kernel;
 
         this._dispatchId = dispatchId;
 

@@ -223,6 +223,9 @@ export class WgslExec extends ExecInterface {
                 }
                 name += `<${type.format.name}>`;
             } else {
+                if (name === "vec2" || name === "vec3" || name === "vec4") {
+                    return name;
+                }
                 console.log("Template format is null.");
             }
         }
@@ -331,7 +334,9 @@ export class WgslExec extends ExecInterface {
         let value = this._evalExpression(node.value, context);
 
         if (node.operator !== "=") {
-            const currentValue = v.value.getDataValue(this, node.variable.postfix, context);
+            const currentValue = v.value instanceof Data ? 
+                v.value.getDataValue(this, node.variable.postfix, context) :
+                v.value;
 
             if (currentValue instanceof Array && value instanceof Array) {
                 if (currentValue.length !== value.length) {
@@ -569,7 +574,7 @@ export class WgslExec extends ExecInterface {
                 return Math.floor(this._callConstructorValue(node, context));
             case "f32":
             case "f16":
-                this._callConstructorValue(node, context);
+                return this._callConstructorValue(node, context);
             case "vec2":
             case "vec3":
             case "vec4":
@@ -1187,7 +1192,7 @@ export class WgslExec extends ExecInterface {
         return values;
     }
 
-    _callConstructorVec(node: AST.CallExpr | AST.CreateExpr, context: ExecContext) {
+    _callConstructorVec(node: AST.CreateExpr, context: ExecContext) {
         const typeName = node instanceof AST.CallExpr ? node.name : this._getTypeName(node.type);
         if (node.args.length === 0) {
             if (typeName === "vec2" || typeName === "vec2f" || typeName === "vec2i" || typeName === "vec2u") {
@@ -1199,6 +1204,10 @@ export class WgslExec extends ExecInterface {
             }
             console.error(`Invalid vec constructor ${typeName}. Line ${node.line}`);
             return null;
+        }
+
+        if (node.type instanceof AST.TemplateType && node.type.format === null) {
+            node.type.format = AST.TemplateType.f32; // TODO: get the format from the type of the arg.
         }
 
         const isInt = typeName.endsWith("i") || typeName.endsWith("u");
@@ -1213,8 +1222,22 @@ export class WgslExec extends ExecInterface {
             values.push(v);
         }
 
-        if (typeName == "f32" || typeName == "f16" || typeName == "i32" || typeName == "u32") {
-            return values[0];
+        if (typeName === "vec2" || typeName === "vec2f" || typeName === "vec2i" || typeName === "vec2u") {
+            if (values.length === 1) {
+                values.push(values[0]);
+            }
+        } else if (typeName === "vec3" || typeName === "vec3f" || typeName === "vec3i" || typeName === "vec3u") {
+            if (values.length === 1) {
+                values.push(values[0], values[0]);
+            } else if (values.length === 2) {
+                console.error(`Invalid vec3 constructor. Line ${node.line}`);
+            }
+        } else if (typeName === "vec4" || typeName === "vec4f" || typeName === "vec4i" || typeName === "vec4u") {
+            if (values.length === 1) {
+                values.push(values[0], values[0], values[0]);
+            } else if (values.length < 4) {
+                console.error(`Invalid vec3 constructor. Line ${node.line}`);
+            }
         }
 
         return values;

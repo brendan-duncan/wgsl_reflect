@@ -127,6 +127,14 @@ export class Debugger {
   constructor(code, parent, watch) {
     this.code = code;
     this.watch = watch;
+    this.debugger = new WgslDebug(code);
+
+    const countX = document.getElementById("cx");
+    const countY = document.getElementById("cy");
+    const countZ = document.getElementById("cz");
+    const workgroupX = document.getElementById("wgx");
+    const workgroupY = document.getElementById("wgy");
+    const workgroupZ = document.getElementById("wgz");
 
     const self = this;
     const stepOverButton = document.getElementById("step-over");
@@ -136,6 +144,22 @@ export class Debugger {
     const stepIntoButton = document.getElementById("step-into");
     stepIntoButton.addEventListener("click", () => {
       self.stepInto();
+    });
+
+    const dbgButton = document.getElementById("debug");
+    dbgButton.addEventListener("click", () => {
+      const cx = parseInt(countX.value);
+      const cy = parseInt(countY.value);
+      const cz = parseInt(countZ.value);
+      const wgx = parseInt(workgroupX.value);
+      const wgy = parseInt(workgroupY.value);
+      const wgz = parseInt(workgroupZ.value);
+
+      self.debugger = new WgslDebug(code);
+      const buffer = new Float32Array([1, 2, 6, 0]);
+      const bg = {0: {0: buffer}};
+      self.debugger.debugWorkgroup("main", [wgx, wgy, wgz], [cx, cy, cz], bg);
+      self.updateHighlightLine();
     });
 
     this.editorView = new EditorView({
@@ -148,9 +172,9 @@ export class Debugger {
       parent
     });
 
-    this.debugger = new WgslDebug(code);
-    this.debugger.startDebug();
-
+    const buffer = new Float32Array([1, 2, 6, 0]);
+    const bg = {0: {0: buffer}};
+    this.debugger.debugWorkgroup("main", [1, 0, 0], 4, bg);
     this.updateHighlightLine();
   }
 
@@ -176,29 +200,64 @@ export class Debugger {
         const context = this.debugger.context;
         const currentFunctionName = context.currentFunctionName;
         const div = document.createElement("div");
+        div.style.fontWeight = "bold";
         div.innerText = currentFunctionName || "<shader>";
         this.watch.appendChild(div);
 
-        context.variables.forEach((v) => {
+        context.variables.forEach((v, name) => {
+          if (!name.startsWith("@")) {
             const div = document.createElement("div");
-            div.innerText = `${v.name || "<var>"} : ${v.value}`;
+            div.innerText = `${name} : ${v.value}`;
             this.watch.appendChild(div);
+          }
+        });
+
+        const globals = document.createElement("div");
+        globals.style.marginTop = "10px";
+        globals.style.border = "1px solid black";
+        this.watch.appendChild(globals);
+        context.variables.forEach((v, name) => {
+          if (name.startsWith("@")) {
+            const div = document.createElement("div");
+            div.innerText = `${name} : ${v.value}`;
+            this.watch.appendChild(div);
+          }
         });
     } else {
+        let lastState = state;
         while (state !== null) {
             const context = state.context;
             const currentFunctionName = context.currentFunctionName;
             const div = document.createElement("div");
+            div.style.fontWeight = "bold";
             div.innerText = currentFunctionName || "<shader>";
             this.watch.appendChild(div);
 
-            context.variables.forEach((v) => {
-                const div = document.createElement("div");
-                div.innerText = `${v.name || "<var>"} : ${v.value}`;
-                this.watch.appendChild(div);
+            context.variables.forEach((v, name) => {
+                if (!name.startsWith("@")) {
+                  const div = document.createElement("div");
+                  div.innerText = `${name} : ${v.value}`;
+                  this.watch.appendChild(div);
+                }
             });
 
+            lastState = state;
             state = state.parent;
+        }
+
+        if (lastState) {
+          const context = lastState.context;
+          const globals = document.createElement("div");
+          globals.style.marginTop = "10px";
+          globals.style.border = "1px solid black";
+          this.watch.appendChild(globals);
+          context.variables.forEach((v, name) => {
+            if (name.startsWith("@")) {
+              const div = document.createElement("div");
+              div.innerText = `${name} : ${v.value}`;
+              this.watch.appendChild(div);
+            }
+          });
         }
     }
   }
@@ -225,15 +284,15 @@ export class Debugger {
 
 function main() {
   const code = `
-fn foo(a: i32, b: i32) -> i32 {
-  if b > 0 {
-    return a / b;
-  } else {
-    return a * b;
-  }
+fn scale(x: f32, y: f32) -> f32 {
+  return x * y;
 }
-let bar = foo(3, 4);
-let bar2 = foo(5, -2);`;
+@group(0) @binding(0) var<storage, read_write> buffer: array<f32>;
+@compute @workgroup_size(1)
+fn main(@builtin(global_invocation_id) id: vec3<u32>) {
+    let i = id.x;
+    buffer[i] = scale(buffer[i], 2.0);
+}`;
   const parent = document.getElementById("debugger");
   const watch = document.getElementById("watch");
   new Debugger(code, parent, watch);

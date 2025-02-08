@@ -4925,55 +4925,76 @@ class Data {
                 }
                 else if (typeInfo instanceof TypeInfo) {
                     const typeName = exec._getTypeName(typeInfo);
-                    let element = 0;
-                    if (member === "x" || member === "r") {
-                        element = 0;
-                    }
-                    else if (member === "y" || member === "g") {
-                        element = 1;
-                    }
-                    else if (member === "z" || member === "b") {
-                        element = 2;
-                    }
-                    else if (member === "w" || member === "a") {
-                        element = 3;
-                    }
-                    else {
-                        console.error(`Unknown member ${member}`);
-                        return null;
-                    }
-                    if (typeName === "vec2f") {
-                        return new Float32Array(this.buffer, offset, 2)[element];
-                    }
-                    else if (typeName === "vec3f") {
-                        if ((offset + 12) >= this.buffer.byteLength) {
-                            console.log("Insufficient buffer data");
+                    if (typeName === "vec2f" || typeName === "vec3f" || typeName === "vec4f" ||
+                        typeName === "vec2i" || typeName === "vec3i" || typeName === "vec4i" ||
+                        typeName === "vec2u" || typeName === "vec3u" || typeName === "vec4u" ||
+                        typeName === "vec2b" || typeName === "vec3b" || typeName === "vec4b" ||
+                        typeName === "vec2h" || typeName === "vec3h" || typeName === "vec4h" ||
+                        typeName === "vec2" || typeName === "vec3" || typeName === "vec4") {
+                        if (member.length > 0 && member.length < 5) {
+                            const value = [];
+                            for (let i = 0; i < member.length; ++i) {
+                                const m = member[i].toLocaleLowerCase();
+                                let element = 0;
+                                if (m === "x" || m === "r") {
+                                    element = 0;
+                                }
+                                else if (m === "y" || m === "g") {
+                                    element = 1;
+                                }
+                                else if (m === "z" || m === "b") {
+                                    element = 2;
+                                }
+                                else if (m === "w" || m === "a") {
+                                    element = 3;
+                                }
+                                else {
+                                    console.error(`Unknown member ${member}`);
+                                    return null;
+                                }
+                                if (typeName === "vec2f") {
+                                    value.push(new Float32Array(this.buffer, offset, 2)[element]);
+                                }
+                                else if (typeName === "vec3f") {
+                                    if ((offset + 12) >= this.buffer.byteLength) {
+                                        console.log("Insufficient buffer data");
+                                        return null;
+                                    }
+                                    const fa = new Float32Array(this.buffer, offset, 3);
+                                    value.push(fa[element]);
+                                }
+                                else if (typeName === "vec4f") {
+                                    value.push(new Float32Array(this.buffer, offset, 4)[element]);
+                                }
+                                else if (typeName === "vec2i") {
+                                    value.push(new Int32Array(this.buffer, offset, 2)[element]);
+                                }
+                                else if (typeName === "vec3i") {
+                                    value.push(new Int32Array(this.buffer, offset, 3)[element]);
+                                }
+                                else if (typeName === "vec4i") {
+                                    value.push(new Int32Array(this.buffer, offset, 4)[element]);
+                                }
+                                else if (typeName === "vec2u") {
+                                    const ua = new Uint32Array(this.buffer, offset, 2);
+                                    value.push(ua[element]);
+                                }
+                                else if (typeName === "vec3u") {
+                                    value.push(new Uint32Array(this.buffer, offset, 3)[element]);
+                                }
+                                else if (typeName === "vec4u") {
+                                    value.push(new Uint32Array(this.buffer, offset, 4)[element]);
+                                }
+                            }
+                            if (value.length === 1) {
+                                return value[0];
+                            }
+                            return value;
+                        }
+                        else {
+                            console.error(`GetDataValue: Unknown member ${member}`);
                             return null;
                         }
-                        const fa = new Float32Array(this.buffer, offset, 3);
-                        return fa[element];
-                    }
-                    else if (typeName === "vec4f") {
-                        return new Float32Array(this.buffer, offset, 4)[element];
-                    }
-                    else if (typeName === "vec2i") {
-                        return new Int32Array(this.buffer, offset, 2)[element];
-                    }
-                    else if (typeName === "vec3i") {
-                        return new Int32Array(this.buffer, offset, 3)[element];
-                    }
-                    else if (typeName === "vec4i") {
-                        return new Int32Array(this.buffer, offset, 4)[element];
-                    }
-                    else if (typeName === "vec2u") {
-                        const ua = new Uint32Array(this.buffer, offset, 2);
-                        return ua[element];
-                    }
-                    else if (typeName === "vec3u") {
-                        return new Uint32Array(this.buffer, offset, 3)[element];
-                    }
-                    else if (typeName === "vec4u") {
-                        return new Uint32Array(this.buffer, offset, 4)[element];
                     }
                     console.error(`GetDataValue: Type ${typeName} is not a struct`);
                     return null;
@@ -6084,6 +6105,9 @@ class WgslExec extends ExecInterface {
                 name += `<${type.format.name}>`;
             }
             else {
+                if (name === "vec2" || name === "vec3" || name === "vec4") {
+                    return name;
+                }
                 console.log("Template format is null.");
             }
         }
@@ -6199,7 +6223,9 @@ class WgslExec extends ExecInterface {
         }
         let value = this._evalExpression(node.value, context);
         if (node.operator !== "=") {
-            const currentValue = v.value.getDataValue(this, node.variable.postfix, context);
+            const currentValue = v.value instanceof Data ?
+                v.value.getDataValue(this, node.variable.postfix, context) :
+                v.value;
             if (currentValue instanceof Array && value instanceof Array) {
                 if (currentValue.length !== value.length) {
                     console.error(`Vector length mismatch. Line ${node.line}`);
@@ -6454,7 +6480,7 @@ class WgslExec extends ExecInterface {
                 return Math.floor(this._callConstructorValue(node, context));
             case "f32":
             case "f16":
-                this._callConstructorValue(node, context);
+                return this._callConstructorValue(node, context);
             case "vec2":
             case "vec3":
             case "vec4":
@@ -7079,6 +7105,9 @@ class WgslExec extends ExecInterface {
             console.error(`Invalid vec constructor ${typeName}. Line ${node.line}`);
             return null;
         }
+        if (node.type instanceof TemplateType && node.type.format === null) {
+            node.type.format = TemplateType.f32; // TODO: get the format from the type of the arg.
+        }
         const isInt = typeName.endsWith("i") || typeName.endsWith("u");
         const values = [];
         // TODO: make sure the number of args matches the vector length.
@@ -7089,8 +7118,26 @@ class WgslExec extends ExecInterface {
             }
             values.push(v);
         }
-        if (typeName == "f32" || typeName == "f16" || typeName == "i32" || typeName == "u32") {
-            return values[0];
+        if (typeName === "vec2" || typeName === "vec2f" || typeName === "vec2i" || typeName === "vec2u") {
+            if (values.length === 1) {
+                values.push(values[0]);
+            }
+        }
+        else if (typeName === "vec3" || typeName === "vec3f" || typeName === "vec3i" || typeName === "vec3u") {
+            if (values.length === 1) {
+                values.push(values[0], values[0]);
+            }
+            else if (values.length === 2) {
+                console.error(`Invalid vec3 constructor. Line ${node.line}`);
+            }
+        }
+        else if (typeName === "vec4" || typeName === "vec4f" || typeName === "vec4i" || typeName === "vec4u") {
+            if (values.length === 1) {
+                values.push(values[0], values[0], values[0]);
+            }
+            else if (values.length < 4) {
+                console.error(`Invalid vec3 constructor. Line ${node.line}`);
+            }
         }
         return values;
     }
@@ -7275,6 +7322,7 @@ class WgslDebug {
     debugWorkgroup(kernel, dispatchId, dispatchCount, bindGroups, config) {
         this._execStack = new ExecStack();
         const context = this._exec.context;
+        context.currentFunctionName = kernel;
         this._dispatchId = dispatchId;
         config = config !== null && config !== void 0 ? config : {};
         if (config["constants"]) {
