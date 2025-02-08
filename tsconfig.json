@@ -13,12 +13,13 @@
     "noImplicitUseStrict": false,
     "noFallthroughCasesInSwitch": false,
     "allowSyntheticDefaultImports": true,
-    "declaration": true,
-    "declarationDir": "types",
+    "sourceMap": true,
     "moduleResolution": "node",
+    "declaration": true,
+    "declarationDir": "./types"
   },
+  "exclude": ["node_modules"],
   "files": [
-    "src/index.ts"
+    "./src/index.ts"
   ],
-  "exclude": ["node_modules"]
 }

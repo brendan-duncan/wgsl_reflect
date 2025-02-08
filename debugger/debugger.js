@@ -11,15 +11,11 @@ import { wgsl } from "./thirdparty/codemirror_lang_wgsl.js";
 import { cobalt } from 'thememirror';
 import { WgslDebug } from "../wgsl_reflect.module.js";
 
-class BreakpointState {
-  pos = 0;
-  on = false;
-}
-const breakpointEffect = StateEffect.define<BreakpointState>({
+const breakpointEffect = StateEffect.define({
   map: (val, mapping) => ({ pos: mapping.mapPos(val.pos), on: val.on })
 });
 
-const breakpointState = StateField.define<RangeSet<GutterMarker>>({
+const breakpointState = StateField.define({
   create() { return RangeSet.empty; },
   update(set, transaction) {
     set = set.map(transaction.changes);
@@ -47,7 +43,7 @@ function toggleBreakpoint(view, pos) {
 
 const breakpointMarker = new class extends GutterMarker {
   toDOM() { return document.createTextNode("🔴") }
-}
+};
 
 const breakpointGutter = [
   breakpointState,
@@ -72,10 +68,7 @@ const breakpointGutter = [
   })
 ];
 
-/*class HighlightLineState {
-  lineNo = 0;
-}
-const addLineHighlight = StateEffect.define<HighlightLineState>({
+const addLineHighlight = StateEffect.define({
   map: (val, mapping) => ({ lineNo: mapping.mapPos(val.lineNo) })
 });
 
@@ -100,11 +93,9 @@ const lineHighlightField = StateField.define({
 
 const lineHighlightMark = Decoration.line({
   attributes: {style: 'background-color:rgb(64, 73, 14)'},
-});*/
+});
 
 const shaderEditorSetup = (() => [
-  breakpointGutter,
-  //lineHighlightField,
   lineNumbers(),
   highlightActiveLineGutter(),
   highlightSpecialChars(),
@@ -150,6 +141,8 @@ export class Debugger {
     this.editorView = new EditorView({
       doc: code,
       extensions: [
+        breakpointGutter,
+        lineHighlightField,
         shaderEditorSetup,
       ],
       parent
@@ -221,15 +214,12 @@ export class Debugger {
   }
 
   _highlightLine(lineNo) {
-    /*if (lineNo < 0) {
-      return;
-    }
     if (lineNo > 0) {
         const docPosition = this.editorView.state.doc.line(lineNo).from;
         this.editorView.dispatch({ effects: addLineHighlight.of({ lineNo: docPosition }) });
     } else {
         this.editorView.dispatch({ effects: addLineHighlight.of({ lineNo: 0 }) });
-    }*/
+    }
   }
 }
 
