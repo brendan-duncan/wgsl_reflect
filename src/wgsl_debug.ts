@@ -32,6 +32,9 @@ class CallExprCommand extends Command {
 }
 
 class GotoCommand extends Command {
+    static kLoopTarget = -1;
+    static kContinue = -2;
+
     condition: AST.Node | null;
     position: number;
 
@@ -345,13 +348,54 @@ export class WgslDebug {
             } else if (command instanceof StatementCommand) {
                 const res = this._exec._execStatement(command.node, state.context);
                 if (res !== null && res !== undefined) {
-                    state.parent?.parentCallExpr?.setCachedReturnValue(res);
+                    if (state.parent?.parentCallExpr) {
+                        state.parent?.parentCallExpr?.setCachedReturnValue(res);
+                    } else {
+                        state.parentCallExpr?.setCachedReturnValue(res);
+                    }
                     if (this._shouldExecuteNectCommand()) {
                         continue;
                     }
                     return true;
                 }
             } else if (command instanceof GotoCommand) {
+                // -1 is used as a marker for continue statements. Skip it.
+                if (command.position === GotoCommand.kLoopTarget) {
+                    continue; // continue to the next command
+                }
+                // -2 is used as a marker for continue statements. If we encounter it,
+                // then we need to find the nearest proceding GotoCommand with a -1 position.
+                if (command.position === GotoCommand.kContinue) {
+                    while (!this._execStack.isEmpty) {
+                        state = this._execStack.last;
+                        for (let i = state.current; i >= 0; --i) {
+                            const cmd = state.commands[i];
+                            if (cmd instanceof GotoCommand) {
+                                if (cmd.position === GotoCommand.kLoopTarget) {
+                                    state.current = i + 1;
+                                    return true;
+                                }
+                            }
+                        }
+                        // For loops can have the loop target ahead in the stack, for the
+                        // increment command, so we need to search ahead as well.
+                        for (let i = state.current; i < state.commands.length; ++i) {
+                            const cmd = state.commands[i];
+                            if (cmd instanceof GotoCommand) {
+                                if (cmd.position === GotoCommand.kLoopTarget) {
+                                    state.current = i + 1;
+                                    return true;
+                                }
+                            }
+                        }
+                        // No Goto -1 found (loop), pop the current state and continue searching.
+                        this._execStack.pop();
+                    }
+                    // If we got here, we've reached the end of the stack and didn't find a -1.
+                    // That means a continue was used outside of a loop, so we're done.
+                    console.error("Continue statement used outside of a loop");
+                    return false;
+                }
                 if (command.condition) {
                     const res = this._exec._evalExpression(command.condition, state.context);
                     if (res) {
@@ -509,12 +553,15 @@ export class WgslDebug {
                     state.commands.push(new CallExprCommand(call, statement));
                 }
                 state.commands.push(new StatementCommand(statement));
+            } else if (statement instanceof AST.Increment) {
+                state.commands.push(new StatementCommand(statement));
             } else if (statement instanceof AST.Function) {
                 const f = new Function(statement);
                 state.context.functions.set(statement.name, f);
                 continue;
             } else if (statement instanceof AST.While) {
                 const functionCalls = [];
+                state.commands.push(new GotoCommand(null, GotoCommand.kLoopTarget));
                 this._collectFunctionCalls(statement.condition, functionCalls);
                 for (const call of functionCalls) {
                     state.commands.push(new CallExprCommand(call, statement));
@@ -558,6 +605,37 @@ export class WgslDebug {
                 }
 
                 gotoEnd.position = state.commands.length;
+            } else if (statement instanceof AST.For) {
+                if (statement.init) {
+                    state.commands.push(new StatementCommand(statement.init));
+                }
+
+                let conditionPos = state.commands.length;
+
+                if (statement.increment === null) {
+                    state.commands.push(new GotoCommand(null, GotoCommand.kLoopTarget));
+                }
+                let conditionCmd = null;
+                if (statement.condition) {
+                    const functionCalls = [];
+                    this._collectFunctionCalls(statement.condition!, functionCalls);
+                    for (const call of functionCalls) {
+                        state.commands.push(new CallExprCommand(call, statement));
+                    }
+                    conditionCmd = new GotoCommand(statement.condition, 0);
+                    state.commands.push(conditionCmd);
+                }
+
+                state.commands.push(new BlockCommand(statement.body));
+
+                if (statement.increment) {
+                    state.commands.push(new GotoCommand(null, GotoCommand.kLoopTarget));
+                    state.commands.push(new StatementCommand(statement.increment));
+                }
+                state.commands.push(new GotoCommand(null, conditionPos));
+                conditionCmd.position = state.commands.length;
+            } else if (statement instanceof AST.Continue) {
+                state.commands.push(new GotoCommand(null, GotoCommand.kContinue));
             } else {
                 console.error(`TODO: statement type ${statement.constructor.name}`);
             }

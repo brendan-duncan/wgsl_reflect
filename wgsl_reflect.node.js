@@ -7237,6 +7237,8 @@ class GotoCommand extends Command {
         return (_b = (_a = this.condition) === null || _a === void 0 ? void 0 : _a.line) !== null && _b !== void 0 ? _b : -1;
     }
 }
+GotoCommand.kLoopTarget = -1;
+GotoCommand.kContinue = -2;
 class BlockCommand extends Command {
     constructor(statements) {
         super();
@@ -7440,19 +7442,12 @@ class WgslDebug {
             if (command.condition === null) {
                 return true;
             }
-        } /* else if (command instanceof StatementCommand) {
-            if (command.node instanceof AST.Assign ||
-                command.node instanceof AST.Let ||
-                command.node instanceof AST.Var ||
-                command.node instanceof AST.Const) {
-                return true;
-            }
-        }*/
+        }
         return false;
     }
     // Returns true if execution is not finished, false if execution is complete.
     stepNext(stepInto = true) {
-        var _a, _b;
+        var _a, _b, _c, _d;
         if (!this._execStack) {
             this._execStack = new ExecStack();
             const state = this._createState(this._exec.ast, this._exec.context);
@@ -7500,7 +7495,12 @@ class WgslDebug {
             else if (command instanceof StatementCommand) {
                 const res = this._exec._execStatement(command.node, state.context);
                 if (res !== null && res !== undefined) {
-                    (_b = (_a = state.parent) === null || _a === void 0 ? void 0 : _a.parentCallExpr) === null || _b === void 0 ? void 0 : _b.setCachedReturnValue(res);
+                    if ((_a = state.parent) === null || _a === void 0 ? void 0 : _a.parentCallExpr) {
+                        (_c = (_b = state.parent) === null || _b === void 0 ? void 0 : _b.parentCallExpr) === null || _c === void 0 ? void 0 : _c.setCachedReturnValue(res);
+                    }
+                    else {
+                        (_d = state.parentCallExpr) === null || _d === void 0 ? void 0 : _d.setCachedReturnValue(res);
+                    }
                     if (this._shouldExecuteNectCommand()) {
                         continue;
                     }
@@ -7508,6 +7508,43 @@ class WgslDebug {
                 }
             }
             else if (command instanceof GotoCommand) {
+                // -1 is used as a marker for continue statements. Skip it.
+                if (command.position === GotoCommand.kLoopTarget) {
+                    continue; // continue to the next command
+                }
+                // -2 is used as a marker for continue statements. If we encounter it,
+                // then we need to find the nearest proceding GotoCommand with a -1 position.
+                if (command.position === GotoCommand.kContinue) {
+                    while (!this._execStack.isEmpty) {
+                        state = this._execStack.last;
+                        for (let i = state.current; i >= 0; --i) {
+                            const cmd = state.commands[i];
+                            if (cmd instanceof GotoCommand) {
+                                if (cmd.position === GotoCommand.kLoopTarget) {
+                                    state.current = i + 1;
+                                    return true;
+                                }
+                            }
+                        }
+                        // For loops can have the loop target ahead in the stack, for the
+                        // increment command, so we need to search ahead as well.
+                        for (let i = state.current; i < state.commands.length; ++i) {
+                            const cmd = state.commands[i];
+                            if (cmd instanceof GotoCommand) {
+                                if (cmd.position === GotoCommand.kLoopTarget) {
+                                    state.current = i + 1;
+                                    return true;
+                                }
+                            }
+                        }
+                        // No Goto -1 found (loop), pop the current state and continue searching.
+                        this._execStack.pop();
+                    }
+                    // If we got here, we've reached the end of the stack and didn't find a -1.
+                    // That means a continue was used outside of a loop, so we're done.
+                    console.error("Continue statement used outside of a loop");
+                    return false;
+                }
                 if (command.condition) {
                     const res = this._exec._evalExpression(command.condition, state.context);
                     if (res) {
@@ -7659,6 +7696,9 @@ class WgslDebug {
                 }
                 state.commands.push(new StatementCommand(statement));
             }
+            else if (statement instanceof Increment) {
+                state.commands.push(new StatementCommand(statement));
+            }
             else if (statement instanceof Function$1) {
                 const f = new Function(statement);
                 state.context.functions.set(statement.name, f);
@@ -7666,6 +7706,7 @@ class WgslDebug {
             }
             else if (statement instanceof While) {
                 const functionCalls = [];
+                state.commands.push(new GotoCommand(null, GotoCommand.kLoopTarget));
                 this._collectFunctionCalls(statement.condition, functionCalls);
                 for (const call of functionCalls) {
                     state.commands.push(new CallExprCommand(call, statement));
@@ -7704,6 +7745,35 @@ class WgslDebug {
                     state.commands.push(new BlockCommand(statement.else));
                 }
                 gotoEnd.position = state.commands.length;
+            }
+            else if (statement instanceof For) {
+                if (statement.init) {
+                    state.commands.push(new StatementCommand(statement.init));
+                }
+                let conditionPos = state.commands.length;
+                if (statement.increment === null) {
+                    state.commands.push(new GotoCommand(null, GotoCommand.kLoopTarget));
+                }
+                let conditionCmd = null;
+                if (statement.condition) {
+                    const functionCalls = [];
+                    this._collectFunctionCalls(statement.condition, functionCalls);
+                    for (const call of functionCalls) {
+                        state.commands.push(new CallExprCommand(call, statement));
+                    }
+                    conditionCmd = new GotoCommand(statement.condition, 0);
+                    state.commands.push(conditionCmd);
+                }
+                state.commands.push(new BlockCommand(statement.body));
+                if (statement.increment) {
+                    state.commands.push(new GotoCommand(null, GotoCommand.kLoopTarget));
+                    state.commands.push(new StatementCommand(statement.increment));
+                }
+                state.commands.push(new GotoCommand(null, conditionPos));
+                conditionCmd.position = state.commands.length;
+            }
+            else if (statement instanceof Continue) {
+                state.commands.push(new GotoCommand(null, GotoCommand.kContinue));
             }
             else {
                 console.error(`TODO: statement type ${statement.constructor.name}`);

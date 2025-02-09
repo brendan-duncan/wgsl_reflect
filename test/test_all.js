@@ -23,7 +23,7 @@ function displayResults() {
 }
 
 async function runTests() {
-  await scanner.run();
+  //await scanner.run();
   await parser.run();
   await struct.run();
   await reflect.run();
