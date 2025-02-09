@@ -2792,6 +2792,7 @@ class WgslParser {
         if (!this._match(TokenTypes.keywords.if)) {
             return null;
         }
+        const line = this._currentLine;
         const condition = this._optional_paren_expression();
         if (this._check(TokenTypes.tokens.attr)) {
             this._attribute();
@@ -2811,7 +2812,7 @@ class WgslParser {
             }
             _else = this._compound_statement();
         }
-        return this._updateNode(new If(condition, block, elseif, _else));
+        return this._updateNode(new If(condition, block, elseif, _else), line);
     }
     _match_elseif() {
         if (this._tokens[this._current].type === TokenTypes.keywords.else &&

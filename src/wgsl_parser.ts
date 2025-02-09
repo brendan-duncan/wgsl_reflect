@@ -808,6 +808,8 @@ export class WgslParser {
       return null;
     }
 
+    const line = this._currentLine;
+
     const condition = this._optional_paren_expression();
 
     let attributes = null;
@@ -835,7 +837,7 @@ export class WgslParser {
       _else = this._compound_statement();
     }
 
-    return this._updateNode(new AST.If(condition, block, elseif, _else));
+    return this._updateNode(new AST.If(condition, block, elseif, _else), line);
   }
 
   _match_elseif(): boolean {
