@@ -34300,15 +34300,14 @@ class WgslDebug {
             if (command.condition === null) {
                 return true;
             }
-        }
-        else if (command instanceof StatementCommand) {
-            if (command.node instanceof Assign ||
-                command.node instanceof Let ||
-                command.node instanceof Var$1 ||
-                command.node instanceof Const) {
+        } /* else if (command instanceof StatementCommand) {
+            if (command.node instanceof AST.Assign ||
+                command.node instanceof AST.Let ||
+                command.node instanceof AST.Var ||
+                command.node instanceof AST.Const) {
                 return true;
             }
-        }
+        }*/
         return false;
     }
     // Returns true if execution is not finished, false if execution is complete.

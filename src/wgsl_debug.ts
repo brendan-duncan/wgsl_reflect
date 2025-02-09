@@ -285,13 +285,6 @@ export class WgslDebug {
             if (command.condition === null) {
                 return true;
             }
-        } else if (command instanceof StatementCommand) {
-            if (command.node instanceof AST.Assign ||
-                command.node instanceof AST.Let ||
-                command.node instanceof AST.Var ||
-                command.node instanceof AST.Const) {
-                return true;
-            }
         }
         return false;
     }
