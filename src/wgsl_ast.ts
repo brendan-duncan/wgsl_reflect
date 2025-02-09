@@ -990,7 +990,7 @@ export class CreateExpr extends Expression {
 export class CallExpr extends Expression {
   name: string;
   args: Array<Expression> | null;
-  cachedReturnValue: any;
+  cachedReturnValue: any = null;
 
   constructor(name: string, args: Array<Expression> | null) {
     super();

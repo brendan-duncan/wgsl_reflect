@@ -3,6 +3,21 @@ import { WgslDebug } from "../../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Debug", async function () {
+    await test("break", async function (test) {
+      const shader = `fn foo() -> i32 {
+        let j = 0;
+        for (var i = 0; i < 5; i++) {
+          if i == 0 { break; }
+          j++;
+        }
+        return j;
+      }
+      let j = foo();`;
+      const dbg = new WgslDebug(shader);
+      while (dbg.stepNext());
+      test.equals(dbg.getVariableValue("j"), 0);
+    });
+
     await test("continue", async function (test) {
       const shader = `fn foo() -> i32 {
         let j = 0;

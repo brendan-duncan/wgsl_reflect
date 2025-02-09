@@ -782,7 +782,7 @@ export class WgslExec extends ExecInterface {
     }
 
     _evalCall(node: AST.CallExpr, context: ExecContext) {
-        if (node.cachedReturnValue) {
+        if (node.cachedReturnValue !== null) {
             return node.cachedReturnValue;
         }
 

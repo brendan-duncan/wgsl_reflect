@@ -735,6 +735,7 @@ class CreateExpr extends Expression {
 class CallExpr extends Expression {
     constructor(name, args) {
         super();
+        this.cachedReturnValue = null;
         this.name = name;
         this.args = args;
     }
@@ -6703,7 +6704,7 @@ class WgslExec extends ExecInterface {
         return null;
     }
     _evalCall(node, context) {
-        if (node.cachedReturnValue) {
+        if (node.cachedReturnValue !== null) {
             return node.cachedReturnValue;
         }
         const subContext = context.clone();
@@ -7233,8 +7234,10 @@ class GotoCommand extends Command {
         return (_b = (_a = this.condition) === null || _a === void 0 ? void 0 : _a.line) !== null && _b !== void 0 ? _b : -1;
     }
 }
-GotoCommand.kLoopTarget = -1;
-GotoCommand.kContinue = -2;
+GotoCommand.kContinueTarget = -1;
+GotoCommand.kBreakTarget = -2;
+GotoCommand.kContinue = -3;
+GotoCommand.kBreak = -4;
 class BlockCommand extends Command {
     constructor(statements) {
         super();
@@ -7443,7 +7446,6 @@ class WgslDebug {
     }
     // Returns true if execution is not finished, false if execution is complete.
     stepNext(stepInto = true) {
-        var _a, _b, _c, _d;
         if (!this._execStack) {
             this._execStack = new ExecStack();
             const state = this._createState(this._exec.ast, this._exec.context);
@@ -7491,11 +7493,17 @@ class WgslDebug {
             else if (command instanceof StatementCommand) {
                 const res = this._exec._execStatement(command.node, state.context);
                 if (res !== null && res !== undefined) {
-                    if ((_a = state.parent) === null || _a === void 0 ? void 0 : _a.parentCallExpr) {
-                        (_c = (_b = state.parent) === null || _b === void 0 ? void 0 : _b.parentCallExpr) === null || _c === void 0 ? void 0 : _c.setCachedReturnValue(res);
+                    let s = state;
+                    // Find the CallExpr to store the return value in.
+                    while (s) {
+                        if (s.parentCallExpr) {
+                            s.parentCallExpr.setCachedReturnValue(res);
+                            break;
+                        }
+                        s = s.parent;
                     }
-                    else {
-                        (_d = state.parentCallExpr) === null || _d === void 0 ? void 0 : _d.setCachedReturnValue(res);
+                    if (s === null) {
+                        console.error("Could not find CallExpr to store return value in");
                     }
                     if (this._shouldExecuteNectCommand()) {
                         continue;
@@ -7504,33 +7512,23 @@ class WgslDebug {
                 }
             }
             else if (command instanceof GotoCommand) {
-                // -1 is used as a marker for continue statements. Skip it.
-                if (command.position === GotoCommand.kLoopTarget) {
+                // kContinueTarget is used as a marker for continue statements, and
+                // kBreakTarget is used as a marker for break statements. Skip them.
+                if (command.position === GotoCommand.kContinueTarget ||
+                    command.position === GotoCommand.kBreakTarget) {
                     continue; // continue to the next command
                 }
-                // -2 is used as a marker for continue statements. If we encounter it,
-                // then we need to find the nearest proceding GotoCommand with a -1 position.
+                // kContinue is used as a marker for continue statements. If we encounter it,
+                // then we need to find the nearest proceding GotoCommand with a kContinueTarget.
                 if (command.position === GotoCommand.kContinue) {
                     while (!this._execStack.isEmpty) {
                         state = this._execStack.last;
                         for (let i = state.current; i >= 0; --i) {
                             const cmd = state.commands[i];
-                            if (cmd instanceof GotoCommand) {
-                                if (cmd.position === GotoCommand.kLoopTarget) {
-                                    state.current = i + 1;
-                                    return true;
-                                }
-                            }
-                        }
-                        // For loops can have the loop target ahead in the stack, for the
-                        // increment command, so we need to search ahead as well.
-                        for (let i = state.current; i < state.commands.length; ++i) {
-                            const cmd = state.commands[i];
-                            if (cmd instanceof GotoCommand) {
-                                if (cmd.position === GotoCommand.kLoopTarget) {
-                                    state.current = i + 1;
-                                    return true;
-                                }
+                            if (cmd instanceof GotoCommand &&
+                                cmd.position === GotoCommand.kContinueTarget) {
+                                state.current = i + 1;
+                                return true;
                             }
                         }
                         // No Goto -1 found (loop), pop the current state and continue searching.
@@ -7539,6 +7537,27 @@ class WgslDebug {
                     // If we got here, we've reached the end of the stack and didn't find a -1.
                     // That means a continue was used outside of a loop, so we're done.
                     console.error("Continue statement used outside of a loop");
+                    return false;
+                }
+                // kBreak is used as a marker for break statements. If we encounter it,
+                // then we need to find the nearest subsequent GotoCommand with a kBreakTarget.
+                if (command.position === GotoCommand.kBreak) {
+                    while (!this._execStack.isEmpty) {
+                        state = this._execStack.last;
+                        for (let i = state.current; i < state.commands.length; ++i) {
+                            const cmd = state.commands[i];
+                            if (cmd instanceof GotoCommand &&
+                                cmd.position === GotoCommand.kBreakTarget) {
+                                state.current = i + 1;
+                                return true;
+                            }
+                        }
+                        // No Goto -2 found (loop), pop the current state and continue searching.
+                        this._execStack.pop();
+                    }
+                    // If we got here, we've reached the end of the stack and didn't find a -2.
+                    // That means a break was used outside of a loop, so we're done.
+                    console.error("Break statement used outside of a loop");
                     return false;
                 }
                 if (command.condition) {
@@ -7702,7 +7721,7 @@ class WgslDebug {
             }
             else if (statement instanceof While) {
                 const functionCalls = [];
-                state.commands.push(new GotoCommand(null, GotoCommand.kLoopTarget));
+                state.commands.push(new GotoCommand(null, GotoCommand.kContinueTarget));
                 this._collectFunctionCalls(statement.condition, functionCalls);
                 for (const call of functionCalls) {
                     state.commands.push(new CallExprCommand(call, statement));
@@ -7711,6 +7730,7 @@ class WgslDebug {
                 state.commands.push(conditionCmd);
                 state.commands.push(new BlockCommand(statement.body));
                 state.commands.push(new GotoCommand(statement.condition, 0));
+                state.commands.push(new GotoCommand(null, GotoCommand.kBreakTarget));
                 conditionCmd.position = state.commands.length;
             }
             else if (statement instanceof If) {
@@ -7748,7 +7768,7 @@ class WgslDebug {
                 }
                 let conditionPos = state.commands.length;
                 if (statement.increment === null) {
-                    state.commands.push(new GotoCommand(null, GotoCommand.kLoopTarget));
+                    state.commands.push(new GotoCommand(null, GotoCommand.kContinueTarget));
                 }
                 let conditionCmd = null;
                 if (statement.condition) {
@@ -7762,14 +7782,18 @@ class WgslDebug {
                 }
                 state.commands.push(new BlockCommand(statement.body));
                 if (statement.increment) {
-                    state.commands.push(new GotoCommand(null, GotoCommand.kLoopTarget));
+                    state.commands.push(new GotoCommand(null, GotoCommand.kContinueTarget));
                     state.commands.push(new StatementCommand(statement.increment));
                 }
                 state.commands.push(new GotoCommand(null, conditionPos));
+                state.commands.push(new GotoCommand(null, GotoCommand.kBreakTarget));
                 conditionCmd.position = state.commands.length;
             }
             else if (statement instanceof Continue) {
                 state.commands.push(new GotoCommand(null, GotoCommand.kContinue));
+            }
+            else if (statement instanceof Break) {
+                state.commands.push(new GotoCommand(null, GotoCommand.kBreak));
             }
             else {
                 console.error(`TODO: statement type ${statement.constructor.name}`);
