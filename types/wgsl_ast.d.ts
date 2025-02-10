@@ -480,7 +480,7 @@ export declare class CreateExpr extends Expression {
     constructor(type: Type | null, args: Array<Expression> | null);
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;
-    _maxFormatType(a: Type, b: Type): Type;
+    _maxFormatType(x: Type[]): Type;
     constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
 }
 /**

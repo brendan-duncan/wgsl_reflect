@@ -11,11 +11,14 @@ export async function run() {
       const d : f32 = 4; // f32 -- 4
       const e = vec3(a, a, a); // vec3<i32> -- [4, 4, 4]
       const f = 2.0; // f32 -- 2
-      const g = mat2x2(a, f, a, f); // mat2x2<f32> -- [[4, 2], [4, 2]]
-      const h = array(a, f, a, f); // array<f32> -- [4, 2, 4, 2]`;
+      const g = mat2x2(a, f, a, f); // mat2x2<f32> -- [4, 2, 4, 2]
+      const h = array(a, f, a, f); // array<f32> -- [4, 2, 4, 2]
+      const i = mat2x2(g); // mat2x2<f32> -- [4, 2, 4, 2]
+      const j = vec3(a, f, a); // vec3<f32> -- [4, 2, 4]
+      const k = mat2x3(j, j); // mat3x2<f32> -- [4, 2, 4, 4, 2, 4]`;
       const parser = new WgslParser();
       const t = parser.parse(shader);
-      test.equals(t.length, 8);
+      test.equals(t.length, 11);
 
       test.equals(t[0].type.name, "i32", "0");
       test.equals(t[0].value.value, 4, "0.b");
@@ -29,7 +32,12 @@ export async function run() {
       test.equals(t[5].type.name, "f32", "5");
       test.equals(t[5].value.value, 2, "5.b");
       test.equals(t[6].type?.name, "mat2x2", "6");
+      test.equals(t[6].type?.format?.name, "f32", "6.b");
       test.equals(t[7].type?.name, "array", "7");
+      test.equals(t[8].type?.name, "mat2x2", "8");
+      test.equals(t[8].type?.format?.name, "f32", "8.b");
+      test.equals(t[9].type?.name, "vec3", "9");
+      test.equals(t[10].type?.name, "mat2x3", "10");
     });
 
     test("vec2 var", function (test) {

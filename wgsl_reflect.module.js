@@ -719,21 +719,29 @@ class CreateExpr extends Expression {
             }
         }
     }
-    _maxFormatType(a, b) {
-        if (a.name === "f32" || b.name === "f32") {
-            return Type.f32;
+    _maxFormatType(x) {
+        const priority = {
+            "f32": 0,
+            "f16": 1,
+            "u32": 2,
+            "i32": 3,
+            "x32": 3
+        };
+        let t = x[0];
+        if (t.name === "f32") {
+            return t;
         }
-        if (a.name === "f16" || b.name === "f16") {
-            return Type.f32;
+        for (let i = 1; i < x.length; ++i) {
+            const tv = priority[t.name];
+            const xv = priority[x[i].name];
+            if (xv < tv) {
+                t = x[i];
+            }
         }
-        if (a.name === "u32" || b.name === "u32") {
-            return Type.u32;
-        }
-        if (a.name === "x32" || a.name === "i32" ||
-            b.name === "x32" || b.name === "i32") {
+        if (t.name === "x32") {
             return Type.i32;
         }
-        return a;
+        return t;
     }
     constEvaluate(context, type) {
         const t = this.type;
@@ -748,7 +756,7 @@ class CreateExpr extends Expression {
             if (type) {
                 type[0] = t;
                 if (t instanceof TemplateType && t.format === null) {
-                    t.format = this._maxFormatType(tx[0], ty[0]);
+                    t.format = this._maxFormatType([tx[0], ty[0]]);
                 }
             }
             return v;
@@ -763,7 +771,7 @@ class CreateExpr extends Expression {
             if (type) {
                 type[0] = t;
                 if (t instanceof TemplateType && t.format === null) {
-                    t.format = this._maxFormatType(tx[0], this._maxFormatType(ty[0], tz[0]));
+                    t.format = this._maxFormatType([tx[0], ty[0], tz[0]]);
                 }
             }
             return v;
@@ -780,7 +788,7 @@ class CreateExpr extends Expression {
             if (type) {
                 type[0] = t;
                 if (t instanceof TemplateType && t.format === null) {
-                    t.format = this._maxFormatType(tx[0], this._maxFormatType(ty[0], tz[0]));
+                    t.format = this._maxFormatType([tx[0], ty[0], tz[0], tw[0]]);
                 }
             }
             return v;
@@ -827,18 +835,18 @@ class CreateExpr extends Expression {
             }
             else if (this.args.length === 4) {
                 // mat2x2(e1, e2, e3, e4)
-                const tx = [Type.f32];
-                const ty = [Type.f32];
-                const tz = [Type.f32];
-                const tw = [Type.f32];
-                const v = [this.args[0].constEvaluate(context, tx),
-                    this.args[1].constEvaluate(context, ty),
-                    this.args[2].constEvaluate(context, tz),
-                    this.args[3].constEvaluate(context, tw)];
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const e3 = [Type.f32];
+                const e4 = [Type.f32];
+                const v = [this.args[0].constEvaluate(context, e1),
+                    this.args[1].constEvaluate(context, e2),
+                    this.args[2].constEvaluate(context, e3),
+                    this.args[3].constEvaluate(context, e4)];
                 if (type) {
                     type[0] = t;
                     if (t instanceof TemplateType && t.format === null) {
-                        t.format = tx[0];
+                        t.format = this._maxFormatType([e1[0], e2[0], e3[0], e4[0]]);
                     }
                 }
                 return v;
@@ -904,7 +912,7 @@ class CreateExpr extends Expression {
                 if (type) {
                     type[0] = t;
                     if (t instanceof TemplateType && t.format === null) {
-                        t.format = e1[0];
+                        t.format = this._maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0]]);
                     }
                 }
                 return v;
@@ -974,7 +982,7 @@ class CreateExpr extends Expression {
                 if (type) {
                     type[0] = t;
                     if (t instanceof TemplateType && t.format === null) {
-                        t.format = e1[0];
+                        t.format = this._maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0]]);
                     }
                 }
                 return v;
@@ -1043,7 +1051,7 @@ class CreateExpr extends Expression {
                 if (type) {
                     type[0] = t;
                     if (t instanceof TemplateType && t.format === null) {
-                        t.format = e1[0];
+                        t.format = this._maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0]]);
                     }
                 }
                 return v;
@@ -1118,7 +1126,7 @@ class CreateExpr extends Expression {
                 if (type) {
                     type[0] = t;
                     if (t instanceof TemplateType && t.format === null) {
-                        t.format = e1[0];
+                        t.format = this._maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0], e9[0]]);
                     }
                 }
                 return v;
@@ -1199,7 +1207,8 @@ class CreateExpr extends Expression {
                 if (type) {
                     type[0] = t;
                     if (t instanceof TemplateType && t.format === null) {
-                        t.format = e1[0];
+                        t.format = this._maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0],
+                            e8[0], e9[0], e10[0], e11[0]]);
                     }
                 }
                 return v;
@@ -1275,7 +1284,7 @@ class CreateExpr extends Expression {
                 if (type) {
                     type[0] = t;
                     if (t instanceof TemplateType && t.format === null) {
-                        t.format = e1[0];
+                        t.format = this._maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0]]);
                     }
                 }
                 return v;
@@ -1359,7 +1368,8 @@ class CreateExpr extends Expression {
                 if (type) {
                     type[0] = t;
                     if (t instanceof TemplateType && t.format === null) {
-                        t.format = e1[0];
+                        t.format = this._maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0],
+                            e9[0], e10[0], e11[0], e12[0]]);
                     }
                 }
                 return v;
@@ -1455,7 +1465,8 @@ class CreateExpr extends Expression {
                 if (type) {
                     type[0] = t;
                     if (t instanceof TemplateType && t.format === null) {
-                        t.format = e1[0];
+                        t.format = this._maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0],
+                            e9[0], e10[0], e11[0], e12[0], e13[0], e14[0], e15[0]]);
                     }
                 }
                 return v;
@@ -1475,7 +1486,7 @@ class CreateExpr extends Expression {
                     ta.format = te[0];
                 }
                 else {
-                    ta.format = this._maxFormatType(ta.format, te[0]);
+                    ta.format = this._maxFormatType([ta.format, te[0]]);
                 }
             }
             if (type) {
