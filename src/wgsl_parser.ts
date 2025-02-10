@@ -40,7 +40,7 @@ export class WgslParser {
           const constant = this._context.constants.get(name);
           if (constant) {
             try {
-              const count = constant.evaluate(this._context);
+              const count = constant.constEvaluate(this._context);
               arrayType.count = count;
             } catch (e) {
             }
@@ -507,7 +507,7 @@ export class WgslParser {
     );
   }
 
-  _variable_statement(): AST.Var | null {
+  _variable_statement(): AST.Var | AST.Let | AST.Const | null {
     // variable_decl
     // variable_decl equal short_circuit_or_expression
     // let (ident variable_ident_decl) equal short_circuit_or_expression
@@ -767,11 +767,11 @@ export class WgslParser {
   _case_selectors(): Array<AST.Expression> {
     // const_literal (comma const_literal)* comma?
     const selectors = [
-      this._shift_expression(),//?.evaluate(this._context).toString() ?? "",
+      this._shift_expression(),//?.constEvaluate(this._context).toString() ?? "",
     ];
     while (this._match(TokenTypes.tokens.comma)) {
       selectors.push(
-        this._shift_expression(),//?.evaluate(this._context).toString() ?? ""
+        this._shift_expression(),//?.constEvaluate(this._context).toString() ?? ""
       );
     }
     return selectors;
@@ -1384,7 +1384,7 @@ export class WgslParser {
       const expr = this._const_expression();
       const type = [AST.Type.f32];
       try {
-        const value = expr.evaluate(this._context, type) as number;
+        const value = expr.constEvaluate(this._context, type) as number;
         _var.value = new AST.LiteralExpr(value, type[0]);
       } catch (_) {
         _var.value = expr;
@@ -1415,7 +1415,7 @@ export class WgslParser {
     return _override;
   }
 
-  _global_const_decl(): AST.Let | null {
+  _global_const_decl(): AST.Const | null {
     // attribute* const (ident variable_ident_decl) global_const_initializer?
     if (!this._match(TokenTypes.keywords.const)) {
       return null;
@@ -1434,26 +1434,26 @@ export class WgslParser {
       }
     }
     let value: AST.Expression | null = null;
-    if (this._match(TokenTypes.tokens.equal)) {
-      const valueExpr = this._short_circuit_or_expression();
-      if (valueExpr instanceof AST.CreateExpr) {
+
+    this._consume(TokenTypes.tokens.equal, "const declarations require an assignment")
+
+    const valueExpr = this._short_circuit_or_expression();
+    /*if (valueExpr instanceof AST.CreateExpr) {
+      value = valueExpr;
+    } else if (valueExpr instanceof AST.ConstExpr &&
+               valueExpr.initializer instanceof AST.CreateExpr) {
+      value = valueExpr.initializer;
+    } else*/ {
+      try {
+        let type = [AST.Type.f32];
+        const constValue = valueExpr.constEvaluate(this._context, type) as number;
+        this._validateTypeRange(constValue, type[0]);
+        value = this._updateNode(new AST.LiteralExpr(constValue, type[0]));
+      } catch {
         value = valueExpr;
-      } else if (
-        valueExpr instanceof AST.ConstExpr &&
-        valueExpr.initializer instanceof AST.CreateExpr
-      ) {
-        value = valueExpr.initializer;
-      } else {
-        try {
-          let type = [AST.Type.f32];
-          const constValue = valueExpr.evaluate(this._context, type) as number;
-          this._validateTypeRange(constValue, type[0]);
-          value = this._updateNode(new AST.LiteralExpr(constValue, type[0]));
-        } catch {
-          value = valueExpr;
-        }
       }
     }
+
     if (type !== null && value instanceof AST.LiteralExpr) {
       if (value.type.name !== "x32") {
         if (type.name !== value.type.name) {
@@ -1464,7 +1464,11 @@ export class WgslParser {
       this._validateTypeRange(value.value, value.type);
     } else if (type === null && value instanceof AST.LiteralExpr) {
       type = value?.type ?? AST.Type.f32;
+      if (type === AST.Type.x32) {
+        type = AST.Type.i32;
+      }
     }
+
     const c = this._updateNode(new AST.Const(name.toString(), type, "", "", value));
     this._context.constants.set(c.name, c);
     return c;
@@ -1493,7 +1497,7 @@ export class WgslParser {
       value = this._const_expression();
       const type = [AST.Type.f32];
       try {
-        const v = value!.evaluate(this._context, type) as number;
+        const v = value!.constEvaluate(this._context, type) as number;
         value = new AST.LiteralExpr(v, type[0]);
       } catch (_) {
       }
@@ -1745,7 +1749,7 @@ export class WgslParser {
           // finished being parsed, because const statements can be declared **after** they
           // are used.
           try {
-            count = countNode.evaluate(this._context).toString();
+            count = countNode.constEvaluate(this._context).toString();
             countNode = null;
           } catch (e) {
             count = "1";

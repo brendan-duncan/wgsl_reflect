@@ -24,12 +24,12 @@ export class Node {
     return "";
   }
 
-  evaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
+  constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
     throw new Error("Cannot evaluate node");
   }
 
-  evaluateString(context: ParseContext): string {
-    return this.evaluate(context).toString();
+  constEvaluateString(context: ParseContext): string {
+    return this.constEvaluate(context).toString();
   }
 
   search(callback: (node: Node) => void) {}
@@ -351,8 +351,8 @@ export class Const extends Statement {
     return "const";
   }
 
-  evaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
-    return this.value.evaluate(context, type);
+  constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
+    return this.value.constEvaluate(context, type);
   }
 
   search(callback: (node: Node) => void) {
@@ -940,7 +940,7 @@ export class StringExpr extends Expression {
     return this.value;
   }
 
-  evaluateString(): string {
+  constEvaluateString(): string {
     return this.value;
   }
 }
@@ -973,22 +973,157 @@ export class CreateExpr extends Expression {
     }
   }
 
-  evaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
+  _maxFormatType(a: Type, b: Type) {
+    if (a.name === "f32" || b.name === "f32") {
+      return Type.f32;
+    }
+    if (a.name === "f16" || b.name === "f16") {
+      return Type.f32;
+    }
+    if (a.name === "u32" || b.name === "u32") {
+      return Type.u32;
+    }
+    if (a.name === "x32" || a.name === "i32" ||
+        b.name === "x32" || b.name === "i32") {
+      return Type.i32;
+    }
+    return a;
+  }
+
+  constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
     const t = this.type;
     if (t.name === "f32" || t.name === "f16" || t.name === "i32" || t.name === "u32") {
-      return this.args[0].evaluate(context, type);
+      return this.args[0].constEvaluate(context, type);
     }
-    /*if (t.name === "vec2" || t.name === "vec2f" || t.name === "vec2h" || t.name === "vec2i" || t.name === "vec2u") {
-      return [this.args[0].evaluate(context, type) as number, this.args[1].evaluate(context, type) as number];
+
+    if (t.name === "vec2" || t.name === "vec2f" || t.name === "vec2h" || t.name === "vec2i" || t.name === "vec2u") {
+      const tx = [Type.f32];
+      const ty = [Type.f32];
+      const v = [this.args[0].constEvaluate(context, tx) as number,
+                this.args[1].constEvaluate(context, ty) as number];
+      if (type) {
+        type[0] = t;
+        if (t instanceof TemplateType && t.format === null) {
+          t.format = this._maxFormatType(tx[0], ty[0]);
+        }
+      }
+      return v;
     }
+  
     if (t.name === "vec3" || t.name === "vec3f" || t.name === "vec3h" || t.name === "vec3i" || t.name === "vec3u") {
-      return [this.args[0].evaluate(context, type) as number, this.args[1].evaluate(context, type) as number,
-              this.args[2].evaluate(context, type) as number];
+      const tx = [Type.f32];
+      const ty = [Type.f32];
+      const tz = [Type.f32];
+      const v = [this.args[0].constEvaluate(context, tx) as number,
+                this.args[1].constEvaluate(context, ty) as number,
+                this.args[2].constEvaluate(context, tz) as number];
+      if (type) {
+        type[0] = t;
+        if (t instanceof TemplateType && t.format === null) {
+          t.format = this._maxFormatType(tx[0], this._maxFormatType(ty[0], tz[0]));
+        }
+      }
+      return v;
     }
+    
     if (t.name === "vec4" || t.name === "vec4f" || t.name === "vec4h" || t.name === "vec4i" || t.name === "vec4u") {
-      return [this.args[0].evaluate(context, type) as number, this.args[1].evaluate(context, type) as number,
-              this.args[2].evaluate(context, type) as number, this.args[3].evaluate(context, type) as number];
-    }*/
+      const tx = [Type.f32];
+      const ty = [Type.f32];
+      const tz = [Type.f32];
+      const tw = [Type.f32];
+      const v = [this.args[0].constEvaluate(context, tx) as number,
+                this.args[1].constEvaluate(context, ty) as number,
+                this.args[2].constEvaluate(context, tz) as number,
+                this.args[3].constEvaluate(context, tw) as number];
+      if (type) {
+        type[0] = t;
+        if (t instanceof TemplateType && t.format === null) {
+          t.format = this._maxFormatType(tx[0], this._maxFormatType(ty[0], tz[0]));
+        }
+      }
+      return v;
+    }
+
+    if (t.name === "mat2x2") {
+      if (this.args.length === 1) {
+        // mat2x2(other: mat2x2)
+      } else if (this.args.length === 1) {
+        // mat2x2(v1: vec2, v2: vec2)
+      } else if (this.args.length === 4) {
+        // mat2x2(e1, e2, e3, e4)
+        const tx = [Type.f32];
+        const ty = [Type.f32];
+        const tz = [Type.f32];
+        const tw = [Type.f32];
+        const v = [this.args[0].constEvaluate(context, tx) as number,
+                  this.args[1].constEvaluate(context, ty) as number,
+                  this.args[2].constEvaluate(context, tz) as number,
+                  this.args[3].constEvaluate(context, tw) as number];
+        if (type) {
+          type[0] = t;
+          if (t instanceof TemplateType && t.format === null) {
+            t.format = this._maxFormatType(tx[0], this._maxFormatType(ty[0], tz[0]));
+          }
+        }
+
+        return v;
+      }
+    }
+
+    if (t.name === "mat2x3") {
+      
+    }
+
+    if (t.name === "mat2x4") {
+
+    }
+
+    if (t.name === "mat3x2") {
+
+    }
+
+    if (t.name === "mat3x3") {
+      
+    }
+
+    if (t.name === "mat3x4") {
+      
+    }
+
+    if (t.name === "mat4x2") {
+      
+    }
+
+    if (t.name === "mat4x3") {
+      
+    }
+
+    if (t.name === "mat4x4") {
+      
+    }
+
+    if (t.name === "array") {
+      const v = [];
+      const ta = t as ArrayType;
+      for (const arg of this.args) {
+        const te = [Type.f32];
+        const e = arg.constEvaluate(context, te);
+        v.push(e);
+
+        if (ta.format === null) {
+          ta.format = te[0];
+        } else {
+          ta.format = this._maxFormatType(ta.format, te[0]);
+        }
+      }
+
+      if (type) {
+        type[0] = ta;
+      }
+
+      return v;
+    }
+
     throw new Error(`Cannot evaluate node ${this.constructor.name}`);
   }
 }
@@ -1170,90 +1305,90 @@ export class CallExpr extends Expression {
     return CallExpr.builtinFunctionNames.has(this.name);
   }
 
-  evaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
+  constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
     switch (this.name) {
       case "abs": {
-        const value = this.args[0].evaluate(context, type);
+        const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.abs(v));
         }
         return Math.abs(value);
       }
       case "acos": {
-        const value = this.args[0].evaluate(context, type);
+        const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.acos(v));
         }
         return Math.acos(value);
       }
       case "acosh": {
-        const value = this.args[0].evaluate(context, type);
+        const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.acosh(v));
         }
         return Math.acosh(value);
       }
       case "asin": {
-        const value = this.args[0].evaluate(context, type);
+        const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.asin(v));
         }
         return Math.asin(value);
       }
       case "asinh": {
-        const value = this.args[0].evaluate(context, type);
+        const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.asinh(v));
         }
         return Math.asinh(value);
       }
       case "atan": {
-        const value = this.args[0].evaluate(context, type);
+        const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.atan(v));
         }
         return Math.atan(value);
       }
       case "atan2":
-        const value = this.args[0].evaluate(context, type);
-        const value2 = this.args[1].evaluate(context, type);
+        const value = this.args[0].constEvaluate(context, type);
+        const value2 = this.args[1].constEvaluate(context, type);
         if (Array.isArray(value) && Array.isArray(value2)) {
           return value.map((v, i) => Math.atan2(v, value2[i]));
         }
         return Math.atan2(value as number, value2 as number);
       case "atanh": {
-        const value = this.args[0].evaluate(context, type);
+        const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.atanh(v));
         }
         return Math.atanh(value);
       }
       case "ceil": {
-        const value = this.args[0].evaluate(context, type);
+        const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.ceil(v));
         }
         return Math.ceil(value);
       }
       case "clamp": {
-        const value = this.args[0].evaluate(context, type);
-        const a = this.args[1].evaluate(context, type) as number;
-        const b = this.args[2].evaluate(context, type) as number;
+        const value = this.args[0].constEvaluate(context, type);
+        const a = this.args[1].constEvaluate(context, type) as number;
+        const b = this.args[2].constEvaluate(context, type) as number;
         if (Array.isArray(value)) {
           return value.map((v) => Math.min(Math.max(v, a), b));
         }
         return Math.min(Math.max(value, a), b);
       }
       case "cos": {
-        const value = this.args[0].evaluate(context, type);
+        const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.cos(v));
         }
         return Math.cos(value);
       }
       case "cross": {
-        const x = this.args[0].evaluate(context, type);
-        const y = this.args[1].evaluate(context, type);
+        const x = this.args[0].constEvaluate(context, type);
+        const y = this.args[1].constEvaluate(context, type);
         if (Array.isArray(x) && Array.isArray(y) && x.length === y.length && x.length === 3) {
           const result = [
             x[1] * y[2] - x[2] * y[1],
@@ -1264,7 +1399,7 @@ export class CallExpr extends Expression {
         throw new Error("Cross product is only supported for vec3");
       }
       case "degrees": {
-        const value = this.args[0].evaluate(context, type);
+        const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => v * 180 / Math.PI);
         }
@@ -1273,8 +1408,8 @@ export class CallExpr extends Expression {
       case "determinant":
         throw new Error("TODO Determinant is not implemented");
       case "distance": {
-        const a = this.args[0].evaluate(context, type);
-        const b = this.args[1].evaluate(context, type);
+        const a = this.args[0].constEvaluate(context, type);
+        const b = this.args[1].constEvaluate(context, type);
         if (Array.isArray(a)) {
           let d2 = 0;
           for (let i = 0; i < a.length; i++) {
@@ -1286,8 +1421,8 @@ export class CallExpr extends Expression {
         return Math.sqrt((bn - a) * (bn - a));
       }
       case "dot": {
-        const a = this.args[0].evaluate(context, type);
-        const b = this.args[1].evaluate(context, type);
+        const a = this.args[0].constEvaluate(context, type);
+        const b = this.args[1].constEvaluate(context, type);
         if (Array.isArray(a) && Array.isArray(b) && a.length === b.length) {
           let d = 0;
           for (let i = 0; i < a.length; i++) {
@@ -1298,14 +1433,14 @@ export class CallExpr extends Expression {
         return (a as number) * (b as number);
       }
       case "exp": {
-        const value = this.args[0].evaluate(context, type);
+        const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.exp(v));
         }
         return Math.exp(value);
       }
       case "exp2": {
-        const value = this.args[0].evaluate(context, type);
+        const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.pow(2, v));
         }
@@ -1316,23 +1451,23 @@ export class CallExpr extends Expression {
       //case "firstLeadingBit":
       //TODO: implement
       case "floor": {
-        const value = this.args[0].evaluate(context, type);
+        const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.floor(v));
         }
         return Math.floor(value);
       }
       case "fma": {
-        const a = this.args[0].evaluate(context, type);
-        const b = this.args[1].evaluate(context, type);
-        const c = this.args[2].evaluate(context, type);
+        const a = this.args[0].constEvaluate(context, type);
+        const b = this.args[1].constEvaluate(context, type);
+        const c = this.args[2].constEvaluate(context, type);
         if (Array.isArray(a) && Array.isArray(b) && Array.isArray(c)) {
           return a.map((v, i) => v * b[i] + c[i]);
         }
         return (a as number) * (b as number) + (c as number);
       }
       case "fract": {
-        const value = this.args[0].evaluate(context, type);
+        const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => v - Math.floor(v));
         }
@@ -1341,14 +1476,14 @@ export class CallExpr extends Expression {
       //case "frexp":
       //TODO: implement
       case "inverseSqrt": {
-        const value = this.args[0].evaluate(context, type);
+        const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => 1 / Math.sqrt(v));
         }
         return 1 / Math.sqrt(value);
       }
       case "length": {
-        const value = this.args[0].evaluate(context, type);
+        const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           let d2 = 0;
           for (let i = 0; i < value.length; i++) {
@@ -1359,39 +1494,39 @@ export class CallExpr extends Expression {
         return Math.abs(value);
       }
       case "log": {
-        const value = this.args[0].evaluate(context, type);
+        const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.log(v));
         }
         return Math.log(value);
       }
       case "log2": {
-        const value = this.args[0].evaluate(context, type);
+        const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.log2(v));
         }
         return Math.log2(value);
       }
       case "max": {
-        const a = this.args[0].evaluate(context, type);
-        const b = this.args[0].evaluate(context, type);
+        const a = this.args[0].constEvaluate(context, type);
+        const b = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value) && Array.isArray(b)) {
           return value.map((v, i) => Math.max(v, b[i]));
         }
         return Math.max(a as number, b as number);
       }
       case "min": {
-        const a = this.args[0].evaluate(context, type);
-        const b = this.args[0].evaluate(context, type);
+        const a = this.args[0].constEvaluate(context, type);
+        const b = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value) && Array.isArray(b)) {
           return value.map((v, i) => Math.min(v, b[i]));
         }
         return Math.min(a as number, b as number);
       }
       case "mix": {
-        const a = this.args[0].evaluate(context, type);
-        const b = this.args[1].evaluate(context, type);
-        const c = this.args[2].evaluate(context, type);
+        const a = this.args[0].constEvaluate(context, type);
+        const b = this.args[1].constEvaluate(context, type);
+        const c = this.args[2].constEvaluate(context, type);
         if (Array.isArray(a) && Array.isArray(b) && Array.isArray(c)) {
           return a.map((v, i) => v * (1 - c[i]) + b[i] * c[i]);
         }
@@ -1400,59 +1535,59 @@ export class CallExpr extends Expression {
       case "modf":
         throw new Error("TODO Modf is not implemented");
       case "pow": {
-        const a = this.args[0].evaluate(context, type);
-        const b = this.args[1].evaluate(context, type);
+        const a = this.args[0].constEvaluate(context, type);
+        const b = this.args[1].constEvaluate(context, type);
         if (Array.isArray(a) && Array.isArray(b)) {
           return a.map((v, i) => Math.pow(v, b[i]));
         }
         return Math.pow(a as number, b as number);
       }
       case "radians": {
-        const value = this.args[0].evaluate(context, type);
+        const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => (v * Math.PI) / 180);
         }
         return (value * Math.PI) / 180;
       }
       case "round": {
-        const value = this.args[0].evaluate(context, type);
+        const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.round(v));
         }
         return Math.round(value);
       }
       case "sign": {
-        const value = this.args[0].evaluate(context, type);
+        const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.sign(v));
         }
         return Math.sign(value);
       }
       case "sin": {
-        const value = this.args[0].evaluate(context, type);
+        const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.sin(v));
         }
         return Math.sin(value);
       }
       case "sinh": {
-        const value = this.args[0].evaluate(context, type);
+        const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.sinh(v));
         }
         return Math.sinh(value);
       }
       case "saturate": {
-        const value = this.args[0].evaluate(context, type);
+        const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.min(Math.max(v, 0), 1));
         }
         return Math.min(Math.max(value, 0), 1);
       }
       case "smoothstep": {
-        const edge0 = this.args[0].evaluate(context, type);
-        const edge1 = this.args[1].evaluate(context, type);
-        const x = this.args[2].evaluate(context, type);
+        const edge0 = this.args[0].constEvaluate(context, type);
+        const edge1 = this.args[1].constEvaluate(context, type);
+        const x = this.args[2].constEvaluate(context, type);
         if (Array.isArray(edge0) && Array.isArray(edge1) && Array.isArray(x)) {
           return x.map((v, i) => {
             const t = Math.min(Math.max((v - edge0[i]) / (edge1[i] - edge0[i]), 0), 1);
@@ -1466,7 +1601,7 @@ export class CallExpr extends Expression {
         return t * t * (3 - 2 * t);
       }
       case "sqrt": {
-        const value = this.args[0].evaluate(context, type);
+        const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.sqrt(v));
         }
@@ -1476,29 +1611,29 @@ export class CallExpr extends Expression {
         if (type !== undefined) {
           type[0] = Type.bool;
         }
-        const edge = this.args[0].evaluate(context, type);
-        const x = this.args[1].evaluate(context, type);
+        const edge = this.args[0].constEvaluate(context, type);
+        const x = this.args[1].constEvaluate(context, type);
         if (Array.isArray(edge) && Array.isArray(x)) {
           return edge.map((v, i) => x[i] < v ? 0 : 1);
         }
         return x < edge ? 0 : 1;
       }
       case "tan": {
-        const value = this.args[0].evaluate(context, type);
+        const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.tan(v));
         }
         return Math.tan(value);
       }
       case "tanh": {
-        const value = this.args[0].evaluate(context, type);
+        const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.tanh(v));
         }
         return Math.tanh(value);
       }
       case "trunc": {
-        const value = this.args[0].evaluate(context, type);
+        const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.trunc(v));
         }
@@ -1541,12 +1676,12 @@ export class VariableExpr extends Expression {
     }
   }
 
-  evaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
+  constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
     const constant = context.constants.get(this.name);
     if (!constant) {
       throw new Error("Cannot evaluate node");
     }
-    return constant.evaluate(context, type);
+    return constant.constEvaluate(context, type);
   }
 }
 
@@ -1569,23 +1704,23 @@ export class ConstExpr extends Expression {
     return "constExpr";
   }
 
-  evaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
+  constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
     if (this.initializer instanceof CreateExpr) {
       // This is a struct constant
-      const property = this.postfix?.evaluateString(context);
+      const property = this.postfix?.constEvaluateString(context);
       const t = this.initializer.type?.name;
       const struct = context.structs.get(t);
       const memberIndex = struct?.getMemberIndex(property);
       if (memberIndex !== undefined && memberIndex != -1) {
-        const value = this.initializer.args[memberIndex].evaluate(context, type);
+        const value = this.initializer.args[memberIndex].constEvaluate(context, type);
         return value;
       } else {
-        return this.initializer.evaluate(context, type);
+        return this.initializer.constEvaluate(context, type);
       }
       console.log(memberIndex);
     }
 
-    return this.initializer.evaluate(context, type);
+    return this.initializer.constEvaluate(context, type);
   }
 
   search(callback: (node: Node) => void) {
@@ -1612,7 +1747,7 @@ export class LiteralExpr extends Expression {
     return "literalExpr";
   }
 
-  evaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
+  constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
     if (type !== undefined) {
       type[0] = this.type;
     }
@@ -1663,11 +1798,11 @@ export class TypecastExpr extends Expression {
     return "typecastExpr";
   }
 
-  evaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
+  constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
     if (type !== undefined) {
       type[0] = this.type;
     }
-    return this.args[0].evaluate(context);
+    return this.args[0].constEvaluate(context);
   }
 
   search(callback: (node: Node) => void) {
@@ -1692,8 +1827,8 @@ export class GroupingExpr extends Expression {
     return "groupExpr";
   }
 
-  evaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
-    return this.contents[0].evaluate(context, type);
+  constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
+    return this.contents[0].constEvaluate(context, type);
   }
 
   search(callback: (node: Node) => void): void {
@@ -1749,19 +1884,19 @@ export class UnaryOperator extends Operator {
     return "unaryOp";
   }
 
-  evaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
+  constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
     switch (this.operator) {
       case "+":
-        return this.right.evaluate(context, type);
+        return this.right.constEvaluate(context, type);
       case "-":
-        return -this.right.evaluate(context, type);
+        return -this.right.constEvaluate(context, type);
       case "!":
         if (type !== undefined) {
           type[0] = Type.bool;
         }
-        return this.right.evaluate(context) ? 0 : 1;
+        return this.right.constEvaluate(context) ? 0 : 1;
       case "~":
-        return ~this.right.evaluate(context, type);
+        return ~this.right.constEvaluate(context, type);
       default:
         throw new Error("Unknown unary operator: " + this.operator);
     }
@@ -1807,13 +1942,13 @@ export class BinaryOperator extends Operator {
     return Type.i32;
   }
 
-  evaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
+  constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
     const t1 = [Type.i32];
     const t2 = [Type.i32];
     switch (this.operator) {
       case "+": {
-        const v1 = this.left.evaluate(context, t1);
-        const v2 = this.right.evaluate(context, t2);
+        const v1 = this.left.constEvaluate(context, t1);
+        const v2 = this.right.constEvaluate(context, t2);
         if (Array.isArray(v1) && Array.isArray(v2)) {
           return v1.map((v, i) => v + v2[i]);
         }
@@ -1828,8 +1963,8 @@ export class BinaryOperator extends Operator {
         return value;
       }
       case "-": {
-        const v1 = this.left.evaluate(context, t1);
-        const v2 = this.right.evaluate(context, t2);
+        const v1 = this.left.constEvaluate(context, t1);
+        const v2 = this.right.constEvaluate(context, t2);
         if (Array.isArray(v1) && Array.isArray(v2)) {
           return v1.map((v, i) => v - v2[i]);
         }
@@ -1844,8 +1979,8 @@ export class BinaryOperator extends Operator {
         return value;
       }
       case "*": {
-        const v1 = this.left.evaluate(context, t1);
-        const v2 = this.right.evaluate(context, t2);
+        const v1 = this.left.constEvaluate(context, t1);
+        const v2 = this.right.constEvaluate(context, t2);
         if (Array.isArray(v1) && Array.isArray(v2)) {
           return v1.map((v, i) => v * v2[i]);
         }
@@ -1860,8 +1995,8 @@ export class BinaryOperator extends Operator {
         return value;
       }
       case "/": {
-        const v1 = this.left.evaluate(context, t1);
-        const v2 = this.right.evaluate(context, t2);
+        const v1 = this.left.constEvaluate(context, t1);
+        const v2 = this.right.constEvaluate(context, t2);
         if (Array.isArray(v1) && Array.isArray(v2)) {
           return v1.map((v, i) => v / v2[i]);
         }
@@ -1876,8 +2011,8 @@ export class BinaryOperator extends Operator {
         return value;
       }
       case "%": {
-        const v1 = this.left.evaluate(context, t1);
-        const v2 = this.right.evaluate(context, t2);
+        const v1 = this.left.constEvaluate(context, t1);
+        const v2 = this.right.constEvaluate(context, t2);
         if (Array.isArray(v1) && Array.isArray(v2)) {
           return v1.map((v, i) => v % v2[i]);
         }
@@ -1895,56 +2030,56 @@ export class BinaryOperator extends Operator {
         if (type !== undefined) {
           type[0] = Type.bool;
         }
-        return this.left.evaluate(context) < this.right.evaluate(context)
+        return this.left.constEvaluate(context) < this.right.constEvaluate(context)
           ? 1
           : 0;
       case ">":
         if (type !== undefined) {
           type[0] = Type.bool;
         }
-        return this.left.evaluate(context) > this.right.evaluate(context)
+        return this.left.constEvaluate(context) > this.right.constEvaluate(context)
           ? 1
           : 0;
       case "==":
         if (type !== undefined) {
           type[0] = Type.bool;
         }
-        return this.left.evaluate(context) == this.right.evaluate(context)
+        return this.left.constEvaluate(context) == this.right.constEvaluate(context)
             ? 1
             : 0;
       case "!=":
         if (type !== undefined) {
           type[0] = Type.bool;
         }
-        return this.left.evaluate(context) != this.right.evaluate(context)
+        return this.left.constEvaluate(context) != this.right.constEvaluate(context)
             ? 1
             : 0;
       case "<=":
         if (type !== undefined) {
           type[0] = Type.bool;
         }
-        return this.left.evaluate(context) <= this.right.evaluate(context)
+        return this.left.constEvaluate(context) <= this.right.constEvaluate(context)
           ? 1
           : 0;
       case ">=":
         if (type !== undefined) {
           type[0] = Type.bool;
         }
-        return this.left.evaluate(context) >= this.right.evaluate(context)
+        return this.left.constEvaluate(context) >= this.right.constEvaluate(context)
           ? 1
           : 0;
       case "&&":
         if (type !== undefined) {
           type[0] = Type.bool;
         }
-        return this.left.evaluate(context) && this.right.evaluate(context)
+        return this.left.constEvaluate(context) && this.right.constEvaluate(context)
           ? 1
           : 0;
       case "||":
         if (type !== undefined) {
           type[0] = Type.bool;
         }
-        return this.left.evaluate(context) || this.right.evaluate(context)
+        return this.left.constEvaluate(context) || this.right.constEvaluate(context)
           ? 1
           : 0;
       default:

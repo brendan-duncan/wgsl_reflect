@@ -13,8 +13,8 @@ export declare class Node {
     constructor();
     get isAstNode(): boolean;
     get astNodeType(): string;
-    evaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
-    evaluateString(context: ParseContext): string;
+    constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
+    constEvaluateString(context: ParseContext): string;
     search(callback: (node: Node) => void): void;
     searchBlock(block: Array<Node> | null, callback: (node: Node) => void): void;
 }
@@ -158,7 +158,7 @@ export declare class Const extends Statement {
     attributes: Array<Attribute> | null;
     constructor(name: string, type: Type | null, storage: string | null, access: string | null, value: Expression);
     get astNodeType(): string;
-    evaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
+    constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
     search(callback: (node: Node) => void): void;
 }
 export declare enum IncrementOperator {
@@ -467,7 +467,7 @@ export declare class StringExpr extends Expression {
     constructor(value: string);
     get astNodeType(): string;
     toString(): string;
-    evaluateString(): string;
+    constEvaluateString(): string;
 }
 /**
  * @class CreateExpr
@@ -480,7 +480,8 @@ export declare class CreateExpr extends Expression {
     constructor(type: Type | null, args: Array<Expression> | null);
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;
-    evaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
+    _maxFormatType(a: Type, b: Type): Type;
+    constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
 }
 /**
  * @class CallExpr
@@ -496,7 +497,7 @@ export declare class CallExpr extends Expression {
     setCachedReturnValue(value: any): void;
     static builtinFunctionNames: Set<string>;
     get isBuiltin(): boolean;
-    evaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
+    constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
     search(callback: (node: Node) => void): void;
 }
 /**
@@ -509,7 +510,7 @@ export declare class VariableExpr extends Expression {
     constructor(name: string);
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;
-    evaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
+    constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
 }
 /**
  * @class ConstExpr
@@ -521,7 +522,7 @@ export declare class ConstExpr extends Expression {
     initializer: Expression;
     constructor(name: string, initializer: Expression);
     get astNodeType(): string;
-    evaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
+    constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
     search(callback: (node: Node) => void): void;
 }
 /**
@@ -534,7 +535,7 @@ export declare class LiteralExpr extends Expression {
     type: Type;
     constructor(value: number, type: Type);
     get astNodeType(): string;
-    evaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
+    constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
 }
 /**
  * @class BitcastExpr
@@ -558,7 +559,7 @@ export declare class TypecastExpr extends Expression {
     args: Array<Expression> | null;
     constructor(type: Type | null, args: Array<Expression> | null);
     get astNodeType(): string;
-    evaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
+    constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
     search(callback: (node: Node) => void): void;
 }
 /**
@@ -570,7 +571,7 @@ export declare class GroupingExpr extends Expression {
     contents: Array<Expression>;
     constructor(contents: Array<Expression>);
     get astNodeType(): string;
-    evaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
+    constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
     search(callback: (node: Node) => void): void;
 }
 /**
@@ -602,7 +603,7 @@ export declare class UnaryOperator extends Operator {
     right: Expression;
     constructor(operator: string, right: Expression);
     get astNodeType(): string;
-    evaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
+    constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
     search(callback: (node: Node) => void): void;
 }
 /**
@@ -618,7 +619,7 @@ export declare class BinaryOperator extends Operator {
     constructor(operator: string, left: Expression, right: Expression);
     get astNodeType(): string;
     _getPromotedType(t1: Type, t2: Type): Type;
-    evaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
+    constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
     search(callback: (node: Node) => void): void;
 }
 /**

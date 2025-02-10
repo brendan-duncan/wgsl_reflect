@@ -3,6 +3,35 @@ import { WgslParser } from "../../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Parser", function () {
+    test("const", function (test) {
+      const shader = `
+      const a = 4; // i32 -- 4
+      const b : i32 = 4; // i32 -- 4
+      const c : u32 = 4; // u32 -- 4
+      const d : f32 = 4; // f32 -- 4
+      const e = vec3(a, a, a); // vec3<i32> -- [4, 4, 4]
+      const f = 2.0; // f32 -- 2
+      const g = mat2x2(a, f, a, f); // mat2x2<f32> -- [[4, 2], [4, 2]]
+      const h = array(a, f, a, f); // array<f32> -- [4, 2, 4, 2]`;
+      const parser = new WgslParser();
+      const t = parser.parse(shader);
+      test.equals(t.length, 8);
+
+      test.equals(t[0].type.name, "i32", "0");
+      test.equals(t[0].value.value, 4, "0.b");
+      test.equals(t[1].type.name, "i32", "1");
+      test.equals(t[1].value.value, 4), "1.b";
+      test.equals(t[2].type.name, "u32", "2");
+      test.equals(t[2].value.value, 4, "2.b");
+      test.equals(t[3].type.name, "f32", "3");
+      test.equals(t[3].value.value, 4, "3.b");
+      test.equals(t[4].type?.name, "vec3", "4");
+      test.equals(t[5].type.name, "f32", "5");
+      test.equals(t[5].value.value, 2, "5.b");
+      test.equals(t[6].type?.name, "mat2x2", "6");
+      test.equals(t[7].type?.name, "array", "7");
+    });
+
     test("vec2 var", function (test) {
       const shader = `var a = vec2<f32>(1.0, 2.0);`;
       const parser = new WgslParser();
@@ -13,30 +42,30 @@ export async function run() {
 
     test("type inference", function (test) {
       const shader = `
-//var u32_1 = 1u; // u32
-//var i32_1 = 1i; // i32
-//var f32_1 = 1f; // f32
-//let some_i32 = 1; // i32
-//var i32_from_type : i32 = 1; // i32
-//var u32_from_type : u32 = 1; // u32
-//var f32_promotion : f32 = 1; // f32
-//let u32_large : u32 = 2147483649; // u32
-//let i32_min = -2147483648;  // i32
-var u32_expr1 = (1 + (1 + (1 + (1 + 1)))) + 1u; // u32
-var u32_expr2 = 1u + (1 + (1 + (1 + (1 + 1)))); // u32
-var u32_expr3 = (1 + (1 + (1 + (1u + 1)))) + 1; // u32
-var u32_expr4 = 1 + (1 + (1 + (1 + (1u + 1)))); // u32
-let i32_clamp = clamp(1, -5, 5); // i32
-let f32_promotion1 = 1.0 + 2 + 3 + 4; // f32
-let f32_promotion2 = 2 + 1.0 + 3 + 4; // f32
-let f32_promotion3 = 1f + ((2 + 3) + 4); // f32
-let f32_promotion4 = ((2 + (3 + 1f)) + 4); // f32
-let ambiguous_clamp = clamp(1u, 0, 1i); // invalid, ambiguous types
-let some_i32 = 1; // i32
+var u32_1 = 1u; // u32 - 0
+var i32_1 = 1i; // i32 - 1
+var f32_1 = 1f; // f32 - 2
+let some_i32 = 1; // i32 - 3
+var i32_from_type : i32 = 1; // i32 - 4
+var u32_from_type : u32 = 1; // u32 - 5
+var f32_promotion : f32 = 1; // f32 - 6
+let u32_large : u32 = 2147483649; // u32 - 7
+let i32_min = -2147483648;  // i32 - 8
+var u32_expr1 = (1 + (1 + (1 + (1 + 1)))) + 1u; // u32 - 9
+var u32_expr2 = 1u + (1 + (1 + (1 + (1 + 1)))); // u32 - 10
+var u32_expr3 = (1 + (1 + (1 + (1u + 1)))) + 1; // u32 - 11
+var u32_expr4 = 1 + (1 + (1 + (1 + (1u + 1)))); // u32 - 12
+let i32_clamp = clamp(1, -5, 5); // i32 - 13
+let f32_promotion1 = 1.0 + 2 + 3 + 4; // f32 - 14
+let f32_promotion2 = 2 + 1.0 + 3 + 4; // f32 - 15
+let f32_promotion3 = 1f + ((2 + 3) + 4); // f32 - 16
+let f32_promotion4 = ((2 + (3 + 1f)) + 4); // f32 - 17
+let some_i32 = 1; // i32 - 18
+let out_and_in_again = (0x1ffffffff / 8); // i32 - 19
+let out_of_range = (0x1ffffffff / 8u); // u32 - 20
+let ambiguous_clamp = clamp(1u, 0, 1i); // invalid, ambiguous types 
 let some_f32 : f32 = some_i32; // Type error: i32 cannot be assigned to f32
 let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
-let out_and_in_again = (0x1ffffffff / 8); // i32
-let out_of_range = (0x1ffffffff / 8u); // u32
 //var u32_neg = -1u; // invalid: unary minus does not support u32
 //var i32_demotion : i32 = 1.0; // Invalid
 //var u32_from_expr = 1 + u32_1; // u32 (at runtime)
@@ -46,14 +75,14 @@ let out_of_range = (0x1ffffffff / 8u); // u32
 //let mismatch : u32 = 1.0; // invalid, mismatched types`;
       const parser = new WgslParser();
       const t = parser.parse(shader);
-      //test.equals(t[0].type.name, "u32");
-      //test.equals(t[1].type.name, "i32");
-      //test.equals(t[2].type.name, "f32");
-      //test.equals(t[3].type.name, "i32");
-      //test.equals(t[4].type.name, "i32");
-      //test.equals(t[5].type.name, "u32");
-      //test.equals(t[6].type.name, "f32");
-      //test.equals(t[7].type.name, "u32");
+      test.equals(t[0].type.name, "u32");
+      test.equals(t[1].type.name, "i32");
+      test.equals(t[2].type.name, "f32");
+      test.equals(t[3].type.name, "i32");
+      test.equals(t[4].type.name, "i32");
+      test.equals(t[5].type.name, "u32");
+      test.equals(t[6].type.name, "f32");
+      test.equals(t[7].type.name, "u32");
 
       //test.equals(t[20].type.name, "u32");
       //test.equals(t[21].type?.name, "i32");
@@ -282,7 +311,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32
           astNodeType: "let",
           name: "e2",
           value: {
-            astNodeType: "createExpr",
+            astNodeType: "literalExpr",
             type: {
               name: "vec3",
               format: {
@@ -563,17 +592,12 @@ let out_of_range = (0x1ffffffff / 8u); // u32
     });
 
     test("create vs call [1]", function (test) {
-      const shader = `let foo = vec2f(1.0, 2.0);`;
+      const shader = `let a = vec2f(1.0, 2.0);
+      let b = vec2<f32>(1.0, 2.0);`;
       const parser = new WgslParser();
       const t = parser.parse(shader);
-      test.equals(t[0].value.astNodeType, "createExpr");
-    });
-
-    test("create vs call [2]", function (test) {
-      const shader = `let foo = vec2<f32>(1.0, 2.0);`;
-      const parser = new WgslParser();
-      const t = parser.parse(shader);
-      test.equals(t[0].value.astNodeType, "createExpr");
+      test.equals(t[0].value.astNodeType, "literalExpr");
+      test.equals(t[1].value.astNodeType, "literalExpr");
     });
   });
 }

@@ -30,7 +30,7 @@ export declare class WgslParser {
     _for_statement(): AST.For | null;
     _for_init(): AST.Statement | null;
     _for_increment(): AST.Statement | null;
-    _variable_statement(): AST.Var | null;
+    _variable_statement(): AST.Var | AST.Let | AST.Const | null;
     _increment_decrement_statement(): AST.Statement | null;
     _assignment_statement(): AST.Assign | null;
     _func_call_statement(): AST.Call | null;
@@ -66,7 +66,7 @@ export declare class WgslParser {
     _struct_decl(): AST.Struct | null;
     _global_variable_decl(): AST.Var | null;
     _override_variable_decl(): AST.Override | null;
-    _global_const_decl(): AST.Let | null;
+    _global_const_decl(): AST.Const | null;
     _global_let_decl(): AST.Let | null;
     _const_expression(): AST.Expression;
     _variable_decl(): AST.Var | null;
