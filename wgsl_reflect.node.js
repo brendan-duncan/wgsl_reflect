@@ -7612,7 +7612,7 @@ class BlockCommand extends Command {
         return this.statements.length > 0 ? this.statements[0].line : -1;
     }
 }
-class ExecState {
+class StackFrame {
     constructor(context, parent) {
         this.parent = null;
         this.commands = [];
@@ -8161,7 +8161,7 @@ class WgslDebug {
         this._execStack.states.push(state);
     }
     _createState(ast, context, parent) {
-        const state = new ExecState(context, parent !== null && parent !== void 0 ? parent : null);
+        const state = new StackFrame(context, parent !== null && parent !== void 0 ? parent : null);
         for (const statement of ast) {
             // A statement may have expressions that include function calls.
             // Gather all of the internal function calls from the statement.
@@ -8352,7 +8352,6 @@ exports.Discard = Discard;
 exports.ElseIf = ElseIf;
 exports.Enable = Enable;
 exports.EntryFunctions = EntryFunctions;
-exports.ExecState = ExecState;
 exports.Expression = Expression;
 exports.For = For;
 exports.Function = Function$1;
@@ -8376,6 +8375,7 @@ exports.PointerType = PointerType;
 exports.Requires = Requires;
 exports.Return = Return;
 exports.SamplerType = SamplerType;
+exports.StackFrame = StackFrame;
 exports.Statement = Statement;
 exports.StaticAssert = StaticAssert;
 exports.StringExpr = StringExpr;

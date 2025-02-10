@@ -64,14 +64,14 @@ class BlockCommand extends Command {
     }
 }
 
-export class ExecState {
-    parent: ExecState | null = null;
+export class StackFrame {
+    parent: StackFrame | null = null;
     context: ExecContext;
     commands: Array<Command> = [];
     current: number = 0;
     parentCallExpr: AST.CallExpr | null = null;
 
-    constructor(context: ExecContext, parent?: ExecState) {
+    constructor(context: ExecContext, parent?: StackFrame) {
         this.context = context;
         this.parent = parent ?? null;
     }
@@ -96,11 +96,11 @@ export class ExecState {
 }
 
 class ExecStack {
-    states: Array<ExecState> = [];
+    states: Array<StackFrame> = [];
 
     get isEmpty(): boolean { return this.states.length == 0; }
 
-    get last(): ExecState | null { return this.states[this.states.length - 1] ?? null; }
+    get last(): StackFrame | null { return this.states[this.states.length - 1] ?? null; }
 
     pop() {
         this.states.pop();
@@ -145,7 +145,7 @@ export class WgslDebug {
         return this._exec.context;
     }
 
-    get currentState(): ExecState | null {
+    get currentState(): StackFrame | null {
         while (true) {
             if (this._execStack.isEmpty) {
                 return null;
@@ -676,8 +676,8 @@ export class WgslDebug {
         this._execStack.states.push(state);
     }
 
-    _createState(ast: Array<AST.Node>, context: ExecContext, parent?: ExecState): ExecState {
-        const state = new ExecState(context, parent ?? null);
+    _createState(ast: Array<AST.Node>, context: ExecContext, parent?: StackFrame): StackFrame {
+        const state = new StackFrame(context, parent ?? null);
 
         for (const statement of ast) {
             // A statement may have expressions that include function calls.

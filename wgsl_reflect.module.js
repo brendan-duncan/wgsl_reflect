@@ -7608,7 +7608,7 @@ class BlockCommand extends Command {
         return this.statements.length > 0 ? this.statements[0].line : -1;
     }
 }
-class ExecState {
+class StackFrame {
     constructor(context, parent) {
         this.parent = null;
         this.commands = [];
@@ -8157,7 +8157,7 @@ class WgslDebug {
         this._execStack.states.push(state);
     }
     _createState(ast, context, parent) {
-        const state = new ExecState(context, parent !== null && parent !== void 0 ? parent : null);
+        const state = new StackFrame(context, parent !== null && parent !== void 0 ? parent : null);
         for (const statement of ast) {
             // A statement may have expressions that include function calls.
             // Gather all of the internal function calls from the statement.
@@ -8322,5 +8322,5 @@ class WgslDebug {
     }
 }
 
-export { Alias, AliasInfo, Argument, ArgumentInfo, ArrayIndex, ArrayInfo, ArrayType, Assign, AssignOperator, Attribute, BinaryOperator, BitcastExpr, Break, Call, CallExpr, Case, Const, ConstExpr, Continue, Continuing, CreateExpr, Default, Diagnostic, Discard, ElseIf, Enable, EntryFunctions, ExecState, Expression, For, Function$1 as Function, FunctionInfo, GroupingExpr, If, Increment, IncrementOperator, InputInfo, Let, LiteralExpr, Loop, Member, MemberInfo, Node, Operator, OutputInfo, Override, OverrideInfo, ParseContext, PointerType, Requires, ResourceType, Return, SamplerType, Statement, StaticAssert, StringExpr, Struct, StructInfo, Switch, SwitchCase, TemplateInfo, TemplateType, Token, TokenClass, TokenType, TokenTypes, Type, TypeInfo, TypecastExpr, UnaryOperator, Var$1 as Var, VariableExpr, VariableInfo, WgslDebug, WgslExec, WgslParser, WgslReflect, WgslScanner, While, _BlockEnd, _BlockStart };
+export { Alias, AliasInfo, Argument, ArgumentInfo, ArrayIndex, ArrayInfo, ArrayType, Assign, AssignOperator, Attribute, BinaryOperator, BitcastExpr, Break, Call, CallExpr, Case, Const, ConstExpr, Continue, Continuing, CreateExpr, Default, Diagnostic, Discard, ElseIf, Enable, EntryFunctions, Expression, For, Function$1 as Function, FunctionInfo, GroupingExpr, If, Increment, IncrementOperator, InputInfo, Let, LiteralExpr, Loop, Member, MemberInfo, Node, Operator, OutputInfo, Override, OverrideInfo, ParseContext, PointerType, Requires, ResourceType, Return, SamplerType, StackFrame, Statement, StaticAssert, StringExpr, Struct, StructInfo, Switch, SwitchCase, TemplateInfo, TemplateType, Token, TokenClass, TokenType, TokenTypes, Type, TypeInfo, TypecastExpr, UnaryOperator, Var$1 as Var, VariableExpr, VariableInfo, WgslDebug, WgslExec, WgslParser, WgslReflect, WgslScanner, While, _BlockEnd, _BlockStart };
 //# sourceMappingURL=wgsl_reflect.module.js.map
