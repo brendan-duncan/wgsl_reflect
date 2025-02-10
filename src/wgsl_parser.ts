@@ -1384,9 +1384,10 @@ export class WgslParser {
       const expr = this._const_expression();
       const type = [AST.Type.f32];
       try {
-        const value = expr.evaluate(this._context, type);
+        const value = expr.evaluate(this._context, type) as number;
         _var.value = new AST.LiteralExpr(value, type[0]);
       } catch (_) {
+        _var.value = expr;
       }
     }
     if (_var.type !== null && _var.value instanceof AST.LiteralExpr) {
@@ -1445,7 +1446,7 @@ export class WgslParser {
       } else {
         try {
           let type = [AST.Type.f32];
-          const constValue = valueExpr.evaluate(this._context, type);
+          const constValue = valueExpr.evaluate(this._context, type) as number;
           this._validateTypeRange(constValue, type[0]);
           value = this._updateNode(new AST.LiteralExpr(constValue, type[0]));
         } catch {
@@ -1492,7 +1493,7 @@ export class WgslParser {
       value = this._const_expression();
       const type = [AST.Type.f32];
       try {
-        const v = value!.evaluate(this._context, type);
+        const v = value!.evaluate(this._context, type) as number;
         value = new AST.LiteralExpr(v, type[0]);
       } catch (_) {
       }

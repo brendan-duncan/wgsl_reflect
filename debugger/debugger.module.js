@@ -27612,6 +27612,17 @@ class CreateExpr extends Expression {
         if (t.name === "f32" || t.name === "f16" || t.name === "i32" || t.name === "u32") {
             return this.args[0].evaluate(context, type);
         }
+        /*if (t.name === "vec2" || t.name === "vec2f" || t.name === "vec2h" || t.name === "vec2i" || t.name === "vec2u") {
+          return [this.args[0].evaluate(context, type) as number, this.args[1].evaluate(context, type) as number];
+        }
+        if (t.name === "vec3" || t.name === "vec3f" || t.name === "vec3h" || t.name === "vec3i" || t.name === "vec3u") {
+          return [this.args[0].evaluate(context, type) as number, this.args[1].evaluate(context, type) as number,
+                  this.args[2].evaluate(context, type) as number];
+        }
+        if (t.name === "vec4" || t.name === "vec4f" || t.name === "vec4h" || t.name === "vec4i" || t.name === "vec4u") {
+          return [this.args[0].evaluate(context, type) as number, this.args[1].evaluate(context, type) as number,
+                  this.args[2].evaluate(context, type) as number, this.args[3].evaluate(context, type) as number];
+        }*/
         throw new Error(`Cannot evaluate node ${this.constructor.name}`);
     }
 }
@@ -27638,108 +27649,338 @@ class CallExpr extends Expression {
     }
     evaluate(context, type) {
         switch (this.name) {
-            case "abs":
-                return Math.abs(this.args[0].evaluate(context, type));
-            case "acos":
-                return Math.acos(this.args[0].evaluate(context, type));
-            case "acosh":
-                return Math.acosh(this.args[0].evaluate(context, type));
-            case "asin":
-                return Math.asin(this.args[0].evaluate(context, type));
-            case "asinh":
-                return Math.asinh(this.args[0].evaluate(context, type));
-            case "atan":
-                return Math.atan(this.args[0].evaluate(context, type));
+            case "abs": {
+                const value = this.args[0].evaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.abs(v));
+                }
+                return Math.abs(value);
+            }
+            case "acos": {
+                const value = this.args[0].evaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.acos(v));
+                }
+                return Math.acos(value);
+            }
+            case "acosh": {
+                const value = this.args[0].evaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.acosh(v));
+                }
+                return Math.acosh(value);
+            }
+            case "asin": {
+                const value = this.args[0].evaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.asin(v));
+                }
+                return Math.asin(value);
+            }
+            case "asinh": {
+                const value = this.args[0].evaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.asinh(v));
+                }
+                return Math.asinh(value);
+            }
+            case "atan": {
+                const value = this.args[0].evaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.atan(v));
+                }
+                return Math.atan(value);
+            }
             case "atan2":
-                return Math.atan2(this.args[0].evaluate(context, type), this.args[1].evaluate(context, type));
-            case "atanh":
-                return Math.atanh(this.args[0].evaluate(context, type));
-            case "ceil":
-                return Math.ceil(this.args[0].evaluate(context, type));
-            case "clamp":
-                return Math.min(Math.max(this.args[0].evaluate(context, type), this.args[1].evaluate(context, type)), this.args[2].evaluate(context, type));
-            case "cos":
-                return Math.cos(this.args[0].evaluate(context, type));
-            //case "cross":
-            //TODO: (x[i] * y[j] - x[j] * y[i])
-            case "degrees":
-                return (this.args[0].evaluate(context) * 180) / Math.PI;
-            //case "determinant":
-            //TODO implement
-            case "distance":
-                return Math.sqrt(Math.pow(this.args[0].evaluate(context, type) - this.args[1].evaluate(context, type), 2));
-            case "dot":
-            //TODO: (x[i] * y[i])
-            case "exp":
-                return Math.exp(this.args[0].evaluate(context, type));
-            case "exp2":
-                return Math.pow(2, this.args[0].evaluate(context, type));
+                const value = this.args[0].evaluate(context, type);
+                const value2 = this.args[1].evaluate(context, type);
+                if (Array.isArray(value) && Array.isArray(value2)) {
+                    return value.map((v, i) => Math.atan2(v, value2[i]));
+                }
+                return Math.atan2(value, value2);
+            case "atanh": {
+                const value = this.args[0].evaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.atanh(v));
+                }
+                return Math.atanh(value);
+            }
+            case "ceil": {
+                const value = this.args[0].evaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.ceil(v));
+                }
+                return Math.ceil(value);
+            }
+            case "clamp": {
+                const value = this.args[0].evaluate(context, type);
+                const a = this.args[1].evaluate(context, type);
+                const b = this.args[2].evaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.min(Math.max(v, a), b));
+                }
+                return Math.min(Math.max(value, a), b);
+            }
+            case "cos": {
+                const value = this.args[0].evaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.cos(v));
+                }
+                return Math.cos(value);
+            }
+            case "cross": {
+                const x = this.args[0].evaluate(context, type);
+                const y = this.args[1].evaluate(context, type);
+                if (Array.isArray(x) && Array.isArray(y) && x.length === y.length && x.length === 3) {
+                    [
+                        x[1] * y[2] - x[2] * y[1],
+                        x[2] * y[0] - x[0] * y[2],
+                        x[0] * y[1] - x[1] * y[0]
+                    ];
+                }
+                throw new Error("Cross product is only supported for vec3");
+            }
+            case "degrees": {
+                const value = this.args[0].evaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => v * 180 / Math.PI);
+                }
+                return value * 180 / Math.PI;
+            }
+            case "determinant":
+                throw new Error("TODO Determinant is not implemented");
+            case "distance": {
+                const a = this.args[0].evaluate(context, type);
+                const b = this.args[1].evaluate(context, type);
+                if (Array.isArray(a)) {
+                    let d2 = 0;
+                    for (let i = 0; i < a.length; i++) {
+                        d2 += (a[i] - b[i]) * (a[i] - b[i]);
+                    }
+                    return Math.sqrt(d2);
+                }
+                const bn = b;
+                return Math.sqrt((bn - a) * (bn - a));
+            }
+            case "dot": {
+                const a = this.args[0].evaluate(context, type);
+                const b = this.args[1].evaluate(context, type);
+                if (Array.isArray(a) && Array.isArray(b) && a.length === b.length) {
+                    let d = 0;
+                    for (let i = 0; i < a.length; i++) {
+                        d += a[i] * b[i];
+                    }
+                    return d;
+                }
+                return a * b;
+            }
+            case "exp": {
+                const value = this.args[0].evaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.exp(v));
+                }
+                return Math.exp(value);
+            }
+            case "exp2": {
+                const value = this.args[0].evaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.pow(2, v));
+                }
+                return Math.pow(2, value);
+            }
             //case "extractBits":
             //TODO: implement
             //case "firstLeadingBit":
             //TODO: implement
-            case "floor":
-                return Math.floor(this.args[0].evaluate(context, type));
-            case "fma":
-                return (this.args[0].evaluate(context, type) * this.args[1].evaluate(context, type) +
-                    this.args[2].evaluate(context, type));
-            case "fract":
-                return (this.args[0].evaluate(context, type) -
-                    Math.floor(this.args[0].evaluate(context, type)));
+            case "floor": {
+                const value = this.args[0].evaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.floor(v));
+                }
+                return Math.floor(value);
+            }
+            case "fma": {
+                const a = this.args[0].evaluate(context, type);
+                const b = this.args[1].evaluate(context, type);
+                const c = this.args[2].evaluate(context, type);
+                if (Array.isArray(a) && Array.isArray(b) && Array.isArray(c)) {
+                    return a.map((v, i) => v * b[i] + c[i]);
+                }
+                return a * b + c;
+            }
+            case "fract": {
+                const value = this.args[0].evaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => v - Math.floor(v));
+                }
+                return value - Math.floor(value);
+            }
             //case "frexp":
             //TODO: implement
-            case "inverseSqrt":
-                return 1 / Math.sqrt(this.args[0].evaluate(context, type));
-            //case "length":
-            //TODO: implement
-            case "log":
-                return Math.log(this.args[0].evaluate(context, type));
-            case "log2":
-                return Math.log2(this.args[0].evaluate(context, type));
-            case "max":
-                return Math.max(this.args[0].evaluate(context, type), this.args[1].evaluate(context, type));
-            case "min":
-                return Math.min(this.args[0].evaluate(context, type), this.args[1].evaluate(context, type));
-            case "mix":
-                return (this.args[0].evaluate(context, type) *
-                    (1 - this.args[2].evaluate(context, type)) +
-                    this.args[1].evaluate(context, type) * this.args[2].evaluate(context, type));
+            case "inverseSqrt": {
+                const value = this.args[0].evaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => 1 / Math.sqrt(v));
+                }
+                return 1 / Math.sqrt(value);
+            }
+            case "length": {
+                const value = this.args[0].evaluate(context, type);
+                if (Array.isArray(value)) {
+                    let d2 = 0;
+                    for (let i = 0; i < value.length; i++) {
+                        d2 += value[i] * value[i];
+                    }
+                    return Math.sqrt(d2);
+                }
+                return Math.abs(value);
+            }
+            case "log": {
+                const value = this.args[0].evaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.log(v));
+                }
+                return Math.log(value);
+            }
+            case "log2": {
+                const value = this.args[0].evaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.log2(v));
+                }
+                return Math.log2(value);
+            }
+            case "max": {
+                const a = this.args[0].evaluate(context, type);
+                const b = this.args[0].evaluate(context, type);
+                if (Array.isArray(value) && Array.isArray(b)) {
+                    return value.map((v, i) => Math.max(v, b[i]));
+                }
+                return Math.max(a, b);
+            }
+            case "min": {
+                const a = this.args[0].evaluate(context, type);
+                const b = this.args[0].evaluate(context, type);
+                if (Array.isArray(value) && Array.isArray(b)) {
+                    return value.map((v, i) => Math.min(v, b[i]));
+                }
+                return Math.min(a, b);
+            }
+            case "mix": {
+                const a = this.args[0].evaluate(context, type);
+                const b = this.args[1].evaluate(context, type);
+                const c = this.args[2].evaluate(context, type);
+                if (Array.isArray(a) && Array.isArray(b) && Array.isArray(c)) {
+                    return a.map((v, i) => v * (1 - c[i]) + b[i] * c[i]);
+                }
+                return a * (1 - c) + b * c;
+            }
             case "modf":
-                return (this.args[0].evaluate(context, type) -
-                    Math.floor(this.args[0].evaluate(context, type)));
-            case "pow":
-                return Math.pow(this.args[0].evaluate(context, type), this.args[1].evaluate(context, type));
-            case "radians":
-                return (this.args[0].evaluate(context, type) * Math.PI) / 180;
-            case "round":
-                return Math.round(this.args[0].evaluate(context, type));
-            case "sign":
-                return Math.sign(this.args[0].evaluate(context, type));
-            case "sin":
-                return Math.sin(this.args[0].evaluate(context, type));
-            case "sinh":
-                return Math.sinh(this.args[0].evaluate(context, type));
-            case "saturate":
-                return Math.min(Math.max(this.args[0].evaluate(context, type), 0), 1);
-            case "smoothstep":
-                return (this.args[0].evaluate(context, type) *
-                    this.args[0].evaluate(context, type) *
-                    (3 - 2 * this.args[0].evaluate(context, type)));
-            case "sqrt":
-                return Math.sqrt(this.args[0].evaluate(context, type));
-            case "step":
+                throw new Error("TODO Modf is not implemented");
+            case "pow": {
+                const a = this.args[0].evaluate(context, type);
+                const b = this.args[1].evaluate(context, type);
+                if (Array.isArray(a) && Array.isArray(b)) {
+                    return a.map((v, i) => Math.pow(v, b[i]));
+                }
+                return Math.pow(a, b);
+            }
+            case "radians": {
+                const value = this.args[0].evaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => (v * Math.PI) / 180);
+                }
+                return (value * Math.PI) / 180;
+            }
+            case "round": {
+                const value = this.args[0].evaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.round(v));
+                }
+                return Math.round(value);
+            }
+            case "sign": {
+                const value = this.args[0].evaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.sign(v));
+                }
+                return Math.sign(value);
+            }
+            case "sin": {
+                const value = this.args[0].evaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.sin(v));
+                }
+                return Math.sin(value);
+            }
+            case "sinh": {
+                const value = this.args[0].evaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.sinh(v));
+                }
+                return Math.sinh(value);
+            }
+            case "saturate": {
+                const value = this.args[0].evaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.min(Math.max(v, 0), 1));
+                }
+                return Math.min(Math.max(value, 0), 1);
+            }
+            case "smoothstep": {
+                const edge0 = this.args[0].evaluate(context, type);
+                const edge1 = this.args[1].evaluate(context, type);
+                const x = this.args[2].evaluate(context, type);
+                if (Array.isArray(edge0) && Array.isArray(edge1) && Array.isArray(x)) {
+                    return x.map((v, i) => {
+                        const t = Math.min(Math.max((v - edge0[i]) / (edge1[i] - edge0[i]), 0), 1);
+                        return t * t * (3 - 2 * t);
+                    });
+                }
+                const _x = x;
+                const _edge0 = edge0;
+                const _edge1 = edge1;
+                const t = Math.min(Math.max((_x - _edge0) / (_edge1 - _edge0), 0), 1);
+                return t * t * (3 - 2 * t);
+            }
+            case "sqrt": {
+                const value = this.args[0].evaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.sqrt(v));
+                }
+                return Math.sqrt(value);
+            }
+            case "step": {
                 if (type !== undefined) {
                     type[0] = Type.bool;
                 }
-                return this.args[0].evaluate(context) < this.args[1].evaluate(context)
-                    ? 0
-                    : 1;
-            case "tan":
-                return Math.tan(this.args[0].evaluate(context, type));
-            case "tanh":
-                return Math.tanh(this.args[0].evaluate(context, type));
-            case "trunc":
-                return Math.trunc(this.args[0].evaluate(context, type));
+                const edge = this.args[0].evaluate(context, type);
+                const x = this.args[1].evaluate(context, type);
+                if (Array.isArray(edge) && Array.isArray(x)) {
+                    return edge.map((v, i) => x[i] < v ? 0 : 1);
+                }
+                return x < edge ? 0 : 1;
+            }
+            case "tan": {
+                const value = this.args[0].evaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.tan(v));
+                }
+                return Math.tan(value);
+            }
+            case "tanh": {
+                const value = this.args[0].evaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.tanh(v));
+                }
+                return Math.tanh(value);
+            }
+            case "trunc": {
+                const value = this.args[0].evaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.trunc(v));
+                }
+                return Math.trunc(value);
+            }
             default:
                 throw new Error("Non const function: " + this.name);
         }
@@ -28114,7 +28355,12 @@ class BinaryOperator extends Operator {
         const t2 = [Type.i32];
         switch (this.operator) {
             case "+": {
-                const value = this.left.evaluate(context, t1) + this.right.evaluate(context, t2);
+                const v1 = this.left.evaluate(context, t1);
+                const v2 = this.right.evaluate(context, t2);
+                if (Array.isArray(v1) && Array.isArray(v2)) {
+                    return v1.map((v, i) => v + v2[i]);
+                }
+                const value = v1 + v2;
                 if (type !== undefined) {
                     type[0] = this._getPromotedType(t1[0], t2[0]);
                     if (type[0] === Type.i32 || type[0] === Type.u32) {
@@ -28124,7 +28370,12 @@ class BinaryOperator extends Operator {
                 return value;
             }
             case "-": {
-                const value = this.left.evaluate(context, t1) - this.right.evaluate(context, t2);
+                const v1 = this.left.evaluate(context, t1);
+                const v2 = this.right.evaluate(context, t2);
+                if (Array.isArray(v1) && Array.isArray(v2)) {
+                    return v1.map((v, i) => v - v2[i]);
+                }
+                const value = v1 - v2;
                 if (type !== undefined) {
                     type[0] = this._getPromotedType(t1[0], t2[0]);
                     if (type[0] === Type.i32 || type[0] === Type.u32) {
@@ -28134,7 +28385,12 @@ class BinaryOperator extends Operator {
                 return value;
             }
             case "*": {
-                const value = this.left.evaluate(context, type) * this.right.evaluate(context, type);
+                const v1 = this.left.evaluate(context, t1);
+                const v2 = this.right.evaluate(context, t2);
+                if (Array.isArray(v1) && Array.isArray(v2)) {
+                    return v1.map((v, i) => v * v2[i]);
+                }
+                const value = v1 * v2;
                 if (type !== undefined) {
                     type[0] = this._getPromotedType(t1[0], t2[0]);
                     if (type[0] === Type.i32 || type[0] === Type.u32) {
@@ -28144,7 +28400,12 @@ class BinaryOperator extends Operator {
                 return value;
             }
             case "/": {
-                const value = this.left.evaluate(context, type) / this.right.evaluate(context, type);
+                const v1 = this.left.evaluate(context, t1);
+                const v2 = this.right.evaluate(context, t2);
+                if (Array.isArray(v1) && Array.isArray(v2)) {
+                    return v1.map((v, i) => v / v2[i]);
+                }
+                const value = v1 / v2;
                 if (type !== undefined) {
                     type[0] = this._getPromotedType(t1[0], t2[0]);
                     if (type[0] === Type.i32 || type[0] === Type.u32) {
@@ -28154,7 +28415,12 @@ class BinaryOperator extends Operator {
                 return value;
             }
             case "%": {
-                const value = this.left.evaluate(context, type) % this.right.evaluate(context, type);
+                const v1 = this.left.evaluate(context, t1);
+                const v2 = this.right.evaluate(context, t2);
+                if (Array.isArray(v1) && Array.isArray(v2)) {
+                    return v1.map((v, i) => v % v2[i]);
+                }
+                const value = v1 % v2;
                 if (type !== undefined) {
                     type[0] = this._getPromotedType(t1[0], t2[0]);
                     if (type[0] === Type.i32 || type[0] === Type.u32) {
@@ -30106,6 +30372,7 @@ class WgslParser {
                 _var.value = new LiteralExpr(value, type[0]);
             }
             catch (_) {
+                _var.value = expr;
             }
         }
         if (_var.type !== null && _var.value instanceof LiteralExpr) {
@@ -31527,7 +31794,7 @@ class ExecContext {
 }
 
 class ExecInterface {
-    _evalExpression(node, context) {
+    evalExpression(node, context) {
         return null;
     }
     _getTypeName(type) {
@@ -31573,7 +31840,7 @@ class TypedData extends Data {
                         offset += idx.value * typeInfo.stride;
                     }
                     else {
-                        const i = exec._evalExpression(idx, context);
+                        const i = exec.evalExpression(idx, context);
                         if (i !== null) {
                             offset += i * typeInfo.stride;
                         }
@@ -31773,7 +32040,7 @@ class TypedData extends Data {
                         offset += idx.value * typeInfo.stride;
                     }
                     else {
-                        const i = exec._evalExpression(idx, context);
+                        const i = exec.evalExpression(idx, context);
                         if (i !== null) {
                             offset += i * typeInfo.stride;
                         }
@@ -31935,23 +32202,23 @@ class BuiltinFunctions {
     }
     // Logical Built-in Functions
     All(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         let isTrue = true;
         value.forEach((x) => { if (!x)
             isTrue = false; });
         return isTrue;
     }
     Any(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         return value.some((v) => v);
     }
     Select(node, context) {
-        const condition = this.exec._evalExpression(node.args[2], context);
+        const condition = this.exec.evalExpression(node.args[2], context);
         if (condition) {
-            return this.exec._evalExpression(node.args[0], context);
+            return this.exec.evalExpression(node.args[0], context);
         }
         else {
-            return this.exec._evalExpression(node.args[1], context);
+            return this.exec.evalExpression(node.args[1], context);
         }
     }
     // Array Built-in Functions
@@ -31961,7 +32228,7 @@ class BuiltinFunctions {
         if (arrayArg instanceof UnaryOperator) {
             arrayArg = arrayArg.right;
         }
-        const arrayData = this.exec._evalExpression(arrayArg, context);
+        const arrayData = this.exec.evalExpression(arrayArg, context);
         if (arrayData.typeInfo.size === 0) {
             const count = arrayData.buffer.byteLength / arrayData.typeInfo.stride;
             return count;
@@ -31970,64 +32237,64 @@ class BuiltinFunctions {
     }
     // Numeric Built-in Functions
     Abs(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v) => Math.abs(v));
         }
         return Math.abs(value);
     }
     Acos(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v) => Math.acos(v));
         }
         return Math.acos(value);
     }
     Acosh(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v) => Math.acosh(v));
         }
         return Math.acosh(value);
     }
     Asin(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v) => Math.asin(v));
         }
         return Math.asin(value);
     }
     Asinh(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v) => Math.asinh(v));
         }
         return Math.asinh(value);
     }
     Atan(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v) => Math.atan(v));
         }
         return Math.atan(value);
     }
     Atanh(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v) => Math.atanh(v));
         }
         return Math.atanh(value);
     }
     Atan2(node, context) {
-        const y = this.exec._evalExpression(node.args[0], context);
-        const x = this.exec._evalExpression(node.args[1], context);
+        const y = this.exec.evalExpression(node.args[0], context);
+        const x = this.exec.evalExpression(node.args[1], context);
         if (y.length !== undefined) {
             return y.map((v, i) => Math.atan2(v, x[i]));
         }
         return Math.atan2(y, x);
     }
     Ceil(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v) => Math.ceil(v));
         }
@@ -32037,30 +32304,30 @@ class BuiltinFunctions {
         return Math.min(Math.max(value, min), max);
     }
     Clamp(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
-        const min = this.exec._evalExpression(node.args[1], context);
-        const max = this.exec._evalExpression(node.args[2], context);
+        const value = this.exec.evalExpression(node.args[0], context);
+        const min = this.exec.evalExpression(node.args[1], context);
+        const max = this.exec.evalExpression(node.args[2], context);
         if (value instanceof Array) {
             return value.map((v, i) => this._clamp(v, min[i], max[i]));
         }
         return this._clamp(value, min, max);
     }
     Cos(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v) => Math.cos(v));
         }
         return Math.cos(value);
     }
     Cosh(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v) => Math.cosh(v));
         }
         return Math.cosh(value);
     }
     CountLeadingZeros(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v) => Math.clz32(v));
         }
@@ -32077,7 +32344,7 @@ class BuiltinFunctions {
         return count;
     }
     CountOneBits(node, context) {
-        let x = this.exec._evalExpression(node.args[0], context);
+        let x = this.exec.evalExpression(node.args[0], context);
         if (x instanceof Array) {
             return x.map((v) => this._countOneBits(v));
         }
@@ -32095,15 +32362,15 @@ class BuiltinFunctions {
         return count;
     }
     CountTrailingZeros(node, context) {
-        let x = this.exec._evalExpression(node.args[0], context);
+        let x = this.exec.evalExpression(node.args[0], context);
         if (x instanceof Array) {
             return x.map((v) => this._countTrailingZeros(v));
         }
         this._countTrailingZeros(x);
     }
     Cross(node, context) {
-        const l = this.exec._evalExpression(node.args[0], context);
-        const r = this.exec._evalExpression(node.args[1], context);
+        const l = this.exec.evalExpression(node.args[0], context);
+        const r = this.exec.evalExpression(node.args[1], context);
         return [
             l[1] * r[2] - r[1] * l[2],
             l[2] * r[0] - r[2] * l[0],
@@ -32111,7 +32378,7 @@ class BuiltinFunctions {
         ];
     }
     Degrees(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         const radToDeg = 180.0 / Math.PI;
         if (value instanceof Array) {
             return value.map((v) => v * radToDeg);
@@ -32119,7 +32386,7 @@ class BuiltinFunctions {
         return value * radToDeg;
     }
     Determinant(node, context) {
-        const m = this.exec._evalExpression(node.args[0], context);
+        const m = this.exec.evalExpression(node.args[0], context);
         // TODO: get the dimensions of the matrix
         if (m.length === 4) {
             return m[0] * m[3] - m[1] * m[2];
@@ -32128,8 +32395,8 @@ class BuiltinFunctions {
         return null;
     }
     Distance(node, context) {
-        const l = this.exec._evalExpression(node.args[0], context);
-        const r = this.exec._evalExpression(node.args[1], context);
+        const l = this.exec.evalExpression(node.args[0], context);
+        const r = this.exec.evalExpression(node.args[1], context);
         let sum = 0;
         for (let i = 0; i < l.length; ++i) {
             sum += (l[i] - r[i]) * (l[i] - r[i]);
@@ -32144,8 +32411,8 @@ class BuiltinFunctions {
         return dot;
     }
     Dot(node, context) {
-        const l = this.exec._evalExpression(node.args[0], context);
-        const r = this.exec._evalExpression(node.args[1], context);
+        const l = this.exec.evalExpression(node.args[0], context);
+        const r = this.exec.evalExpression(node.args[1], context);
         return this._dot(l, r);
     }
     Dot4U8Packed(node, context) {
@@ -32157,23 +32424,23 @@ class BuiltinFunctions {
         return null;
     }
     Exp(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v) => Math.exp(v));
         }
         return Math.exp(value);
     }
     Exp2(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v) => Math.pow(2, v));
         }
         return Math.pow(2, value);
     }
     ExtractBits(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
-        const offset = this.exec._evalExpression(node.args[1], context);
-        const count = this.exec._evalExpression(node.args[2], context);
+        const value = this.exec.evalExpression(node.args[0], context);
+        const offset = this.exec.evalExpression(node.args[1], context);
+        const count = this.exec.evalExpression(node.args[2], context);
         return (value >> offset) & ((1 << count) - 1);
     }
     FaceForward(node, context) {
@@ -32189,23 +32456,23 @@ class BuiltinFunctions {
         return null;
     }
     Floor(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v) => Math.floor(v));
         }
         return Math.floor(value);
     }
     Fma(node, context) {
-        const a = this.exec._evalExpression(node.args[0], context);
-        const b = this.exec._evalExpression(node.args[1], context);
-        const c = this.exec._evalExpression(node.args[2], context);
+        const a = this.exec.evalExpression(node.args[0], context);
+        const b = this.exec.evalExpression(node.args[1], context);
+        const c = this.exec.evalExpression(node.args[2], context);
         if (a.length !== undefined) {
             return a.map((v, i) => v * b[i] + c[i]);
         }
         return a * b + c;
     }
     Fract(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v) => v - Math.floor(v));
         }
@@ -32216,15 +32483,15 @@ class BuiltinFunctions {
         return null;
     }
     InsertBits(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
-        const insert = this.exec._evalExpression(node.args[1], context);
-        const offset = this.exec._evalExpression(node.args[2], context);
-        const count = this.exec._evalExpression(node.args[3], context);
+        const value = this.exec.evalExpression(node.args[0], context);
+        const insert = this.exec.evalExpression(node.args[1], context);
+        const offset = this.exec.evalExpression(node.args[2], context);
+        const count = this.exec.evalExpression(node.args[3], context);
         const mask = ((1 << count) - 1) << offset;
         return (value & ~mask) | ((insert << offset) & mask);
     }
     InverseSqrt(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v) => 1 / Math.sqrt(v));
         }
@@ -32235,65 +32502,65 @@ class BuiltinFunctions {
         return null;
     }
     Length(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         let sum = this._dot(value, value);
         return Math.sqrt(sum);
     }
     Log(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v) => Math.log(v));
         }
         return Math.log(value);
     }
     Log2(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v) => Math.log2(v));
         }
         return Math.log2(value);
     }
     Max(node, context) {
-        const l = this.exec._evalExpression(node.args[0], context);
-        const r = this.exec._evalExpression(node.args[1], context);
+        const l = this.exec.evalExpression(node.args[0], context);
+        const r = this.exec.evalExpression(node.args[1], context);
         if (l instanceof Array) {
             return l.map((v, i) => Math.max(v, r[i]));
         }
         return Math.max(l, r);
     }
     Min(node, context) {
-        const l = this.exec._evalExpression(node.args[0], context);
-        const r = this.exec._evalExpression(node.args[1], context);
+        const l = this.exec.evalExpression(node.args[0], context);
+        const r = this.exec.evalExpression(node.args[1], context);
         if (l instanceof Array) {
             return l.map((v, i) => Math.min(v, r[i]));
         }
         return Math.min(l, r);
     }
     Mix(node, context) {
-        const x = this.exec._evalExpression(node.args[0], context);
-        const y = this.exec._evalExpression(node.args[1], context);
-        const a = this.exec._evalExpression(node.args[2], context);
+        const x = this.exec.evalExpression(node.args[0], context);
+        const y = this.exec.evalExpression(node.args[1], context);
+        const a = this.exec.evalExpression(node.args[2], context);
         if (x instanceof Array) {
             return x.map((v, i) => x[i] * (1 - a[i]) + y[i] * a[i]);
         }
         return x * (1 - a) + y * a;
     }
     Modf(node, context) {
-        const x = this.exec._evalExpression(node.args[0], context);
-        const y = this.exec._evalExpression(node.args[1], context);
+        const x = this.exec.evalExpression(node.args[0], context);
+        const y = this.exec.evalExpression(node.args[1], context);
         if (x instanceof Array) {
             return x.map((v, i) => v % y[i]);
         }
         return x % y;
     }
     Normalize(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         const length = this.Length(node, context);
         return value.map((v) => v / length);
     }
     Pow(node, context) {
-        const x = this.exec._evalExpression(node.args[0], context);
-        const y = this.exec._evalExpression(node.args[1], context);
+        const x = this.exec.evalExpression(node.args[0], context);
+        const y = this.exec.evalExpression(node.args[1], context);
         if (x instanceof Array) {
             return x.map((v, i) => Math.pow(v, y[i]));
         }
@@ -32304,7 +32571,7 @@ class BuiltinFunctions {
         return null;
     }
     Radians(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v) => v * Math.PI / 180);
         }
@@ -32312,15 +32579,15 @@ class BuiltinFunctions {
     }
     Reflect(node, context) {
         // e1 - 2 * dot(e2, e1) * e2
-        let e1 = this.exec._evalExpression(node.args[0], context);
-        let e2 = this.exec._evalExpression(node.args[1], context);
+        let e1 = this.exec.evalExpression(node.args[0], context);
+        let e2 = this.exec.evalExpression(node.args[1], context);
         let dot = this._dot(e1, e2);
         return e1.map((v, i) => v - 2 * dot * e2[i]);
     }
     Refract(node, context) {
-        let e1 = this.exec._evalExpression(node.args[0], context);
-        let e2 = this.exec._evalExpression(node.args[1], context);
-        let e3 = this.exec._evalExpression(node.args[2], context);
+        let e1 = this.exec.evalExpression(node.args[0], context);
+        let e2 = this.exec.evalExpression(node.args[1], context);
+        let e3 = this.exec.evalExpression(node.args[2], context);
         let dot = this.Dot(e2, e1);
         const k = 1.0 - e3 * e3 * (1.0 - dot * dot);
         if (k < 0) {
@@ -32334,35 +32601,35 @@ class BuiltinFunctions {
         return null;
     }
     Round(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v) => Math.round(v));
         }
         return Math.round(value);
     }
     Saturate(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v) => Math.min(Math.max(v, 0), 1));
         }
         return Math.min(Math.max(value, 0), 1);
     }
     Sign(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v) => Math.sign(v));
         }
         return Math.sign(value);
     }
     Sin(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v) => Math.sin(v));
         }
         return Math.sin(value);
     }
     Sinh(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v) => Math.sinh(v));
         }
@@ -32373,38 +32640,38 @@ class BuiltinFunctions {
         return t * t * (3 - 2 * t);
     }
     SmoothStep(node, context) {
-        const edge0 = this.exec._evalExpression(node.args[0], context);
-        const edge1 = this.exec._evalExpression(node.args[1], context);
-        const x = this.exec._evalExpression(node.args[2], context);
+        const edge0 = this.exec.evalExpression(node.args[0], context);
+        const edge1 = this.exec.evalExpression(node.args[1], context);
+        const x = this.exec.evalExpression(node.args[2], context);
         if (x instanceof Array) {
             return x.map((v, i) => this._smoothstep(edge0[i], edge1[i], v));
         }
         return this._smoothstep(edge0, edge1, x);
     }
     Sqrt(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v) => Math.sqrt(v));
         }
         return Math.sqrt(value);
     }
     Step(node, context) {
-        const edge = this.exec._evalExpression(node.args[0], context);
-        const x = this.exec._evalExpression(node.args[1], context);
+        const edge = this.exec.evalExpression(node.args[0], context);
+        const x = this.exec.evalExpression(node.args[1], context);
         if (x instanceof Array) {
             return x.map((v, i) => v < edge[i] ? 0 : 1);
         }
         return x < edge ? 0 : 1;
     }
     Tan(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v) => Math.tan(v));
         }
         return Math.tan(value);
     }
     Tanh(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v) => Math.tanh(v));
         }
@@ -32415,7 +32682,7 @@ class BuiltinFunctions {
         return null;
     }
     Trunc(node, context) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v) => Math.trunc(v));
         }
@@ -32461,7 +32728,7 @@ class BuiltinFunctions {
     // Texture Built-in Functions
     TextureDimensions(node, context) {
         const textureArg = node.args[0];
-        node.args.length > 1 ? this.exec._evalExpression(node.args[1], context) : 0;
+        node.args.length > 1 ? this.exec.evalExpression(node.args[1], context) : 0;
         if (textureArg instanceof VariableExpr) {
             const textureName = textureArg.name;
             const texture = context.getVariableValue(textureName);
@@ -32486,8 +32753,8 @@ class BuiltinFunctions {
     }
     TextureLoad(node, context) {
         const textureArg = node.args[0];
-        const uv = this.exec._evalExpression(node.args[1], context);
-        node.args.length > 2 ? this.exec._evalExpression(node.args[2], context) : 0;
+        const uv = this.exec.evalExpression(node.args[1], context);
+        node.args.length > 2 ? this.exec.evalExpression(node.args[2], context) : 0;
         if (textureArg instanceof VariableExpr) {
             const textureName = textureArg.name;
             const texture = context.getVariableValue(textureName);
@@ -32886,6 +33153,94 @@ class WgslExec extends ExecInterface {
             }
         }
     }
+    execStatement(stmt, context) {
+        if (stmt instanceof Return) {
+            const v = this.evalExpression(stmt.value, context);
+            const f = context.getFunction(context.currentFunctionName);
+            if (f === null || f === void 0 ? void 0 : f.node.returnType) {
+                if (f.node.returnType.name === "i32" || f.node.returnType.name === "u32") {
+                    return Math.floor(v);
+                }
+            }
+            return v;
+        }
+        else if (stmt instanceof Break) {
+            return stmt;
+        }
+        else if (stmt instanceof Continue) {
+            return stmt;
+        }
+        else if (stmt instanceof Let) {
+            this._let(stmt, context);
+        }
+        else if (stmt instanceof Var$1) {
+            this._var(stmt, context);
+        }
+        else if (stmt instanceof Const) {
+            this._const(stmt, context);
+        }
+        else if (stmt instanceof Function$1) {
+            this._function(stmt, context);
+        }
+        else if (stmt instanceof If) {
+            return this._if(stmt, context);
+        }
+        else if (stmt instanceof For) {
+            return this._for(stmt, context);
+        }
+        else if (stmt instanceof While) {
+            return this._while(stmt, context);
+        }
+        else if (stmt instanceof Assign) {
+            return this._assign(stmt, context);
+        }
+        else if (stmt instanceof Increment) {
+            this._increment(stmt, context);
+        }
+        else if (stmt instanceof Struct) {
+            return null;
+        }
+        else if (stmt instanceof Override) {
+            const name = stmt.name;
+            if (context.getVariable(name) === null) {
+                console.error(`Override constant ${name} not found. Line ${stmt.line}`);
+                return null;
+            }
+        }
+        else {
+            console.error(`Unknown statement type.`, stmt, `Line ${stmt.line}`);
+        }
+        return null;
+    }
+    evalExpression(node, context) {
+        if (node instanceof GroupingExpr) {
+            const grp = node;
+            return this.evalExpression(grp.contents[0], context);
+        }
+        else if (node instanceof BinaryOperator) {
+            return this._evalBinaryOp(node, context);
+        }
+        else if (node instanceof LiteralExpr) {
+            return this._evalLiteral(node, context);
+        }
+        else if (node instanceof StringExpr) {
+            return node.value;
+        }
+        else if (node instanceof VariableExpr) {
+            return this._evalVariable(node, context);
+        }
+        else if (node instanceof CallExpr) {
+            return this._evalCall(node, context);
+        }
+        else if (node instanceof CreateExpr) {
+            return this._evalCreate(node, context);
+        }
+        else if (node instanceof ConstExpr) {
+            return this._evalConst(node, context);
+        }
+        console.error(`Unknown expression type`, node, `Line ${node.line}`);
+        return null;
+    }
     _dispatchWorkgroup(f, workgroup_id, context) {
         const workgroupSize = [1, 1, 1];
         for (const attr of f.node.attributes) {
@@ -32961,11 +33316,11 @@ class WgslExec extends ExecInterface {
         return this.reflection._types.get(type);
     }
     _getTypeName(type) {
-        if (type instanceof Type) {
+        /*if (type instanceof AST.Type) {
             type = this._getTypeInfo(type);
-        }
+        }*/
         let name = type.name;
-        if (type instanceof TemplateInfo) {
+        if (type instanceof TemplateInfo || type instanceof TemplateType) {
             if (type.format !== null) {
                 if (name === "vec2" || name === "vec3" || name === "vec4" ||
                     name === "mat2x2" || name === "mat2x3" || name === "mat2x4" ||
@@ -33015,69 +33370,10 @@ class WgslExec extends ExecInterface {
                 }
                 continue;
             }
-            const res = this._execStatement(stmt, context);
+            const res = this.execStatement(stmt, context);
             if (res) {
                 return res;
             }
-        }
-        return null;
-    }
-    _execStatement(stmt, context) {
-        if (stmt instanceof Return) {
-            const v = this._evalExpression(stmt.value, context);
-            const f = context.getFunction(context.currentFunctionName);
-            if (f === null || f === void 0 ? void 0 : f.node.returnType) {
-                if (f.node.returnType.name === "i32" || f.node.returnType.name === "u32") {
-                    return Math.floor(v);
-                }
-            }
-            return v;
-        }
-        else if (stmt instanceof Break) {
-            return stmt;
-        }
-        else if (stmt instanceof Continue) {
-            return stmt;
-        }
-        else if (stmt instanceof Let) {
-            this._let(stmt, context);
-        }
-        else if (stmt instanceof Var$1) {
-            this._var(stmt, context);
-        }
-        else if (stmt instanceof Const) {
-            this._const(stmt, context);
-        }
-        else if (stmt instanceof Function$1) {
-            this._function(stmt, context);
-        }
-        else if (stmt instanceof If) {
-            return this._if(stmt, context);
-        }
-        else if (stmt instanceof For) {
-            return this._for(stmt, context);
-        }
-        else if (stmt instanceof While) {
-            return this._while(stmt, context);
-        }
-        else if (stmt instanceof Assign) {
-            return this._assign(stmt, context);
-        }
-        else if (stmt instanceof Increment) {
-            this._increment(stmt, context);
-        }
-        else if (stmt instanceof Struct) {
-            return null;
-        }
-        else if (stmt instanceof Override) {
-            const name = stmt.name;
-            if (context.getVariable(name) === null) {
-                console.error(`Override constant ${name} not found. Line ${stmt.line}`);
-                return null;
-            }
-        }
-        else {
-            console.error(`Unknown statement type.`, stmt, `Line ${stmt.line}`);
         }
         return null;
     }
@@ -33103,7 +33399,7 @@ class WgslExec extends ExecInterface {
             console.error(`Variable ${name} not found. Line ${node.line}`);
             return null;
         }
-        let value = this._evalExpression(node.value, context);
+        let value = this.evalExpression(node.value, context);
         if (node.operator !== "=") {
             const currentValue = v.value instanceof TypedData ?
                 v.value.getDataValue(this, node.variable.postfix, context) :
@@ -33202,7 +33498,7 @@ class WgslExec extends ExecInterface {
         }
         else if (node.variable.postfix) {
             if (node.variable.postfix instanceof ArrayIndex) {
-                const idx = this._evalExpression(node.variable.postfix.index, context);
+                const idx = this.evalExpression(node.variable.postfix.index, context);
                 // TODO: use array format to determine how to set the value
                 if (v.value instanceof Array) {
                     if (v.node.type.isArray) {
@@ -33252,32 +33548,32 @@ class WgslExec extends ExecInterface {
     _const(node, context) {
         let value = null;
         if (node.value != null) {
-            value = this._evalExpression(node.value, context);
+            value = this.evalExpression(node.value, context);
         }
         context.createVariable(node.name, value, node);
     }
     _let(node, context) {
         let value = null;
         if (node.value != null) {
-            value = this._evalExpression(node.value, context);
+            value = this.evalExpression(node.value, context);
         }
         context.createVariable(node.name, value, node);
     }
     _var(node, context) {
         let value = null;
         if (node.value != null) {
-            value = this._evalExpression(node.value, context);
+            value = this.evalExpression(node.value, context);
         }
         context.createVariable(node.name, value, node);
     }
     _if(node, context) {
         context = context.clone();
-        const condition = this._evalExpression(node.condition, context);
+        const condition = this.evalExpression(node.condition, context);
         if (condition) {
             return this._execStatements(node.body, context);
         }
         for (const e of node.elseif) {
-            const condition = this._evalExpression(e.condition, context);
+            const condition = this.evalExpression(e.condition, context);
             if (condition) {
                 return this._execStatements(e.body, context);
             }
@@ -33289,19 +33585,19 @@ class WgslExec extends ExecInterface {
     }
     _for(node, context) {
         context = context.clone();
-        this._execStatement(node.init, context);
-        while (this._evalExpression(node.condition, context)) {
+        this.execStatement(node.init, context);
+        while (this.evalExpression(node.condition, context)) {
             const res = this._execStatements(node.body, context);
             if (res) {
                 return res;
             }
-            this._execStatement(node.increment, context);
+            this.execStatement(node.increment, context);
         }
         return null;
     }
     _while(node, context) {
         context = context.clone();
-        let condition = this._evalExpression(node.condition, context);
+        let condition = this.evalExpression(node.condition, context);
         while (condition) {
             const res = this._execStatements(node.body, context);
             if (res instanceof Break) {
@@ -33313,37 +33609,8 @@ class WgslExec extends ExecInterface {
             else if (res !== null) {
                 return res;
             }
-            condition = this._evalExpression(node.condition, context);
+            condition = this.evalExpression(node.condition, context);
         }
-        return null;
-    }
-    _evalExpression(node, context) {
-        if (node instanceof GroupingExpr) {
-            const grp = node;
-            return this._evalExpression(grp.contents[0], context);
-        }
-        else if (node instanceof BinaryOperator) {
-            return this._evalBinaryOp(node, context);
-        }
-        else if (node instanceof LiteralExpr) {
-            return this._evalLiteral(node, context);
-        }
-        else if (node instanceof StringExpr) {
-            return node.value;
-        }
-        else if (node instanceof VariableExpr) {
-            return this._evalVariable(node, context);
-        }
-        else if (node instanceof CallExpr) {
-            return this._evalCall(node, context);
-        }
-        else if (node instanceof CreateExpr) {
-            return this._evalCreate(node, context);
-        }
-        else if (node instanceof ConstExpr) {
-            return this._evalConst(node, context);
-        }
-        console.error(`Unknown expression type`, node, `Line ${node.line}`);
         return null;
     }
     _evalConst(node, context) {
@@ -33427,7 +33694,7 @@ class WgslExec extends ExecInterface {
             for (let i = 0; i < node.args.length; ++i) {
                 const memberInfo = typeInfo.members[i];
                 const arg = node.args[i];
-                const value = this._evalExpression(arg, context);
+                const value = this.evalExpression(arg, context);
                 data.setData(this, value, memberInfo.type, memberInfo.offset, context);
             }
         }
@@ -33483,7 +33750,7 @@ class WgslExec extends ExecInterface {
         }
         if (node.postfix) {
             if (node.postfix instanceof ArrayIndex) {
-                const idx = this._evalExpression(node.postfix.index, context);
+                const idx = this.evalExpression(node.postfix.index, context);
                 if ((value === null || value === void 0 ? void 0 : value.length) !== undefined) {
                     return value[idx];
                 }
@@ -33505,7 +33772,7 @@ class WgslExec extends ExecInterface {
                                 if (m.name === member) {
                                     const v = new Float32Array(variable.value.buffer, m.offset);
                                     if (node.postfix.postfix) {
-                                        const postfix = this._evalExpression(node.postfix.postfix, context);
+                                        const postfix = this.evalExpression(node.postfix.postfix, context);
                                         return this._getArraySwizzle(value, postfix);
                                     }
                                     return v;
@@ -33521,19 +33788,59 @@ class WgslExec extends ExecInterface {
         return value;
     }
     _evalBinaryOp(node, context) {
-        const l = this._evalExpression(node.left, context);
-        const r = this._evalExpression(node.right, context);
+        const l = this.evalExpression(node.left, context);
+        const r = this.evalExpression(node.right, context);
         switch (node.operator) {
-            case "+":
+            case "+": {
+                if (Array.isArray(l) && Array.isArray(r)) {
+                    if (l.length !== r.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    return l.map((x, i) => x + r[i]);
+                }
                 return l + r;
-            case "-":
+            }
+            case "-": {
+                if (Array.isArray(l) && Array.isArray(r)) {
+                    if (l.length !== r.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    return l.map((x, i) => x - r[i]);
+                }
                 return l - r;
-            case "*":
+            }
+            case "*": {
+                if (Array.isArray(l) && Array.isArray(r)) {
+                    if (l.length !== r.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    return l.map((x, i) => x * r[i]);
+                }
                 return l * r;
-            case "%":
+            }
+            case "%": {
+                if (Array.isArray(l) && Array.isArray(r)) {
+                    if (l.length !== r.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    return l.map((x, i) => x % r[i]);
+                }
                 return l % r;
-            case "/":
+            }
+            case "/": {
+                if (Array.isArray(l) && Array.isArray(r)) {
+                    if (l.length !== r.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    return l.map((x, i) => x / r[i]);
+                }
                 return l / r;
+            }
             case ">":
                 if (l.length !== undefined && r.length !== undefined) {
                     if (l.length !== r.length) {
@@ -33544,7 +33851,7 @@ class WgslExec extends ExecInterface {
                 }
                 return l > r;
             case "<":
-                if (l.length !== undefined && r.length !== undefined) {
+                if (Array.isArray(l) && Array.isArray(r)) {
                     if (l.length !== r.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
@@ -33552,18 +33859,66 @@ class WgslExec extends ExecInterface {
                     return l.map((x, i) => x < r[i]);
                 }
                 return l < r;
-            case "==":
+            case "==": {
+                if (Array.isArray(l) && Array.isArray(r)) {
+                    if (l.length !== r.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    return l.map((x, i) => x === r[i]);
+                }
                 return l === r;
-            case "!=":
-                return l !== r;
-            case ">=":
+            }
+            case "!=": {
+                if (Array.isArray(l) && Array.isArray(r)) {
+                    if (l.length !== r.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    return l.map((x, i) => x != r[i]);
+                }
+                return l != r;
+            }
+            case ">=": {
+                if (Array.isArray(l) && Array.isArray(r)) {
+                    if (l.length !== r.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    return l.map((x, i) => x >= r[i]);
+                }
                 return l >= r;
-            case "<=":
+            }
+            case "<=": {
+                if (Array.isArray(l) && Array.isArray(r)) {
+                    if (l.length !== r.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    return l.map((x, i) => x <= r[i]);
+                }
                 return l <= r;
-            case "&&":
+            }
+            case "&&": {
+                if (Array.isArray(l) && Array.isArray(r)) {
+                    if (l.length !== r.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    return l.map((x, i) => x && r[i]);
+                }
                 return l && r;
-            case "||":
+            }
+            case "||": {
+                if (Array.isArray(l) && Array.isArray(r)) {
+                    if (l.length !== r.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    return l.map((x, i) => x || r[i]);
+                }
                 return l || r;
+            }
         }
         console.error(`Unknown operator ${node.operator}. Line ${node.line}`);
         return null;
@@ -33580,7 +33935,7 @@ class WgslExec extends ExecInterface {
         }
         for (let ai = 0; ai < f.node.args.length; ++ai) {
             const arg = f.node.args[ai];
-            const value = this._evalExpression(node.args[ai], subContext);
+            const value = this.evalExpression(node.args[ai], subContext);
             subContext.setVariable(arg.name, value, arg);
         }
         const res = this._execStatements(f.node.body, subContext);
@@ -33900,7 +34255,7 @@ class WgslExec extends ExecInterface {
             const subContext = context.clone();
             for (let ai = 0; ai < f.node.args.length; ++ai) {
                 const arg = f.node.args[ai];
-                const value = this._evalExpression(node.args[ai], subContext);
+                const value = this.evalExpression(node.args[ai], subContext);
                 subContext.setVariable(arg.name, value, arg);
             }
             return this._execStatements(f.node.body, subContext);
@@ -33912,7 +34267,7 @@ class WgslExec extends ExecInterface {
         if (node.args.length === 0) {
             return 0;
         }
-        return this._evalExpression(node.args[0], context);
+        return this.evalExpression(node.args[0], context);
     }
     _callConstructorArray(node, context) {
         if (node.args.length === 0) {
@@ -33968,7 +34323,7 @@ class WgslExec extends ExecInterface {
         }
         const values = [];
         for (const arg of node.args) {
-            values.push(this._evalExpression(arg, context));
+            values.push(this.evalExpression(arg, context));
         }
         return values;
     }
@@ -33994,7 +34349,7 @@ class WgslExec extends ExecInterface {
         const values = [];
         // TODO: make sure the number of args matches the vector length.
         for (const arg of node.args) {
-            let v = this._evalExpression(arg, context);
+            let v = this.evalExpression(arg, context);
             if (isInt) {
                 v = Math.floor(v);
             }
@@ -34060,7 +34415,7 @@ class WgslExec extends ExecInterface {
         const values = [];
         // TODO: make sure the number of args matches the matrix size.
         for (const arg of node.args) {
-            let v = this._evalExpression(arg, context);
+            let v = this.evalExpression(arg, context);
             if (isInt) {
                 v = Math.floor(v);
             }
@@ -34149,8 +34504,12 @@ class ExecStack {
     }
 }
 class WgslDebug {
-    constructor(code, context) {
-        this._exec = new WgslExec(code, context);
+    constructor(code, runStateCallback) {
+        this._runTimer = null;
+        this.breakpoints = new Set();
+        this.runStateCallback = null;
+        this._exec = new WgslExec(code);
+        this.runStateCallback = runStateCallback !== null && runStateCallback !== void 0 ? runStateCallback : null;
     }
     getVariableValue(name) {
         return this._exec.context.getVariableValue(name);
@@ -34203,6 +34562,54 @@ class WgslDebug {
                 continue;
             }
             return command;
+        }
+    }
+    toggleBreakpoint(line) {
+        if (this.breakpoints.has(line)) {
+            this.breakpoints.delete(line);
+        }
+        else {
+            this.breakpoints.add(line);
+        }
+    }
+    clearBreakpoints() {
+        this.breakpoints.clear();
+    }
+    get isRunning() {
+        return this._runTimer !== null;
+    }
+    run() {
+        this._runTimer = setInterval(() => {
+            const command = this.currentCommand;
+            if (command) {
+                if (this.breakpoints.has(command.line)) {
+                    clearInterval(this._runTimer);
+                    this._runTimer = null;
+                    if (this.runStateCallback !== null) {
+                        this.runStateCallback();
+                    }
+                    return;
+                }
+            }
+            if (!this.stepNext(true)) {
+                clearInterval(this._runTimer);
+                this._runTimer = null;
+                if (this.runStateCallback !== null) {
+                    this.runStateCallback();
+                }
+            }
+        }, 0);
+        if (this.runStateCallback !== null) {
+            this.runStateCallback();
+        }
+    }
+    pause() {
+        if (this._runTimer !== null) {
+            clearInterval(this._runTimer);
+            this._runTimer = null;
+            if (this.runStateCallback !== null) {
+                this.runStateCallback();
+            }
         }
     }
     debugWorkgroup(kernel, dispatchId, dispatchCount, bindGroups, config) {
@@ -34309,6 +34716,12 @@ class WgslDebug {
         }
         return false;
     }
+    stepInto() {
+        this.stepNext(true);
+    }
+    stepOver() {
+        this.stepNext(false);
+    }
     // Returns true if execution is not finished, false if execution is complete.
     stepNext(stepInto = true) {
         if (!this._execStack) {
@@ -34344,7 +34757,7 @@ class WgslDebug {
                 const fnState = this._createState(fn.node.body, state.context.clone(), state);
                 for (let ai = 0; ai < fn.node.args.length; ++ai) {
                     const arg = fn.node.args[ai];
-                    const value = this._exec._evalExpression(node.args[ai], fnState.context);
+                    const value = this._exec.evalExpression(node.args[ai], fnState.context);
                     fnState.context.setVariable(arg.name, value, arg);
                 }
                 fnState.parentCallExpr = node;
@@ -34356,7 +34769,7 @@ class WgslDebug {
                 return true;
             }
             else if (command instanceof StatementCommand) {
-                const res = this._exec._execStatement(command.node, state.context);
+                const res = this._exec.execStatement(command.node, state.context);
                 if (res !== null && res !== undefined) {
                     let s = state;
                     // Find the CallExpr to store the return value in.
@@ -34426,7 +34839,7 @@ class WgslDebug {
                     return false;
                 }
                 if (command.condition) {
-                    const res = this._exec._evalExpression(command.condition, state.context);
+                    const res = this._exec.evalExpression(command.condition, state.context);
                     if (res) {
                         if (this._shouldExecuteNectCommand()) {
                             continue;

@@ -12,23 +12,23 @@ export class BuiltinFunctions {
 
     // Logical Built-in Functions
     All(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         let isTrue = true;
         value.forEach((x: any) => { if (!x) isTrue = false; });
         return isTrue;
     }
 
     Any(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         return value.some((v: any) => v);
     }
 
     Select(node: AST.CallExpr, context: ExecContext) {
-        const condition = this.exec._evalExpression(node.args[2], context);
+        const condition = this.exec.evalExpression(node.args[2], context);
         if (condition) {
-            return this.exec._evalExpression(node.args[0], context);
+            return this.exec.evalExpression(node.args[0], context);
         } else {
-            return this.exec._evalExpression(node.args[1], context);
+            return this.exec.evalExpression(node.args[1], context);
         }
     }
 
@@ -39,7 +39,7 @@ export class BuiltinFunctions {
         if (arrayArg instanceof AST.UnaryOperator) {
             arrayArg = (arrayArg as AST.UnaryOperator).right;
         }
-        const arrayData = this.exec._evalExpression(arrayArg, context);
+        const arrayData = this.exec.evalExpression(arrayArg, context);
         if (arrayData.typeInfo.size === 0) {
             const count = arrayData.buffer.byteLength / arrayData.typeInfo.stride;
             return count;
@@ -49,7 +49,7 @@ export class BuiltinFunctions {
 
     // Numeric Built-in Functions
     Abs(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v: number) => Math.abs(v));
         }
@@ -57,7 +57,7 @@ export class BuiltinFunctions {
     }
 
     Acos(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v: number) => Math.acos(v));
         }
@@ -65,7 +65,7 @@ export class BuiltinFunctions {
     }
 
     Acosh(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v: number) => Math.acosh(v));
         }
@@ -73,7 +73,7 @@ export class BuiltinFunctions {
     }
 
     Asin(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v: number) => Math.asin(v));
         }
@@ -81,7 +81,7 @@ export class BuiltinFunctions {
     }
 
     Asinh(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v: number) => Math.asinh(v));
         }
@@ -89,7 +89,7 @@ export class BuiltinFunctions {
     }
 
     Atan(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v: number) => Math.atan(v));
         }
@@ -97,7 +97,7 @@ export class BuiltinFunctions {
     }
 
     Atanh(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v: number) => Math.atanh(v));
         }
@@ -105,8 +105,8 @@ export class BuiltinFunctions {
     }
 
     Atan2(node: AST.CallExpr, context: ExecContext) {
-        const y = this.exec._evalExpression(node.args[0], context);
-        const x = this.exec._evalExpression(node.args[1], context);
+        const y = this.exec.evalExpression(node.args[0], context);
+        const x = this.exec.evalExpression(node.args[1], context);
         if (y.length !== undefined) {
             return y.map((v: number, i: number) => Math.atan2(v, x[i]));
         }
@@ -114,7 +114,7 @@ export class BuiltinFunctions {
     }
 
     Ceil(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v: number) => Math.ceil(v));
         }
@@ -126,9 +126,9 @@ export class BuiltinFunctions {
     }
 
     Clamp(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
-        const min = this.exec._evalExpression(node.args[1], context);
-        const max = this.exec._evalExpression(node.args[2], context);
+        const value = this.exec.evalExpression(node.args[0], context);
+        const min = this.exec.evalExpression(node.args[1], context);
+        const max = this.exec.evalExpression(node.args[2], context);
         if (value instanceof Array) {
             return value.map((v: number, i: number) => this._clamp(v, min[i], max[i]));
         }
@@ -136,7 +136,7 @@ export class BuiltinFunctions {
     }
 
     Cos(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v: number) => Math.cos(v));
         }
@@ -144,7 +144,7 @@ export class BuiltinFunctions {
     }
 
     Cosh(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v: number) => Math.cosh(v));
         }
@@ -152,7 +152,7 @@ export class BuiltinFunctions {
     }
 
     CountLeadingZeros(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v: number) => Math.clz32(v));
         }
@@ -171,7 +171,7 @@ export class BuiltinFunctions {
     }
 
     CountOneBits(node: AST.CallExpr, context: ExecContext) {
-        let x = this.exec._evalExpression(node.args[0], context);
+        let x = this.exec.evalExpression(node.args[0], context);
         if (x instanceof Array) {
             return x.map((v: number) => this._countOneBits(v));
         }
@@ -191,7 +191,7 @@ export class BuiltinFunctions {
     }
 
     CountTrailingZeros(node: AST.CallExpr, context: ExecContext) {
-        let x = this.exec._evalExpression(node.args[0], context);
+        let x = this.exec.evalExpression(node.args[0], context);
         if (x instanceof Array) {
             return x.map((v: number) => this._countTrailingZeros(v));
         }
@@ -199,8 +199,8 @@ export class BuiltinFunctions {
     }
 
     Cross(node: AST.CallExpr, context: ExecContext) {
-        const l = this.exec._evalExpression(node.args[0], context);
-        const r = this.exec._evalExpression(node.args[1], context);
+        const l = this.exec.evalExpression(node.args[0], context);
+        const r = this.exec.evalExpression(node.args[1], context);
         return [
             l[1] * r[2] - r[1] * l[2],
             l[2] * r[0] - r[2] * l[0],
@@ -209,7 +209,7 @@ export class BuiltinFunctions {
     }
 
     Degrees(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         const radToDeg = 180.0 / Math.PI;
         if (value instanceof Array) {
             return value.map((v: number) => v * radToDeg);
@@ -218,7 +218,7 @@ export class BuiltinFunctions {
     }
 
     Determinant(node: AST.CallExpr, context: ExecContext) {
-        const m = this.exec._evalExpression(node.args[0], context);
+        const m = this.exec.evalExpression(node.args[0], context);
         // TODO: get the dimensions of the matrix
         if (m.length === 4) {
             return m[0] * m[3] - m[1] * m[2];
@@ -228,8 +228,8 @@ export class BuiltinFunctions {
     }
 
     Distance(node: AST.CallExpr, context: ExecContext) {
-        const l = this.exec._evalExpression(node.args[0], context);
-        const r = this.exec._evalExpression(node.args[1], context);
+        const l = this.exec.evalExpression(node.args[0], context);
+        const r = this.exec.evalExpression(node.args[1], context);
         let sum = 0;
         for (let i = 0; i < l.length; ++i) {
             sum += (l[i] - r[i]) * (l[i] - r[i]);
@@ -246,8 +246,8 @@ export class BuiltinFunctions {
     }
 
     Dot(node: AST.CallExpr, context: ExecContext) {
-        const l = this.exec._evalExpression(node.args[0], context);
-        const r = this.exec._evalExpression(node.args[1], context);
+        const l = this.exec.evalExpression(node.args[0], context);
+        const r = this.exec.evalExpression(node.args[1], context);
         return this._dot(l, r);
     }
 
@@ -262,7 +262,7 @@ export class BuiltinFunctions {
     }
 
     Exp(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v: number) => Math.exp(v));
         }
@@ -270,7 +270,7 @@ export class BuiltinFunctions {
     }
 
     Exp2(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v: number) => Math.pow(2, v));
         }
@@ -278,9 +278,9 @@ export class BuiltinFunctions {
     }
 
     ExtractBits(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
-        const offset = this.exec._evalExpression(node.args[1], context);
-        const count = this.exec._evalExpression(node.args[2], context);
+        const value = this.exec.evalExpression(node.args[0], context);
+        const offset = this.exec.evalExpression(node.args[1], context);
+        const count = this.exec.evalExpression(node.args[2], context);
         return (value >> offset) & ((1 << count) - 1);
     }
 
@@ -300,7 +300,7 @@ export class BuiltinFunctions {
     }
 
     Floor(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v: number) => Math.floor(v));
         }
@@ -308,9 +308,9 @@ export class BuiltinFunctions {
     }
 
     Fma(node: AST.CallExpr, context: ExecContext) {
-        const a = this.exec._evalExpression(node.args[0], context);
-        const b = this.exec._evalExpression(node.args[1], context);
-        const c = this.exec._evalExpression(node.args[2], context);
+        const a = this.exec.evalExpression(node.args[0], context);
+        const b = this.exec.evalExpression(node.args[1], context);
+        const c = this.exec.evalExpression(node.args[2], context);
         if (a.length !== undefined) {
             return a.map((v: number, i: number) => v * b[i] + c[i]);
         }
@@ -318,7 +318,7 @@ export class BuiltinFunctions {
     }
 
     Fract(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v: number) => v - Math.floor(v));
         }
@@ -331,16 +331,16 @@ export class BuiltinFunctions {
     }
 
     InsertBits(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
-        const insert = this.exec._evalExpression(node.args[1], context);
-        const offset = this.exec._evalExpression(node.args[2], context);
-        const count = this.exec._evalExpression(node.args[3], context);
+        const value = this.exec.evalExpression(node.args[0], context);
+        const insert = this.exec.evalExpression(node.args[1], context);
+        const offset = this.exec.evalExpression(node.args[2], context);
+        const count = this.exec.evalExpression(node.args[3], context);
         const mask = ((1 << count) - 1) << offset;
         return (value & ~mask) | ((insert << offset) & mask);
     }
 
     InverseSqrt(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v: number) => 1 / Math.sqrt(v));
         }
@@ -353,13 +353,13 @@ export class BuiltinFunctions {
     }
 
     Length(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         let sum = this._dot(value, value);
         return Math.sqrt(sum);
     }
 
     Log(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v: number) => Math.log(v));
         }
@@ -367,7 +367,7 @@ export class BuiltinFunctions {
     }
 
     Log2(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v: number) => Math.log2(v));
         }
@@ -375,8 +375,8 @@ export class BuiltinFunctions {
     }
 
     Max(node: AST.CallExpr, context: ExecContext) {
-        const l = this.exec._evalExpression(node.args[0], context);
-        const r = this.exec._evalExpression(node.args[1], context);
+        const l = this.exec.evalExpression(node.args[0], context);
+        const r = this.exec.evalExpression(node.args[1], context);
         if (l instanceof Array) {
             return l.map((v: number, i: number) => Math.max(v, r[i]));
         }
@@ -384,8 +384,8 @@ export class BuiltinFunctions {
     }
 
     Min(node: AST.CallExpr, context: ExecContext) {
-        const l = this.exec._evalExpression(node.args[0], context);
-        const r = this.exec._evalExpression(node.args[1], context);
+        const l = this.exec.evalExpression(node.args[0], context);
+        const r = this.exec.evalExpression(node.args[1], context);
         if (l instanceof Array) {
             return l.map((v: number, i: number) => Math.min(v, r[i]));
         }
@@ -393,9 +393,9 @@ export class BuiltinFunctions {
     }
 
     Mix(node: AST.CallExpr, context: ExecContext) {
-        const x = this.exec._evalExpression(node.args[0], context);
-        const y = this.exec._evalExpression(node.args[1], context);
-        const a = this.exec._evalExpression(node.args[2], context);
+        const x = this.exec.evalExpression(node.args[0], context);
+        const y = this.exec.evalExpression(node.args[1], context);
+        const a = this.exec.evalExpression(node.args[2], context);
         if (x instanceof Array) {
             return x.map((v: number, i: number) => x[i] * (1 - a[i]) + y[i] * a[i]);
         }
@@ -403,8 +403,8 @@ export class BuiltinFunctions {
     }
 
     Modf(node: AST.CallExpr, context: ExecContext) {
-        const x = this.exec._evalExpression(node.args[0], context);
-        const y = this.exec._evalExpression(node.args[1], context);
+        const x = this.exec.evalExpression(node.args[0], context);
+        const y = this.exec.evalExpression(node.args[1], context);
         if (x instanceof Array) {
             return x.map((v: number, i: number) => v % y[i]);
         }
@@ -412,14 +412,14 @@ export class BuiltinFunctions {
     }
 
     Normalize(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         const length = this.Length(node, context);
         return value.map((v: any) => v / length);
     }
 
     Pow(node: AST.CallExpr, context: ExecContext) {
-        const x = this.exec._evalExpression(node.args[0], context);
-        const y = this.exec._evalExpression(node.args[1], context);
+        const x = this.exec.evalExpression(node.args[0], context);
+        const y = this.exec.evalExpression(node.args[1], context);
         if (x instanceof Array) {
             return x.map((v: number, i: number) => Math.pow(v, y[i]));
         }
@@ -432,7 +432,7 @@ export class BuiltinFunctions {
     }
 
     Radians(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v: number) => v * Math.PI / 180);
         }
@@ -441,16 +441,16 @@ export class BuiltinFunctions {
 
     Reflect(node: AST.CallExpr, context: ExecContext) {
         // e1 - 2 * dot(e2, e1) * e2
-        let e1 = this.exec._evalExpression(node.args[0], context);
-        let e2 = this.exec._evalExpression(node.args[1], context);
+        let e1 = this.exec.evalExpression(node.args[0], context);
+        let e2 = this.exec.evalExpression(node.args[1], context);
         let dot = this._dot(e1, e2);
         return e1.map((v: number, i: number) => v - 2 * dot * e2[i]);
     }
 
     Refract(node: AST.CallExpr, context: ExecContext) {
-        let e1 = this.exec._evalExpression(node.args[0], context);
-        let e2 = this.exec._evalExpression(node.args[1], context);
-        let e3 = this.exec._evalExpression(node.args[2], context);
+        let e1 = this.exec.evalExpression(node.args[0], context);
+        let e2 = this.exec.evalExpression(node.args[1], context);
+        let e3 = this.exec.evalExpression(node.args[2], context);
         let dot = this.Dot(e2, e1);
         const k = 1.0 - e3 * e3 * (1.0 - dot * dot);
         if (k < 0) {
@@ -466,7 +466,7 @@ export class BuiltinFunctions {
     }
 
     Round(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v: number) => Math.round(v));
         }
@@ -474,7 +474,7 @@ export class BuiltinFunctions {
     }
 
     Saturate(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v: number) => Math.min(Math.max(v, 0), 1));
         }
@@ -482,7 +482,7 @@ export class BuiltinFunctions {
     }
 
     Sign(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v: number) => Math.sign(v));
         }
@@ -490,7 +490,7 @@ export class BuiltinFunctions {
     }
 
     Sin(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v: number) => Math.sin(v));
         }
@@ -498,7 +498,7 @@ export class BuiltinFunctions {
     }
 
     Sinh(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v: number) => Math.sinh(v));
         }
@@ -511,9 +511,9 @@ export class BuiltinFunctions {
     }
 
     SmoothStep(node: AST.CallExpr, context: ExecContext) {
-        const edge0 = this.exec._evalExpression(node.args[0], context);
-        const edge1 = this.exec._evalExpression(node.args[1], context);
-        const x = this.exec._evalExpression(node.args[2], context);
+        const edge0 = this.exec.evalExpression(node.args[0], context);
+        const edge1 = this.exec.evalExpression(node.args[1], context);
+        const x = this.exec.evalExpression(node.args[2], context);
         if (x instanceof Array) {
             return x.map((v: number, i: number) => this._smoothstep(edge0[i], edge1[i], v));
         }
@@ -521,7 +521,7 @@ export class BuiltinFunctions {
     }
 
     Sqrt(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v: number) => Math.sqrt(v));
         }
@@ -529,8 +529,8 @@ export class BuiltinFunctions {
     }
 
     Step(node: AST.CallExpr, context: ExecContext) {
-        const edge = this.exec._evalExpression(node.args[0], context);
-        const x = this.exec._evalExpression(node.args[1], context);
+        const edge = this.exec.evalExpression(node.args[0], context);
+        const x = this.exec.evalExpression(node.args[1], context);
         if (x instanceof Array) {
             return x.map((v: number, i: number) => v < edge[i] ? 0 : 1);
         }
@@ -538,7 +538,7 @@ export class BuiltinFunctions {
     }
 
     Tan(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v: number) => Math.tan(v));
         }
@@ -546,7 +546,7 @@ export class BuiltinFunctions {
     }
 
     Tanh(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v: number) => Math.tanh(v));
         }
@@ -559,7 +559,7 @@ export class BuiltinFunctions {
     }
 
     Trunc(node: AST.CallExpr, context: ExecContext) {
-        const value = this.exec._evalExpression(node.args[0], context);
+        const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof Array) {
             return value.map((v: number) => Math.trunc(v));
         }
@@ -615,7 +615,7 @@ export class BuiltinFunctions {
     // Texture Built-in Functions
     TextureDimensions(node: AST.CallExpr, context: ExecContext) {
         const textureArg = node.args[0];
-        const level = node.args.length > 1 ? this.exec._evalExpression(node.args[1], context) : 0;
+        const level = node.args.length > 1 ? this.exec.evalExpression(node.args[1], context) : 0;
         if (textureArg instanceof AST.VariableExpr) {
             const textureName = (textureArg as AST.VariableExpr).name;
             const texture = context.getVariableValue(textureName);
@@ -642,8 +642,8 @@ export class BuiltinFunctions {
 
     TextureLoad(node: AST.CallExpr, context: ExecContext) {
         const textureArg = node.args[0];
-        const uv = this.exec._evalExpression(node.args[1], context);
-        const level = node.args.length > 2 ? this.exec._evalExpression(node.args[2], context) : 0;
+        const uv = this.exec.evalExpression(node.args[1], context);
+        const level = node.args.length > 2 ? this.exec.evalExpression(node.args[2], context) : 0;
         if (textureArg instanceof AST.VariableExpr) {
             const textureName = (textureArg as AST.VariableExpr).name;
             const texture = context.getVariableValue(textureName);

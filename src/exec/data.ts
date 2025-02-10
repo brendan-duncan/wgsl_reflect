@@ -132,7 +132,7 @@ export class TypedData extends Data {
                     if (idx instanceof AST.LiteralExpr) {
                         offset += idx.value * typeInfo.stride;
                     } else {
-                        const i = exec._evalExpression(idx, context);
+                        const i = exec.evalExpression(idx, context);
                         if (i !== null) {
                             offset += i * typeInfo.stride;
                         } else {
@@ -308,7 +308,7 @@ export class TypedData extends Data {
                     if (idx instanceof AST.LiteralExpr) {
                         offset += idx.value * typeInfo.stride;
                     } else {
-                        const i = exec._evalExpression(idx, context);
+                        const i = exec.evalExpression(idx, context);
                         if (i !== null) {
                             offset += i * typeInfo.stride;
                         } else {

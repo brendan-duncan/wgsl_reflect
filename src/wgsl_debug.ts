@@ -107,13 +107,19 @@ class ExecStack {
     }
 }
 
+type RuntimeStateCallbackType = () => void;
+
 export class WgslDebug {
     _exec: WgslExec;
     _execStack: ExecStack;
     _dispatchId: number[];
+    _runTimer: number | null = null;
+    breakpoints: Set<number> = new Set();
+    runStateCallback: RuntimeStateCallbackType | null = null;
 
-    constructor(code: string, context?: ExecContext) {
-        this._exec = new WgslExec(code, context);
+    constructor(code: string, runStateCallback?: RuntimeStateCallbackType) {
+        this._exec = new WgslExec(code);
+        this.runStateCallback = runStateCallback ?? null
     }
 
     getVariableValue(name: string) {
@@ -178,6 +184,58 @@ export class WgslDebug {
             }
 
             return command;
+        }
+    }
+
+    toggleBreakpoint(line: number) {
+        if (this.breakpoints.has(line)) {
+            this.breakpoints.delete(line);
+        } else {
+            this.breakpoints.add(line);
+        }
+    }
+
+    clearBreakpoints() {
+        this.breakpoints.clear();
+    }
+
+    get isRunning() {
+        return this._runTimer !== null;
+    }
+
+    run() {
+        this._runTimer = setInterval(() => {
+            const command = this.currentCommand;
+            if (command) {
+                if (this.breakpoints.has(command.line)) {
+                    clearInterval(this._runTimer!);
+                    this._runTimer = null;
+                    if (this.runStateCallback !== null) {
+                        this.runStateCallback();
+                    }
+                    return;
+                }
+            }
+            if (!this.stepNext(true)) {
+                clearInterval(this._runTimer!);
+                this._runTimer = null;
+                if (this.runStateCallback !== null) {
+                    this.runStateCallback();
+                }
+            }
+        }, 0);
+        if (this.runStateCallback !== null) {
+            this.runStateCallback();
+        }
+    }
+
+    pause() {
+        if (this._runTimer !== null) {
+            clearInterval(this._runTimer);
+            this._runTimer = null;
+            if (this.runStateCallback !== null) {
+                this.runStateCallback();
+            }
         }
     }
 
@@ -294,6 +352,14 @@ export class WgslDebug {
         return false;
     }
 
+    stepInto() {
+        this.stepNext(true);
+    }
+
+    stepOver() {
+        this.stepNext(false);
+    }
+
     // Returns true if execution is not finished, false if execution is complete.
     stepNext(stepInto = true): boolean {
         if (!this._execStack) {
@@ -335,7 +401,7 @@ export class WgslDebug {
 
                 for (let ai = 0; ai < fn.node.args.length; ++ai) {
                     const arg = fn.node.args[ai];
-                    const value = this._exec._evalExpression(node.args[ai], fnState.context);
+                    const value = this._exec.evalExpression(node.args[ai], fnState.context);
                     fnState.context.setVariable(arg.name, value, arg);
                 }
 
@@ -348,7 +414,7 @@ export class WgslDebug {
                 }
                 return true;
             } else if (command instanceof StatementCommand) {
-                const res = this._exec._execStatement(command.node, state.context);
+                const res = this._exec.execStatement(command.node, state.context);
                 if (res !== null && res !== undefined) {
                     let s = state;
                     // Find the CallExpr to store the return value in.
@@ -420,7 +486,7 @@ export class WgslDebug {
                 }
 
                 if (command.condition) {
-                    const res = this._exec._evalExpression(command.condition, state.context);
+                    const res = this._exec.evalExpression(command.condition, state.context);
                     if (res) {
                         if (this._shouldExecuteNectCommand()) {
                             continue;

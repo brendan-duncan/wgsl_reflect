@@ -3,6 +3,16 @@ import { WgslDebug } from "../../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Debug", async function () {
+    await test("vec2 operators", async function (test) {
+      var shader = `let i = 2;
+        var a = vec2<f32>(1.0, 2.0);
+        var b = vec2<f32>(3.0, 4.0);
+        var c = (a / vec2(f32(i))) - b;`;
+        const dbg = new WgslDebug(shader);
+        while (dbg.stepNext());
+        test.equals(dbg.getVariableValue("c"), [-2.5, -3]);
+    });
+
     await test("break", async function (test) {
       const shader = `fn foo() -> i32 {
         let j = 0;

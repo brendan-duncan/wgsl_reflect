@@ -120,6 +120,75 @@ export class WgslExec extends ExecInterface {
         }
     }
 
+    execStatement(stmt: AST.Node, context: ExecContext): any {
+        if (stmt instanceof AST.Return) {
+            const v = this.evalExpression(stmt.value, context);
+            const f = context.getFunction(context.currentFunctionName);
+            if (f?.node.returnType) {
+                if (f.node.returnType.name === "i32" || f.node.returnType.name === "u32") {
+                    return Math.floor(v);
+                }
+            }
+            return v;
+        } else if (stmt instanceof AST.Break) {
+            return stmt;
+        } else if (stmt instanceof AST.Continue) {
+            return stmt;
+        } else if (stmt instanceof AST.Let) {
+            this._let(stmt as AST.Let, context);
+        } else if (stmt instanceof AST.Var) {
+            this._var(stmt as AST.Var, context);
+        } else if (stmt instanceof AST.Const) {
+            this._const(stmt as AST.Const, context);
+        } else if (stmt instanceof AST.Function) {
+            this._function(stmt as AST.Function, context);
+        } else if (stmt instanceof AST.If) {
+            return this._if(stmt as AST.If, context);
+        } else if (stmt instanceof AST.For) {
+            return this._for(stmt as AST.For, context);
+        } else if (stmt instanceof AST.While) {
+            return this._while(stmt as AST.While, context);
+        } else if (stmt instanceof AST.Assign) {
+            return this._assign(stmt as AST.Assign, context);
+        } else if (stmt instanceof AST.Increment) {
+            this._increment(stmt as AST.Increment, context);
+        } else if (stmt instanceof AST.Struct) {
+            return null;
+        } else if (stmt instanceof AST.Override) {
+            const name = (stmt as AST.Override).name;
+            if (context.getVariable(name) === null) {
+                console.error(`Override constant ${name} not found. Line ${stmt.line}`);
+                return null;
+            }
+        } else {
+            console.error(`Unknown statement type.`, stmt, `Line ${stmt.line}`);
+        }
+        return null;
+    }
+
+    evalExpression(node: AST.Node, context: ExecContext) {
+        if (node instanceof AST.GroupingExpr) {
+            const grp = node as AST.GroupingExpr;
+            return this.evalExpression(grp.contents[0], context);
+        } else if (node instanceof AST.BinaryOperator) {
+            return this._evalBinaryOp(node as AST.BinaryOperator, context);
+        } else if (node instanceof AST.LiteralExpr) {
+            return this._evalLiteral(node as AST.LiteralExpr, context);
+        } else if (node instanceof AST.StringExpr) {
+            return (node as AST.StringExpr).value;
+        } else if (node instanceof AST.VariableExpr) {
+            return this._evalVariable(node as AST.VariableExpr, context);
+        } else if (node instanceof AST.CallExpr) {
+            return this._evalCall(node as AST.CallExpr, context);
+        } else if (node instanceof AST.CreateExpr) {
+            return this._evalCreate(node as AST.CreateExpr, context);
+        } else if (node instanceof AST.ConstExpr) {
+            return this._evalConst(node as AST.ConstExpr, context);
+        }
+        console.error(`Unknown expression type`, node, `Line ${node.line}`);
+        return null;
+    }
+
     _dispatchWorkgroup(f: Function, workgroup_id: number[], context: ExecContext) {
         const workgroupSize = [1, 1, 1];
         for (const attr of f.node.attributes) {
@@ -200,11 +269,11 @@ export class WgslExec extends ExecInterface {
     }
 
     _getTypeName(type: TypeInfo | AST.Type): string {
-        if (type instanceof AST.Type) {
+        /*if (type instanceof AST.Type) {
             type = this._getTypeInfo(type);
-        }
+        }*/
         let name = type.name;
-        if (type instanceof TemplateInfo) {
+        if (type instanceof TemplateInfo || type instanceof AST.TemplateType) {
             if (type.format !== null) {
                 if (name === "vec2" || name === "vec3" || name === "vec4" ||
                     name === "mat2x2" || name === "mat2x3" || name === "mat2x4" ||
@@ -253,56 +322,10 @@ export class WgslExec extends ExecInterface {
                 continue;
             }
 
-            const res = this._execStatement(stmt, context);
+            const res = this.execStatement(stmt, context);
             if (res) {
                 return res;
             }
-        }
-        return null;
-    }
-
-    _execStatement(stmt: AST.Node, context: ExecContext): any {
-        if (stmt instanceof AST.Return) {
-            const v = this._evalExpression(stmt.value, context);
-            const f = context.getFunction(context.currentFunctionName);
-            if (f?.node.returnType) {
-                if (f.node.returnType.name === "i32" || f.node.returnType.name === "u32") {
-                    return Math.floor(v);
-                }
-            }
-            return v;
-        } else if (stmt instanceof AST.Break) {
-            return stmt;
-        } else if (stmt instanceof AST.Continue) {
-            return stmt;
-        } else if (stmt instanceof AST.Let) {
-            this._let(stmt as AST.Let, context);
-        } else if (stmt instanceof AST.Var) {
-            this._var(stmt as AST.Var, context);
-        } else if (stmt instanceof AST.Const) {
-            this._const(stmt as AST.Const, context);
-        } else if (stmt instanceof AST.Function) {
-            this._function(stmt as AST.Function, context);
-        } else if (stmt instanceof AST.If) {
-            return this._if(stmt as AST.If, context);
-        } else if (stmt instanceof AST.For) {
-            return this._for(stmt as AST.For, context);
-        } else if (stmt instanceof AST.While) {
-            return this._while(stmt as AST.While, context);
-        } else if (stmt instanceof AST.Assign) {
-            return this._assign(stmt as AST.Assign, context);
-        } else if (stmt instanceof AST.Increment) {
-            this._increment(stmt as AST.Increment, context);
-        } else if (stmt instanceof AST.Struct) {
-            return null;
-        } else if (stmt instanceof AST.Override) {
-            const name = (stmt as AST.Override).name;
-            if (context.getVariable(name) === null) {
-                console.error(`Override constant ${name} not found. Line ${stmt.line}`);
-                return null;
-            }
-        } else {
-            console.error(`Unknown statement type.`, stmt, `Line ${stmt.line}`);
         }
         return null;
     }
@@ -331,7 +354,7 @@ export class WgslExec extends ExecInterface {
             return null;
         }
 
-        let value = this._evalExpression(node.value, context);
+        let value = this.evalExpression(node.value, context);
 
         if (node.operator !== "=") {
             const currentValue = v.value instanceof TypedData ? 
@@ -414,7 +437,7 @@ export class WgslExec extends ExecInterface {
             v.value.setDataValue(this, value, node.variable.postfix, context);
         } else if (node.variable.postfix) {
             if (node.variable.postfix instanceof AST.ArrayIndex) {
-                const idx = this._evalExpression(node.variable.postfix.index, context);
+                const idx = this.evalExpression(node.variable.postfix.index, context);
                 // TODO: use array format to determine how to set the value
                 if (v.value instanceof Array) {
                     if (v.node.type.isArray) {
@@ -460,7 +483,7 @@ export class WgslExec extends ExecInterface {
     _const(node: AST.Const, context: ExecContext) {
         let value = null;
         if (node.value != null) {
-            value = this._evalExpression(node.value, context);
+            value = this.evalExpression(node.value, context);
         }
         context.createVariable(node.name, value, node);
     }
@@ -468,7 +491,7 @@ export class WgslExec extends ExecInterface {
     _let(node: AST.Let, context: ExecContext) {
         let value = null;
         if (node.value != null) {
-            value = this._evalExpression(node.value, context);
+            value = this.evalExpression(node.value, context);
         }
         context.createVariable(node.name, value, node);
     }
@@ -476,20 +499,20 @@ export class WgslExec extends ExecInterface {
     _var(node: AST.Var, context: ExecContext) {
         let value = null;
         if (node.value != null) {
-            value = this._evalExpression(node.value, context);
+            value = this.evalExpression(node.value, context);
         }
         context.createVariable(node.name, value, node);
     }
 
     _if(node: AST.If, context: ExecContext) {
         context = context.clone();
-        const condition = this._evalExpression(node.condition, context);
+        const condition = this.evalExpression(node.condition, context);
         if (condition) {
             return this._execStatements(node.body, context);
         }
 
         for (const e of node.elseif) {
-            const condition = this._evalExpression(e.condition, context);
+            const condition = this.evalExpression(e.condition, context);
             if (condition) {
                 return this._execStatements(e.body, context);
             }
@@ -504,13 +527,13 @@ export class WgslExec extends ExecInterface {
 
     _for(node: AST.For, context: ExecContext) {
         context = context.clone();
-        this._execStatement(node.init, context);
-        while (this._evalExpression(node.condition, context)) {
+        this.execStatement(node.init, context);
+        while (this.evalExpression(node.condition, context)) {
             const res = this._execStatements(node.body, context);
             if (res) {
                 return res;
             }
-            this._execStatement(node.increment, context);
+            this.execStatement(node.increment, context);
         }
 
         return null;
@@ -518,7 +541,7 @@ export class WgslExec extends ExecInterface {
 
     _while(node: AST.While, context: ExecContext) {
         context = context.clone();
-        let condition = this._evalExpression(node.condition, context);
+        let condition = this.evalExpression(node.condition, context);
         while (condition) {
             const res = this._execStatements(node.body, context);
             if (res instanceof AST.Break) {
@@ -528,31 +551,8 @@ export class WgslExec extends ExecInterface {
             } else if (res !== null) {
                 return res;
             }
-            condition = this._evalExpression(node.condition, context);
+            condition = this.evalExpression(node.condition, context);
         }
-        return null;
-    }
-
-    _evalExpression(node: AST.Node, context: ExecContext) {
-        if (node instanceof AST.GroupingExpr) {
-            const grp = node as AST.GroupingExpr;
-            return this._evalExpression(grp.contents[0], context);
-        } else if (node instanceof AST.BinaryOperator) {
-            return this._evalBinaryOp(node as AST.BinaryOperator, context);
-        } else if (node instanceof AST.LiteralExpr) {
-            return this._evalLiteral(node as AST.LiteralExpr, context);
-        } else if (node instanceof AST.StringExpr) {
-            return (node as AST.StringExpr).value;
-        } else if (node instanceof AST.VariableExpr) {
-            return this._evalVariable(node as AST.VariableExpr, context);
-        } else if (node instanceof AST.CallExpr) {
-            return this._evalCall(node as AST.CallExpr, context);
-        } else if (node instanceof AST.CreateExpr) {
-            return this._evalCreate(node as AST.CreateExpr, context);
-        } else if (node instanceof AST.ConstExpr) {
-            return this._evalConst(node as AST.ConstExpr, context);
-        }
-        console.error(`Unknown expression type`, node, `Line ${node.line}`);
         return null;
     }
 
@@ -642,7 +642,7 @@ export class WgslExec extends ExecInterface {
             for (let i = 0; i < node.args.length; ++i) {
                 const memberInfo = typeInfo.members[i];
                 const arg = node.args[i];
-                const value = this._evalExpression(arg, context);
+                const value = this.evalExpression(arg, context);
                 data.setData(this, value, memberInfo.type, memberInfo.offset, context);
             }
         } else {
@@ -697,7 +697,7 @@ export class WgslExec extends ExecInterface {
         }
         if (node.postfix) {
             if (node.postfix instanceof AST.ArrayIndex) {
-                const idx = this._evalExpression(node.postfix.index, context);
+                const idx = this.evalExpression(node.postfix.index, context);
                 if (value?.length !== undefined) {
                     return value[idx];
                 } else {
@@ -716,7 +716,7 @@ export class WgslExec extends ExecInterface {
                                 if (m.name === member) {
                                     const v = new Float32Array(variable.value.buffer, m.offset);
                                     if (node.postfix.postfix) {
-                                        const postfix = this._evalExpression(node.postfix.postfix, context);
+                                        const postfix = this.evalExpression(node.postfix.postfix, context);
                                         return this._getArraySwizzle(value, postfix);
                                     }
                                     return v;
@@ -733,19 +733,59 @@ export class WgslExec extends ExecInterface {
     }
 
     _evalBinaryOp(node: AST.BinaryOperator, context: ExecContext) {
-        const l = this._evalExpression(node.left, context);
-        const r = this._evalExpression(node.right, context);
+        const l = this.evalExpression(node.left, context);
+        const r = this.evalExpression(node.right, context);
         switch (node.operator) {
-            case "+":
+            case "+": {
+                if (Array.isArray(l) && Array.isArray(r)) {
+                    if (l.length !== r.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    return l.map((x: number, i: number) => x + r[i]);
+                }
                 return l + r;
-            case "-":
+            }
+            case "-": {
+                if (Array.isArray(l) && Array.isArray(r)) {
+                    if (l.length !== r.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    return l.map((x: number, i: number) => x - r[i]);
+                }
                 return l - r;
-            case "*":
+            }
+            case "*": {
+                if (Array.isArray(l) && Array.isArray(r)) {
+                    if (l.length !== r.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    return l.map((x: number, i: number) => x * r[i]);
+                }
                 return l * r;
-            case "%":
+            }
+            case "%": {
+                if (Array.isArray(l) && Array.isArray(r)) {
+                    if (l.length !== r.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    return l.map((x: number, i: number) => x % r[i]);
+                }
                 return l % r;
-            case "/":
+            }
+            case "/": {
+                if (Array.isArray(l) && Array.isArray(r)) {
+                    if (l.length !== r.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    return l.map((x: number, i: number) => x / r[i]);
+                }
                 return l / r;
+            }
             case ">":
                 if (l.length !== undefined && r.length !== undefined) {
                     if (l.length !== r.length) {
@@ -756,7 +796,7 @@ export class WgslExec extends ExecInterface {
                 }
                 return l > r;
             case "<":
-                if (l.length !== undefined && r.length !== undefined) {
+                if (Array.isArray(l) && Array.isArray(r)) {
                     if (l.length !== r.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
@@ -764,18 +804,66 @@ export class WgslExec extends ExecInterface {
                     return l.map((x: number, i: number) => x < r[i])
                 }
                 return l < r;
-            case "==":
+            case "==": {
+                if (Array.isArray(l) && Array.isArray(r)) {
+                    if (l.length !== r.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    return l.map((x: number, i: number) => x === r[i]);
+                }
                 return l === r;
-            case "!=":
-                return l !== r;
-            case ">=":
+            }
+            case "!=": {
+                if (Array.isArray(l) && Array.isArray(r)) {
+                    if (l.length !== r.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    return l.map((x: number, i: number) => x != r[i]);
+                }
+                return l != r;
+            }
+            case ">=": {
+                if (Array.isArray(l) && Array.isArray(r)) {
+                    if (l.length !== r.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    return l.map((x: number, i: number) => x >= r[i]);
+                }
                 return l >= r;
-            case "<=":
+            }
+            case "<=": {
+                if (Array.isArray(l) && Array.isArray(r)) {
+                    if (l.length !== r.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    return l.map((x: number, i: number) => x <= r[i]);
+                }
                 return l <= r;
-            case "&&":
+            }
+            case "&&": {
+                if (Array.isArray(l) && Array.isArray(r)) {
+                    if (l.length !== r.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    return l.map((x: number, i: number) => x && r[i]);
+                }
                 return l && r;
-            case "||":
+            }
+            case "||": {
+                if (Array.isArray(l) && Array.isArray(r)) {
+                    if (l.length !== r.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    return l.map((x: number, i: number) => x || r[i]);
+                }
                 return l || r;
+            }
         }
         console.error(`Unknown operator ${node.operator}. Line ${node.line}`);
         return null;
@@ -796,7 +884,7 @@ export class WgslExec extends ExecInterface {
 
         for (let ai = 0; ai < f.node.args.length; ++ai) {
             const arg = f.node.args[ai];
-            const value = this._evalExpression(node.args[ai], subContext);
+            const value = this.evalExpression(node.args[ai], subContext);
             subContext.setVariable(arg.name, value, arg);
         }
 
@@ -1129,7 +1217,7 @@ export class WgslExec extends ExecInterface {
             const subContext = context.clone();
             for (let ai = 0; ai < f.node.args.length; ++ai) {
                 const arg = f.node.args[ai];
-                const value = this._evalExpression(node.args[ai], subContext);
+                const value = this.evalExpression(node.args[ai], subContext);
                 subContext.setVariable(arg.name, value, arg);
             }
             return this._execStatements(f.node.body, subContext);
@@ -1143,7 +1231,7 @@ export class WgslExec extends ExecInterface {
         if (node.args.length === 0) {
             return 0;
         }
-        return this._evalExpression(node.args[0], context);
+        return this.evalExpression(node.args[0], context);
     }
 
     _callConstructorArray(node: AST.CreateExpr, context: ExecContext) {
@@ -1187,7 +1275,7 @@ export class WgslExec extends ExecInterface {
         }
         const values = [];
         for (const arg of node.args) {
-            values.push(this._evalExpression(arg, context));
+            values.push(this.evalExpression(arg, context));
         }
         return values;
     }
@@ -1215,7 +1303,7 @@ export class WgslExec extends ExecInterface {
         const values = [];
         // TODO: make sure the number of args matches the vector length.
         for (const arg of node.args) {
-            let v = this._evalExpression(arg, context);
+            let v = this.evalExpression(arg, context);
             if (isInt) {
                 v = Math.floor(v);
             }
@@ -1274,7 +1362,7 @@ export class WgslExec extends ExecInterface {
         const values = [];
         // TODO: make sure the number of args matches the matrix size.
         for (const arg of node.args) {
-            let v = this._evalExpression(arg, context);
+            let v = this.evalExpression(arg, context);
             if (isInt) {
                 v = Math.floor(v);
             }

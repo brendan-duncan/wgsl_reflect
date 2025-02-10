@@ -12,13 +12,14 @@ export declare class WgslExec extends ExecInterface {
     getVariableValue(name: string): any;
     execute(config?: Object): void;
     dispatchWorkgroups(kernel: string, dispatchCount: number | number[], bindGroups: Object, config?: Object): void;
+    execStatement(stmt: AST.Node, context: ExecContext): any;
+    evalExpression(node: AST.Node, context: ExecContext): any;
     _dispatchWorkgroup(f: Function, workgroup_id: number[], context: ExecContext): void;
     _dispatchExec(f: Function, context: ExecContext): void;
     _getTypeInfo(type: AST.Type): TypeInfo;
     _getTypeName(type: TypeInfo | AST.Type): string;
     _getVariableName(node: AST.Node, context: ExecContext): string;
     _execStatements(statements: Array<AST.Node>, context: ExecContext): any;
-    _execStatement(stmt: AST.Node, context: ExecContext): any;
     _increment(node: AST.Increment, context: ExecContext): any;
     _assign(node: AST.Assign, context: ExecContext): any;
     _function(node: AST.Function, context: ExecContext): void;
@@ -28,7 +29,6 @@ export declare class WgslExec extends ExecInterface {
     _if(node: AST.If, context: ExecContext): any;
     _for(node: AST.For, context: ExecContext): any;
     _while(node: AST.While, context: ExecContext): any;
-    _evalExpression(node: AST.Node, context: ExecContext): any;
     _evalConst(node: AST.ConstExpr, context: ExecContext): any;
     _evalCreate(node: AST.CreateExpr, context: ExecContext): any;
     _evalLiteral(node: AST.LiteralExpr, context: ExecContext): number;

@@ -3,7 +3,7 @@ import { ExecContext } from "./exec_context.js";
 import { TypeInfo } from "../wgsl_reflect.js";
 
 export class ExecInterface {
-    _evalExpression(node: AST.Node, context: ExecContext) {
+    evalExpression(node: AST.Node, context: ExecContext) {
         return null;
     }
 

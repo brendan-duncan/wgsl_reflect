@@ -3,6 +3,14 @@ import { WgslParser } from "../../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Parser", function () {
+    test("vec2 var", function (test) {
+      const shader = `var a = vec2<f32>(1.0, 2.0);`;
+      const parser = new WgslParser();
+      const t = parser.parse(shader);
+      test.equals(t.length, 1);
+      test.notNull(t[0].value);
+    });
+
     test("type inference", function (test) {
       const shader = `
 //var u32_1 = 1u; // u32

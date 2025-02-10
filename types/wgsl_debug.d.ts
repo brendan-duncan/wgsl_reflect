@@ -21,18 +21,29 @@ declare class ExecStack {
     get last(): ExecState | null;
     pop(): void;
 }
+type RuntimeStateCallbackType = () => void;
 export declare class WgslDebug {
     _exec: WgslExec;
     _execStack: ExecStack;
     _dispatchId: number[];
-    constructor(code: string, context?: ExecContext);
+    _runTimer: number | null;
+    breakpoints: Set<number>;
+    runStateCallback: RuntimeStateCallbackType | null;
+    constructor(code: string, runStateCallback?: RuntimeStateCallbackType);
     getVariableValue(name: string): any;
     startDebug(): void;
     get context(): ExecContext;
     get currentState(): ExecState | null;
     get currentCommand(): Command | null;
+    toggleBreakpoint(line: number): void;
+    clearBreakpoints(): void;
+    get isRunning(): boolean;
+    run(): void;
+    pause(): void;
     debugWorkgroup(kernel: string, dispatchId: number[], dispatchCount: number | number[], bindGroups: Object, config?: Object): boolean;
     _shouldExecuteNectCommand(): boolean;
+    stepInto(): void;
+    stepOver(): void;
     stepNext(stepInto?: boolean): boolean;
     _dispatchWorkgroup(f: Function, workgroup_id: number[], context: ExecContext): boolean;
     _dispatchExec(f: Function, context: ExecContext): void;
