@@ -33051,6 +33051,10 @@ class BuiltinFunctions {
     }
 }
 
+function isArray(value) {
+    return Array.isArray(value) || (value === null || value === void 0 ? void 0 : value.buffer) instanceof ArrayBuffer;
+}
+
 class WgslExec extends ExecInterface {
     constructor(code, context) {
         var _a;
@@ -33792,7 +33796,7 @@ class WgslExec extends ExecInterface {
         const r = this.evalExpression(node.right, context);
         switch (node.operator) {
             case "+": {
-                if (Array.isArray(l) && Array.isArray(r)) {
+                if (isArray(l) && isArray(r)) {
                     if (l.length !== r.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
@@ -33802,7 +33806,7 @@ class WgslExec extends ExecInterface {
                 return l + r;
             }
             case "-": {
-                if (Array.isArray(l) && Array.isArray(r)) {
+                if (isArray(l) && isArray(r)) {
                     if (l.length !== r.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
@@ -33812,7 +33816,7 @@ class WgslExec extends ExecInterface {
                 return l - r;
             }
             case "*": {
-                if (Array.isArray(l) && Array.isArray(r)) {
+                if (isArray(l) && isArray(r)) {
                     if (l.length !== r.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
@@ -33822,7 +33826,7 @@ class WgslExec extends ExecInterface {
                 return l * r;
             }
             case "%": {
-                if (Array.isArray(l) && Array.isArray(r)) {
+                if (isArray(l) && isArray(r)) {
                     if (l.length !== r.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
@@ -33832,7 +33836,7 @@ class WgslExec extends ExecInterface {
                 return l % r;
             }
             case "/": {
-                if (Array.isArray(l) && Array.isArray(r)) {
+                if (isArray(l) && isArray(r)) {
                     if (l.length !== r.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
@@ -33851,7 +33855,7 @@ class WgslExec extends ExecInterface {
                 }
                 return l > r;
             case "<":
-                if (Array.isArray(l) && Array.isArray(r)) {
+                if (isArray(l) && isArray(r)) {
                     if (l.length !== r.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
@@ -33860,7 +33864,7 @@ class WgslExec extends ExecInterface {
                 }
                 return l < r;
             case "==": {
-                if (Array.isArray(l) && Array.isArray(r)) {
+                if (isArray(l) && isArray(r)) {
                     if (l.length !== r.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
@@ -33870,7 +33874,7 @@ class WgslExec extends ExecInterface {
                 return l === r;
             }
             case "!=": {
-                if (Array.isArray(l) && Array.isArray(r)) {
+                if (isArray(l) && isArray(r)) {
                     if (l.length !== r.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
@@ -33880,7 +33884,7 @@ class WgslExec extends ExecInterface {
                 return l != r;
             }
             case ">=": {
-                if (Array.isArray(l) && Array.isArray(r)) {
+                if (isArray(l) && isArray(r)) {
                     if (l.length !== r.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
@@ -33890,7 +33894,7 @@ class WgslExec extends ExecInterface {
                 return l >= r;
             }
             case "<=": {
-                if (Array.isArray(l) && Array.isArray(r)) {
+                if (isArray(l) && isArray(r)) {
                     if (l.length !== r.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
@@ -33900,7 +33904,7 @@ class WgslExec extends ExecInterface {
                 return l <= r;
             }
             case "&&": {
-                if (Array.isArray(l) && Array.isArray(r)) {
+                if (isArray(l) && isArray(r)) {
                     if (l.length !== r.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
@@ -33910,7 +33914,7 @@ class WgslExec extends ExecInterface {
                 return l && r;
             }
             case "||": {
-                if (Array.isArray(l) && Array.isArray(r)) {
+                if (isArray(l) && isArray(r)) {
                     if (l.length !== r.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
@@ -34508,11 +34512,18 @@ class WgslDebug {
         this._runTimer = null;
         this.breakpoints = new Set();
         this.runStateCallback = null;
+        this._code = code;
         this._exec = new WgslExec(code);
         this.runStateCallback = runStateCallback !== null && runStateCallback !== void 0 ? runStateCallback : null;
     }
     getVariableValue(name) {
         return this._exec.context.getVariableValue(name);
+    }
+    reset() {
+        this._exec = new WgslExec(this._code);
+        this._execStack = new ExecStack();
+        const state = this._createState(this._exec.ast, this._exec.context);
+        this._execStack.states.push(state);
     }
     startDebug() {
         this._execStack = new ExecStack();
@@ -34579,6 +34590,9 @@ class WgslDebug {
         return this._runTimer !== null;
     }
     run() {
+        if (this.isRunning) {
+            return;
+        }
         this._runTimer = setInterval(() => {
             const command = this.currentCommand;
             if (command) {
@@ -34717,10 +34731,58 @@ class WgslDebug {
         return false;
     }
     stepInto() {
+        if (this.isRunning) {
+            return;
+        }
         this.stepNext(true);
     }
     stepOver() {
+        if (this.isRunning) {
+            return;
+        }
         this.stepNext(false);
+    }
+    stepOut() {
+        const state = this.currentState;
+        if (state === null) {
+            return;
+        }
+        const parentState = state.parent;
+        if (this.isRunning) {
+            clearInterval(this._runTimer);
+            this._runTimer = null;
+        }
+        this._runTimer = setInterval(() => {
+            const command = this.currentCommand;
+            if (command) {
+                if (this.breakpoints.has(command.line)) {
+                    clearInterval(this._runTimer);
+                    this._runTimer = null;
+                    if (this.runStateCallback !== null) {
+                        this.runStateCallback();
+                    }
+                    return;
+                }
+            }
+            if (!this.stepNext(true)) {
+                clearInterval(this._runTimer);
+                this._runTimer = null;
+                if (this.runStateCallback !== null) {
+                    this.runStateCallback();
+                }
+            }
+            const state = this.currentState;
+            if (state === parentState) {
+                clearInterval(this._runTimer);
+                this._runTimer = null;
+                if (this.runStateCallback !== null) {
+                    this.runStateCallback();
+                }
+            }
+        }, 0);
+        if (this.runStateCallback !== null) {
+            this.runStateCallback();
+        }
     }
     // Returns true if execution is not finished, false if execution is complete.
     stepNext(stepInto = true) {
@@ -34874,33 +34936,38 @@ class WgslDebug {
         const workgroupSize = [1, 1, 1];
         for (const attr of f.node.attributes) {
             if (attr.name === "workgroup_size") {
-                if (attr.value.length > 0) {
-                    // The value could be an override constant
-                    const v = context.getVariableValue(attr.value[0]);
-                    if (v !== null) {
-                        workgroupSize[0] = v;
+                if (Array.isArray(attr.value)) {
+                    if (attr.value.length > 0) {
+                        // The value could be an override constant
+                        const v = context.getVariableValue(attr.value[0]);
+                        if (v !== null) {
+                            workgroupSize[0] = v;
+                        }
+                        else {
+                            workgroupSize[0] = parseInt(attr.value[0]);
+                        }
                     }
-                    else {
-                        workgroupSize[0] = parseInt(attr.value[0]);
+                    if (attr.value.length > 1) {
+                        const v = context.getVariableValue(attr.value[1]);
+                        if (v !== null) {
+                            workgroupSize[1] = v;
+                        }
+                        else {
+                            workgroupSize[1] = parseInt(attr.value[1]);
+                        }
+                    }
+                    if (attr.value.length > 2) {
+                        const v = context.getVariableValue(attr.value[2]);
+                        if (v !== null) {
+                            workgroupSize[2] = v;
+                        }
+                        else {
+                            workgroupSize[2] = parseInt(attr.value[2]);
+                        }
                     }
                 }
-                if (attr.value.length > 1) {
-                    const v = context.getVariableValue(attr.value[1]);
-                    if (v !== null) {
-                        workgroupSize[1] = v;
-                    }
-                    else {
-                        workgroupSize[1] = parseInt(attr.value[1]);
-                    }
-                }
-                if (attr.value.length > 2) {
-                    const v = context.getVariableValue(attr.value[2]);
-                    if (v !== null) {
-                        workgroupSize[2] = v;
-                    }
-                    else {
-                        workgroupSize[2] = parseInt(attr.value[2]);
-                    }
+                else {
+                    workgroupSize[0] = parseInt(attr.value);
                 }
             }
         }

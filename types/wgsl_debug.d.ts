@@ -23,6 +23,7 @@ declare class ExecStack {
 }
 type RuntimeStateCallbackType = () => void;
 export declare class WgslDebug {
+    _code: string;
     _exec: WgslExec;
     _execStack: ExecStack;
     _dispatchId: number[];
@@ -31,6 +32,7 @@ export declare class WgslDebug {
     runStateCallback: RuntimeStateCallbackType | null;
     constructor(code: string, runStateCallback?: RuntimeStateCallbackType);
     getVariableValue(name: string): any;
+    reset(): void;
     startDebug(): void;
     get context(): ExecContext;
     get currentState(): ExecState | null;
@@ -44,6 +46,7 @@ export declare class WgslDebug {
     _shouldExecuteNectCommand(): boolean;
     stepInto(): void;
     stepOver(): void;
+    stepOut(): void;
     stepNext(stepInto?: boolean): boolean;
     _dispatchWorkgroup(f: Function, workgroup_id: number[], context: ExecContext): boolean;
     _dispatchExec(f: Function, context: ExecContext): void;

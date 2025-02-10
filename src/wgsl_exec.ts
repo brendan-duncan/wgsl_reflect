@@ -5,6 +5,7 @@ import { ExecContext, Function } from "./exec/exec_context.js";
 import { ExecInterface } from "./exec/exec_interface.js";
 import { BuiltinFunctions } from "./exec/builtin_functions.js";
 import { TypedData } from "./exec/data.js";
+import { isArray } from "./exec/util.js";
 
 export class WgslExec extends ExecInterface {
     ast: Array<AST.Node>;
@@ -737,7 +738,7 @@ export class WgslExec extends ExecInterface {
         const r = this.evalExpression(node.right, context);
         switch (node.operator) {
             case "+": {
-                if (Array.isArray(l) && Array.isArray(r)) {
+                if (isArray(l) && isArray(r)) {
                     if (l.length !== r.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
@@ -747,7 +748,7 @@ export class WgslExec extends ExecInterface {
                 return l + r;
             }
             case "-": {
-                if (Array.isArray(l) && Array.isArray(r)) {
+                if (isArray(l) && isArray(r)) {
                     if (l.length !== r.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
@@ -757,7 +758,7 @@ export class WgslExec extends ExecInterface {
                 return l - r;
             }
             case "*": {
-                if (Array.isArray(l) && Array.isArray(r)) {
+                if (isArray(l) && isArray(r)) {
                     if (l.length !== r.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
@@ -767,7 +768,7 @@ export class WgslExec extends ExecInterface {
                 return l * r;
             }
             case "%": {
-                if (Array.isArray(l) && Array.isArray(r)) {
+                if (isArray(l) && isArray(r)) {
                     if (l.length !== r.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
@@ -777,7 +778,7 @@ export class WgslExec extends ExecInterface {
                 return l % r;
             }
             case "/": {
-                if (Array.isArray(l) && Array.isArray(r)) {
+                if (isArray(l) && isArray(r)) {
                     if (l.length !== r.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
@@ -796,7 +797,7 @@ export class WgslExec extends ExecInterface {
                 }
                 return l > r;
             case "<":
-                if (Array.isArray(l) && Array.isArray(r)) {
+                if (isArray(l) && isArray(r)) {
                     if (l.length !== r.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
@@ -805,7 +806,7 @@ export class WgslExec extends ExecInterface {
                 }
                 return l < r;
             case "==": {
-                if (Array.isArray(l) && Array.isArray(r)) {
+                if (isArray(l) && isArray(r)) {
                     if (l.length !== r.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
@@ -815,7 +816,7 @@ export class WgslExec extends ExecInterface {
                 return l === r;
             }
             case "!=": {
-                if (Array.isArray(l) && Array.isArray(r)) {
+                if (isArray(l) && isArray(r)) {
                     if (l.length !== r.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
@@ -825,7 +826,7 @@ export class WgslExec extends ExecInterface {
                 return l != r;
             }
             case ">=": {
-                if (Array.isArray(l) && Array.isArray(r)) {
+                if (isArray(l) && isArray(r)) {
                     if (l.length !== r.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
@@ -835,7 +836,7 @@ export class WgslExec extends ExecInterface {
                 return l >= r;
             }
             case "<=": {
-                if (Array.isArray(l) && Array.isArray(r)) {
+                if (isArray(l) && isArray(r)) {
                     if (l.length !== r.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
@@ -845,7 +846,7 @@ export class WgslExec extends ExecInterface {
                 return l <= r;
             }
             case "&&": {
-                if (Array.isArray(l) && Array.isArray(r)) {
+                if (isArray(l) && isArray(r)) {
                     if (l.length !== r.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
@@ -855,7 +856,7 @@ export class WgslExec extends ExecInterface {
                 return l && r;
             }
             case "||": {
-                if (Array.isArray(l) && Array.isArray(r)) {
+                if (isArray(l) && isArray(r)) {
                     if (l.length !== r.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
