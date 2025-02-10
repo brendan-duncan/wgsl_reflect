@@ -790,8 +790,45 @@ class CreateExpr extends Expression {
             return v;
         }
         if (t.name === "mat2x2") {
-            if (this.args.length === 1) ;
-            else if (this.args.length === 1) ;
+            if (this.args.length === 1) {
+                // mat2x2(other: mat2x2)
+                const e1 = [Type.f32];
+                const v = this.args[0].constEvaluate(context, e1);
+                if (e1[0].name !== "mat2x2" && e1[0].name !== "mat2x2f" && e1[0].name != "mat2x2h") {
+                    throw "Invalid argument for mat2x2";
+                }
+                if (type) {
+                    type[0] = e1[0];
+                }
+                return v;
+            }
+            else if (this.args.length === 2) {
+                // mat2x2(v1: vec2, v2: vec2)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const v1 = this.args[0].constEvaluate(context, e1);
+                const v2 = this.args[1].constEvaluate(context, e2);
+                if ((e1[0].name !== "vec2" && e1[0].name !== "vec2f" && e1[0].name !== "vec2h") ||
+                    (e2[0].name !== "vec2" && e2[0].name !== "vec2f" && e2[0].name !== "vec2h")) {
+                    throw "Invalid arguments for mat2x2";
+                }
+                const v = [v1[0], v1[1], v2[0], v2[1]];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        if (e1[0].name === "vec2f") {
+                            t.format = Type.f32;
+                        }
+                        else if (e1[0].name === "vec2h") {
+                            t.format = Type.f16;
+                        }
+                        else if (e1[0] instanceof TemplateType) {
+                            t.format = e1[0].format;
+                        }
+                    }
+                }
+                return v;
+            }
             else if (this.args.length === 4) {
                 // mat2x2(e1, e2, e3, e4)
                 const tx = [Type.f32];
@@ -805,20 +842,632 @@ class CreateExpr extends Expression {
                 if (type) {
                     type[0] = t;
                     if (t instanceof TemplateType && t.format === null) {
-                        t.format = this._maxFormatType(tx[0], this._maxFormatType(ty[0], tz[0]));
+                        t.format = tx[0];
                     }
                 }
                 return v;
             }
+            else {
+                throw "Invalid arguments for mat2x2";
+            }
         }
-        if (t.name === "mat2x3") ;
-        if (t.name === "mat2x4") ;
-        if (t.name === "mat3x2") ;
-        if (t.name === "mat3x3") ;
-        if (t.name === "mat3x4") ;
-        if (t.name === "mat4x2") ;
-        if (t.name === "mat4x3") ;
-        if (t.name === "mat4x4") ;
+        if (t.name === "mat2x3") {
+            if (this.args.length === 1) {
+                // mat2x3(other: mat2x3)
+                const e1 = [Type.f32];
+                const v = this.args[0].constEvaluate(context, e1);
+                if (e1[0].name !== "mat232" && e1[0].name !== "mat2x3f" && e1[0].name != "mat2x3h") {
+                    throw "Invalid argument for mat2x3";
+                }
+                if (type) {
+                    type[0] = e1[0];
+                }
+                return v;
+            }
+            else if (this.args.length === 2) {
+                // mat2x3(v1: vec3, v2: vec3)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const v1 = this.args[0].constEvaluate(context, e1);
+                const v2 = this.args[1].constEvaluate(context, e2);
+                if ((e1[0].name !== "vec3" && e1[0].name !== "vec3f" && e1[0].name !== "vec3h") ||
+                    (e2[0].name !== "vec3" && e2[0].name !== "vec3f" && e2[0].name !== "vec3h")) {
+                    throw "Invalid arguments for mat2x3";
+                }
+                const v = [v1[0], v1[1], v1[2], v2[0], v2[1], v2[2]];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        if (e1[0].name === "vec3f") {
+                            t.format = Type.f32;
+                        }
+                        else if (e1[0].name === "vec3h") {
+                            t.format = Type.f16;
+                        }
+                        else if (e1[0] instanceof TemplateType) {
+                            t.format = e1[0].format;
+                        }
+                    }
+                }
+                return v;
+            }
+            else if (this.args.length === 6) {
+                // mat2x3(e1, e2, e3, e4, e5, e6)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const e3 = [Type.f32];
+                const e4 = [Type.f32];
+                const e5 = [Type.f32];
+                const e6 = [Type.f32];
+                const v = [this.args[0].constEvaluate(context, e1),
+                    this.args[1].constEvaluate(context, e2),
+                    this.args[2].constEvaluate(context, e3),
+                    this.args[3].constEvaluate(context, e4),
+                    this.args[4].constEvaluate(context, e5),
+                    this.args[5].constEvaluate(context, e6)];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        t.format = e1[0];
+                    }
+                }
+                return v;
+            }
+            else {
+                throw "Invalid arguments for mat2x3";
+            }
+        }
+        if (t.name === "mat2x4") {
+            if (this.args.length === 1) {
+                // mat2x4(other: mat2x4)
+                const e1 = [Type.f32];
+                const v = this.args[0].constEvaluate(context, e1);
+                if (e1[0].name !== "mat2x4" && e1[0].name !== "mat2x4f" && e1[0].name != "mat2x4h") {
+                    throw "Invalid argument for mat2x4";
+                }
+                if (type) {
+                    type[0] = e1[0];
+                }
+                return v;
+            }
+            else if (this.args.length === 2) {
+                // mat2x4(v1: vec4, v2: vec4)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const v1 = this.args[0].constEvaluate(context, e1);
+                const v2 = this.args[1].constEvaluate(context, e2);
+                if ((e1[0].name !== "vec4" && e1[0].name !== "vec4f" && e1[0].name !== "vec4h") ||
+                    (e2[0].name !== "vec4" && e2[0].name !== "vec4f" && e2[0].name !== "vec4h")) {
+                    throw "Invalid arguments for mat2x4";
+                }
+                const v = [v1[0], v1[1], v1[2], v1[3], v2[0], v2[1], v2[2], v2[3]];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        if (e1[0].name === "vec4f") {
+                            t.format = Type.f32;
+                        }
+                        else if (e1[0].name === "vec4h") {
+                            t.format = Type.f16;
+                        }
+                        else if (e1[0] instanceof TemplateType) {
+                            t.format = e1[0].format;
+                        }
+                    }
+                }
+                return v;
+            }
+            else if (this.args.length === 8) {
+                // mat2x4(e1, e2, e3, e4, e5, e6, e7, e8)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const e3 = [Type.f32];
+                const e4 = [Type.f32];
+                const e5 = [Type.f32];
+                const e6 = [Type.f32];
+                const e7 = [Type.f32];
+                const e8 = [Type.f32];
+                const v = [this.args[0].constEvaluate(context, e1),
+                    this.args[1].constEvaluate(context, e2),
+                    this.args[2].constEvaluate(context, e3),
+                    this.args[3].constEvaluate(context, e4),
+                    this.args[4].constEvaluate(context, e5),
+                    this.args[5].constEvaluate(context, e6),
+                    this.args[6].constEvaluate(context, e7),
+                    this.args[7].constEvaluate(context, e8)];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        t.format = e1[0];
+                    }
+                }
+                return v;
+            }
+            else {
+                throw "Invalid arguments for mat2x4";
+            }
+        }
+        if (t.name === "mat3x2") {
+            if (this.args.length === 1) {
+                // mat3x2(other: mat3x2)
+                const e1 = [Type.f32];
+                const v = this.args[0].constEvaluate(context, e1);
+                if (e1[0].name !== "mat3x2" && e1[0].name !== "mat3x2f" && e1[0].name != "mat3x2h") {
+                    throw "Invalid argument for mat3x2";
+                }
+                if (type) {
+                    type[0] = e1[0];
+                }
+                return v;
+            }
+            else if (this.args.length === 3) {
+                // mat3x2(v1: vec2, v2: vec2, v3: vec2)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const e3 = [Type.f32];
+                const v1 = this.args[0].constEvaluate(context, e1);
+                const v2 = this.args[1].constEvaluate(context, e2);
+                const v3 = this.args[1].constEvaluate(context, e3);
+                if ((e1[0].name !== "vec2" && e1[0].name !== "vec2f" && e1[0].name !== "vec2h") ||
+                    (e2[0].name !== "vec2" && e2[0].name !== "vec2f" && e2[0].name !== "vec2h") ||
+                    (e3[0].name !== "vec2" && e3[0].name !== "vec2f" && e3[0].name !== "vec2h")) {
+                    throw "Invalid arguments for mat3x2";
+                }
+                const v = [v1[0], v1[1], v2[0], v2[1], v3[0], v3[1]];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        if (e1[0].name === "vec2f") {
+                            t.format = Type.f32;
+                        }
+                        else if (e1[0].name === "vec2h") {
+                            t.format = Type.f16;
+                        }
+                        else if (e1[0] instanceof TemplateType) {
+                            t.format = e1[0].format;
+                        }
+                    }
+                }
+                return v;
+            }
+            else if (this.args.length === 6) {
+                // mat3x2(e1, e2, e3, e4, e5, e6)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const e3 = [Type.f32];
+                const e4 = [Type.f32];
+                const e5 = [Type.f32];
+                const e6 = [Type.f32];
+                const v = [this.args[0].constEvaluate(context, e1),
+                    this.args[1].constEvaluate(context, e2),
+                    this.args[2].constEvaluate(context, e3),
+                    this.args[3].constEvaluate(context, e4),
+                    this.args[4].constEvaluate(context, e5),
+                    this.args[5].constEvaluate(context, e6)];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        t.format = e1[0];
+                    }
+                }
+                return v;
+            }
+            else {
+                throw "Invalid arguments for mat3x2";
+            }
+        }
+        if (t.name === "mat3x3") {
+            if (this.args.length === 1) {
+                // mat3x3(other: mat3x3)
+                const e1 = [Type.f32];
+                const v = this.args[0].constEvaluate(context, e1);
+                if (e1[0].name !== "mat3x3" && e1[0].name !== "mat3x3f" && e1[0].name != "mat3x3h") {
+                    throw "Invalid argument for mat3x3";
+                }
+                if (type) {
+                    type[0] = e1[0];
+                }
+                return v;
+            }
+            else if (this.args.length === 3) {
+                // mat3x3(v1: vec3, v2: vec3, v3: vec3)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const e3 = [Type.f32];
+                const v1 = this.args[0].constEvaluate(context, e1);
+                const v2 = this.args[1].constEvaluate(context, e2);
+                const v3 = this.args[1].constEvaluate(context, e3);
+                if ((e1[0].name !== "vec3" && e1[0].name !== "vec3f" && e1[0].name !== "vec3h") ||
+                    (e2[0].name !== "vec3" && e2[0].name !== "vec3f" && e2[0].name !== "vec3h") ||
+                    (e3[0].name !== "vec3" && e3[0].name !== "vec3f" && e3[0].name !== "vec3h")) {
+                    throw "Invalid arguments for mat3x3";
+                }
+                const v = [v1[0], v1[1], v1[2], v2[0], v2[1], v2[2], v3[0], v3[1], v3[2]];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        if (e1[0].name === "vec3f") {
+                            t.format = Type.f32;
+                        }
+                        else if (e1[0].name === "vec3h") {
+                            t.format = Type.f16;
+                        }
+                        else if (e1[0] instanceof TemplateType) {
+                            t.format = e1[0].format;
+                        }
+                    }
+                }
+                return v;
+            }
+            else if (this.args.length === 9) {
+                // mat2x4(e1, e2, e3, e4, e5, e6, e7, e8, e9)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const e3 = [Type.f32];
+                const e4 = [Type.f32];
+                const e5 = [Type.f32];
+                const e6 = [Type.f32];
+                const e7 = [Type.f32];
+                const e8 = [Type.f32];
+                const e9 = [Type.f32];
+                const v = [this.args[0].constEvaluate(context, e1),
+                    this.args[1].constEvaluate(context, e2),
+                    this.args[2].constEvaluate(context, e3),
+                    this.args[3].constEvaluate(context, e4),
+                    this.args[4].constEvaluate(context, e5),
+                    this.args[5].constEvaluate(context, e6),
+                    this.args[6].constEvaluate(context, e7),
+                    this.args[7].constEvaluate(context, e8),
+                    this.args[8].constEvaluate(context, e9)];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        t.format = e1[0];
+                    }
+                }
+                return v;
+            }
+            else {
+                throw "Invalid arguments for mat3x3";
+            }
+        }
+        if (t.name === "mat3x4") {
+            if (this.args.length === 1) {
+                // mat3x4(other: mat3x4)
+                const e1 = [Type.f32];
+                const v = this.args[0].constEvaluate(context, e1);
+                if (e1[0].name !== "mat3x4" && e1[0].name !== "mat3x4f" && e1[0].name != "mat3x4h") {
+                    throw "Invalid argument for mat3x4";
+                }
+                if (type) {
+                    type[0] = e1[0];
+                }
+                return v;
+            }
+            else if (this.args.length === 3) {
+                // mat3x4(v1: vec4, v2: vec4, v3: vec4)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const e3 = [Type.f32];
+                const v1 = this.args[0].constEvaluate(context, e1);
+                const v2 = this.args[1].constEvaluate(context, e2);
+                const v3 = this.args[1].constEvaluate(context, e3);
+                if ((e1[0].name !== "vec4" && e1[0].name !== "vec4f" && e1[0].name !== "vec4h") ||
+                    (e2[0].name !== "vec4" && e2[0].name !== "vec4f" && e2[0].name !== "vec4h") ||
+                    (e3[0].name !== "vec4" && e3[0].name !== "vec4f" && e3[0].name !== "vec4h")) {
+                    throw "Invalid arguments for mat3x4";
+                }
+                const v = [v1[0], v1[1], v1[2], v1[3], v2[0], v2[1], v2[2], v2[3], v3[0], v3[1], v3[2], v3[3]];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        if (e1[0].name === "vec4f") {
+                            t.format = Type.f32;
+                        }
+                        else if (e1[0].name === "vec4h") {
+                            t.format = Type.f16;
+                        }
+                        else if (e1[0] instanceof TemplateType) {
+                            t.format = e1[0].format;
+                        }
+                    }
+                }
+                return v;
+            }
+            else if (this.args.length === 9) {
+                // mat3x4(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const e3 = [Type.f32];
+                const e4 = [Type.f32];
+                const e5 = [Type.f32];
+                const e6 = [Type.f32];
+                const e7 = [Type.f32];
+                const e8 = [Type.f32];
+                const e9 = [Type.f32];
+                const e10 = [Type.f32];
+                const e11 = [Type.f32];
+                const e12 = [Type.f32];
+                const v = [this.args[0].constEvaluate(context, e1),
+                    this.args[1].constEvaluate(context, e2),
+                    this.args[2].constEvaluate(context, e3),
+                    this.args[3].constEvaluate(context, e4),
+                    this.args[4].constEvaluate(context, e5),
+                    this.args[5].constEvaluate(context, e6),
+                    this.args[6].constEvaluate(context, e7),
+                    this.args[7].constEvaluate(context, e8),
+                    this.args[8].constEvaluate(context, e9),
+                    this.args[9].constEvaluate(context, e10),
+                    this.args[10].constEvaluate(context, e11),
+                    this.args[11].constEvaluate(context, e12)];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        t.format = e1[0];
+                    }
+                }
+                return v;
+            }
+            else {
+                throw "Invalid arguments for mat3x4";
+            }
+        }
+        if (t.name === "mat4x2") {
+            if (this.args.length === 1) {
+                // mat4x2(other: mat4x2)
+                const e1 = [Type.f32];
+                const v = this.args[0].constEvaluate(context, e1);
+                if (e1[0].name !== "mat4x2" && e1[0].name !== "mat4x2f" && e1[0].name != "mat4x2h") {
+                    throw "Invalid argument for mat4x2";
+                }
+                if (type) {
+                    type[0] = e1[0];
+                }
+                return v;
+            }
+            else if (this.args.length === 4) {
+                // mat4x2(v1: vec2, v2: vec2, v3: vec2, v4: vec2)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const e3 = [Type.f32];
+                const e4 = [Type.f32];
+                const v1 = this.args[0].constEvaluate(context, e1);
+                const v2 = this.args[1].constEvaluate(context, e2);
+                const v3 = this.args[1].constEvaluate(context, e3);
+                const v4 = this.args[1].constEvaluate(context, e4);
+                if ((e1[0].name !== "vec2" && e1[0].name !== "vec2f" && e1[0].name !== "vec2h") ||
+                    (e2[0].name !== "vec2" && e2[0].name !== "vec2f" && e2[0].name !== "vec2h") ||
+                    (e3[0].name !== "vec2" && e3[0].name !== "vec2f" && e3[0].name !== "vec2h") ||
+                    (e4[0].name !== "vec2" && e4[0].name !== "vec2f" && e4[0].name !== "vec2h")) {
+                    throw "Invalid arguments for mat4x2";
+                }
+                const v = [v1[0], v1[1], v2[0], v2[1], v3[0], v3[1], v4[0], v4[1]];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        if (e1[0].name === "vec2f") {
+                            t.format = Type.f32;
+                        }
+                        else if (e1[0].name === "vec2h") {
+                            t.format = Type.f16;
+                        }
+                        else if (e1[0] instanceof TemplateType) {
+                            t.format = e1[0].format;
+                        }
+                    }
+                }
+                return v;
+            }
+            else if (this.args.length === 8) {
+                // mat4x2(e1, e2, e3, e4, e5, e6, e7, e8)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const e3 = [Type.f32];
+                const e4 = [Type.f32];
+                const e5 = [Type.f32];
+                const e6 = [Type.f32];
+                const e7 = [Type.f32];
+                const e8 = [Type.f32];
+                const v = [this.args[0].constEvaluate(context, e1),
+                    this.args[1].constEvaluate(context, e2),
+                    this.args[2].constEvaluate(context, e3),
+                    this.args[3].constEvaluate(context, e4),
+                    this.args[4].constEvaluate(context, e5),
+                    this.args[5].constEvaluate(context, e6),
+                    this.args[6].constEvaluate(context, e7),
+                    this.args[7].constEvaluate(context, e8)];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        t.format = e1[0];
+                    }
+                }
+                return v;
+            }
+            else {
+                throw "Invalid arguments for mat4x2";
+            }
+        }
+        if (t.name === "mat4x3") {
+            if (this.args.length === 1) {
+                // mat4x3(other: mat4x3)
+                const e1 = [Type.f32];
+                const v = this.args[0].constEvaluate(context, e1);
+                if (e1[0].name !== "mat4x3" && e1[0].name !== "mat4x3f" && e1[0].name != "mat4x3h") {
+                    throw "Invalid argument for mat4x3";
+                }
+                if (type) {
+                    type[0] = e1[0];
+                }
+                return v;
+            }
+            else if (this.args.length === 4) {
+                // mat4x3(v1: vec3, v2: vec3, v3: vec3, v4: vec3)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const e3 = [Type.f32];
+                const e4 = [Type.f32];
+                const v1 = this.args[0].constEvaluate(context, e1);
+                const v2 = this.args[1].constEvaluate(context, e2);
+                const v3 = this.args[1].constEvaluate(context, e3);
+                const v4 = this.args[1].constEvaluate(context, e4);
+                if ((e1[0].name !== "vec3" && e1[0].name !== "vec3f" && e1[0].name !== "vec3h") ||
+                    (e2[0].name !== "vec3" && e2[0].name !== "vec3f" && e2[0].name !== "vec3h") ||
+                    (e3[0].name !== "vec3" && e3[0].name !== "vec3f" && e3[0].name !== "vec3h") ||
+                    (e4[0].name !== "vec3" && e4[0].name !== "vec3f" && e4[0].name !== "vec3h")) {
+                    throw "Invalid arguments for mat4x3";
+                }
+                const v = [v1[0], v1[1], v1[2], v2[0], v2[1], v2[2], v3[0], v3[1], v3[2], v4[0], v4[1], v4[2]];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        if (e1[0].name === "vec3f") {
+                            t.format = Type.f32;
+                        }
+                        else if (e1[0].name === "vec3h") {
+                            t.format = Type.f16;
+                        }
+                        else if (e1[0] instanceof TemplateType) {
+                            t.format = e1[0].format;
+                        }
+                    }
+                }
+                return v;
+            }
+            else if (this.args.length === 9) {
+                // mat4x3(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const e3 = [Type.f32];
+                const e4 = [Type.f32];
+                const e5 = [Type.f32];
+                const e6 = [Type.f32];
+                const e7 = [Type.f32];
+                const e8 = [Type.f32];
+                const e9 = [Type.f32];
+                const e10 = [Type.f32];
+                const e11 = [Type.f32];
+                const e12 = [Type.f32];
+                const v = [this.args[0].constEvaluate(context, e1),
+                    this.args[1].constEvaluate(context, e2),
+                    this.args[2].constEvaluate(context, e3),
+                    this.args[3].constEvaluate(context, e4),
+                    this.args[4].constEvaluate(context, e5),
+                    this.args[5].constEvaluate(context, e6),
+                    this.args[6].constEvaluate(context, e7),
+                    this.args[7].constEvaluate(context, e8),
+                    this.args[8].constEvaluate(context, e9),
+                    this.args[9].constEvaluate(context, e10),
+                    this.args[10].constEvaluate(context, e11),
+                    this.args[11].constEvaluate(context, e12)];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        t.format = e1[0];
+                    }
+                }
+                return v;
+            }
+            else {
+                throw "Invalid arguments for mat4x3";
+            }
+        }
+        if (t.name === "mat4x4") {
+            if (this.args.length === 1) {
+                // mat4x4(other: mat4x4)
+                const e1 = [Type.f32];
+                const v = this.args[0].constEvaluate(context, e1);
+                if (e1[0].name !== "mat4x4" && e1[0].name !== "mat4x4f" && e1[0].name != "mat4x4h") {
+                    throw "Invalid argument for mat4x4";
+                }
+                if (type) {
+                    type[0] = e1[0];
+                }
+                return v;
+            }
+            else if (this.args.length === 4) {
+                // mat4x4(v1: vec4, v2: vec4, v3: vec4, v4: vec4)
+                // mat4x3(v1: vec3, v2: vec3, v3: vec3, v4: vec3)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const e3 = [Type.f32];
+                const e4 = [Type.f32];
+                const v1 = this.args[0].constEvaluate(context, e1);
+                const v2 = this.args[1].constEvaluate(context, e2);
+                const v3 = this.args[1].constEvaluate(context, e3);
+                const v4 = this.args[1].constEvaluate(context, e4);
+                if ((e1[0].name !== "vec4" && e1[0].name !== "vec4f" && e1[0].name !== "vec4h") ||
+                    (e2[0].name !== "vec4" && e2[0].name !== "vec4f" && e2[0].name !== "vec4h") ||
+                    (e3[0].name !== "vec4" && e3[0].name !== "vec4f" && e3[0].name !== "vec4h") ||
+                    (e4[0].name !== "vec4" && e4[0].name !== "vec4f" && e4[0].name !== "vec4h")) {
+                    throw "Invalid arguments for mat4x4";
+                }
+                const v = [v1[0], v1[1], v1[2], v1[3],
+                    v2[0], v2[1], v2[2], v2[3],
+                    v3[0], v3[1], v3[2], v3[3],
+                    v4[0], v4[1], v4[2], v4[3]];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        if (e1[0].name === "vec4f") {
+                            t.format = Type.f32;
+                        }
+                        else if (e1[0].name === "vec4h") {
+                            t.format = Type.f16;
+                        }
+                        else if (e1[0] instanceof TemplateType) {
+                            t.format = e1[0].format;
+                        }
+                    }
+                }
+                return v;
+            }
+            else if (this.args.length === 9) {
+                // mat4x4(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15, e16)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const e3 = [Type.f32];
+                const e4 = [Type.f32];
+                const e5 = [Type.f32];
+                const e6 = [Type.f32];
+                const e7 = [Type.f32];
+                const e8 = [Type.f32];
+                const e9 = [Type.f32];
+                const e10 = [Type.f32];
+                const e11 = [Type.f32];
+                const e12 = [Type.f32];
+                const e13 = [Type.f32];
+                const e14 = [Type.f32];
+                const e15 = [Type.f32];
+                const e16 = [Type.f32];
+                const v = [this.args[0].constEvaluate(context, e1),
+                    this.args[1].constEvaluate(context, e2),
+                    this.args[2].constEvaluate(context, e3),
+                    this.args[3].constEvaluate(context, e4),
+                    this.args[4].constEvaluate(context, e5),
+                    this.args[5].constEvaluate(context, e6),
+                    this.args[6].constEvaluate(context, e7),
+                    this.args[7].constEvaluate(context, e8),
+                    this.args[8].constEvaluate(context, e9),
+                    this.args[9].constEvaluate(context, e10),
+                    this.args[10].constEvaluate(context, e11),
+                    this.args[11].constEvaluate(context, e12),
+                    this.args[12].constEvaluate(context, e13),
+                    this.args[13].constEvaluate(context, e14),
+                    this.args[14].constEvaluate(context, e15),
+                    this.args[15].constEvaluate(context, e16)];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        t.format = e1[0];
+                    }
+                }
+                return v;
+            }
+            else {
+                throw "Invalid arguments for mat4x4";
+            }
+        }
         if (t.name === "array") {
             const v = [];
             const ta = t;
