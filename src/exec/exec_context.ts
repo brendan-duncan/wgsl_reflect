@@ -1,13 +1,14 @@
 import * as AST from "../wgsl_ast.js";
+import { Data } from "./data.js";
 
 type ASTVarNode = AST.Let | AST.Var | AST.Argument;
 
 export class Var {
     name: string;
-    value: any;
+    value: Data;
     node: ASTVarNode | null;
 
-    constructor(n: string, v: any, node: ASTVarNode | null) {
+    constructor(n: string, v: Data, node: ASTVarNode | null) {
         this.name = n;
         this.value = v;
         this.node = node;
@@ -15,10 +16,6 @@ export class Var {
 
     clone(): Var {
         return new Var(this.name, this.value, this.node);
-    }
-
-    getValue() {
-        return this.value;
     }
 };
 
@@ -69,11 +66,11 @@ export class ExecContext {
         return null
     }
 
-    createVariable(name: string, value: any, node?: ASTVarNode) {
+    createVariable(name: string, value: Data, node?: ASTVarNode) {
         this.variables.set(name, new Var(name, value, node ?? null));
     }
 
-    setVariable(name: string, value: any, node?: ASTVarNode) {
+    setVariable(name: string, value: Data, node?: ASTVarNode) {
         const v = this.getVariable(name);
         if (v !== null) {
             v.value = value;
@@ -82,7 +79,7 @@ export class ExecContext {
         }
     }
 
-    getVariableValue(name: string) {
+    getVariableValue(name: string): Data | null {
         const v = this.getVariable(name);
         return v?.value ?? null;
     }

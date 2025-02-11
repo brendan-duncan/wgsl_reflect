@@ -27426,6 +27426,23 @@ class Type extends Statement {
     get isArray() {
         return false;
     }
+    static maxFormatType(x) {
+        let t = x[0];
+        if (t.name === "f32") {
+            return t;
+        }
+        for (let i = 1; i < x.length; ++i) {
+            const tv = Type._priority.get(t.name);
+            const xv = Type._priority.get(x[i].name);
+            if (xv < tv) {
+                t = x[i];
+            }
+        }
+        if (t.name === "x32") {
+            return Type.i32;
+        }
+        return t;
+    }
 }
 Type.x32 = new Type("x32");
 Type.f32 = new Type("f32");
@@ -27433,6 +27450,7 @@ Type.i32 = new Type("i32");
 Type.u32 = new Type("u32");
 Type.f16 = new Type("f16");
 Type.bool = new Type("bool");
+Type._priority = new Map([["f32", 0], ["f16", 1], ["u32", 2], ["i32", 3], ["x32", 3]]);
 /**
  * @class StructType
  * @extends Type
@@ -27607,30 +27625,6 @@ class CreateExpr extends Expression {
             }
         }
     }
-    _maxFormatType(x) {
-        const priority = {
-            "f32": 0,
-            "f16": 1,
-            "u32": 2,
-            "i32": 3,
-            "x32": 3
-        };
-        let t = x[0];
-        if (t.name === "f32") {
-            return t;
-        }
-        for (let i = 1; i < x.length; ++i) {
-            const tv = priority[t.name];
-            const xv = priority[x[i].name];
-            if (xv < tv) {
-                t = x[i];
-            }
-        }
-        if (t.name === "x32") {
-            return Type.i32;
-        }
-        return t;
-    }
     constEvaluate(context, type) {
         const t = this.type;
         if (t.name === "f32" || t.name === "f16" || t.name === "i32" || t.name === "u32") {
@@ -27644,7 +27638,7 @@ class CreateExpr extends Expression {
             if (type) {
                 type[0] = t;
                 if (t instanceof TemplateType && t.format === null) {
-                    t.format = this._maxFormatType([tx[0], ty[0]]);
+                    t.format = Type.maxFormatType([tx[0], ty[0]]);
                 }
             }
             return v;
@@ -27659,7 +27653,7 @@ class CreateExpr extends Expression {
             if (type) {
                 type[0] = t;
                 if (t instanceof TemplateType && t.format === null) {
-                    t.format = this._maxFormatType([tx[0], ty[0], tz[0]]);
+                    t.format = Type.maxFormatType([tx[0], ty[0], tz[0]]);
                 }
             }
             return v;
@@ -27676,7 +27670,7 @@ class CreateExpr extends Expression {
             if (type) {
                 type[0] = t;
                 if (t instanceof TemplateType && t.format === null) {
-                    t.format = this._maxFormatType([tx[0], ty[0], tz[0], tw[0]]);
+                    t.format = Type.maxFormatType([tx[0], ty[0], tz[0], tw[0]]);
                 }
             }
             return v;
@@ -27704,7 +27698,9 @@ class CreateExpr extends Expression {
                     (e2[0].name !== "vec2" && e2[0].name !== "vec2f" && e2[0].name !== "vec2h")) {
                     throw "Invalid arguments for mat2x2";
                 }
-                const v = [v1[0], v1[1], v2[0], v2[1]];
+                const v1a = v1;
+                const v2a = v2;
+                const v = [v1a[0], v1a[1], v2a[0], v2a[1]];
                 if (type) {
                     type[0] = t;
                     if (t instanceof TemplateType && t.format === null) {
@@ -27734,7 +27730,7 @@ class CreateExpr extends Expression {
                 if (type) {
                     type[0] = t;
                     if (t instanceof TemplateType && t.format === null) {
-                        t.format = this._maxFormatType([e1[0], e2[0], e3[0], e4[0]]);
+                        t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0]]);
                     }
                 }
                 return v;
@@ -27766,7 +27762,9 @@ class CreateExpr extends Expression {
                     (e2[0].name !== "vec3" && e2[0].name !== "vec3f" && e2[0].name !== "vec3h")) {
                     throw "Invalid arguments for mat2x3";
                 }
-                const v = [v1[0], v1[1], v1[2], v2[0], v2[1], v2[2]];
+                const v1a = v1;
+                const v2a = v2;
+                const v = [v1a[0], v1a[1], v1a[2], v2a[0], v2a[1], v2a[2]];
                 if (type) {
                     type[0] = t;
                     if (t instanceof TemplateType && t.format === null) {
@@ -27800,7 +27798,7 @@ class CreateExpr extends Expression {
                 if (type) {
                     type[0] = t;
                     if (t instanceof TemplateType && t.format === null) {
-                        t.format = this._maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0]]);
+                        t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0]]);
                     }
                 }
                 return v;
@@ -27832,7 +27830,9 @@ class CreateExpr extends Expression {
                     (e2[0].name !== "vec4" && e2[0].name !== "vec4f" && e2[0].name !== "vec4h")) {
                     throw "Invalid arguments for mat2x4";
                 }
-                const v = [v1[0], v1[1], v1[2], v1[3], v2[0], v2[1], v2[2], v2[3]];
+                const v1a = v1;
+                const v2a = v2;
+                const v = [v1a[0], v1a[1], v1a[2], v1a[3], v2a[0], v2a[1], v2a[2], v2a[3]];
                 if (type) {
                     type[0] = t;
                     if (t instanceof TemplateType && t.format === null) {
@@ -27870,7 +27870,7 @@ class CreateExpr extends Expression {
                 if (type) {
                     type[0] = t;
                     if (t instanceof TemplateType && t.format === null) {
-                        t.format = this._maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0]]);
+                        t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0]]);
                     }
                 }
                 return v;
@@ -27905,7 +27905,10 @@ class CreateExpr extends Expression {
                     (e3[0].name !== "vec2" && e3[0].name !== "vec2f" && e3[0].name !== "vec2h")) {
                     throw "Invalid arguments for mat3x2";
                 }
-                const v = [v1[0], v1[1], v2[0], v2[1], v3[0], v3[1]];
+                const v1a = v1;
+                const v2a = v2;
+                const v3a = v3;
+                const v = [v1a[0], v1a[1], v2a[0], v2a[1], v3a[0], v3a[1]];
                 if (type) {
                     type[0] = t;
                     if (t instanceof TemplateType && t.format === null) {
@@ -27939,7 +27942,7 @@ class CreateExpr extends Expression {
                 if (type) {
                     type[0] = t;
                     if (t instanceof TemplateType && t.format === null) {
-                        t.format = this._maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0]]);
+                        t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0]]);
                     }
                 }
                 return v;
@@ -27974,7 +27977,10 @@ class CreateExpr extends Expression {
                     (e3[0].name !== "vec3" && e3[0].name !== "vec3f" && e3[0].name !== "vec3h")) {
                     throw "Invalid arguments for mat3x3";
                 }
-                const v = [v1[0], v1[1], v1[2], v2[0], v2[1], v2[2], v3[0], v3[1], v3[2]];
+                const v1a = v1;
+                const v2a = v2;
+                const v3a = v3;
+                const v = [v1a[0], v1a[1], v1a[2], v2a[0], v2a[1], v2a[2], v3a[0], v3a[1], v3a[2]];
                 if (type) {
                     type[0] = t;
                     if (t instanceof TemplateType && t.format === null) {
@@ -28014,7 +28020,7 @@ class CreateExpr extends Expression {
                 if (type) {
                     type[0] = t;
                     if (t instanceof TemplateType && t.format === null) {
-                        t.format = this._maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0], e9[0]]);
+                        t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0], e9[0]]);
                     }
                 }
                 return v;
@@ -28049,7 +28055,10 @@ class CreateExpr extends Expression {
                     (e3[0].name !== "vec4" && e3[0].name !== "vec4f" && e3[0].name !== "vec4h")) {
                     throw "Invalid arguments for mat3x4";
                 }
-                const v = [v1[0], v1[1], v1[2], v1[3], v2[0], v2[1], v2[2], v2[3], v3[0], v3[1], v3[2], v3[3]];
+                const v1a = v1;
+                const v2a = v2;
+                const v3a = v3;
+                const v = [v1a[0], v1a[1], v1a[2], v1a[3], v2a[0], v2a[1], v2a[2], v2a[3], v3a[0], v3a[1], v3a[2], v3a[3]];
                 if (type) {
                     type[0] = t;
                     if (t instanceof TemplateType && t.format === null) {
@@ -28095,7 +28104,7 @@ class CreateExpr extends Expression {
                 if (type) {
                     type[0] = t;
                     if (t instanceof TemplateType && t.format === null) {
-                        t.format = this._maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0],
+                        t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0],
                             e8[0], e9[0], e10[0], e11[0]]);
                     }
                 }
@@ -28134,7 +28143,11 @@ class CreateExpr extends Expression {
                     (e4[0].name !== "vec2" && e4[0].name !== "vec2f" && e4[0].name !== "vec2h")) {
                     throw "Invalid arguments for mat4x2";
                 }
-                const v = [v1[0], v1[1], v2[0], v2[1], v3[0], v3[1], v4[0], v4[1]];
+                const v1a = v1;
+                const v2a = v2;
+                const v3a = v3;
+                const v4a = v4;
+                const v = [v1a[0], v1a[1], v2a[0], v2a[1], v3a[0], v3a[1], v4a[0], v4a[1]];
                 if (type) {
                     type[0] = t;
                     if (t instanceof TemplateType && t.format === null) {
@@ -28172,7 +28185,7 @@ class CreateExpr extends Expression {
                 if (type) {
                     type[0] = t;
                     if (t instanceof TemplateType && t.format === null) {
-                        t.format = this._maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0]]);
+                        t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0]]);
                     }
                 }
                 return v;
@@ -28210,7 +28223,11 @@ class CreateExpr extends Expression {
                     (e4[0].name !== "vec3" && e4[0].name !== "vec3f" && e4[0].name !== "vec3h")) {
                     throw "Invalid arguments for mat4x3";
                 }
-                const v = [v1[0], v1[1], v1[2], v2[0], v2[1], v2[2], v3[0], v3[1], v3[2], v4[0], v4[1], v4[2]];
+                const v1a = v1;
+                const v2a = v2;
+                const v3a = v3;
+                const v4a = v4;
+                const v = [v1a[0], v1a[1], v1a[2], v2a[0], v2a[1], v2a[2], v3a[0], v3a[1], v3a[2], v4a[0], v4a[1], v4a[2]];
                 if (type) {
                     type[0] = t;
                     if (t instanceof TemplateType && t.format === null) {
@@ -28256,7 +28273,7 @@ class CreateExpr extends Expression {
                 if (type) {
                     type[0] = t;
                     if (t instanceof TemplateType && t.format === null) {
-                        t.format = this._maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0],
+                        t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0],
                             e9[0], e10[0], e11[0], e12[0]]);
                     }
                 }
@@ -28296,10 +28313,14 @@ class CreateExpr extends Expression {
                     (e4[0].name !== "vec4" && e4[0].name !== "vec4f" && e4[0].name !== "vec4h")) {
                     throw "Invalid arguments for mat4x4";
                 }
-                const v = [v1[0], v1[1], v1[2], v1[3],
-                    v2[0], v2[1], v2[2], v2[3],
-                    v3[0], v3[1], v3[2], v3[3],
-                    v4[0], v4[1], v4[2], v4[3]];
+                const v1a = v1;
+                const v2a = v2;
+                const v3a = v3;
+                const v4a = v4;
+                const v = [v1a[0], v1a[1], v1a[2], v1a[3],
+                    v2a[0], v2a[1], v2a[2], v2a[3],
+                    v3a[0], v3a[1], v3a[2], v3a[3],
+                    v4a[0], v4a[1], v4a[2], v4a[3]];
                 if (type) {
                     type[0] = t;
                     if (t instanceof TemplateType && t.format === null) {
@@ -28353,7 +28374,7 @@ class CreateExpr extends Expression {
                 if (type) {
                     type[0] = t;
                     if (t instanceof TemplateType && t.format === null) {
-                        t.format = this._maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0],
+                        t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0],
                             e9[0], e10[0], e11[0], e12[0], e13[0], e14[0], e15[0]]);
                     }
                 }
@@ -28374,7 +28395,7 @@ class CreateExpr extends Expression {
                     ta.format = te[0];
                 }
                 else {
-                    ta.format = this._maxFormatType([ta.format, te[0]]);
+                    ta.format = Type.maxFormatType([ta.format, te[0]]);
                 }
             }
             if (type) {
@@ -28511,15 +28532,16 @@ class CallExpr extends Expression {
             case "distance": {
                 const a = this.args[0].constEvaluate(context, type);
                 const b = this.args[1].constEvaluate(context, type);
-                if (Array.isArray(a)) {
+                if (Array.isArray(a) && Array.isArray(b)) {
                     let d2 = 0;
                     for (let i = 0; i < a.length; i++) {
                         d2 += (a[i] - b[i]) * (a[i] - b[i]);
                     }
                     return Math.sqrt(d2);
                 }
+                const an = a;
                 const bn = b;
-                return Math.sqrt((bn - a) * (bn - a));
+                return Math.sqrt((bn - an) * (bn - an));
             }
             case "dot": {
                 const a = this.args[0].constEvaluate(context, type);
@@ -28982,6 +29004,8 @@ class LiteralExpr extends Expression {
         }
         return this.value;
     }
+    get scalarValue() { return this.value; }
+    get vectorValue() { return this.value; }
 }
 /**
  * @class BitcastExpr
@@ -31140,12 +31164,12 @@ class WgslParser {
                     throw this._error(this._peek(), `Invalid cast from ${_var.value.type.name} to ${_var.type.name}. Line:${this._currentLine}`);
                 }
             }
-            this._validateTypeRange(_var.value.value, _var.type);
+            this._validateTypeRange(_var.value.scalarValue, _var.type);
             _var.value.type = _var.type;
         }
         else if (_var.type === null && _var.value instanceof LiteralExpr) {
             _var.type = _var.value.type.name === "x32" ? Type.i32 : _var.value.type;
-            this._validateTypeRange(_var.value.value, _var.type);
+            this._validateTypeRange(_var.value.scalarValue, _var.type);
         }
         return _var;
     }
@@ -31198,7 +31222,7 @@ class WgslParser {
                 }
             }
             value.type = type;
-            this._validateTypeRange(value.value, value.type);
+            this._validateTypeRange(value.scalarValue, value.type);
         }
         else if (type === null && value instanceof LiteralExpr) {
             type = (_a = value === null || value === void 0 ? void 0 : value.type) !== null && _a !== void 0 ? _a : Type.f32;
@@ -31247,7 +31271,7 @@ class WgslParser {
             type = value.type.name === "x32" ? Type.i32 : value.type;
         }
         if (value instanceof LiteralExpr) {
-            this._validateTypeRange(value.value, type);
+            this._validateTypeRange(value.scalarValue, type);
         }
         return this._updateNode(new Let(name.toString(), type, "", "", value));
     }
@@ -31770,7 +31794,7 @@ class WgslReflect {
         }
         for (const node of ast) {
             if (node instanceof Struct) {
-                const info = this._getTypeInfo(node, null);
+                const info = this.getTypeInfo(node, null);
                 if (info instanceof StructInfo) {
                     this.structs.push(info);
                 }
@@ -31784,7 +31808,7 @@ class WgslReflect {
             if (node instanceof Override) {
                 const v = node;
                 const id = this._getAttributeNum(v.attributes, "id", 0);
-                const type = v.type != null ? this._getTypeInfo(v.type, v.attributes) : null;
+                const type = v.type != null ? this.getTypeInfo(v.type, v.attributes) : null;
                 this.overrides.push(new OverrideInfo(v.name, type, v.attributes, id));
                 continue;
             }
@@ -31792,7 +31816,7 @@ class WgslReflect {
                 const v = node;
                 const g = this._getAttributeNum(v.attributes, "group", 0);
                 const b = this._getAttributeNum(v.attributes, "binding", 0);
-                const type = this._getTypeInfo(v.type, v.attributes);
+                const type = this.getTypeInfo(v.type, v.attributes);
                 const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, ResourceType.Uniform, v.access);
                 this.uniforms.push(varInfo);
                 continue;
@@ -31801,7 +31825,7 @@ class WgslReflect {
                 const v = node;
                 const g = this._getAttributeNum(v.attributes, "group", 0);
                 const b = this._getAttributeNum(v.attributes, "binding", 0);
-                const type = this._getTypeInfo(v.type, v.attributes);
+                const type = this.getTypeInfo(v.type, v.attributes);
                 const isStorageTexture = this._isStorageTexture(type);
                 const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, isStorageTexture ? ResourceType.StorageTexture : ResourceType.Storage, v.access);
                 this.storage.push(varInfo);
@@ -31811,7 +31835,7 @@ class WgslReflect {
                 const v = node;
                 const g = this._getAttributeNum(v.attributes, "group", 0);
                 const b = this._getAttributeNum(v.attributes, "binding", 0);
-                const type = this._getTypeInfo(v.type, v.attributes);
+                const type = this.getTypeInfo(v.type, v.attributes);
                 const isStorageTexture = this._isStorageTexture(type);
                 const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, isStorageTexture ? ResourceType.StorageTexture : ResourceType.Texture, v.access);
                 if (isStorageTexture) {
@@ -31826,7 +31850,7 @@ class WgslReflect {
                 const v = node;
                 const g = this._getAttributeNum(v.attributes, "group", 0);
                 const b = this._getAttributeNum(v.attributes, "binding", 0);
-                const type = this._getTypeInfo(v.type, v.attributes);
+                const type = this.getTypeInfo(v.type, v.attributes);
                 const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, ResourceType.Sampler, v.access);
                 this.samplers.push(varInfo);
                 continue;
@@ -31850,9 +31874,9 @@ class WgslReflect {
                     fn.outputs = this._getOutputs(node.returnType);
                     this.entry[stage.name].push(fn);
                 }
-                fn.arguments = node.args.map((arg) => new ArgumentInfo(arg.name, this._getTypeInfo(arg.type, arg.attributes), arg.attributes));
+                fn.arguments = node.args.map((arg) => new ArgumentInfo(arg.name, this.getTypeInfo(arg.type, arg.attributes), arg.attributes));
                 fn.returnType = node.returnType
-                    ? this._getTypeInfo(node.returnType, node.attributes)
+                    ? this.getTypeInfo(node.returnType, node.attributes)
                     : null;
                 continue;
             }
@@ -31887,6 +31911,14 @@ class WgslReflect {
         for (const s of this.structs) {
             if (s.name == name) {
                 return s;
+            }
+        }
+        return null;
+    }
+    getOverrideInfo(name) {
+        for (const o of this.overrides) {
+            if (o.name == name) {
+                return o;
             }
         }
         return null;
@@ -31975,7 +32007,7 @@ class WgslReflect {
         return null;
     }
     _markStructsFromAST(type) {
-        const info = this._getTypeInfo(type, null);
+        const info = this.getTypeInfo(type, null);
         this._markStructsInUse(info);
     }
     _findResources(fn, isEntry) {
@@ -32117,7 +32149,7 @@ class WgslReflect {
             else {
                 const location = this._getAttribute(m, "location") || this._getAttribute(m, "builtin");
                 if (location !== null) {
-                    const typeInfo = this._getTypeInfo(m.type, m.type.attributes);
+                    const typeInfo = this.getTypeInfo(m.type, m.type.attributes);
                     const locationValue = this._parseInt(location.value);
                     const info = new OutputInfo(m.name, typeInfo, location.name, locationValue);
                     outputs.push(info);
@@ -32129,7 +32161,7 @@ class WgslReflect {
         const location = this._getAttribute(type, "location") ||
             this._getAttribute(type, "builtin");
         if (location !== null) {
-            const typeInfo = this._getTypeInfo(type, type.attributes);
+            const typeInfo = this.getTypeInfo(type, type.attributes);
             const locationValue = this._parseInt(location.value);
             const info = new OutputInfo("", typeInfo, location.name, locationValue);
             return info;
@@ -32171,7 +32203,7 @@ class WgslReflect {
             this._getAttribute(node, "builtin");
         if (location !== null) {
             const interpolation = this._getAttribute(node, "interpolation");
-            const type = this._getTypeInfo(node.type, node.attributes);
+            const type = this.getTypeInfo(node.type, node.attributes);
             const locationValue = this._parseInt(location.value);
             const info = new InputInfo(node.name, type, location.name, locationValue);
             if (interpolation !== null) {
@@ -32203,15 +32235,15 @@ class WgslReflect {
         return null;
     }
     _getAliasInfo(node) {
-        return new AliasInfo(node.name, this._getTypeInfo(node.type, null));
+        return new AliasInfo(node.name, this.getTypeInfo(node.type, null));
     }
-    _getTypeInfo(type, attributes) {
+    getTypeInfo(type, attributes = null) {
         if (this._types.has(type)) {
             return this._types.get(type);
         }
         if (type instanceof ArrayType) {
             const a = type;
-            const t = a.format ? this._getTypeInfo(a.format, a.attributes) : null;
+            const t = a.format ? this.getTypeInfo(a.format, a.attributes) : null;
             const info = new ArrayInfo(a.name, attributes);
             info.format = t;
             info.count = a.count;
@@ -32225,7 +32257,7 @@ class WgslReflect {
             info.startLine = s.startLine;
             info.endLine = s.endLine;
             for (const m of s.members) {
-                const t = this._getTypeInfo(m.type, m.attributes);
+                const t = this.getTypeInfo(m.type, m.attributes);
                 info.members.push(new MemberInfo(m.name, t, m.attributes));
             }
             this._types.set(type, info);
@@ -32237,7 +32269,7 @@ class WgslReflect {
             const formatIsType = s.format instanceof Type;
             const format = s.format
                 ? formatIsType
-                    ? this._getTypeInfo(s.format, null)
+                    ? this.getTypeInfo(s.format, null)
                     : new TypeInfo(s.format, null)
                 : null;
             const info = new TemplateInfo(s.name, format, attributes, s.access);
@@ -32247,7 +32279,7 @@ class WgslReflect {
         }
         if (type instanceof TemplateType) {
             const t = type;
-            const format = t.format ? this._getTypeInfo(t.format, null) : null;
+            const format = t.format ? this.getTypeInfo(t.format, null) : null;
             const info = new TemplateInfo(t.name, format, attributes, t.access);
             this._types.set(type, info);
             this._updateTypeInfo(info);
@@ -32486,9 +32518,6 @@ class Var {
     clone() {
         return new Var(this.name, this.value, this.node);
     }
-    getValue() {
-        return this.value;
-    }
 }
 class Function$2 {
     constructor(node) {
@@ -32556,8 +32585,11 @@ class ExecInterface {
     evalExpression(node, context) {
         return null;
     }
-    _getTypeName(type) {
+    getTypeName(type) {
         return "";
+    }
+    getTypeInfo(type) {
+        return null;
     }
 }
 
@@ -32573,6 +32605,284 @@ class Data {
         return null;
     }
 }
+class VoidData extends Data {
+    constructor() {
+        super(new TypeInfo("void", null));
+    }
+}
+VoidData.void = new VoidData();
+// Used to store scalar data
+class ScalarData extends Data {
+    constructor(value, typeInfo) {
+        super(typeInfo);
+        if (this.typeInfo.name === "i32" || this.typeInfo.name === "u32") {
+            value = Math.floor(value);
+        }
+        else if (this.typeInfo.name === "bool") {
+            value = value ? 1 : 0;
+        }
+        this.value = value;
+    }
+    setDataValue(exec, value, postfix, context) {
+        if (postfix) {
+            console.error(`SetDataValue: Scalar data does not support postfix`, postfix);
+            return;
+        }
+        if (this.typeInfo.name === "i32" || this.typeInfo.name === "u32") {
+            value = Math.floor(value);
+        }
+        else if (this.typeInfo.name === "bool") {
+            value = value ? 1 : 0;
+        }
+        this.value = value;
+    }
+    getDataValue(exec, postfix, context) {
+        if (postfix) {
+            console.error(`GetDataValue: Scalar data does not support postfix`, postfix);
+            return null;
+        }
+        return this;
+    }
+}
+function _getVectorData(exec, values, formatName) {
+    const size = values.length;
+    if (size === 2) {
+        if (formatName === "f32") {
+            return new VectorData(values, exec.getTypeInfo("vec2f"));
+        }
+        else if (formatName === "i32") {
+            return new VectorData(values, exec.getTypeInfo("vec2i"));
+        }
+        else if (formatName === "u32") {
+            return new VectorData(values, exec.getTypeInfo("vec2u"));
+        }
+        else if (formatName === "f16") {
+            return new VectorData(values, exec.getTypeInfo("vec2h"));
+        }
+        else {
+            console.error(`GetDataValue: Unknown format ${formatName}`);
+        }
+        return null;
+    }
+    if (size === 3) {
+        if (formatName === "f32") {
+            return new VectorData(values, exec.getTypeInfo("vec3f"));
+        }
+        else if (formatName === "i32") {
+            return new VectorData(values, exec.getTypeInfo("vec3i"));
+        }
+        else if (formatName === "u32") {
+            return new VectorData(values, exec.getTypeInfo("vec3u"));
+        }
+        else if (formatName === "f16") {
+            return new VectorData(values, exec.getTypeInfo("vec3h"));
+        }
+        else {
+            console.error(`GetDataValue: Unknown format ${formatName}`);
+        }
+        return null;
+    }
+    if (size === 4) {
+        if (formatName === "f32") {
+            return new VectorData(values, exec.getTypeInfo("vec4f"));
+        }
+        else if (formatName === "i32") {
+            return new VectorData(values, exec.getTypeInfo("vec4i"));
+        }
+        else if (formatName === "u32") {
+            return new VectorData(values, exec.getTypeInfo("vec4u"));
+        }
+        else if (formatName === "f16") {
+            return new VectorData(values, exec.getTypeInfo("vec4h"));
+        }
+        console.error(`GetDataValue: Unknown format ${formatName}`);
+        return null;
+    }
+    console.error(`GetDataValue: Invalid vector size ${values.length}`);
+    return null;
+}
+class VectorData extends Data {
+    constructor(value, typeInfo) {
+        super(typeInfo);
+        if (Array.isArray(value)) {
+            this.value = value;
+        }
+        else {
+            this.value = Array.from(value);
+        }
+    }
+    setDataValue(exec, value, postfix, context) {
+        if (postfix instanceof StringExpr) {
+            console.error("TODO: Set vector postfix");
+            return;
+        }
+        this.value = value;
+    }
+    getDataValue(exec, postfix, context) {
+        let format = exec.getTypeInfo("f32");
+        if (this.typeInfo instanceof TemplateInfo) {
+            format = this.typeInfo.format;
+        }
+        else {
+            const typeName = this.typeInfo.name;
+            if (typeName === "vec2f" || typeName === "vec3f" || typeName === "vec4f") {
+                format = exec.getTypeInfo("f32");
+            }
+            else if (typeName === "vec2i" || typeName === "vec3i" || typeName === "vec4i") {
+                format = exec.getTypeInfo("i32");
+            }
+            else if (typeName === "vec2u" || typeName === "vec3u" || typeName === "vec4u") {
+                format = exec.getTypeInfo("u32");
+            }
+            else if (typeName === "vec2h" || typeName === "vec3h" || typeName === "vec4h") {
+                format = exec.getTypeInfo("f16");
+            }
+            else {
+                console.error(`GetDataValue: Unknown type ${typeName}`);
+            }
+        }
+        if (postfix instanceof ArrayIndex) {
+            const idx = postfix.index;
+            let i = -1;
+            if (idx instanceof LiteralExpr) {
+                i = idx.value;
+            }
+            else {
+                const d = exec.evalExpression(idx, context);
+                if (d instanceof ScalarData) {
+                    i = d.value;
+                }
+                else {
+                    console.error(`GetDataValue: Unknown index type`, idx);
+                    return null;
+                }
+            }
+            if (i < 0 || i >= this.value.length) {
+                console.error(`GetDataValue: Index out of range`, i);
+                return null;
+            }
+            return new ScalarData(this.value[i], format);
+        }
+        if (postfix instanceof StringExpr) {
+            const member = postfix.value;
+            const values = [];
+            for (const m of member) {
+                if (m === "x" || m === "r") {
+                    values.push(this.value[0]);
+                }
+                else if (m === "y" || m === "g") {
+                    values.push(this.value[1]);
+                }
+                else if (m === "z" || m === "b") {
+                    values.push(this.value[2]);
+                }
+                else if (m === "w" || m === "a") {
+                    values.push(this.value[3]);
+                }
+                else {
+                    console.error(`GetDataValue: Unknown member ${m}`);
+                }
+            }
+            if (values.length === 1) {
+                return new ScalarData(values[0], format);
+            }
+            return _getVectorData(exec, values, format.name);
+        }
+        return this;
+    }
+}
+class MatrixData extends Data {
+    constructor(value, typeInfo) {
+        super(typeInfo);
+        this.value = value;
+    }
+    setDataValue(exec, value, postfix, context) {
+        if (postfix instanceof StringExpr) {
+            console.error("TODO: Set matrix postfix");
+            return;
+        }
+        this.value = value;
+    }
+    getDataValue(exec, postfix, context) {
+        const typeName = this.typeInfo.name;
+        let format = exec.getTypeInfo("f32");
+        if (this.typeInfo instanceof TemplateInfo) {
+            format = this.typeInfo.format;
+        }
+        else {
+            if (typeName.endsWith("f")) {
+                format = exec.getTypeInfo("f32");
+            }
+            else if (typeName.endsWith("i")) {
+                format = exec.getTypeInfo("i32");
+            }
+            else if (typeName.endsWith("u")) {
+                format = exec.getTypeInfo("u32");
+            }
+            else if (typeName.endsWith("h")) {
+                format = exec.getTypeInfo("f16");
+            }
+            else {
+                console.error(`GetDataValue: Unknown type ${typeName}`);
+            }
+        }
+        if (postfix instanceof ArrayIndex) {
+            const idx = postfix.index;
+            let i = -1;
+            if (idx instanceof LiteralExpr) {
+                i = idx.value;
+            }
+            else {
+                const d = exec.evalExpression(idx, context);
+                if (d instanceof ScalarData) {
+                    i = d.value;
+                }
+                else {
+                    console.error(`GetDataValue: Unknown index type`, idx);
+                    return null;
+                }
+            }
+            if (i < 0 || i >= this.value.length) {
+                console.error(`GetDataValue: Index out of range`, i);
+                return null;
+            }
+            let values;
+            if (typeName === "mat2x2" || typeName === "mat2x2f" || typeName === "mat2x2h") {
+                values = this.value.slice(i * 2, i * 2 + 2);
+            }
+            else if (typeName === "mat2x3" || typeName === "mat2x3f" || typeName === "mat2x3h") {
+                values = this.value.slice(i * 3, i * 3 + 3);
+            }
+            else if (typeName === "mat2x4" || typeName === "mat2x4f" || typeName === "mat2x4h") {
+                values = this.value.slice(i * 4, i * 4 + 4);
+            }
+            else if (typeName === "mat3x2" || typeName === "mat3x2f" || typeName === "mat3x2h") {
+                values = this.value.slice(i * 2, i * 2 + 2);
+            }
+            else if (typeName === "mat3x3" || typeName === "mat3x3f" || typeName === "mat3x3h") {
+                values = this.value.slice(i * 3, i * 3 + 3);
+            }
+            else if (typeName === "mat3x4" || typeName === "mat3x4f" || typeName === "mat3x4h") {
+                values = this.value.slice(i * 4, i * 4 + 4);
+            }
+            else if (typeName === "mat4x2" || typeName === "mat4x2f" || typeName === "mat4x2h") {
+                values = this.value.slice(i * 2, i * 2 + 2);
+            }
+            else if (typeName === "mat4x3" || typeName === "mat4x3f" || typeName === "mat4x3h") {
+                values = this.value.slice(i * 3, i * 3 + 3);
+            }
+            else if (typeName === "mat4x4" || typeName === "mat4x4f" || typeName === "mat4x4h") {
+                values = this.value.slice(i * 4, i * 4 + 4);
+            }
+            else {
+                console.error(`GetDataValue: Unknown type ${typeName}`);
+                return null;
+            }
+            return _getVectorData(exec, values, format.name);
+        }
+        return this;
+    }
+}
 // Used to store array and struct data
 class TypedData extends Data {
     constructor(data, typeInfo, offset = 0, textureSize) {
@@ -32586,7 +32896,7 @@ class TypedData extends Data {
     }
     setDataValue(exec, value, postfix, context) {
         if (value === null) {
-            console.log("_setDataValue: NULL data");
+            console.log(`setDataValue: NULL data.`);
             return;
         }
         let offset = this.offset;
@@ -32600,8 +32910,8 @@ class TypedData extends Data {
                     }
                     else {
                         const i = exec.evalExpression(idx, context);
-                        if (i !== null) {
-                            offset += i * typeInfo.stride;
+                        if (i instanceof ScalarData) {
+                            offset += i.value * typeInfo.stride;
                         }
                         else {
                             console.error(`SetDataValue: Unknown index type`, idx);
@@ -32611,7 +32921,7 @@ class TypedData extends Data {
                     typeInfo = typeInfo.format;
                 }
                 else {
-                    console.error(`SetDataValue: Type ${exec._getTypeName(typeInfo)} is not an array`);
+                    console.error(`SetDataValue: Type ${exec.getTypeName(typeInfo)} is not an array`);
                 }
             }
             else if (postfix instanceof StringExpr) {
@@ -32632,7 +32942,7 @@ class TypedData extends Data {
                     }
                 }
                 else if (typeInfo instanceof TypeInfo) {
-                    const typeName = exec._getTypeName(typeInfo);
+                    const typeName = exec.getTypeName(typeInfo);
                     let element = 0;
                     if (member === "x" || member === "r") {
                         element = 0;
@@ -32650,40 +32960,41 @@ class TypedData extends Data {
                         console.error(`SetDataValue: Unknown member ${member}`);
                         return;
                     }
+                    const v = value instanceof ScalarData ? value.value : value;
                     if (typeName === "vec2f") {
-                        new Float32Array(this.buffer, offset, 2)[element] = value;
+                        new Float32Array(this.buffer, offset, 2)[element] = v;
                         return;
                     }
                     else if (typeName === "vec3f") {
-                        new Float32Array(this.buffer, offset, 3)[element] = value;
+                        new Float32Array(this.buffer, offset, 3)[element] = v;
                         return;
                     }
                     else if (typeName === "vec4f") {
-                        new Float32Array(this.buffer, offset, 4)[element] = value;
+                        new Float32Array(this.buffer, offset, 4)[element] = v;
                         return;
                     }
                     else if (typeName === "vec2i") {
-                        new Int32Array(this.buffer, offset, 2)[element] = value;
+                        new Int32Array(this.buffer, offset, 2)[element] = v;
                         return;
                     }
                     else if (typeName === "vec3i") {
-                        new Int32Array(this.buffer, offset, 3)[element] = value;
+                        new Int32Array(this.buffer, offset, 3)[element] = v;
                         return;
                     }
                     else if (typeName === "vec4i") {
-                        new Int32Array(this.buffer, offset, 4)[element] = value;
+                        new Int32Array(this.buffer, offset, 4)[element] = v;
                         return;
                     }
                     else if (typeName === "vec2u") {
-                        new Uint32Array(this.buffer, offset, 2)[element] = value;
+                        new Uint32Array(this.buffer, offset, 2)[element] = v;
                         return;
                     }
                     else if (typeName === "vec3u") {
-                        new Uint32Array(this.buffer, offset, 3)[element] = value;
+                        new Uint32Array(this.buffer, offset, 3)[element] = v;
                         return;
                     }
                     else if (typeName === "vec4u") {
-                        new Uint32Array(this.buffer, offset, 4)[element] = value;
+                        new Uint32Array(this.buffer, offset, 4)[element] = v;
                         return;
                     }
                     console.error(`SetDataValue: Type ${typeName} is not a struct`);
@@ -32699,80 +33010,158 @@ class TypedData extends Data {
         this.setData(exec, value, typeInfo, offset, context);
     }
     setData(exec, value, typeInfo, offset, context) {
-        const typeName = exec._getTypeName(typeInfo);
+        const typeName = exec.getTypeName(typeInfo);
         if (typeName === "f32") {
-            new Float32Array(this.buffer, offset, 1)[0] = value;
+            if (value instanceof ScalarData) {
+                new Float32Array(this.buffer, offset, 1)[0] = value.value;
+            }
+            else {
+                new Float32Array(this.buffer, offset, 1)[0] = value;
+            }
             return;
         }
         else if (typeName === "i32") {
-            new Int32Array(this.buffer, offset, 1)[0] = value;
+            if (value instanceof ScalarData) {
+                new Int32Array(this.buffer, offset, 1)[0] = value.value;
+            }
+            else {
+                new Int32Array(this.buffer, offset, 1)[0] = value;
+            }
             return;
         }
         else if (typeName === "u32") {
-            new Uint32Array(this.buffer, offset, 1)[0] = value;
+            if (value instanceof ScalarData) {
+                new Uint32Array(this.buffer, offset, 1)[0] = value.value;
+            }
+            else {
+                new Uint32Array(this.buffer, offset, 1)[0] = value;
+            }
             return;
         }
         else if (typeName === "vec2f") {
             const x = new Float32Array(this.buffer, offset, 2);
-            x[0] = value[0];
-            x[1] = value[1];
+            if (value instanceof VectorData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+            }
             return;
         }
         else if (typeName === "vec3f") {
             const x = new Float32Array(this.buffer, offset, 3);
-            x[0] = value[0];
-            x[1] = value[1];
-            x[2] = value[2];
+            if (value instanceof VectorData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+                x[2] = value.value[2];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+            }
             return;
         }
         else if (typeName === "vec4f") {
             const x = new Float32Array(this.buffer, offset, 4);
-            x[0] = value[0];
-            x[1] = value[1];
-            x[2] = value[2];
-            x[3] = value[3];
+            if (value instanceof VectorData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+                x[2] = value.value[2];
+                x[3] = value.value[3];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+            }
             return;
         }
         else if (typeName === "vec2i") {
             const x = new Int32Array(this.buffer, offset, 2);
-            x[0] = value[0];
-            x[1] = value[1];
+            if (value instanceof VectorData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+            }
             return;
         }
         else if (typeName === "vec3i") {
             const x = new Int32Array(this.buffer, offset, 3);
-            x[0] = value[0];
-            x[1] = value[1];
-            x[2] = value[2];
+            if (value instanceof VectorData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+                x[2] = value.value[2];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+            }
             return;
         }
         else if (typeName === "vec4i") {
             const x = new Int32Array(this.buffer, offset, 4);
-            x[0] = value[0];
-            x[1] = value[1];
-            x[2] = value[2];
-            x[3] = value[3];
+            if (value instanceof VectorData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+                x[2] = value.value[2];
+                x[3] = value.value[3];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+            }
             return;
         }
         else if (typeName === "vec2u") {
             const x = new Uint32Array(this.buffer, offset, 2);
-            x[0] = value[0];
-            x[1] = value[1];
+            if (value instanceof VectorData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+            }
             return;
         }
         else if (typeName === "vec3u") {
             const x = new Uint32Array(this.buffer, offset, 3);
-            x[0] = value[0];
-            x[1] = value[1];
-            x[2] = value[2];
+            if (value instanceof VectorData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+                x[2] = value.value[2];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+            }
             return;
         }
         else if (typeName === "vec4u") {
             const x = new Uint32Array(this.buffer, offset, 4);
-            x[0] = value[0];
-            x[1] = value[1];
-            x[2] = value[2];
-            x[3] = value[3];
+            if (value instanceof VectorData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+                x[2] = value.value[2];
+                x[3] = value.value[3];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+            }
             return;
         }
         if (value instanceof TypedData) {
@@ -32782,11 +33171,11 @@ class TypedData extends Data {
                 return;
             }
             else {
-                console.error(`SetDataValue: Type mismatch`, typeName, exec._getTypeName(value.typeInfo));
+                console.error(`SetDataValue: Type mismatch`, typeName, exec.getTypeName(value.typeInfo));
                 return;
             }
         }
-        console.error(`SetDataValue: Unknown type ${typeName}`);
+        console.error(`SetData: Unknown type ${typeName}`);
     }
     getDataValue(exec, postfix, context) {
         let offset = this.offset;
@@ -32800,8 +33189,8 @@ class TypedData extends Data {
                     }
                     else {
                         const i = exec.evalExpression(idx, context);
-                        if (i !== null) {
-                            offset += i * typeInfo.stride;
+                        if (i instanceof ScalarData) {
+                            offset += i.value * typeInfo.stride;
                         }
                         else {
                             console.error(`GetDataValue: Unknown index type`, idx);
@@ -32811,7 +33200,7 @@ class TypedData extends Data {
                     typeInfo = typeInfo.format;
                 }
                 else {
-                    console.error(`Type ${exec._getTypeName(typeInfo)} is not an array`);
+                    console.error(`Type ${exec.getTypeName(typeInfo)} is not an array`);
                 }
             }
             else if (postfix instanceof StringExpr) {
@@ -32832,7 +33221,7 @@ class TypedData extends Data {
                     }
                 }
                 else if (typeInfo instanceof TypeInfo) {
-                    const typeName = exec._getTypeName(typeInfo);
+                    const typeName = exec.getTypeName(typeInfo);
                     if (typeName === "vec2f" || typeName === "vec3f" || typeName === "vec4f" ||
                         typeName === "vec2i" || typeName === "vec3i" || typeName === "vec4i" ||
                         typeName === "vec2u" || typeName === "vec3u" || typeName === "vec4u" ||
@@ -32840,6 +33229,7 @@ class TypedData extends Data {
                         typeName === "vec2h" || typeName === "vec3h" || typeName === "vec4h" ||
                         typeName === "vec2" || typeName === "vec3" || typeName === "vec4") {
                         if (member.length > 0 && member.length < 5) {
+                            let formatName = "f32";
                             const value = [];
                             for (let i = 0; i < member.length; ++i) {
                                 const m = member[i].toLocaleLowerCase();
@@ -32875,29 +33265,35 @@ class TypedData extends Data {
                                     value.push(new Float32Array(this.buffer, offset, 4)[element]);
                                 }
                                 else if (typeName === "vec2i") {
+                                    formatName = "i32";
                                     value.push(new Int32Array(this.buffer, offset, 2)[element]);
                                 }
                                 else if (typeName === "vec3i") {
+                                    formatName = "i32";
                                     value.push(new Int32Array(this.buffer, offset, 3)[element]);
                                 }
                                 else if (typeName === "vec4i") {
+                                    formatName = "i32";
                                     value.push(new Int32Array(this.buffer, offset, 4)[element]);
                                 }
                                 else if (typeName === "vec2u") {
+                                    formatName = "u32";
                                     const ua = new Uint32Array(this.buffer, offset, 2);
                                     value.push(ua[element]);
                                 }
                                 else if (typeName === "vec3u") {
+                                    formatName = "u32";
                                     value.push(new Uint32Array(this.buffer, offset, 3)[element]);
                                 }
                                 else if (typeName === "vec4u") {
+                                    formatName = "u32";
                                     value.push(new Uint32Array(this.buffer, offset, 4)[element]);
                                 }
                             }
                             if (value.length === 1) {
-                                return value[0];
+                                return new ScalarData(value[0], exec.getTypeInfo(formatName));
                             }
-                            return value;
+                            return new VectorData(value, typeInfo);
                         }
                         else {
                             console.error(`GetDataValue: Unknown member ${member}`);
@@ -32914,42 +33310,42 @@ class TypedData extends Data {
             }
             postfix = postfix.postfix;
         }
-        const typeName = exec._getTypeName(typeInfo);
+        const typeName = exec.getTypeName(typeInfo);
         if (typeName === "f32") {
-            return new Float32Array(this.buffer, offset, 1)[0];
+            return new ScalarData(new Float32Array(this.buffer, offset, 1)[0], typeInfo);
         }
         else if (typeName === "i32") {
-            return new Int32Array(this.buffer, offset, 1)[0];
+            return new ScalarData(new Int32Array(this.buffer, offset, 1)[0], typeInfo);
         }
         else if (typeName === "u32") {
-            return new Uint32Array(this.buffer, offset, 1)[0];
+            return new ScalarData(new Uint32Array(this.buffer, offset, 1)[0], typeInfo);
         }
         else if (typeName === "vec2f") {
-            return new Float32Array(this.buffer, offset, 2);
+            return new VectorData(new Float32Array(this.buffer, offset, 2), typeInfo);
         }
         else if (typeName === "vec3f") {
-            return new Float32Array(this.buffer, offset, 3);
+            return new VectorData(new Float32Array(this.buffer, offset, 3), typeInfo);
         }
         else if (typeName === "vec4f") {
-            return new Float32Array(this.buffer, offset, 4);
+            return new VectorData(new Float32Array(this.buffer, offset, 4), typeInfo);
         }
         else if (typeName === "vec2i") {
-            return new Int32Array(this.buffer, offset, 2);
+            return new VectorData(new Int32Array(this.buffer, offset, 2), typeInfo);
         }
         else if (typeName === "vec3i") {
-            return new Int32Array(this.buffer, offset, 3);
+            return new VectorData(new Int32Array(this.buffer, offset, 3), typeInfo);
         }
         else if (typeName === "vec4i") {
-            return new Int32Array(this.buffer, offset, 4);
+            return new VectorData(new Int32Array(this.buffer, offset, 4), typeInfo);
         }
         else if (typeName === "vec2u") {
-            return new Uint32Array(this.buffer, offset, 2);
+            return new VectorData(new Uint32Array(this.buffer, offset, 2), typeInfo);
         }
         else if (typeName === "vec3u") {
-            return new Uint32Array(this.buffer, offset, 3);
+            return new VectorData(new Uint32Array(this.buffer, offset, 3), typeInfo);
         }
         else if (typeName === "vec4u") {
-            return new Uint32Array(this.buffer, offset, 4);
+            return new VectorData(new Uint32Array(this.buffer, offset, 4), typeInfo);
         }
         return new TypedData(this.buffer, typeInfo, offset);
     }
@@ -32959,21 +33355,34 @@ class BuiltinFunctions {
     constructor(exec) {
         this.exec = exec;
     }
+    getTypeInfo(type) {
+        return this.exec.getTypeInfo(type);
+    }
     // Logical Built-in Functions
     All(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
         let isTrue = true;
-        value.forEach((x) => { if (!x)
-            isTrue = false; });
-        return isTrue;
+        if (value instanceof VectorData) {
+            value.value.forEach((x) => { if (!x)
+                isTrue = false; });
+            return new ScalarData(isTrue ? 1 : 0, this.getTypeInfo("bool"));
+        }
+        throw new Error(`All() expects a vector argument. Line ${node.line}`);
     }
     Any(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        return value.some((v) => v);
+        if (value instanceof VectorData) {
+            const res = value.value.some((v) => v);
+            return new ScalarData(res ? 1 : 0, this.getTypeInfo("bool"));
+        }
+        throw new Error(`Any() expects a vector argument. Line ${node.line}`);
     }
     Select(node, context) {
         const condition = this.exec.evalExpression(node.args[2], context);
-        if (condition) {
+        if (!(condition instanceof ScalarData)) {
+            throw new Error(`Select() expects a bool condition. Line ${node.line}`);
+        }
+        if (condition.value) {
             return this.exec.evalExpression(node.args[0], context);
         }
         else {
@@ -32988,76 +33397,87 @@ class BuiltinFunctions {
             arrayArg = arrayArg.right;
         }
         const arrayData = this.exec.evalExpression(arrayArg, context);
-        if (arrayData.typeInfo.size === 0) {
-            const count = arrayData.buffer.byteLength / arrayData.typeInfo.stride;
-            return count;
+        if (arrayData instanceof TypedData && arrayData.typeInfo.size === 0) {
+            const ta = arrayData.typeInfo;
+            const count = arrayData.buffer.byteLength / ta.stride;
+            return new ScalarData(count, this.getTypeInfo("u32"));
         }
-        return arrayData.typeInfo.size;
+        return new ScalarData(arrayData.typeInfo.size, this.getTypeInfo("u32"));
     }
     // Numeric Built-in Functions
     Abs(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v) => Math.abs(v));
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => Math.abs(v)), value.typeInfo);
         }
-        return Math.abs(value);
+        const s = value;
+        return new ScalarData(Math.abs(s.value), s.typeInfo);
     }
     Acos(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v) => Math.acos(v));
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => Math.acos(v)), value.typeInfo);
         }
-        return Math.acos(value);
+        const s = value;
+        return new ScalarData(Math.acos(s.value), value.typeInfo);
     }
     Acosh(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v) => Math.acosh(v));
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => Math.acosh(v)), value.typeInfo);
         }
-        return Math.acosh(value);
+        const s = value;
+        return new ScalarData(Math.acosh(s.value), value.typeInfo);
     }
     Asin(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v) => Math.asin(v));
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => Math.asin(v)), value.typeInfo);
         }
-        return Math.asin(value);
+        const s = value;
+        return new ScalarData(Math.asin(s.value), value.typeInfo);
     }
     Asinh(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v) => Math.asinh(v));
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => Math.asinh(v)), value.typeInfo);
         }
-        return Math.asinh(value);
+        const s = value;
+        return new ScalarData(Math.asinh(s.value), value.typeInfo);
     }
     Atan(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v) => Math.atan(v));
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => Math.atan(v)), value.typeInfo);
         }
-        return Math.atan(value);
+        const s = value;
+        return new ScalarData(Math.atan(s.value), value.typeInfo);
     }
     Atanh(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v) => Math.atanh(v));
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => Math.atanh(v)), value.typeInfo);
         }
-        return Math.atanh(value);
+        const s = value;
+        return new ScalarData(Math.atanh(s.value), value.typeInfo);
     }
     Atan2(node, context) {
         const y = this.exec.evalExpression(node.args[0], context);
         const x = this.exec.evalExpression(node.args[1], context);
-        if (y.length !== undefined) {
-            return y.map((v, i) => Math.atan2(v, x[i]));
+        if (y instanceof VectorData && x instanceof VectorData) {
+            return new VectorData(y.value.map((v, i) => Math.atan2(v, x.value[i])), y.typeInfo);
         }
-        return Math.atan2(y, x);
+        const ys = y;
+        const xs = x;
+        return new ScalarData(Math.atan2(ys.value, xs.value), y.typeInfo);
     }
     Ceil(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v) => Math.ceil(v));
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => Math.ceil(v)), value.typeInfo);
         }
-        return Math.ceil(value);
+        const s = value;
+        return new ScalarData(Math.ceil(s.value), value.typeInfo);
     }
     _clamp(value, min, max) {
         return Math.min(Math.max(value, min), max);
@@ -33066,31 +33486,37 @@ class BuiltinFunctions {
         const value = this.exec.evalExpression(node.args[0], context);
         const min = this.exec.evalExpression(node.args[1], context);
         const max = this.exec.evalExpression(node.args[2], context);
-        if (value instanceof Array) {
-            return value.map((v, i) => this._clamp(v, min[i], max[i]));
+        if (value instanceof VectorData && min instanceof VectorData && max instanceof VectorData) {
+            return new VectorData(value.value.map((v, i) => this._clamp(v, min.value[i], max.value[i])), value.typeInfo);
         }
-        return this._clamp(value, min, max);
+        const s = value;
+        const minS = min;
+        const maxS = max;
+        return new ScalarData(this._clamp(s.value, minS.value, maxS.value), value.typeInfo);
     }
     Cos(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v) => Math.cos(v));
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => Math.cos(v)), value.typeInfo);
         }
-        return Math.cos(value);
+        const s = value;
+        return new ScalarData(Math.cos(s.value), value.typeInfo);
     }
     Cosh(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v) => Math.cosh(v));
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => Math.cosh(v)), value.typeInfo);
         }
-        return Math.cosh(value);
+        const s = value;
+        return new ScalarData(Math.cos(s.value), value.typeInfo);
     }
     CountLeadingZeros(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v) => Math.clz32(v));
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => Math.clz32(v)), value.typeInfo);
         }
-        return Math.clz32(value);
+        const s = value;
+        return new ScalarData(Math.clz32(s.value), value.typeInfo);
     }
     _countOneBits(value) {
         let count = 0;
@@ -33103,11 +33529,12 @@ class BuiltinFunctions {
         return count;
     }
     CountOneBits(node, context) {
-        let x = this.exec.evalExpression(node.args[0], context);
-        if (x instanceof Array) {
-            return x.map((v) => this._countOneBits(v));
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => this._countOneBits(v)), value.typeInfo);
         }
-        return this._countOneBits(x);
+        const s = value;
+        return new ScalarData(this._countOneBits(s.value), value.typeInfo);
     }
     _countTrailingZeros(value) {
         if (value === 0) {
@@ -33121,46 +33548,94 @@ class BuiltinFunctions {
         return count;
     }
     CountTrailingZeros(node, context) {
-        let x = this.exec.evalExpression(node.args[0], context);
-        if (x instanceof Array) {
-            return x.map((v) => this._countTrailingZeros(v));
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => this._countTrailingZeros(v)), value.typeInfo);
         }
-        this._countTrailingZeros(x);
+        const s = value;
+        return new ScalarData(this._countTrailingZeros(s.value), value.typeInfo);
     }
     Cross(node, context) {
         const l = this.exec.evalExpression(node.args[0], context);
         const r = this.exec.evalExpression(node.args[1], context);
-        return [
-            l[1] * r[2] - r[1] * l[2],
-            l[2] * r[0] - r[2] * l[0],
-            l[0] * r[1] - r[0] * l[1],
-        ];
+        if (l instanceof VectorData && r instanceof VectorData) {
+            if (l.value.length !== 3 || r.value.length !== 3) {
+                console.error(`Cross() expects 3D vectors. Line ${node.line}`);
+                return null;
+            }
+            const lv = l.value;
+            const rv = r.value;
+            return new VectorData([
+                lv[1] * rv[2] - rv[1] * lv[2],
+                lv[2] * rv[0] - rv[2] * lv[0],
+                lv[0] * rv[1] - rv[0] * lv[1],
+            ], l.typeInfo);
+        }
+        console.error(`Cross() expects vector arguments. Line ${node.line}`);
+        return null;
     }
     Degrees(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
         const radToDeg = 180.0 / Math.PI;
-        if (value instanceof Array) {
-            return value.map((v) => v * radToDeg);
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => v * radToDeg), value.typeInfo);
         }
-        return value * radToDeg;
+        const s = value;
+        return new ScalarData(s.value * radToDeg, value.typeInfo);
     }
     Determinant(node, context) {
         const m = this.exec.evalExpression(node.args[0], context);
-        // TODO: get the dimensions of the matrix
-        if (m.length === 4) {
-            return m[0] * m[3] - m[1] * m[2];
+        if (m instanceof MatrixData) {
+            const mv = m.value;
+            const mt = this.exec.getTypeName(m.typeInfo);
+            const isHalf = mt.endsWith("h");
+            const formatType = isHalf ? this.getTypeInfo("f16") : this.getTypeInfo("f32");
+            if (mt === "mat2x2" || mt === "mat2x2f" || mt === "mat2x2h") {
+                return new ScalarData(mv[0] * mv[3] - mv[1] * mv[2], formatType);
+            }
+            else if (mt === "mat2x3" || mt === "mat2x3f" || mt === "mat2x3h") {
+                return new ScalarData(mv[0] * (mv[4] * mv[8] - mv[5] * mv[7]) -
+                    mv[1] * (mv[3] * mv[8] - mv[5] * mv[6]) + mv[2] * (mv[3] * mv[7] - mv[4] * mv[6]), formatType);
+            }
+            else if (mt === "mat2x4" || mt === "mat2x4f" || mt === "mat2x4h") {
+                console.error(`TODO: Determinant for ${mt}`);
+            }
+            else if (mt === "mat3x2" || mt === "mat3x2f" || mt === "mat3x2h") {
+                console.error(`TODO: Determinant for ${mt}`);
+            }
+            else if (mt === "mat3x3" || mt === "mat3x3f" || mt === "mat3x3h") {
+                return new ScalarData(mv[0] * (mv[4] * mv[8] - mv[5] * mv[7]) -
+                    mv[1] * (mv[3] * mv[8] - mv[5] * mv[6]) + mv[2] * (mv[3] * mv[7] - mv[4] * mv[6]), formatType);
+            }
+            else if (mt === "mat3x4" || mt === "mat3x4f" || mt === "mat3x4h") {
+                console.error(`TODO: Determinant for ${mt}`);
+            }
+            else if (mt === "mat4x2" || mt === "mat4x2f" || mt === "mat4x2h") {
+                console.error(`TODO: Determinant for ${mt}`);
+            }
+            else if (mt === "mat4x3" || mt === "mat4x3f" || mt === "mat4x3h") {
+                console.error(`TODO: Determinant for ${mt}`);
+            }
+            else if (mt === "mat4x4" || mt === "mat4x4f" || mt === "mat4x4h") {
+                console.error(`TODO: Determinant for ${mt}`);
+            }
         }
-        console.error(`TODO: determinant for matrix. Line ${node.line}`);
+        console.error(`Determinant expects a matrix argument. Line ${node.line}`);
         return null;
     }
     Distance(node, context) {
         const l = this.exec.evalExpression(node.args[0], context);
         const r = this.exec.evalExpression(node.args[1], context);
-        let sum = 0;
-        for (let i = 0; i < l.length; ++i) {
-            sum += (l[i] - r[i]) * (l[i] - r[i]);
+        if (l instanceof VectorData && r instanceof VectorData) {
+            let sum = 0;
+            for (let i = 0; i < l.value.length; ++i) {
+                sum += (l.value[i] - r.value[i]) * (l.value[i] - r.value[i]);
+            }
+            return new ScalarData(Math.sqrt(sum), this.getTypeInfo("f32"));
         }
-        return Math.sqrt(sum);
+        const ls = l;
+        const rs = r;
+        return new ScalarData(Math.abs(ls.value - rs.value), l.typeInfo);
     }
     _dot(e1, e2) {
         let dot = 0;
@@ -33172,73 +33647,106 @@ class BuiltinFunctions {
     Dot(node, context) {
         const l = this.exec.evalExpression(node.args[0], context);
         const r = this.exec.evalExpression(node.args[1], context);
-        return this._dot(l, r);
+        if (l instanceof VectorData && r instanceof VectorData) {
+            return new ScalarData(this._dot(l.value, r.value), this.getTypeInfo("f32"));
+        }
+        console.error(`Dot() expects vector arguments. Line ${node.line}`);
+        return null;
     }
     Dot4U8Packed(node, context) {
-        console.error("TODO: dot4U8Packed");
+        console.error(`TODO: dot4U8Packed. Line ${node.line}`);
         return null;
     }
     Dot4I8Packed(node, context) {
-        console.error("TODO: dot4I8Packed");
+        console.error(`TODO: dot4I8Packed. Line ${node.line}`);
         return null;
     }
     Exp(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v) => Math.exp(v));
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => Math.exp(v)), value.typeInfo);
         }
-        return Math.exp(value);
+        const s = value;
+        return new ScalarData(Math.exp(s.value), value.typeInfo);
     }
     Exp2(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v) => Math.pow(2, v));
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => Math.pow(2, v)), value.typeInfo);
         }
-        return Math.pow(2, value);
+        const s = value;
+        return new ScalarData(Math.pow(2, s.value), value.typeInfo);
     }
     ExtractBits(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
         const offset = this.exec.evalExpression(node.args[1], context);
         const count = this.exec.evalExpression(node.args[2], context);
-        return (value >> offset) & ((1 << count) - 1);
+        if (offset.typeInfo.name !== "u32" && offset.typeInfo.name !== "x32") {
+            console.error(`ExtractBits() expects an i32 offset argument. Line ${node.line}`);
+            return null;
+        }
+        if (count.typeInfo.name !== "u32" && count.typeInfo.name !== "x32") {
+            console.error(`ExtractBits() expects an i32 count argument. Line ${node.line}`);
+            return null;
+        }
+        const o = offset.value;
+        const c = count.value;
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => (v >> o) & ((1 << c) - 1)), value.typeInfo);
+        }
+        if (value.typeInfo.name !== "i32" && value.typeInfo.name !== "x32") {
+            console.error(`ExtractBits() expects an i32 argument. Line ${node.line}`);
+            return null;
+        }
+        const v = value.value;
+        return new ScalarData((v >> o) & ((1 << c) - 1), this.getTypeInfo("i32"));
     }
     FaceForward(node, context) {
-        console.error("TODO: faceForward");
+        console.error(`TODO: faceForward. Line ${node.line}`);
         return null;
     }
     FirstLeadingBit(node, context) {
-        console.error("TODO: firstLeadingBit");
+        console.error(`TODO: firstLeadingBit. Line ${node.line}`);
         return null;
     }
     FirstTrailingBit(node, context) {
-        console.error("TODO: firstTrailingBit");
+        console.error(`TODO: firstTrailingBit. Line ${node.line}`);
         return null;
     }
     Floor(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v) => Math.floor(v));
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => Math.floor(v)), value.typeInfo);
         }
-        return Math.floor(value);
+        const s = value;
+        return new ScalarData(Math.floor(s.value), value.typeInfo);
     }
     Fma(node, context) {
         const a = this.exec.evalExpression(node.args[0], context);
         const b = this.exec.evalExpression(node.args[1], context);
         const c = this.exec.evalExpression(node.args[2], context);
-        if (a.length !== undefined) {
-            return a.map((v, i) => v * b[i] + c[i]);
+        if (a instanceof VectorData && b instanceof VectorData && c instanceof VectorData) {
+            if (a.value.length !== b.value.length || a.value.length !== c.value.length) {
+                console.error(`Fma() expects vectors of the same length. Line ${node.line}`);
+                return null;
+            }
+            return new VectorData(a.value.map((v, i) => v * b.value[i] + c.value[i]), a.typeInfo);
         }
-        return a * b + c;
+        const av = a;
+        const bv = b;
+        const cv = c;
+        return new ScalarData(av.value * bv.value + cv.value, av.typeInfo);
     }
     Fract(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v) => v - Math.floor(v));
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => v - Math.floor(v)), value.typeInfo);
         }
-        return value - Math.floor(value);
+        const s = value;
+        return new ScalarData(s.value - Math.floor(s.value), value.typeInfo);
     }
     Frexp(node, context) {
-        console.error("TODO: frexp");
+        console.error(`TODO: frexp. Line ${node.line}`);
         return null;
     }
     InsertBits(node, context) {
@@ -33246,153 +33754,206 @@ class BuiltinFunctions {
         const insert = this.exec.evalExpression(node.args[1], context);
         const offset = this.exec.evalExpression(node.args[2], context);
         const count = this.exec.evalExpression(node.args[3], context);
-        const mask = ((1 << count) - 1) << offset;
-        return (value & ~mask) | ((insert << offset) & mask);
+        if (offset.typeInfo.name !== "u32" && offset.typeInfo.name !== "x32") {
+            console.error(`InsertBits() expects an i32 offset argument. Line ${node.line}`);
+            return null;
+        }
+        const o = offset.value;
+        const c = count.value;
+        const mask = ((1 << c) - 1) << o;
+        const invMask = ~mask;
+        if (value instanceof VectorData && insert instanceof VectorData) {
+            return new VectorData(value.value.map((v, i) => {
+                return (v & invMask) | ((insert.value[i] << o) & mask);
+            }), value.typeInfo);
+        }
+        const v = value.value;
+        const i = insert.value;
+        return new ScalarData((v & invMask) | ((i << o) & mask), value.typeInfo);
     }
     InverseSqrt(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v) => 1 / Math.sqrt(v));
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => 1 / Math.sqrt(v)), value.typeInfo);
         }
-        return 1 / Math.sqrt(value);
+        const s = value;
+        return new ScalarData(1 / Math.sqrt(s.value), value.typeInfo);
     }
     Ldexp(node, context) {
-        console.error("TODO: ldexp");
+        console.error(`TODO: ldexp. Line ${node.line}`);
         return null;
     }
     Length(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        let sum = this._dot(value, value);
-        return Math.sqrt(sum);
+        if (value instanceof VectorData) {
+            let sum = 0;
+            value.value.forEach((v) => { sum += v * v; });
+            return new ScalarData(Math.sqrt(sum), this.getTypeInfo("f32"));
+        }
+        const s = value;
+        return new ScalarData(Math.abs(s.value), value.typeInfo);
     }
     Log(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v) => Math.log(v));
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => Math.log(v)), value.typeInfo);
         }
-        return Math.log(value);
+        const s = value;
+        return new ScalarData(Math.log(s.value), value.typeInfo);
     }
     Log2(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v) => Math.log2(v));
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => Math.log2(v)), value.typeInfo);
         }
-        return Math.log2(value);
+        const s = value;
+        return new ScalarData(Math.log2(s.value), value.typeInfo);
     }
     Max(node, context) {
         const l = this.exec.evalExpression(node.args[0], context);
         const r = this.exec.evalExpression(node.args[1], context);
-        if (l instanceof Array) {
-            return l.map((v, i) => Math.max(v, r[i]));
+        if (l instanceof VectorData && r instanceof VectorData) {
+            return new VectorData(l.value.map((v, i) => Math.max(v, r.value[i])), l.typeInfo);
         }
-        return Math.max(l, r);
+        const ls = l;
+        const rs = r;
+        return new ScalarData(Math.max(ls.value, rs.value), l.typeInfo);
     }
     Min(node, context) {
         const l = this.exec.evalExpression(node.args[0], context);
         const r = this.exec.evalExpression(node.args[1], context);
-        if (l instanceof Array) {
-            return l.map((v, i) => Math.min(v, r[i]));
+        if (l instanceof VectorData && r instanceof VectorData) {
+            return new VectorData(l.value.map((v, i) => Math.min(v, r.value[i])), l.typeInfo);
         }
-        return Math.min(l, r);
+        const ls = l;
+        const rs = r;
+        return new ScalarData(Math.min(ls.value, rs.value), l.typeInfo);
     }
     Mix(node, context) {
         const x = this.exec.evalExpression(node.args[0], context);
         const y = this.exec.evalExpression(node.args[1], context);
         const a = this.exec.evalExpression(node.args[2], context);
-        if (x instanceof Array) {
-            return x.map((v, i) => x[i] * (1 - a[i]) + y[i] * a[i]);
+        if (x instanceof VectorData && y instanceof VectorData && a instanceof VectorData) {
+            return new VectorData(x.value.map((v, i) => x.value[i] * (1 - a.value[i]) + y.value[i] * a.value[i]), x.typeInfo);
         }
-        return x * (1 - a) + y * a;
+        const xs = x;
+        const ys = y;
+        const as = a;
+        return new ScalarData(xs.value * (1 - as.value) + ys.value * as.value, x.typeInfo);
     }
     Modf(node, context) {
         const x = this.exec.evalExpression(node.args[0], context);
         const y = this.exec.evalExpression(node.args[1], context);
-        if (x instanceof Array) {
-            return x.map((v, i) => v % y[i]);
+        if (x instanceof VectorData && y instanceof VectorData) {
+            return new VectorData(x.value.map((v, i) => v % y.value[i]), x.typeInfo);
         }
-        return x % y;
+        const xs = x;
+        const ys = y;
+        return new ScalarData(xs.value % ys.value, x.typeInfo);
     }
     Normalize(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        const length = this.Length(node, context);
-        return value.map((v) => v / length);
+        if (value instanceof VectorData) {
+            const length = this.Length(node, context).value;
+            return new VectorData(value.value.map((v) => v / length), value.typeInfo);
+        }
+        console.error(`Normalize() expects a vector argument. Line ${node.line}`);
+        return null;
     }
     Pow(node, context) {
         const x = this.exec.evalExpression(node.args[0], context);
         const y = this.exec.evalExpression(node.args[1], context);
-        if (x instanceof Array) {
-            return x.map((v, i) => Math.pow(v, y[i]));
+        if (x instanceof VectorData && y instanceof VectorData) {
+            return new VectorData(x.value.map((v, i) => Math.pow(v, y.value[i])), x.typeInfo);
         }
-        return Math.pow(x, y);
+        const xs = x;
+        const ys = y;
+        return new ScalarData(Math.pow(xs.value, ys.value), x.typeInfo);
     }
     QuantizeToF16(node, context) {
-        console.error("TODO: quantizeToF16");
+        console.error(`TODO: quantizeToF16. Line ${node.line}`);
         return null;
     }
     Radians(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v) => v * Math.PI / 180);
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => v * Math.PI / 180), value.typeInfo);
         }
-        return value * Math.PI / 180;
+        const s = value;
+        return new ScalarData(s.value * Math.PI / 180, value.typeInfo);
     }
     Reflect(node, context) {
         // e1 - 2 * dot(e2, e1) * e2
         let e1 = this.exec.evalExpression(node.args[0], context);
         let e2 = this.exec.evalExpression(node.args[1], context);
-        let dot = this._dot(e1, e2);
-        return e1.map((v, i) => v - 2 * dot * e2[i]);
+        if (e1 instanceof VectorData && e2 instanceof VectorData) {
+            const dot = this._dot(e1.value, e2.value);
+            return new VectorData(e1.value.map((v, i) => v - 2 * dot * e2.value[i]), e1.typeInfo);
+        }
+        console.error(`Reflect() expects vector arguments. Line ${node.line}`);
+        return null;
     }
     Refract(node, context) {
         let e1 = this.exec.evalExpression(node.args[0], context);
         let e2 = this.exec.evalExpression(node.args[1], context);
         let e3 = this.exec.evalExpression(node.args[2], context);
-        let dot = this.Dot(e2, e1);
-        const k = 1.0 - e3 * e3 * (1.0 - dot * dot);
-        if (k < 0) {
-            return e1.map((v) => 0);
+        if (e1 instanceof VectorData && e2 instanceof VectorData && e3 instanceof ScalarData) {
+            const dot = this._dot(e2.value, e1.value);
+            return new VectorData(e1.value.map((v, i) => {
+                const k = 1.0 - e3.value * e3.value * (1.0 - dot * dot);
+                if (k < 0) {
+                    return 0;
+                }
+                const sqrtK = Math.sqrt(k);
+                return e3.value * v - (e3.value * dot + sqrtK) * e2.value[i];
+            }), e1.typeInfo);
         }
-        const sqrtK = Math.sqrt(k);
-        return e1.map((v, i) => e3 * v - (e3 * dot + sqrtK) * e2[i]);
+        console.error(`Refract() expects vector arguments and a scalar argument. Line ${node.line}`);
+        return null;
     }
     ReverseBits(node, context) {
-        console.error("TODO: reverseBits");
+        console.error(`TODO: reverseBits. Line ${node.line}`);
         return null;
     }
     Round(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v) => Math.round(v));
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => Math.round(v)), value.typeInfo);
         }
-        return Math.round(value);
+        const s = value;
+        return new ScalarData(Math.round(s.value), value.typeInfo);
     }
     Saturate(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v) => Math.min(Math.max(v, 0), 1));
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => Math.min(Math.max(v, 0), 1)), value.typeInfo);
         }
-        return Math.min(Math.max(value, 0), 1);
+        const s = value;
+        return new ScalarData(Math.min(Math.max(s.value, 0), 1), value.typeInfo);
     }
     Sign(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v) => Math.sign(v));
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => Math.sign(v)), value.typeInfo);
         }
-        return Math.sign(value);
+        const s = value;
+        return new ScalarData(Math.sign(s.value), value.typeInfo);
     }
     Sin(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v) => Math.sin(v));
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => Math.sin(v)), value.typeInfo);
         }
-        return Math.sin(value);
+        const s = value;
+        return new ScalarData(Math.sin(s.value), value.typeInfo);
     }
     Sinh(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v) => Math.sinh(v));
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => Math.sinh(v)), value.typeInfo);
         }
-        return Math.sinh(value);
+        const s = value;
+        return new ScalarData(Math.sinh(s.value), value.typeInfo);
     }
     _smoothstep(edge0, edge1, x) {
         const t = Math.min(Math.max((x - edge0) / (edge1 - edge0), 0), 1);
@@ -33402,58 +33963,67 @@ class BuiltinFunctions {
         const edge0 = this.exec.evalExpression(node.args[0], context);
         const edge1 = this.exec.evalExpression(node.args[1], context);
         const x = this.exec.evalExpression(node.args[2], context);
-        if (x instanceof Array) {
-            return x.map((v, i) => this._smoothstep(edge0[i], edge1[i], v));
+        if (x instanceof VectorData && edge0 instanceof VectorData && edge1 instanceof VectorData) {
+            return new VectorData(x.value.map((v, i) => this._smoothstep(edge0.value[i], edge1.value[i], v)), x.typeInfo);
         }
-        return this._smoothstep(edge0, edge1, x);
+        const e0 = edge0;
+        const e1 = edge1;
+        const xS = x;
+        return new ScalarData(this._smoothstep(e0.value, e1.value, xS.value), x.typeInfo);
     }
     Sqrt(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v) => Math.sqrt(v));
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => Math.sqrt(v)), value.typeInfo);
         }
-        return Math.sqrt(value);
+        const s = value;
+        return new ScalarData(Math.sqrt(s.value), value.typeInfo);
     }
     Step(node, context) {
         const edge = this.exec.evalExpression(node.args[0], context);
         const x = this.exec.evalExpression(node.args[1], context);
-        if (x instanceof Array) {
-            return x.map((v, i) => v < edge[i] ? 0 : 1);
+        if (x instanceof VectorData && edge instanceof VectorData) {
+            return new VectorData(x.value.map((v, i) => v < edge.value[i] ? 0 : 1), x.typeInfo);
         }
-        return x < edge ? 0 : 1;
+        const e = edge;
+        const s = x;
+        return new ScalarData(s.value < e.value ? 0 : 1, e.typeInfo);
     }
     Tan(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v) => Math.tan(v));
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => Math.tan(v)), value.typeInfo);
         }
-        return Math.tan(value);
+        const s = value;
+        return new ScalarData(Math.tan(s.value), value.typeInfo);
     }
     Tanh(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v) => Math.tanh(v));
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => Math.tanh(v)), value.typeInfo);
         }
-        return Math.tanh(value);
+        const s = value;
+        return new ScalarData(Math.tanh(s.value), value.typeInfo);
     }
     Transpose(node, context) {
-        console.error("TODO: transpose");
+        console.error(`TODO: transpose. Line ${node.line}`);
         return null;
     }
     Trunc(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
-        if (value instanceof Array) {
-            return value.map((v) => Math.trunc(v));
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => Math.trunc(v)), value.typeInfo);
         }
-        return Math.trunc(value);
+        const s = value;
+        return new ScalarData(Math.trunc(s.value), value.typeInfo);
     }
     // Derivative Built-in Functions
     Dpdx(node, context) {
-        console.error("TODO: dpdx");
+        console.error(`TODO: dpdx. Line ${node.line}`);
         return null;
     }
     DpdxCoarse(node, context) {
-        console.error("TODO: dpdxCoarse");
+        console.error(`TODO: dpdxCoarse. Line ${node.line}`);
         return null;
     }
     DpdxFine(node, context) {
@@ -33487,12 +34057,16 @@ class BuiltinFunctions {
     // Texture Built-in Functions
     TextureDimensions(node, context) {
         const textureArg = node.args[0];
-        node.args.length > 1 ? this.exec.evalExpression(node.args[1], context) : 0;
+        const level = node.args.length > 1 ? this.exec.evalExpression(node.args[1], context).value : 0;
+        if (level > 0) {
+            console.error(`TODO: Mip levels. Line ${node.line}`);
+            return null;
+        }
         if (textureArg instanceof VariableExpr) {
             const textureName = textureArg.name;
             const texture = context.getVariableValue(textureName);
             if (texture instanceof TypedData) {
-                return texture.textureSize;
+                return new VectorData(texture.textureSize, this.getTypeInfo("vec2u"));
             }
             else {
                 console.error(`Texture ${textureName} not found. Line ${node.line}`);
@@ -33513,25 +34087,39 @@ class BuiltinFunctions {
     TextureLoad(node, context) {
         const textureArg = node.args[0];
         const uv = this.exec.evalExpression(node.args[1], context);
-        node.args.length > 2 ? this.exec.evalExpression(node.args[2], context) : 0;
+        const level = node.args.length > 2 ? this.exec.evalExpression(node.args[2], context).value : 0;
+        if (level > 0) {
+            console.error(`TODO: Mip levels. Line ${node.line}`);
+            return null;
+        }
+        // TODO: non-vec2 UVs, for non-2D textures
+        if (!(uv instanceof VectorData) || uv.value.length !== 2) {
+            console.error(`Invalid UV argument for textureLoad. Line ${node.line}`);
+            return null;
+        }
         if (textureArg instanceof VariableExpr) {
             const textureName = textureArg.name;
             const texture = context.getVariableValue(textureName);
             if (texture instanceof TypedData) {
                 const textureSize = texture.textureSize;
-                const x = Math.floor(uv[0]);
-                const y = Math.floor(uv[1]);
+                const x = Math.floor(uv.value[0]);
+                const y = Math.floor(uv.value[1]);
+                if (x < 0 || x >= textureSize[0] || y < 0 || y >= textureSize[1]) {
+                    console.error(`Texture ${textureName} out of bounds. Line ${node.line}`);
+                    return null;
+                }
                 // TODO non RGBA8 textures
                 const offset = (y * textureSize[0] + x) * 4;
                 const texel = new Uint8Array(texture.buffer, offset, 4);
                 // TODO: non-f32 textures
-                return [texel[0] / 255, texel[1] / 255, texel[2] / 255, texel[3] / 255];
+                return new VectorData([texel[0] / 255, texel[1] / 255, texel[2] / 255, texel[3] / 255], this.getTypeInfo("vec4f"));
             }
             else {
                 console.error(`Texture ${textureName} not found. Line ${node.line}`);
                 return null;
             }
         }
+        console.error(`Invalid texture argument for textureLoad. Line ${node.line}`);
         return null;
     }
     TextureNumLayers(node, context) {
@@ -33824,17 +34412,57 @@ class WgslExec extends ExecInterface {
         this.reflection.updateAST(this.ast);
         this.context = (_a = context === null || context === void 0 ? void 0 : context.clone()) !== null && _a !== void 0 ? _a : new ExecContext();
         this.builtins = new BuiltinFunctions(this);
+        this.typeInfo = {
+            "bool": this.getTypeInfo(Type.bool),
+            "i32": this.getTypeInfo(Type.i32),
+            "u32": this.getTypeInfo(Type.u32),
+            "f32": this.getTypeInfo(Type.f32),
+            "f16": this.getTypeInfo(Type.f16),
+            "vec2f": this.getTypeInfo(TemplateType.vec2f),
+            "vec2u": this.getTypeInfo(TemplateType.vec2u),
+            "vec2i": this.getTypeInfo(TemplateType.vec2i),
+            "vec2h": this.getTypeInfo(TemplateType.vec2h),
+            "vec3f": this.getTypeInfo(TemplateType.vec3f),
+            "vec3u": this.getTypeInfo(TemplateType.vec3u),
+            "vec3i": this.getTypeInfo(TemplateType.vec3i),
+            "vec3h": this.getTypeInfo(TemplateType.vec3h),
+            "vec4f": this.getTypeInfo(TemplateType.vec4f),
+            "vec4u": this.getTypeInfo(TemplateType.vec4u),
+            "vec4i": this.getTypeInfo(TemplateType.vec4i),
+            "vec4h": this.getTypeInfo(TemplateType.vec4h),
+            "mat2x2f": this.getTypeInfo(TemplateType.mat2x2f),
+            "mat2x3f": this.getTypeInfo(TemplateType.mat2x3f),
+            "mat2x4f": this.getTypeInfo(TemplateType.mat2x4f),
+            "mat3x2f": this.getTypeInfo(TemplateType.mat3x2f),
+            "mat3x3f": this.getTypeInfo(TemplateType.mat3x3f),
+            "mat3x4f": this.getTypeInfo(TemplateType.mat3x4f),
+            "mat4x2f": this.getTypeInfo(TemplateType.mat4x2f),
+            "mat4x3f": this.getTypeInfo(TemplateType.mat4x3f),
+            "mat4x4f": this.getTypeInfo(TemplateType.mat4x4f),
+        };
     }
     getVariableValue(name) {
-        return this.context.getVariableValue(name);
+        var _a, _b;
+        const v = (_b = (_a = this.context.getVariable(name)) === null || _a === void 0 ? void 0 : _a.value) !== null && _b !== void 0 ? _b : null;
+        if (v === null) {
+            return null;
+        }
+        if (v instanceof ScalarData) {
+            return v.value;
+        }
+        if (v instanceof VectorData) {
+            return v.value;
+        }
+        if (v instanceof MatrixData) {
+            return v.value;
+        }
+        console.error(`Unsupported return variable type ${v.typeInfo.name}`);
+        return null;
     }
     execute(config) {
         config = config !== null && config !== void 0 ? config : {};
         if (config["constants"]) {
-            for (const k in config["constants"]) {
-                const v = config["constants"][k];
-                this.context.setVariable(k, v);
-            }
+            this._setOverrides(config["constants"], this.context);
         }
         this._execStatements(this.ast, this.context);
     }
@@ -33842,10 +34470,7 @@ class WgslExec extends ExecInterface {
         const context = this.context.clone();
         config = config !== null && config !== void 0 ? config : {};
         if (config["constants"]) {
-            for (const k in config["constants"]) {
-                const v = config["constants"][k];
-                context.setVariable(k, v);
-            }
+            this._setOverrides(config["constants"], context);
         }
         this._execStatements(this.ast, context);
         const f = context.functions.get(kernel);
@@ -33869,10 +34494,12 @@ class WgslExec extends ExecInterface {
         else if (dispatchCount.length > 3) {
             dispatchCount = [dispatchCount[0], dispatchCount[1], dispatchCount[2]];
         }
-        const depth = dispatchCount[2];
-        const height = dispatchCount[1];
         const width = dispatchCount[0];
-        context.setVariable("@num_workgroups", dispatchCount);
+        const height = dispatchCount[1];
+        const depth = dispatchCount[2];
+        console.log(dispatchCount);
+        const vec3u = this.getTypeInfo("vec3u");
+        context.setVariable("@num_workgroups", new VectorData(dispatchCount, vec3u));
         for (const set in bindGroups) {
             for (const binding in bindGroups[set]) {
                 const entry = bindGroups[set][binding];
@@ -33892,15 +34519,15 @@ class WgslExec extends ExecInterface {
                         if (binding == b && set == s) {
                             if (entry.texture !== undefined && entry.size !== undefined) {
                                 // Texture
-                                v.value = new TypedData(entry.texture, this._getTypeInfo(node.type), 0, entry.size);
+                                v.value = new TypedData(entry.texture, this.getTypeInfo(node.type), 0, entry.size);
                             }
                             else if (entry.uniform !== undefined) {
                                 // Uniform buffer
-                                v.value = new TypedData(entry.uniform, this._getTypeInfo(node.type));
+                                v.value = new TypedData(entry.uniform, this.getTypeInfo(node.type));
                             }
                             else {
                                 // Storage buffer
-                                v.value = new TypedData(entry, this._getTypeInfo(node.type));
+                                v.value = new TypedData(entry, this.getTypeInfo(node.type));
                             }
                         }
                     }
@@ -33910,7 +34537,7 @@ class WgslExec extends ExecInterface {
         for (let z = 0; z < depth; ++z) {
             for (let y = 0; y < height; ++y) {
                 for (let x = 0; x < width; ++x) {
-                    context.setVariable("@workgroup_id", [x, y, z]);
+                    context.setVariable("@workgroup_id", new VectorData([x, y, z], this.getTypeInfo("vec3u")));
                     this._dispatchWorkgroup(f, [x, y, z], context);
                 }
             }
@@ -33918,20 +34545,13 @@ class WgslExec extends ExecInterface {
     }
     execStatement(stmt, context) {
         if (stmt instanceof Return) {
-            const v = this.evalExpression(stmt.value, context);
-            const f = context.getFunction(context.currentFunctionName);
-            if (f === null || f === void 0 ? void 0 : f.node.returnType) {
-                if (f.node.returnType.name === "i32" || f.node.returnType.name === "u32") {
-                    return Math.floor(v);
-                }
-            }
-            return v;
+            return this.evalExpression(stmt.value, context);
         }
         else if (stmt instanceof Break) {
-            return stmt;
+            return null;
         }
         else if (stmt instanceof Continue) {
-            return stmt;
+            return null;
         }
         else if (stmt instanceof Let) {
             this._let(stmt, context);
@@ -33955,7 +34575,7 @@ class WgslExec extends ExecInterface {
             return this._while(stmt, context);
         }
         else if (stmt instanceof Assign) {
-            return this._assign(stmt, context);
+            this._assign(stmt, context);
         }
         else if (stmt instanceof Increment) {
             this._increment(stmt, context);
@@ -33967,27 +34587,22 @@ class WgslExec extends ExecInterface {
             const name = stmt.name;
             if (context.getVariable(name) === null) {
                 console.error(`Override constant ${name} not found. Line ${stmt.line}`);
-                return null;
             }
         }
         else {
-            console.error(`Unknown statement type.`, stmt, `Line ${stmt.line}`);
+            console.error(`Invalid statement type.`, stmt, `Line ${stmt.line}`);
         }
         return null;
     }
     evalExpression(node, context) {
-        if (node instanceof GroupingExpr) {
-            const grp = node;
-            return this.evalExpression(grp.contents[0], context);
+        while (node instanceof GroupingExpr) {
+            node = node.contents[0];
         }
-        else if (node instanceof BinaryOperator) {
+        if (node instanceof BinaryOperator) {
             return this._evalBinaryOp(node, context);
         }
         else if (node instanceof LiteralExpr) {
             return this._evalLiteral(node, context);
-        }
-        else if (node instanceof StringExpr) {
-            return node.value;
         }
         else if (node instanceof VariableExpr) {
             return this._evalVariable(node, context);
@@ -34001,8 +34616,34 @@ class WgslExec extends ExecInterface {
         else if (node instanceof ConstExpr) {
             return this._evalConst(node, context);
         }
-        console.error(`Unknown expression type`, node, `Line ${node.line}`);
+        console.error(`Invalid expression type`, node, `Line ${node.line}`);
         return null;
+    }
+    _setOverrides(constants, context) {
+        for (const k in constants) {
+            const v = constants[k];
+            const override = this.reflection.getOverrideInfo(k);
+            if (override !== null) {
+                if (override.type.name === "u32" || override.type.name === "i32" || override.type.name === "f32" || override.type.name === "f16") {
+                    context.setVariable(k, new ScalarData(v, override.type));
+                }
+                else if (override.type.name === "bool") {
+                    context.setVariable(k, new ScalarData(v ? 1 : 0, override.type));
+                }
+                else if (override.type.name === "vec2" || override.type.name === "vec3" || override.type.name === "vec4" ||
+                    override.type.name === "vec2f" || override.type.name === "vec3f" || override.type.name === "vec4f" ||
+                    override.type.name === "vec2i" || override.type.name === "vec3i" || override.type.name === "vec4i" ||
+                    override.type.name === "vec2u" || override.type.name === "vec3u" || override.type.name === "vec4u") {
+                    context.setVariable(k, new VectorData(v, override.type));
+                }
+                else {
+                    console.error(`Invalid constant type for ${k}`);
+                }
+            }
+            else {
+                console.error(`Override ${k} does not exist in the shader.`);
+            }
+        }
     }
     _dispatchWorkgroup(f, workgroup_id, context) {
         const workgroupSize = [1, 1, 1];
@@ -34011,8 +34652,8 @@ class WgslExec extends ExecInterface {
                 if (attr.value.length > 0) {
                     // The value could be an override constant
                     const v = context.getVariableValue(attr.value[0]);
-                    if (v !== null) {
-                        workgroupSize[0] = v;
+                    if (v instanceof ScalarData) {
+                        workgroupSize[0] = v.value;
                     }
                     else {
                         workgroupSize[0] = parseInt(attr.value[0]);
@@ -34020,8 +34661,8 @@ class WgslExec extends ExecInterface {
                 }
                 if (attr.value.length > 1) {
                     const v = context.getVariableValue(attr.value[1]);
-                    if (v !== null) {
-                        workgroupSize[1] = v;
+                    if (v instanceof ScalarData) {
+                        workgroupSize[1] = v.value;
                     }
                     else {
                         workgroupSize[1] = parseInt(attr.value[1]);
@@ -34029,8 +34670,8 @@ class WgslExec extends ExecInterface {
                 }
                 if (attr.value.length > 2) {
                     const v = context.getVariableValue(attr.value[2]);
-                    if (v !== null) {
-                        workgroupSize[2] = v;
+                    if (v instanceof ScalarData) {
+                        workgroupSize[2] = v.value;
                     }
                     else {
                         workgroupSize[2] = parseInt(attr.value[2]);
@@ -34038,7 +34679,9 @@ class WgslExec extends ExecInterface {
                 }
             }
         }
-        context.setVariable("@workgroup_size", workgroupSize);
+        const vec3u = this.getTypeInfo("vec3u");
+        const u32 = this.getTypeInfo("u32");
+        context.setVariable("@workgroup_size", new VectorData(workgroupSize, vec3u));
         const width = workgroupSize[0];
         const height = workgroupSize[1];
         const depth = workgroupSize[2];
@@ -34051,9 +34694,9 @@ class WgslExec extends ExecInterface {
                         y + workgroup_id[1] * workgroupSize[1],
                         z + workgroup_id[2] * workgroupSize[2]
                     ];
-                    context.setVariable("@local_invocation_id", local_invocation_id);
-                    context.setVariable("@global_invocation_id", global_invocation_id);
-                    context.setVariable("@local_invocation_index", li);
+                    context.setVariable("@local_invocation_id", new VectorData(local_invocation_id, vec3u));
+                    context.setVariable("@global_invocation_id", new VectorData(global_invocation_id, vec3u));
+                    context.setVariable("@local_invocation_index", new ScalarData(li, u32));
                     this._dispatchExec(f, context);
                 }
             }
@@ -34075,13 +34718,28 @@ class WgslExec extends ExecInterface {
         }
         this._execStatements(f.node.body, context);
     }
-    _getTypeInfo(type) {
-        return this.reflection._types.get(type);
+    getTypeInfo(type) {
+        var _a;
+        if (type instanceof Type) {
+            const t = this.reflection.getTypeInfo(type);
+            if (t !== null) {
+                return t;
+            }
+        }
+        const t = (_a = this.typeInfo[type]) !== null && _a !== void 0 ? _a : null;
+        if (t !== null) {
+            return t;
+        }
+        return null;
     }
-    _getTypeName(type) {
+    getTypeName(type) {
         /*if (type instanceof AST.Type) {
-            type = this._getTypeInfo(type);
+            type = this.getTypeInfo(type);
         }*/
+        if (type === null) {
+            console.error(`Type is null.`);
+            return "unknown";
+        }
         let name = type.name;
         if (type instanceof TemplateInfo || type instanceof TemplateType) {
             if (type.format !== null) {
@@ -34148,124 +34806,210 @@ class WgslExec extends ExecInterface {
             return;
         }
         if (node.operator === "++") {
-            v.value++;
+            if (v.value instanceof ScalarData) {
+                v.value.value++;
+            }
+            else {
+                console.error(`Variable ${name} is not a scalar. Line ${node.line}`);
+            }
         }
         else if (node.operator === "--") {
-            v.value--;
+            if (v.value instanceof ScalarData) {
+                v.value.value--;
+            }
+            else {
+                console.error(`Variable ${name} is not a scalar. Line ${node.line}`);
+            }
         }
-        return v.value;
+        else {
+            console.error(`Unknown increment operator ${node.operator}. Line ${node.line}`);
+        }
     }
     _assign(node, context) {
         const name = this._getVariableName(node.variable, context);
         const v = context.getVariable(name);
-        if (!v) {
+        if (v === null) {
             console.error(`Variable ${name} not found. Line ${node.line}`);
-            return null;
+            return;
         }
-        let value = this.evalExpression(node.value, context);
-        if (node.operator !== "=") {
-            const currentValue = v.value instanceof TypedData ?
-                v.value.getDataValue(this, node.variable.postfix, context) :
-                v.value;
-            if (currentValue instanceof Array && value instanceof Array) {
-                if (currentValue.length !== value.length) {
+        const value = this.evalExpression(node.value, context);
+        const op = node.operator;
+        if (op !== "=") {
+            const currentValue = v.value.getDataValue(this, node.variable.postfix, context);
+            if (currentValue instanceof VectorData && value instanceof ScalarData) {
+                const cv = currentValue.value;
+                const v = value.value;
+                if (op === "+=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] += v;
+                    }
+                }
+                else if (op === "-=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] -= v;
+                    }
+                }
+                else if (op === "*=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] *= v;
+                    }
+                }
+                else if (op === "/=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] /= v;
+                    }
+                }
+                else if (op === "%=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] %= v;
+                    }
+                }
+                else if (op === "&=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] &= v;
+                    }
+                }
+                else if (op === "|=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] |= v;
+                    }
+                }
+                else if (op === "^=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] ^= v;
+                    }
+                }
+                else if (op === "<<=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] <<= v;
+                    }
+                }
+                else if (op === ">>=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] >>= v;
+                    }
+                }
+                else {
+                    console.error(`Invalid operator ${op}. Line ${node.line}`);
+                }
+            }
+            else if (currentValue instanceof VectorData && value instanceof VectorData) {
+                const cv = currentValue.value;
+                const v = value.value;
+                if (cv.length !== v.length) {
                     console.error(`Vector length mismatch. Line ${node.line}`);
                     return;
                 }
-                if (node.operator === "+=") {
-                    for (let i = 0; i < currentValue.length; ++i) {
-                        value[i] = currentValue[i] + value[i];
+                if (op === "+=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] += v[i];
                     }
                 }
-                else if (node.operator === "-=") {
-                    for (let i = 0; i < currentValue.length; ++i) {
-                        value[i] = currentValue[i] - value[i];
+                else if (op === "-=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] -= v[i];
                     }
                 }
-                else if (node.operator === "*=") {
-                    for (let i = 0; i < currentValue.length; ++i) {
-                        value[i] = currentValue[i] * value[i];
+                else if (op === "*=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] *= v[i];
                     }
                 }
-                else if (node.operator === "/=") {
-                    for (let i = 0; i < currentValue.length; ++i) {
-                        value[i] = currentValue[i] / value[i];
+                else if (op === "/=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] /= v[i];
                     }
                 }
-                else if (node.operator === "%=") {
-                    for (let i = 0; i < currentValue.length; ++i) {
-                        value[i] = currentValue[i] % value[i];
+                else if (op === "%=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] %= v[i];
                     }
                 }
-                else if (node.operator === "&=") {
-                    for (let i = 0; i < currentValue.length; ++i) {
-                        value[i] = currentValue[i] & value[i];
+                else if (op === "&=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] &= v[i];
                     }
                 }
-                else if (node.operator === "|=") {
-                    for (let i = 0; i < currentValue.length; ++i) {
-                        value[i] = currentValue[i] | value[i];
+                else if (op === "|=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] |= v[i];
                     }
                 }
-                else if (node.operator === "^=") {
-                    for (let i = 0; i < currentValue.length; ++i) {
-                        value[i] = currentValue[i] ^ value[i];
+                else if (op === "^=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] ^= v[i];
                     }
                 }
-                else if (node.operator === "<<=") {
-                    for (let i = 0; i < currentValue.length; ++i) {
-                        value[i] = currentValue[i] << value[i];
+                else if (op === "<<=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] <<= v[i];
                     }
                 }
-                else if (node.operator === ">>=") {
-                    for (let i = 0; i < currentValue.length; ++i) {
-                        value[i] = currentValue[i] >> value[i];
+                else if (op === ">>=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] >>= v[i];
                     }
+                }
+                else {
+                    console.error(`Invalid operator ${op}. Line ${node.line}`);
+                }
+            }
+            else if (currentValue instanceof ScalarData && value instanceof ScalarData) {
+                if (op === "+=") {
+                    currentValue.value += value.value;
+                }
+                else if (op === "-=") {
+                    currentValue.value -= value.value;
+                }
+                else if (op === "*=") {
+                    currentValue.value *= value.value;
+                }
+                else if (op === "/=") {
+                    currentValue.value /= value.value;
+                }
+                else if (op === "%=") {
+                    currentValue.value %= value.value;
+                }
+                else if (op === "&=") {
+                    currentValue.value &= value.value;
+                }
+                else if (op === "|=") {
+                    currentValue.value |= value.value;
+                }
+                else if (op === "^=") {
+                    currentValue.value ^= value.value;
+                }
+                else if (op === "<<=") {
+                    currentValue.value <<= value.value;
+                }
+                else if (op === ">>=") {
+                    currentValue.value >>= value.value;
+                }
+                else {
+                    console.error(`Invalid operator ${op}. Line ${node.line}`);
                 }
             }
             else {
-                if (node.operator === "+=") {
-                    value = currentValue + value;
-                }
-                else if (node.operator === "-=") {
-                    value = currentValue - value;
-                }
-                else if (node.operator === "*=") {
-                    value = currentValue * value;
-                }
-                else if (node.operator === "/=") {
-                    value = currentValue / value;
-                }
-                else if (node.operator === "%=") {
-                    value = currentValue % value;
-                }
-                else if (node.operator === "&=") {
-                    value = currentValue & value;
-                }
-                else if (node.operator === "|=") {
-                    value = currentValue | value;
-                }
-                else if (node.operator === "^=") {
-                    value = currentValue - value;
-                }
-                else if (node.operator === "<<=") {
-                    value = currentValue << value;
-                }
-                else if (node.operator === ">>=") {
-                    value = currentValue >> value;
-                }
+                console.error(`Invalid type for ${node.operator} operator. Line ${node.line}`);
+                return;
             }
+            // If the variable is a TypedData, as in a struct or array, and we're assigning a
+            // sub portion of it, set the data in the original buffer.
+            if (v.value instanceof TypedData) {
+                v.value.setDataValue(this, currentValue, node.variable.postfix, context);
+            }
+            return;
         }
         if (v.value instanceof TypedData) {
             v.value.setDataValue(this, value, node.variable.postfix, context);
         }
         else if (node.variable.postfix) {
             if (node.variable.postfix instanceof ArrayIndex) {
-                const idx = this.evalExpression(node.variable.postfix.index, context);
+                this.evalExpression(node.variable.postfix.index, context).value;
                 // TODO: use array format to determine how to set the value
-                if (v.value instanceof Array) {
+                /*if (v.value instanceof VectorData || v.value instanceof MatrixData) {
                     if (v.node.type.isArray) {
-                        const arrayType = v.node.type;
+                        const arrayType = v.node.type as AST.ArrayType;
                         if (arrayType.format.name === "vec3" ||
                             arrayType.format.name === "vec3u" ||
                             arrayType.format.name === "vec3i" ||
@@ -34273,8 +35017,7 @@ class WgslExec extends ExecInterface {
                             v.value[idx * 3 + 0] = value[0];
                             v.value[idx * 3 + 1] = value[1];
                             v.value[idx * 3 + 2] = value[2];
-                        }
-                        else if (arrayType.format.name === "vec4" ||
+                        } else if (arrayType.format.name === "vec4" ||
                             arrayType.format.name === "vec4u" ||
                             arrayType.format.name === "vec4i" ||
                             arrayType.format.name === "vec4f") {
@@ -34282,18 +35025,16 @@ class WgslExec extends ExecInterface {
                             v.value[idx * 4 + 1] = value[1];
                             v.value[idx * 4 + 2] = value[2];
                             v.value[idx * 4 + 3] = value[3];
-                        }
-                        else {
+                        } else {
                             v.value[idx] = value;
                         }
-                    }
-                    else {
+                    } else {
                         v.value[idx] = value;
                     }
-                }
-                else {
+                } else {
                     console.error(`Variable ${v.name} is not an array. Line ${node.line}`);
-                }
+                }*/
+                console.error(`TODO Array index. Line ${node.line}`);
             }
             else if (node.variable.postfix instanceof StringExpr) {
                 console.error(`TODO Struct member. Line ${node.line}`);
@@ -34302,7 +35043,7 @@ class WgslExec extends ExecInterface {
         else {
             v.value = value;
         }
-        return null;
+        return;
     }
     _function(node, context) {
         const f = new Function$2(node);
@@ -34332,12 +35073,20 @@ class WgslExec extends ExecInterface {
     _if(node, context) {
         context = context.clone();
         const condition = this.evalExpression(node.condition, context);
-        if (condition) {
+        if (!(condition instanceof ScalarData)) {
+            console.error(`Invalid if condition. Line ${node.line}`);
+            return null;
+        }
+        if (condition.value) {
             return this._execStatements(node.body, context);
         }
         for (const e of node.elseif) {
             const condition = this.evalExpression(e.condition, context);
-            if (condition) {
+            if (!(condition instanceof ScalarData)) {
+                console.error(`Invalid if condition. Line ${node.line}`);
+                return null;
+            }
+            if (condition.value) {
                 return this._execStatements(e.body, context);
             }
         }
@@ -34346,12 +35095,19 @@ class WgslExec extends ExecInterface {
         }
         return null;
     }
+    _getScalarValue(v) {
+        if (v instanceof ScalarData) {
+            return v.value;
+        }
+        console.error(`Expected scalar value.`, v);
+        return 0;
+    }
     _for(node, context) {
         context = context.clone();
         this.execStatement(node.init, context);
-        while (this.evalExpression(node.condition, context)) {
+        while (this._getScalarValue(this.evalExpression(node.condition, context))) {
             const res = this._execStatements(node.body, context);
-            if (res) {
+            if (res !== null) {
                 return res;
             }
             this.execStatement(node.increment, context);
@@ -34360,8 +35116,7 @@ class WgslExec extends ExecInterface {
     }
     _while(node, context) {
         context = context.clone();
-        let condition = this.evalExpression(node.condition, context);
-        while (condition) {
+        while (this._getScalarValue(this.evalExpression(node.condition, context))) {
             const res = this._execStatements(node.body, context);
             if (res instanceof Break) {
                 break;
@@ -34372,24 +35127,23 @@ class WgslExec extends ExecInterface {
             else if (res !== null) {
                 return res;
             }
-            condition = this.evalExpression(node.condition, context);
         }
         return null;
     }
     _evalConst(node, context) {
-        const v = context.getVariableValue(node.name);
-        return v;
+        return context.getVariableValue(node.name);
     }
     _evalCreate(node, context) {
-        const typeName = this._getTypeName(node.type);
+        if (node.type === null) {
+            return VoidData.void;
+        }
+        const typeName = this.getTypeName(node.type);
         switch (typeName) {
             // Constructor Built-in Functions
             // Value Constructor Built-in Functions
             case "bool":
-                this._callConstructorValue(node, context) ? 1 : 0;
             case "i32":
             case "u32":
-                return Math.floor(this._callConstructorValue(node, context));
             case "f32":
             case "f16":
                 return this._callConstructorValue(node, context);
@@ -34443,10 +35197,10 @@ class WgslExec extends ExecInterface {
             case "mat4x4u":
             case "mat4x4f":
                 return this._callConstructorMatrix(node, context);
-            case "array":
-                return this._callConstructorArray(node, context);
+            //case "array":
+            //return this._callConstructorArray(node, context);
         }
-        const typeInfo = this._getTypeInfo(node.type);
+        const typeInfo = this.getTypeInfo(node.type);
         if (typeInfo === null) {
             console.error(`Unknown type ${typeName}. Line ${node.line}`);
             return null;
@@ -34461,226 +35215,437 @@ class WgslExec extends ExecInterface {
                 data.setData(this, value, memberInfo.type, memberInfo.offset, context);
             }
         }
+        else if (typeInfo instanceof ArrayInfo) {
+            let offset = 0;
+            for (let i = 0; i < node.args.length; ++i) {
+                const arg = node.args[i];
+                const value = this.evalExpression(arg, context);
+                data.setData(this, value, typeInfo.format, offset, context);
+                offset += typeInfo.stride;
+            }
+        }
         else {
             console.error(`Unknown type "${typeName}". Line ${node.line}`);
         }
         return data;
     }
     _evalLiteral(node, context) {
-        return node.value;
-    }
-    _getArraySwizzle(value, member) {
-        const swizzleIndex = { "x": 0, "y": 1, "z": 2, "w": 3, "r": 0, "g": 1, "b": 2, "a": 3 };
-        const m = member.toLocaleLowerCase();
-        if (member.length === 1) {
-            const idx = swizzleIndex[m];
-            if (idx !== undefined) {
-                return value[idx];
-            }
+        const typeInfo = this.getTypeInfo(node.type);
+        const typeName = typeInfo.name;
+        if (typeName === "x32" || typeName === "u32" || typeName === "f32" || typeName === "f16" ||
+            typeName === "i32") {
+            const data = new ScalarData(node.scalarValue, typeInfo);
+            return data;
         }
-        else if (member.length === 2) {
-            const idx0 = swizzleIndex[m[0]];
-            const idx1 = swizzleIndex[m[1]];
-            if (idx0 !== undefined && idx1 !== undefined) {
-                return [value[idx0], value[idx1]];
-            }
+        if (typeName === "vec2" || typeName === "vec3" || typeName === "vec4" ||
+            typeName === "vec2f" || typeName === "vec3f" || typeName === "vec4f" ||
+            typeName === "vec2h" || typeName === "vec3h" || typeName === "vec4h" ||
+            typeName === "vec2i" || typeName === "vec3i" || typeName === "vec4i" ||
+            typeName === "vec2u" || typeName === "vec3u" || typeName === "vec4u") {
+            const data = new VectorData(node.vectorValue, typeInfo);
+            return data;
         }
-        else if (member.length === 3) {
-            const idx0 = swizzleIndex[m[0]];
-            const idx1 = swizzleIndex[m[1]];
-            const idx2 = swizzleIndex[m[2]];
-            if (idx0 !== undefined && idx1 !== undefined && idx2 !== undefined) {
-                return [value[idx0], value[idx1], value[idx2]];
-            }
+        if (typeName === "mat2x2" || typeName === "mat2x3" || typeName === "mat2x4" ||
+            typeName === "mat3x2" || typeName === "mat3x3" || typeName === "mat3x4" ||
+            typeName === "mat4x2" || typeName === "mat4x3" || typeName === "mat4x4" ||
+            typeName === "mat2x2f" || typeName === "mat2x3f" || typeName === "mat2x4f" ||
+            typeName === "mat3x2f" || typeName === "mat3x3f" || typeName === "mat3x4f" ||
+            typeName === "mat4x2f" || typeName === "mat4x3f" || typeName === "mat4x4f" ||
+            typeName === "mat2x2h" || typeName === "mat2x3h" || typeName === "mat2x4h" ||
+            typeName === "mat3x2h" || typeName === "mat3x3h" || typeName === "mat3x4h" ||
+            typeName === "mat4x2h" || typeName === "mat4x3h" || typeName === "mat4x4h") {
+            const data = new MatrixData(node.vectorValue, typeInfo);
+            return data;
         }
-        else if (member.length === 4) {
-            const idx0 = swizzleIndex[m[0]];
-            const idx1 = swizzleIndex[m[1]];
-            const idx2 = swizzleIndex[m[2]];
-            const idx3 = swizzleIndex[m[3]];
-            if (idx0 !== undefined && idx1 !== undefined && idx2 !== undefined && idx3 !== undefined) {
-                return [value[idx0], value[idx1], value[idx2], value[idx3]];
-            }
-        }
-        console.error(`Unknown member ${member}`);
+        console.error(`Unknown literal type`, typeName, `Line ${node.line}`);
         return null;
     }
     _evalVariable(node, context) {
-        var _a;
         const value = context.getVariableValue(node.name);
-        if (value instanceof TypedData) {
+        if (node === null || node === void 0 ? void 0 : node.postfix) {
             return value.getDataValue(this, node.postfix, context);
-        }
-        if (node.postfix) {
-            if (node.postfix instanceof ArrayIndex) {
-                const idx = this.evalExpression(node.postfix.index, context);
-                if ((value === null || value === void 0 ? void 0 : value.length) !== undefined) {
-                    return value[idx];
-                }
-                else {
-                    console.error(`Variable ${node.name} is not an array. Line ${node.line}`);
-                }
-            }
-            else if (node.postfix instanceof StringExpr) {
-                const member = node.postfix.value;
-                if (value instanceof Array) {
-                    return this._getArraySwizzle(value, member);
-                }
-                else {
-                    const variable = context.getVariable(node.name);
-                    if (variable) {
-                        if ((_a = variable.node.type) === null || _a === void 0 ? void 0 : _a.isStruct) {
-                            const structInfo = this.reflection.getStructInfo(variable.node.type.name);
-                            for (const m of structInfo.members) {
-                                if (m.name === member) {
-                                    const v = new Float32Array(variable.value.buffer, m.offset);
-                                    if (node.postfix.postfix) {
-                                        const postfix = this.evalExpression(node.postfix.postfix, context);
-                                        return this._getArraySwizzle(value, postfix);
-                                    }
-                                    return v;
-                                }
-                            }
-                            console.log(structInfo);
-                        }
-                    }
-                    console.error(`Unknown variable postfix`, node.postfix, `. Line ${node.line}`);
-                }
-            }
         }
         return value;
     }
+    _maxFormatTypeInfo(x) {
+        let t = x[0];
+        if (t.name === "f32") {
+            return t;
+        }
+        for (let i = 1; i < x.length; ++i) {
+            const tv = WgslExec._priority.get(t.name);
+            const xv = WgslExec._priority.get(x[i].name);
+            if (xv < tv) {
+                t = x[i];
+            }
+        }
+        if (t.name === "x32") {
+            return this.getTypeInfo("i32");
+        }
+        return t;
+    }
     _evalBinaryOp(node, context) {
-        const l = this.evalExpression(node.left, context);
-        const r = this.evalExpression(node.right, context);
+        const _l = this.evalExpression(node.left, context);
+        const _r = this.evalExpression(node.right, context);
+        const l = _l instanceof ScalarData ? _l.value :
+            _l instanceof VectorData ? _l.value : null;
+        const r = _r instanceof ScalarData ? _r.value :
+            _r instanceof VectorData ? _r.value : null;
         switch (node.operator) {
             case "+": {
                 if (isArray(l) && isArray(r)) {
-                    if (l.length !== r.length) {
+                    const la = l;
+                    const ra = r;
+                    if (la.length !== ra.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
                     }
-                    return l.map((x, i) => x + r[i]);
+                    const result = la.map((x, i) => x + ra[i]);
+                    return new VectorData(result, _l.typeInfo);
                 }
-                return l + r;
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x + rn);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln + x);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                const t = this._maxFormatTypeInfo([_l.typeInfo, _r.typeInfo]);
+                return new ScalarData(ln + rn, t);
             }
             case "-": {
                 if (isArray(l) && isArray(r)) {
-                    if (l.length !== r.length) {
+                    const la = l;
+                    const ra = r;
+                    if (la.length !== ra.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
                     }
-                    return l.map((x, i) => x - r[i]);
+                    const result = la.map((x, i) => x - ra[i]);
+                    return new VectorData(result, _l.typeInfo);
                 }
-                return l - r;
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x - rn);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln - x);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                const t = this._maxFormatTypeInfo([_l.typeInfo, _r.typeInfo]);
+                return new ScalarData(ln - rn, t);
             }
             case "*": {
                 if (isArray(l) && isArray(r)) {
-                    if (l.length !== r.length) {
+                    const la = l;
+                    const ra = r;
+                    if (la.length !== ra.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
                     }
-                    return l.map((x, i) => x * r[i]);
+                    const result = la.map((x, i) => x * ra[i]);
+                    return new VectorData(result, _l.typeInfo);
                 }
-                return l * r;
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x * rn);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln * x);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                const t = this._maxFormatTypeInfo([_l.typeInfo, _r.typeInfo]);
+                return new ScalarData(ln * rn, t);
             }
             case "%": {
                 if (isArray(l) && isArray(r)) {
-                    if (l.length !== r.length) {
+                    const la = l;
+                    const ra = r;
+                    if (la.length !== ra.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
                     }
-                    return l.map((x, i) => x % r[i]);
+                    const result = la.map((x, i) => x % ra[i]);
+                    return new VectorData(result, _l.typeInfo);
                 }
-                return l % r;
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x % rn);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln % x);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                const t = this._maxFormatTypeInfo([_l.typeInfo, _r.typeInfo]);
+                return new ScalarData(ln % rn, t);
             }
             case "/": {
                 if (isArray(l) && isArray(r)) {
-                    if (l.length !== r.length) {
+                    const la = l;
+                    const ra = r;
+                    if (la.length !== ra.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
                     }
-                    return l.map((x, i) => x / r[i]);
+                    const result = la.map((x, i) => x / ra[i]);
+                    return new VectorData(result, _l.typeInfo);
                 }
-                return l / r;
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x / rn);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln / x);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                const t = this._maxFormatTypeInfo([_l.typeInfo, _r.typeInfo]);
+                return new ScalarData(ln / rn, t);
             }
-            case ">":
-                if (l.length !== undefined && r.length !== undefined) {
-                    if (l.length !== r.length) {
+            case ">": {
+                if (isArray(l) && isArray(r)) {
+                    const la = l;
+                    const ra = r;
+                    if (la.length !== ra.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
                     }
-                    return l.map((x, i) => x > r[i]);
+                    const result = la.map((x, i) => x > ra[i] ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
                 }
-                return l > r;
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x > rn ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln > x ? 1 : 0);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                return new ScalarData(ln > rn ? 1 : 0, this.getTypeInfo("bool"));
+            }
             case "<":
                 if (isArray(l) && isArray(r)) {
-                    if (l.length !== r.length) {
+                    const la = l;
+                    const ra = r;
+                    if (la.length !== ra.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
                     }
-                    return l.map((x, i) => x < r[i]);
+                    const result = la.map((x, i) => x < ra[i] ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
                 }
-                return l < r;
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x < rn ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln < x ? 1 : 0);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                return new ScalarData(ln < rn ? 1 : 0, this.getTypeInfo("bool"));
             case "==": {
                 if (isArray(l) && isArray(r)) {
-                    if (l.length !== r.length) {
+                    const la = l;
+                    const ra = r;
+                    if (la.length !== ra.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
                     }
-                    return l.map((x, i) => x === r[i]);
+                    const result = la.map((x, i) => x === ra[i] ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
                 }
-                return l === r;
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x == rn ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln == x ? 1 : 0);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                return new ScalarData(ln === rn ? 1 : 0, this.getTypeInfo("bool"));
             }
             case "!=": {
                 if (isArray(l) && isArray(r)) {
-                    if (l.length !== r.length) {
+                    const la = l;
+                    const ra = r;
+                    if (la.length !== ra.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
                     }
-                    return l.map((x, i) => x != r[i]);
+                    const result = la.map((x, i) => x !== ra[i] ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
                 }
-                return l != r;
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x !== rn ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln !== x ? 1 : 0);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                return new ScalarData(ln !== rn ? 1 : 0, this.getTypeInfo("bool"));
             }
             case ">=": {
                 if (isArray(l) && isArray(r)) {
-                    if (l.length !== r.length) {
+                    const la = l;
+                    const ra = r;
+                    if (la.length !== ra.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
                     }
-                    return l.map((x, i) => x >= r[i]);
+                    const result = la.map((x, i) => x >= ra[i] ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
                 }
-                return l >= r;
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x >= rn ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln >= x ? 1 : 0);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                return new ScalarData(ln >= rn ? 1 : 0, this.getTypeInfo("bool"));
             }
             case "<=": {
                 if (isArray(l) && isArray(r)) {
-                    if (l.length !== r.length) {
+                    const la = l;
+                    const ra = r;
+                    if (la.length !== ra.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
                     }
-                    return l.map((x, i) => x <= r[i]);
+                    const result = la.map((x, i) => x <= ra[i] ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
                 }
-                return l <= r;
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x <= rn ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln <= x ? 1 : 0);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                return new ScalarData(ln <= rn ? 1 : 0, this.getTypeInfo("bool"));
             }
             case "&&": {
                 if (isArray(l) && isArray(r)) {
-                    if (l.length !== r.length) {
+                    const la = l;
+                    const ra = r;
+                    if (la.length !== ra.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
                     }
-                    return l.map((x, i) => x && r[i]);
+                    const result = la.map((x, i) => x && ra[i] ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
                 }
-                return l && r;
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x && rn ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln && x ? 1 : 0);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                return new ScalarData(ln && rn ? 1 : 0, this.getTypeInfo("bool"));
             }
             case "||": {
                 if (isArray(l) && isArray(r)) {
-                    if (l.length !== r.length) {
+                    const la = l;
+                    const ra = r;
+                    if (la.length !== ra.length) {
                         console.error(`Vector length mismatch. Line ${node.line}.`);
                         return null;
                     }
-                    return l.map((x, i) => x || r[i]);
+                    const result = la.map((x, i) => x || ra[i] ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
                 }
-                return l || r;
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x || rn ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln || x ? 1 : 0);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                return new ScalarData(ln || rn ? 1 : 0, this.getTypeInfo("bool"));
             }
         }
         console.error(`Unknown operator ${node.operator}. Line ${node.line}`);
@@ -34701,13 +35666,7 @@ class WgslExec extends ExecInterface {
             const value = this.evalExpression(node.args[ai], subContext);
             subContext.setVariable(arg.name, value, arg);
         }
-        const res = this._execStatements(f.node.body, subContext);
-        if (f.node.returnType) {
-            if (f.node.returnType.name === "i32" || f.node.returnType.name === "u32") {
-                return Math.floor(res);
-            }
-        }
-        return res;
+        return this._execStatements(f.node.body, subContext);
     }
     _callBuiltinFunction(node, context) {
         switch (node.name) {
@@ -35028,55 +35987,47 @@ class WgslExec extends ExecInterface {
     }
     _callConstructorValue(node, context) {
         if (node.args.length === 0) {
-            return 0;
+            return new ScalarData(0, this.getTypeInfo(node.type));
         }
-        return this.evalExpression(node.args[0], context);
+        const v = this.evalExpression(node.args[0], context);
+        v.typeInfo = this.getTypeInfo(node.type);
+        return v;
     }
     _callConstructorArray(node, context) {
+        console.error("TODO: implement array constructor");
+        return null;
+        /*const typeInfo = this.getTypeInfo(node.type);
         if (node.args.length === 0) {
-            if (node.type instanceof ArrayType) {
+            if (node.type instanceof AST.ArrayType) {
                 if (node.type.count) {
                     const format = node.type.format.name;
                     if (format === "bool" || format === "i32" || format === "u32" || format === "f32" || format === "f16") {
                         return new Array(node.type.count).fill(0);
-                    }
-                    else if (format === "vec2" || format === "vec2u" || format === "vec2i" || format === "vec2f") {
+                    } else if (format === "vec2" || format === "vec2u" || format === "vec2i" || format === "vec2f") {
                         return new Array(node.type.count).fill([0, 0]);
-                    }
-                    else if (format === "vec3" || format === "vec3u" || format === "vec3i" || format === "vec3f") {
+                    } else if (format === "vec3" || format === "vec3u" || format === "vec3i" || format === "vec3f") {
                         return new Array(node.type.count).fill([0, 0, 0]);
-                    }
-                    else if (format === "vec4" || format === "vec4u" || format === "vec4i" || format === "vec4f") {
+                    } else if (format === "vec4" || format === "vec4u" || format === "vec4i" || format === "vec4f") {
                         return new Array(node.type.count).fill([0, 0, 0, 0]);
-                    }
-                    else if (format === "mat2x2") {
+                    } else if (format === "mat2x2") {
                         return new Array(node.type.count).fill([0, 0, 0, 0]);
-                    }
-                    else if (format === "mat2x3") {
+                    } else if (format === "mat2x3") {
                         return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0]);
-                    }
-                    else if (format === "mat2x4") {
+                    } else if (format === "mat2x4") {
                         return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0]);
-                    }
-                    else if (format === "mat3x2") {
+                    } else if (format === "mat3x2") {
                         return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0]);
-                    }
-                    else if (format === "mat3x3") {
+                    } else if (format === "mat3x3") {
                         return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0, 0]);
-                    }
-                    else if (format === "mat3x4") {
+                    } else if (format === "mat3x4") {
                         return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-                    }
-                    else if (format === "mat4x2") {
+                    } else if (format === "mat4x2") {
                         return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0]);
-                    }
-                    else if (format === "mat4x3") {
+                    } else if (format === "mat4x3") {
                         return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-                    }
-                    else if (format === "mat4x4") {
+                    } else if (format === "mat4x4") {
                         return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-                    }
-                    else {
+                    } else {
                         console.error(`TODO: support array format ${format}. Line ${node.line}`);
                         return null;
                     }
@@ -35088,19 +36039,20 @@ class WgslExec extends ExecInterface {
         for (const arg of node.args) {
             values.push(this.evalExpression(arg, context));
         }
-        return values;
+        return values;*/
     }
     _callConstructorVec(node, context) {
-        const typeName = node instanceof CallExpr ? node.name : this._getTypeName(node.type);
+        const typeInfo = this.getTypeInfo(node.type);
+        const typeName = this.getTypeName(node.type);
         if (node.args.length === 0) {
             if (typeName === "vec2" || typeName === "vec2f" || typeName === "vec2i" || typeName === "vec2u") {
-                return [0, 0];
+                return new VectorData([0, 0], typeInfo);
             }
             else if (typeName === "vec3" || typeName === "vec3f" || typeName === "vec3i" || typeName === "vec3u") {
-                return [0, 0, 0];
+                return new VectorData([0, 0, 0], typeInfo);
             }
             else if (typeName === "vec4" || typeName === "vec4f" || typeName === "vec4i" || typeName === "vec4u") {
-                return [0, 0, 0, 0];
+                return new VectorData([0, 0, 0, 0], typeInfo);
             }
             console.error(`Invalid vec constructor ${typeName}. Line ${node.line}`);
             return null;
@@ -35112,7 +36064,7 @@ class WgslExec extends ExecInterface {
         const values = [];
         // TODO: make sure the number of args matches the vector length.
         for (const arg of node.args) {
-            let v = this.evalExpression(arg, context);
+            let v = this.evalExpression(arg, context).value;
             if (isInt) {
                 v = Math.floor(v);
             }
@@ -35139,54 +36091,193 @@ class WgslExec extends ExecInterface {
                 console.error(`Invalid vec3 constructor. Line ${node.line}`);
             }
         }
-        return values;
+        return new VectorData(values, typeInfo);
     }
     _callConstructorMatrix(node, context) {
-        const typeName = node instanceof CallExpr ? node.name : this._getTypeName(node.type);
+        const typeInfo = this.getTypeInfo(node.type);
+        const typeName = this.getTypeName(node.type);
         if (node.args.length === 0) {
             if (typeName === "mat2x2" || typeName === "mat2x2f" || typeName === "mat2x2i" || typeName === "mat2x2u") {
-                return [0, 0, 0, 0];
+                return new MatrixData([0, 0, 0, 0], typeInfo);
             }
             else if (typeName === "mat2x3" || typeName === "mat2x3f" || typeName === "mat2x3i" || typeName === "mat2x3u") {
-                return [0, 0, 0, 0, 0, 0];
+                return new MatrixData([0, 0, 0, 0, 0, 0], typeInfo);
             }
             else if (typeName === "mat2x4" || typeName === "mat2x4f" || typeName === "mat2x4i" || typeName === "mat2x4u") {
-                return [0, 0, 0, 0, 0, 0, 0, 0];
+                return new MatrixData([0, 0, 0, 0, 0, 0, 0, 0], typeInfo);
             }
             else if (typeName === "mat3x2" || typeName === "mat3x2f" || typeName === "mat3x2i" || typeName === "mat3x2u") {
-                return [0, 0, 0, 0, 0, 0];
+                return new MatrixData([0, 0, 0, 0, 0, 0], typeInfo);
             }
             else if (typeName === "mat3x3" || typeName === "mat3x3f" || typeName === "mat3x3i" || typeName === "mat3x3u") {
-                return [0, 0, 0, 0, 0, 0, 0, 0, 0];
+                return new MatrixData([0, 0, 0, 0, 0, 0, 0, 0, 0], typeInfo);
             }
             else if (typeName === "mat3x4" || typeName === "mat3x4f" || typeName === "mat3x4i" || typeName === "mat3x4u") {
-                return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+                return new MatrixData([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], typeInfo);
             }
             else if (typeName === "mat4x2" || typeName === "mat4x2f" || typeName === "mat4x2i" || typeName === "mat4x2u") {
-                return [0, 0, 0, 0, 0, 0, 0, 0];
+                return new MatrixData([0, 0, 0, 0, 0, 0, 0, 0], typeInfo);
             }
             else if (typeName === "mat4x3" || typeName === "mat4x3f" || typeName === "mat4x3i" || typeName === "mat4x3u") {
-                return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+                return new MatrixData([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], typeInfo);
             }
             else if (typeName === "mat4x4" || typeName === "mat4x4f" || typeName === "mat4x4i" || typeName === "mat4x4u") {
-                return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+                return new MatrixData([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], typeInfo);
             }
             console.error(`Invalid matrix constructor ${typeName}. Line ${node.line}`);
             return null;
         }
-        const isInt = typeName.endsWith("i") || typeName.endsWith("u");
+        typeName.endsWith("i") || typeName.endsWith("u");
         const values = [];
-        // TODO: make sure the number of args matches the matrix size.
-        for (const arg of node.args) {
-            let v = this.evalExpression(arg, context);
-            if (isInt) {
-                v = Math.floor(v);
+        if (node.args.length === 1) {
+            const value = this.evalExpression(node.args[0], context);
+            if (!(value instanceof MatrixData) || this.getTypeName(value.typeInfo) !== typeName) {
+                console.error(`Invalid matrix constructor. Line ${node.line}`);
+                return null;
             }
-            values.push(v);
+            values.push(...value.value);
         }
-        return values;
+        else {
+            if (typeName === "mat2x2" || typeName === "mat2x2f" || typeName === "mat2x2h" ||
+                typeName === "mat2x3" || typeName === "mat2x3f" || typeName === "mat2x3h" ||
+                typeName === "mat2x4" || typeName === "mat2x4f" || typeName === "mat2x4h") {
+                if (node.args.length === 2) {
+                    const v1 = this.evalExpression(node.args[0], context);
+                    const v2 = this.evalExpression(node.args[1], context);
+                    if (v1 instanceof VectorData && v2 instanceof VectorData) {
+                        values.push(...v1.value, ...v2.value);
+                    }
+                    else {
+                        console.error(`Invalid matrix constructor. Line ${node.line}`);
+                        return null;
+                    }
+                }
+                else {
+                    if (typeName === "mat2x2" || typeName === "mat2x2f" || typeName === "mat2x2h") {
+                        if (node.args.length === 4) {
+                            values.push(...node.args.map(a => this.evalExpression(a, context).value));
+                        }
+                        else {
+                            console.error(`Invalid matrix constructor. Line ${node.line}`);
+                            return null;
+                        }
+                    }
+                    else if (typeName === "mat2x3" || typeName === "mat2x3f" || typeName === "mat2x3h") {
+                        if (node.args.length === 6) {
+                            values.push(...node.args.map(a => this.evalExpression(a, context).value));
+                        }
+                        else {
+                            console.error(`Invalid matrix constructor. Line ${node.line}`);
+                            return null;
+                        }
+                    }
+                    else if (typeName === "mat2x4" || typeName === "mat2x4f" || typeName === "mat2x4h") {
+                        if (node.args.length === 8) {
+                            values.push(...node.args.map(a => this.evalExpression(a, context).value));
+                        }
+                        else {
+                            console.error(`Invalid matrix constructor. Line ${node.line}`);
+                            return null;
+                        }
+                    }
+                }
+            }
+            else if (typeName === "mat3x2" || typeName === "mat3x2f" || typeName === "mat3x2h" ||
+                typeName === "mat3x3" || typeName === "mat3x3f" || typeName === "mat3x3h" ||
+                typeName === "mat3x4" || typeName === "mat3x4f" || typeName === "mat3x4h") {
+                if (node.args.length === 3) {
+                    const v1 = this.evalExpression(node.args[0], context);
+                    const v2 = this.evalExpression(node.args[1], context);
+                    const v3 = this.evalExpression(node.args[2], context);
+                    if (v1 instanceof VectorData && v2 instanceof VectorData && v3 instanceof VectorData) {
+                        values.push(...v1.value, ...v2.value, ...v3.value);
+                    }
+                    else {
+                        console.error(`Invalid matrix constructor. Line ${node.line}`);
+                        return null;
+                    }
+                }
+                else {
+                    if (typeName === "mat3x2" || typeName === "mat3x2f" || typeName === "mat3x2h") {
+                        if (node.args.length === 6) {
+                            values.push(...node.args.map(a => this.evalExpression(a, context).value));
+                        }
+                        else {
+                            console.error(`Invalid matrix constructor. Line ${node.line}`);
+                            return null;
+                        }
+                    }
+                    else if (typeName === "mat3x3" || typeName === "mat3x3f" || typeName === "mat3x3h") {
+                        if (node.args.length === 9) {
+                            values.push(...node.args.map(a => this.evalExpression(a, context).value));
+                        }
+                        else {
+                            console.error(`Invalid matrix constructor. Line ${node.line}`);
+                            return null;
+                        }
+                    }
+                    else if (typeName === "mat3x4" || typeName === "mat3x4f" || typeName === "mat3x4h") {
+                        if (node.args.length === 12) {
+                            values.push(...node.args.map(a => this.evalExpression(a, context).value));
+                        }
+                        else {
+                            console.error(`Invalid matrix constructor. Line ${node.line}`);
+                            return null;
+                        }
+                    }
+                }
+            }
+            else if (typeName === "mat4x2" || typeName === "mat4x2f" || typeName === "mat4x2h" ||
+                typeName === "mat4x3" || typeName === "mat4x3f" || typeName === "mat4x3h" ||
+                typeName === "mat4x4" || typeName === "mat4x4f" || typeName === "mat4x4h") {
+                if (node.args.length === 4) {
+                    const v1 = this.evalExpression(node.args[0], context);
+                    const v2 = this.evalExpression(node.args[1], context);
+                    const v3 = this.evalExpression(node.args[2], context);
+                    const v4 = this.evalExpression(node.args[3], context);
+                    if (v1 instanceof VectorData && v2 instanceof VectorData && v3 instanceof VectorData && v4 instanceof VectorData) {
+                        values.push(...v1.value, ...v2.value, ...v3.value, ...v4.value);
+                    }
+                    else {
+                        console.error(`Invalid matrix constructor. Line ${node.line}`);
+                        return null;
+                    }
+                }
+                else {
+                    if (typeName === "mat4x2" || typeName === "mat4x2f" || typeName === "mat4x2h") {
+                        if (node.args.length === 8) {
+                            values.push(...node.args.map(a => this.evalExpression(a, context).value));
+                        }
+                        else {
+                            console.error(`Invalid matrix constructor. Line ${node.line}`);
+                            return null;
+                        }
+                    }
+                    else if (typeName === "mat4x3" || typeName === "mat4x3f" || typeName === "mat4x3h") {
+                        if (node.args.length === 12) {
+                            values.push(...node.args.map(a => this.evalExpression(a, context).value));
+                        }
+                        else {
+                            console.error(`Invalid matrix constructor. Line ${node.line}`);
+                            return null;
+                        }
+                    }
+                    else if (typeName === "mat4x4" || typeName === "mat4x4f" || typeName === "mat4x4h") {
+                        if (node.args.length === 16) {
+                            values.push(...node.args.map(a => this.evalExpression(a, context).value));
+                        }
+                        else {
+                            console.error(`Invalid matrix constructor. Line ${node.line}`);
+                            return null;
+                        }
+                    }
+                }
+            }
+        }
+        return new MatrixData(values, typeInfo);
     }
 }
+WgslExec._priority = new Map([["f32", 0], ["f16", 1], ["u32", 2], ["i32", 3], ["x32", 3]]);
 
 class Command {
     get line() { return -1; }
@@ -35276,7 +36367,22 @@ class WgslDebug {
         this.runStateCallback = runStateCallback !== null && runStateCallback !== void 0 ? runStateCallback : null;
     }
     getVariableValue(name) {
-        return this._exec.context.getVariableValue(name);
+        var _a, _b;
+        const v = (_b = (_a = this._exec.context.getVariable(name)) === null || _a === void 0 ? void 0 : _a.value) !== null && _b !== void 0 ? _b : null;
+        if (v === null) {
+            return null;
+        }
+        if (v instanceof ScalarData) {
+            return v.value;
+        }
+        if (v instanceof VectorData) {
+            return v.value;
+        }
+        if (v instanceof MatrixData) {
+            return v.value;
+        }
+        console.error(`Unsupported return variable type ${v.typeInfo.name}`);
+        return null;
     }
     reset() {
         this._exec = new WgslExec(this._code);
@@ -35428,7 +36534,8 @@ class WgslDebug {
         const depth = dispatchCount[2];
         const height = dispatchCount[1];
         const width = dispatchCount[0];
-        context.setVariable("@num_workgroups", dispatchCount);
+        const vec3u = this._exec.typeInfo["vec3u"];
+        context.setVariable("@num_workgroups", new VectorData(dispatchCount, vec3u));
         for (const set in bindGroups) {
             for (const binding in bindGroups[set]) {
                 const entry = bindGroups[set][binding];
@@ -35448,15 +36555,15 @@ class WgslDebug {
                         if (binding == b && set == s) {
                             if (entry.texture !== undefined && entry.size !== undefined) {
                                 // Texture
-                                v.value = new TypedData(entry.texture, this._exec._getTypeInfo(node.type), 0, entry.size);
+                                v.value = new TypedData(entry.texture, this._exec.getTypeInfo(node.type), 0, entry.size);
                             }
                             else if (entry.uniform !== undefined) {
                                 // Uniform buffer
-                                v.value = new TypedData(entry.uniform, this._exec._getTypeInfo(node.type));
+                                v.value = new TypedData(entry.uniform, this._exec.getTypeInfo(node.type));
                             }
                             else {
                                 // Storage buffer
-                                v.value = new TypedData(entry, this._exec._getTypeInfo(node.type));
+                                v.value = new TypedData(entry, this._exec.getTypeInfo(node.type));
                             }
                         }
                     }
@@ -35467,7 +36574,7 @@ class WgslDebug {
         for (let z = 0; z < depth && !found; ++z) {
             for (let y = 0; y < height && !found; ++y) {
                 for (let x = 0; x < width && !found; ++x) {
-                    context.setVariable("@workgroup_id", [x, y, z]);
+                    context.setVariable("@workgroup_id", new VectorData([x, y, z], vec3u));
                     if (this._dispatchWorkgroup(f, [x, y, z], context)) {
                         found = true;
                         break;
@@ -35661,7 +36768,13 @@ class WgslDebug {
                 }
                 if (command.condition) {
                     const res = this._exec.evalExpression(command.condition, state.context);
-                    if (res) {
+                    if (!(res instanceof ScalarData)) {
+                        console.error("Condition must be a scalar");
+                        return false;
+                    }
+                    // If the GOTO condition value is true, then continue to the next command.
+                    // Otherwise, jump to the specified position.
+                    if (res.value) {
                         if (this._shouldExecuteNectCommand()) {
                             continue;
                         }
@@ -35699,8 +36812,8 @@ class WgslDebug {
                     if (attr.value.length > 0) {
                         // The value could be an override constant
                         const v = context.getVariableValue(attr.value[0]);
-                        if (v !== null) {
-                            workgroupSize[0] = v;
+                        if (v instanceof ScalarData) {
+                            workgroupSize[0] = v.value;
                         }
                         else {
                             workgroupSize[0] = parseInt(attr.value[0]);
@@ -35708,8 +36821,8 @@ class WgslDebug {
                     }
                     if (attr.value.length > 1) {
                         const v = context.getVariableValue(attr.value[1]);
-                        if (v !== null) {
-                            workgroupSize[1] = v;
+                        if (v instanceof ScalarData) {
+                            workgroupSize[1] = v.value;
                         }
                         else {
                             workgroupSize[1] = parseInt(attr.value[1]);
@@ -35717,8 +36830,8 @@ class WgslDebug {
                     }
                     if (attr.value.length > 2) {
                         const v = context.getVariableValue(attr.value[2]);
-                        if (v !== null) {
-                            workgroupSize[2] = v;
+                        if (v instanceof ScalarData) {
+                            workgroupSize[2] = v.value;
                         }
                         else {
                             workgroupSize[2] = parseInt(attr.value[2]);
@@ -35730,7 +36843,9 @@ class WgslDebug {
                 }
             }
         }
-        context.setVariable("@workgroup_size", workgroupSize);
+        const vec3u = this._exec.typeInfo["vec3u"];
+        const u32 = this._exec.typeInfo["u32"];
+        context.setVariable("@workgroup_size", new VectorData(workgroupSize, vec3u));
         const width = workgroupSize[0];
         const height = workgroupSize[1];
         const depth = workgroupSize[2];
@@ -35744,16 +36859,15 @@ class WgslDebug {
                         y + workgroup_id[1] * workgroupSize[1],
                         z + workgroup_id[2] * workgroupSize[2]
                     ];
-                    context.setVariable("@local_invocation_id", local_invocation_id);
-                    context.setVariable("@global_invocation_id", global_invocation_id);
-                    context.setVariable("@local_invocation_index", li);
+                    context.setVariable("@local_invocation_id", new VectorData(local_invocation_id, vec3u));
+                    context.setVariable("@global_invocation_id", new VectorData(global_invocation_id, vec3u));
+                    context.setVariable("@local_invocation_index", new ScalarData(li, u32));
                     if (global_invocation_id[0] === this._dispatchId[0] &&
                         global_invocation_id[1] === this._dispatchId[1] &&
                         global_invocation_id[2] === this._dispatchId[2]) {
                         found = true;
                         break;
                     }
-                    //this._dispatchExec(f, context);
                 }
             }
         }
@@ -35770,7 +36884,7 @@ class WgslDebug {
                 if (attr.name === "builtin") {
                     const globalName = `@${attr.value}`;
                     const globalVar = context.getVariable(globalName);
-                    if (globalVar !== undefined) {
+                    if (globalVar !== null) {
                         context.variables.set(arg.name, globalVar);
                     }
                 }

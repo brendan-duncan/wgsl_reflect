@@ -356,6 +356,8 @@ export declare class Type extends Statement {
     static u32: Type;
     static f16: Type;
     static bool: Type;
+    static _priority: Map<string, number>;
+    static maxFormatType(x: Type[]): Type;
 }
 /**
  * @class StructType
@@ -480,7 +482,6 @@ export declare class CreateExpr extends Expression {
     constructor(type: Type | null, args: Array<Expression> | null);
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;
-    _maxFormatType(x: Type[]): Type;
     constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
 }
 /**
@@ -531,11 +532,13 @@ export declare class ConstExpr extends Expression {
  * @category AST
  */
 export declare class LiteralExpr extends Expression {
-    value: number;
+    value: number | number[];
     type: Type;
-    constructor(value: number, type: Type);
+    constructor(value: number | number[], type: Type);
     get astNodeType(): string;
-    constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
+    constEvaluate(context: ParseContext, type?: Array<Type>): number | number[];
+    get scalarValue(): number;
+    get vectorValue(): number[];
 }
 /**
  * @class BitcastExpr

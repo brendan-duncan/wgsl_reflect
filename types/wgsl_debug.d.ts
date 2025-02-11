@@ -31,7 +31,7 @@ export declare class WgslDebug {
     breakpoints: Set<number>;
     runStateCallback: RuntimeStateCallbackType | null;
     constructor(code: string, runStateCallback?: RuntimeStateCallbackType);
-    getVariableValue(name: string): any;
+    getVariableValue(name: string): number | number[] | null;
     reset(): void;
     startDebug(): void;
     get context(): ExecContext;

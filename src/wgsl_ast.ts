@@ -124,7 +124,7 @@ export class StaticAssert extends Statement {
     this.expression = expression;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "staticAssert";
   }
 
@@ -148,7 +148,7 @@ export class While extends Statement {
     this.body = body;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "while";
   }
 
@@ -171,7 +171,7 @@ export class Continuing extends Statement {
     this.body = body;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "continuing";
   }
 
@@ -204,7 +204,7 @@ export class For extends Statement {
     this.body = body;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "for";
   }
 
@@ -244,7 +244,7 @@ export class Var extends Statement {
     this.value = value;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "var";
   }
 
@@ -272,7 +272,7 @@ export class Override extends Statement {
     this.value = value;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "override";
   }
 
@@ -309,7 +309,7 @@ export class Let extends Statement {
     this.value = value;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "let";
   }
 
@@ -347,7 +347,7 @@ export class Const extends Statement {
     this.value = value;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "const";
   }
 
@@ -389,7 +389,7 @@ export class Increment extends Statement {
     this.variable = variable;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "increment";
   }
 
@@ -444,7 +444,7 @@ export class Assign extends Statement {
     this.value = value;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "assign";
   }
 
@@ -469,7 +469,7 @@ export class Call extends Statement {
     this.args = args;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "call";
   }
 
@@ -496,7 +496,7 @@ export class Loop extends Statement {
     this.continuing = continuing;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "loop";
   }
 }
@@ -516,7 +516,7 @@ export class Switch extends Statement {
     this.body = body;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "body";
   }
 }
@@ -545,7 +545,7 @@ export class If extends Statement {
     this.else = _else;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "if";
   }
 
@@ -570,7 +570,7 @@ export class Return extends Statement {
     this.value = value;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "return";
   }
 
@@ -592,7 +592,7 @@ export class Enable extends Statement {
     this.name = name;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "enable";
   }
 }
@@ -610,7 +610,7 @@ export class Requires extends Statement {
     this.extensions = extensions;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "requires";
   }
 }
@@ -630,7 +630,7 @@ export class Diagnostic extends Statement {
     this.rule = rule;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "diagnostic";
   }
 }
@@ -650,7 +650,7 @@ export class Alias extends Statement {
     this.type = type;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "alias";
   }
 }
@@ -665,7 +665,7 @@ export class Discard extends Statement {
     super();
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "discard";
   }
 }
@@ -683,7 +683,7 @@ export class Break extends Statement {
     this.condition = null;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "break";
   }
 }
@@ -698,7 +698,7 @@ export class Continue extends Statement {
     super();
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "continue";
   }
 }
@@ -717,7 +717,7 @@ export class Type extends Statement {
     this.name = name;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "type";
   }
 
@@ -735,6 +735,28 @@ export class Type extends Statement {
   static u32 = new Type("u32");
   static f16 = new Type("f16");
   static bool = new Type("bool");
+
+  static _priority = new Map<string, number>([["f32", 0], ["f16", 1], ["u32", 2], ["i32", 3], ["x32", 3]]);
+
+  static maxFormatType(x: Type[]): Type {
+    let t = x[0];
+    if (t.name === "f32") {
+      return t;
+    }
+    for (let i = 1; i < x.length; ++i) {
+      const tv = Type._priority.get(t.name);
+      const xv = Type._priority.get(x[i].name);
+      if (xv < tv) {
+        t = x[i];
+      }
+    }
+
+    if (t.name === "x32") {
+      return Type.i32;
+    }
+
+    return t;
+  }
 }
 
 /**
@@ -754,7 +776,7 @@ export class Struct extends Type {
     this.endLine = endLine;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "struct";
   }
 
@@ -786,7 +808,7 @@ export class TemplateType extends Type {
     this.access = access;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "template";
   }
 
@@ -846,7 +868,7 @@ export class PointerType extends Type {
     this.access = access;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "pointer";
   }
 }
@@ -873,7 +895,7 @@ export class ArrayType extends Type {
     this.count = count;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "array";
   }
 
@@ -901,7 +923,7 @@ export class SamplerType extends Type {
     this.access = access;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "sampler";
   }
 }
@@ -932,7 +954,7 @@ export class StringExpr extends Expression {
     this.value = value;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "stringExpr";
   }
 
@@ -960,7 +982,7 @@ export class CreateExpr extends Expression {
     this.args = args;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "createExpr";
   }
 
@@ -971,34 +993,6 @@ export class CreateExpr extends Expression {
         node.search(callback);
       }
     }
-  }
-
-  _maxFormatType(x: Type[]) {
-    const priority = {
-      "f32": 0,
-      "f16": 1,
-      "u32": 2,
-      "i32": 3,
-      "x32": 3
-    };
-
-    let t = x[0];
-    if (t.name === "f32") {
-      return t;
-    }
-    for (let i = 1; i < x.length; ++i) {
-      const tv = priority[t.name];
-      const xv = priority[x[i].name];
-      if (xv < tv) {
-        t = x[i];
-      }
-    }
-
-    if (t.name === "x32") {
-      return Type.i32;
-    }
-
-    return t;
   }
 
   constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
@@ -1015,7 +1009,7 @@ export class CreateExpr extends Expression {
       if (type) {
         type[0] = t;
         if (t instanceof TemplateType && t.format === null) {
-          t.format = this._maxFormatType([tx[0], ty[0]]);
+          t.format = Type.maxFormatType([tx[0], ty[0]]);
         }
       }
       return v;
@@ -1031,7 +1025,7 @@ export class CreateExpr extends Expression {
       if (type) {
         type[0] = t;
         if (t instanceof TemplateType && t.format === null) {
-          t.format = this._maxFormatType([tx[0], ty[0], tz[0]]);
+          t.format = Type.maxFormatType([tx[0], ty[0], tz[0]]);
         }
       }
       return v;
@@ -1049,7 +1043,7 @@ export class CreateExpr extends Expression {
       if (type) {
         type[0] = t;
         if (t instanceof TemplateType && t.format === null) {
-          t.format = this._maxFormatType([tx[0], ty[0], tz[0], tw[0]]);
+          t.format = Type.maxFormatType([tx[0], ty[0], tz[0], tw[0]]);
         }
       }
       return v;
@@ -1077,7 +1071,9 @@ export class CreateExpr extends Expression {
             (e2[0].name !== "vec2" && e2[0].name !== "vec2f" && e2[0].name !== "vec2h")) {
           throw "Invalid arguments for mat2x2";
         }
-        const v = [v1[0], v1[1], v2[0], v2[1]];
+        const v1a = v1 as number[];
+        const v2a = v2 as number[];
+        const v = [v1a[0], v1a[1], v2a[0], v2a[1]];
         if (type) {
           type[0] = t;
           if (t instanceof TemplateType && t.format === null) {
@@ -1104,7 +1100,7 @@ export class CreateExpr extends Expression {
         if (type) {
           type[0] = t;
           if (t instanceof TemplateType && t.format === null) {
-            t.format = this._maxFormatType([e1[0], e2[0], e3[0], e4[0]]);
+            t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0]]);
           }
         }
 
@@ -1136,7 +1132,9 @@ export class CreateExpr extends Expression {
             (e2[0].name !== "vec3" && e2[0].name !== "vec3f" && e2[0].name !== "vec3h")) {
           throw "Invalid arguments for mat2x3";
         }
-        const v = [v1[0], v1[1], v1[2], v2[0], v2[1], v2[2]];
+        const v1a = v1 as number[];
+        const v2a = v2 as number[];
+        const v = [v1a[0], v1a[1], v1a[2], v2a[0], v2a[1], v2a[2]];
         if (type) {
           type[0] = t;
           if (t instanceof TemplateType && t.format === null) {
@@ -1167,7 +1165,7 @@ export class CreateExpr extends Expression {
         if (type) {
           type[0] = t;
           if (t instanceof TemplateType && t.format === null) {
-            t.format = this._maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0]]);
+            t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0]]);
           }
         }
 
@@ -1199,7 +1197,9 @@ export class CreateExpr extends Expression {
             (e2[0].name !== "vec4" && e2[0].name !== "vec4f" && e2[0].name !== "vec4h")) {
           throw "Invalid arguments for mat2x4";
         }
-        const v = [v1[0], v1[1], v1[2], v1[3], v2[0], v2[1], v2[2], v2[3]];
+        const v1a = v1 as number[];
+        const v2a = v2 as number[];
+        const v = [v1a[0], v1a[1], v1a[2], v1a[3], v2a[0], v2a[1], v2a[2], v2a[3]];
         if (type) {
           type[0] = t;
           if (t instanceof TemplateType && t.format === null) {
@@ -1234,7 +1234,7 @@ export class CreateExpr extends Expression {
         if (type) {
           type[0] = t;
           if (t instanceof TemplateType && t.format === null) {
-            t.format = this._maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0]]);
+            t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0]]);
           }
         }
 
@@ -1269,7 +1269,10 @@ export class CreateExpr extends Expression {
             (e3[0].name !== "vec2" && e3[0].name !== "vec2f" && e3[0].name !== "vec2h")) {
           throw "Invalid arguments for mat3x2";
         }
-        const v = [v1[0], v1[1], v2[0], v2[1], v3[0], v3[1]];
+        const v1a = v1 as number[];
+        const v2a = v2 as number[];
+        const v3a = v3 as number[];
+        const v = [v1a[0], v1a[1], v2a[0], v2a[1], v3a[0], v3a[1]];
         if (type) {
           type[0] = t;
           if (t instanceof TemplateType && t.format === null) {
@@ -1300,7 +1303,7 @@ export class CreateExpr extends Expression {
         if (type) {
           type[0] = t;
           if (t instanceof TemplateType && t.format === null) {
-            t.format = this._maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0]]);
+            t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0]]);
           }
         }
 
@@ -1335,7 +1338,10 @@ export class CreateExpr extends Expression {
             (e3[0].name !== "vec3" && e3[0].name !== "vec3f" && e3[0].name !== "vec3h")) {
           throw "Invalid arguments for mat3x3";
         }
-        const v = [v1[0], v1[1], v1[2], v2[0], v2[1], v2[2], v3[0], v3[1], v3[2]];
+        const v1a = v1 as number[];
+        const v2a = v2 as number[];
+        const v3a = v3 as number[];
+        const v = [v1a[0], v1a[1], v1a[2], v2a[0], v2a[1], v2a[2], v3a[0], v3a[1], v3a[2]];
         if (type) {
           type[0] = t;
           if (t instanceof TemplateType && t.format === null) {
@@ -1372,7 +1378,7 @@ export class CreateExpr extends Expression {
         if (type) {
           type[0] = t;
           if (t instanceof TemplateType && t.format === null) {
-            t.format = this._maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0], e9[0]]);
+            t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0], e9[0]]);
           }
         }
 
@@ -1407,7 +1413,10 @@ export class CreateExpr extends Expression {
             (e3[0].name !== "vec4" && e3[0].name !== "vec4f" && e3[0].name !== "vec4h")) {
           throw "Invalid arguments for mat3x4";
         }
-        const v = [v1[0], v1[1], v1[2], v1[3], v2[0], v2[1], v2[2], v2[3], v3[0], v3[1], v3[2], v3[3]];
+        const v1a = v1 as number[];
+        const v2a = v2 as number[];
+        const v3a = v3 as number[];
+        const v = [v1a[0], v1a[1], v1a[2], v1a[3], v2a[0], v2a[1], v2a[2], v2a[3], v3a[0], v3a[1], v3a[2], v3a[3]];
         if (type) {
           type[0] = t;
           if (t instanceof TemplateType && t.format === null) {
@@ -1450,7 +1459,7 @@ export class CreateExpr extends Expression {
         if (type) {
           type[0] = t;
           if (t instanceof TemplateType && t.format === null) {
-            t.format = this._maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0],
+            t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0],
                   e8[0], e9[0], e10[0], e11[0]]);
           }
         }
@@ -1489,7 +1498,11 @@ export class CreateExpr extends Expression {
             (e4[0].name !== "vec2" && e4[0].name !== "vec2f" && e4[0].name !== "vec2h")) {
           throw "Invalid arguments for mat4x2";
         }
-        const v = [v1[0], v1[1], v2[0], v2[1], v3[0], v3[1], v4[0], v4[1]];
+        const v1a = v1 as number[];
+        const v2a = v2 as number[];
+        const v3a = v3 as number[];
+        const v4a = v4 as number[];
+        const v = [v1a[0], v1a[1], v2a[0], v2a[1], v3a[0], v3a[1], v4a[0], v4a[1]];
         if (type) {
           type[0] = t;
           if (t instanceof TemplateType && t.format === null) {
@@ -1524,7 +1537,7 @@ export class CreateExpr extends Expression {
         if (type) {
           type[0] = t;
           if (t instanceof TemplateType && t.format === null) {
-            t.format = this._maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0]]);
+            t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0]]);
           }
         }
 
@@ -1562,7 +1575,11 @@ export class CreateExpr extends Expression {
             (e4[0].name !== "vec3" && e4[0].name !== "vec3f" && e4[0].name !== "vec3h")) {
           throw "Invalid arguments for mat4x3";
         }
-        const v = [v1[0], v1[1], v1[2], v2[0], v2[1], v2[2], v3[0], v3[1], v3[2], v4[0], v4[1], v4[2]];
+        const v1a = v1 as number[];
+        const v2a = v2 as number[];
+        const v3a = v3 as number[];
+        const v4a = v4 as number[];
+        const v = [v1a[0], v1a[1], v1a[2], v2a[0], v2a[1], v2a[2], v3a[0], v3a[1], v3a[2], v4a[0], v4a[1], v4a[2]];
         if (type) {
           type[0] = t;
           if (t instanceof TemplateType && t.format === null) {
@@ -1605,7 +1622,7 @@ export class CreateExpr extends Expression {
         if (type) {
           type[0] = t;
           if (t instanceof TemplateType && t.format === null) {
-            t.format = this._maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0],
+            t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0],
                   e9[0], e10[0], e11[0], e12[0]]);
           }
         }
@@ -1645,10 +1662,14 @@ export class CreateExpr extends Expression {
             (e4[0].name !== "vec4" && e4[0].name !== "vec4f" && e4[0].name !== "vec4h")) {
           throw "Invalid arguments for mat4x4";
         }
-        const v = [v1[0], v1[1], v1[2], v1[3],
-            v2[0], v2[1], v2[2], v2[3],
-            v3[0], v3[1], v3[2], v3[3],
-            v4[0], v4[1], v4[2], v4[3]];
+        const v1a = v1 as number[];
+        const v2a = v2 as number[];
+        const v3a = v3 as number[];
+        const v4a = v4 as number[];
+        const v = [v1a[0], v1a[1], v1a[2], v1a[3],
+            v2a[0], v2a[1], v2a[2], v2a[3],
+            v3a[0], v3a[1], v3a[2], v3a[3],
+            v4a[0], v4a[1], v4a[2], v4a[3]];
         if (type) {
           type[0] = t;
           if (t instanceof TemplateType && t.format === null) {
@@ -1699,7 +1720,7 @@ export class CreateExpr extends Expression {
         if (type) {
           type[0] = t;
           if (t instanceof TemplateType && t.format === null) {
-            t.format = this._maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0],
+            t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0],
               e9[0], e10[0], e11[0], e12[0], e13[0], e14[0], e15[0]]);
           }
         }
@@ -1711,17 +1732,17 @@ export class CreateExpr extends Expression {
     }
 
     if (t.name === "array") {
-      const v = [];
+      const v: number[] = [];
       const ta = t as ArrayType;
       for (const arg of this.args) {
         const te = [Type.f32];
-        const e = arg.constEvaluate(context, te);
+        const e = arg.constEvaluate(context, te) as number;
         v.push(e);
 
         if (ta.format === null) {
           ta.format = te[0];
         } else {
-          ta.format = this._maxFormatType([ta.format, te[0]]);
+          ta.format = Type.maxFormatType([ta.format, te[0]]);
         }
       }
 
@@ -1752,7 +1773,7 @@ export class CallExpr extends Expression {
     this.args = args;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "callExpr";
   }
 
@@ -2018,15 +2039,16 @@ export class CallExpr extends Expression {
       case "distance": {
         const a = this.args[0].constEvaluate(context, type);
         const b = this.args[1].constEvaluate(context, type);
-        if (Array.isArray(a)) {
+        if (Array.isArray(a) && Array.isArray(b)) {
           let d2 = 0;
           for (let i = 0; i < a.length; i++) {
             d2 += (a[i] - b[i]) * (a[i] - b[i]);
           }
           return Math.sqrt(d2);
         }
+        const an = a as number;
         const bn = b as number;
-        return Math.sqrt((bn - a) * (bn - a));
+        return Math.sqrt((bn - an) * (bn - an));
       }
       case "dot": {
         const a = this.args[0].constEvaluate(context, type);
@@ -2273,7 +2295,7 @@ export class VariableExpr extends Expression {
     this.name = name;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "varExpr";
   }
 
@@ -2308,7 +2330,7 @@ export class ConstExpr extends Expression {
     this.initializer = initializer;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "constExpr";
   }
 
@@ -2342,25 +2364,29 @@ export class ConstExpr extends Expression {
  * @category AST
  */
 export class LiteralExpr extends Expression {
-  value: number;
+  value: number | number[];
   type: Type;
 
-  constructor(value: number, type: Type) {
+  constructor(value: number | number[], type: Type) {
     super();
     this.value = value;
     this.type = type;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "literalExpr";
   }
 
-  constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
+  constEvaluate(context: ParseContext, type?: Array<Type>): number | number[] {
     if (type !== undefined) {
       type[0] = this.type;
     }
     return this.value;
   }
+
+  get scalarValue() { return this.value as number; }
+
+  get vectorValue() { return this.value as number[]; }
 }
 
 /**
@@ -2378,7 +2404,7 @@ export class BitcastExpr extends Expression {
     this.value = value;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "bitcastExpr";
   }
 
@@ -2402,7 +2428,7 @@ export class TypecastExpr extends Expression {
     this.args = args;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "typecastExpr";
   }
 
@@ -2431,7 +2457,7 @@ export class GroupingExpr extends Expression {
     this.contents = contents;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "groupExpr";
   }
 
@@ -2488,7 +2514,7 @@ export class UnaryOperator extends Operator {
     this.right = right;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "unaryOp";
   }
 
@@ -2533,11 +2559,11 @@ export class BinaryOperator extends Operator {
     this.right = right;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "binaryOp";
   }
 
-  _getPromotedType(t1: Type, t2: Type) {
+  _getPromotedType(t1: Type, t2: Type): Type {
     if (t1.name === t2.name) {
       return t1;
     }
@@ -2727,7 +2753,7 @@ export class Case extends SwitchCase {
     this.body = body;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "case";
   }
 
@@ -2749,7 +2775,7 @@ export class Default extends SwitchCase {
     this.body = body;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "default";
   }
 
@@ -2775,7 +2801,7 @@ export class Argument extends Node {
     this.attributes = attributes;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "argument";
   }
 }
@@ -2795,7 +2821,7 @@ export class ElseIf extends Node {
     this.body = body;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "elseif";
   }
 
@@ -2826,7 +2852,7 @@ export class Member extends Node {
     this.attributes = attributes;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "member";
   }
 }
@@ -2846,7 +2872,7 @@ export class Attribute extends Node {
     this.value = value;
   }
 
-  get astNodeType() {
+  get astNodeType(): string {
     return "attribute";
   }
 }

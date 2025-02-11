@@ -272,7 +272,7 @@ export async function run() {
                 override WORKGROUP_SIZE_Y: u32;
                 @compute @workgroup_size(WORKGROUP_SIZE_X, WORKGROUP_SIZE_Y)
                 fn main(@builtin(global_invocation_id) globalInvocationId : vec3<u32>) {
-                    if (any(globalInvocationId.xy > uniforms.viewportSize)) {
+                    if any(globalInvocationId.xy > uniforms.viewportSize) {
                         return;
                     }
                     let w = uniforms.viewportSize.x;
@@ -282,7 +282,7 @@ export async function run() {
                     let y = f32(pos.y);
                     let idx = pos.x + pos.y * w;
                     var r = rays[idx];
-                    if (all(r.direction > vec3<f32>(0.0, 0.0, 0.0))) {
+                    if all(r.direction > vec3<f32>(0.0)) {
                         imageBuffer[idx] = vec3<f32>(x / f32(uniforms.viewportSize.x), y / f32(uniforms.viewportSize.y), 0.0);
                     } else {
                         imageBuffer[idx] = r.direction;
@@ -329,7 +329,7 @@ export async function run() {
             const wgsl = new WgslExec(shader);
             wgsl.dispatchWorkgroups("main", [width, height, 1], bindGroups, { constants });
 
-            test.equals(imageBuffer, webgpuData, 1.0e-4);
+            test.closeTo(imageBuffer, webgpuData);
         });
 
         await test("textureLoad", async function (test) {
@@ -407,65 +407,65 @@ export async function run() {
     // https://github.com/austinEng/Project6-Vulkan-Flocking/blob/master/data/shaders/computeparticles/particle.comp
     @compute @workgroup_size(1)
     fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3u) {
-    var index = GlobalInvocationID.x;
+        var index = GlobalInvocationID.x;
 
-    var vPos = particlesA.particles[index].pos;
-    var vVel = particlesA.particles[index].vel;
-    var cMass = vec2(0.0);
-    var cVel = vec2(0.0);
-    var colVel = vec2(0.0);
-    var cMassCount = 0u;
-    var cVelCount = 0u;
-    var pos : vec2f;
-    var vel : vec2f;
+        var vPos = particlesA.particles[index].pos;
+        var vVel = particlesA.particles[index].vel;
+        var cMass = vec2(0.0);
+        var cVel = vec2(0.0);
+        var colVel = vec2(0.0);
+        var cMassCount = 0u;
+        var cVelCount = 0u;
+        var pos : vec2f;
+        var vel : vec2f;
 
-    for (var i = 0u; i < arrayLength(&particlesA.particles); i++) {
-        if (i == index) {
-        continue;
-        }
+        for (var i = 0u; i < arrayLength(&particlesA.particles); i++) {
+            if i == index {
+                continue;
+            }
 
-        pos = particlesA.particles[i].pos.xy;
-        vel = particlesA.particles[i].vel.xy;
-        if (distance(pos, vPos) < params.rule1Distance) {
-        cMass += pos;
-        cMassCount++;
+            pos = particlesA.particles[i].pos.xy;
+            vel = particlesA.particles[i].vel.xy;
+            if distance(pos, vPos) < params.rule1Distance {
+                cMass += pos;
+                cMassCount++;
+            }
+            if distance(pos, vPos) < params.rule2Distance {
+                colVel -= pos - vPos;
+            }
+            if distance(pos, vPos) < params.rule3Distance {
+                cVel += vel;
+                cVelCount++;
+            }
         }
-        if (distance(pos, vPos) < params.rule2Distance) {
-        colVel -= pos - vPos;
+        if cMassCount > 0 {
+            cMass = (cMass / vec2(f32(cMassCount))) - vPos;
         }
-        if (distance(pos, vPos) < params.rule3Distance) {
-        cVel += vel;
-        cVelCount++;
+        if cVelCount > 0 {
+            cVel /= f32(cVelCount);
         }
-    }
-    if (cMassCount > 0) {
-        cMass = (cMass / vec2(f32(cMassCount))) - vPos;
-    }
-    if (cVelCount > 0) {
-        cVel /= f32(cVelCount);
-    }
-    vVel += (cMass * params.rule1Scale) + (colVel * params.rule2Scale) + (cVel * params.rule3Scale);
+        vVel += (cMass * params.rule1Scale) + (colVel * params.rule2Scale) + (cVel * params.rule3Scale);
 
-    // clamp velocity for a more pleasing simulation
-    vVel = normalize(vVel) * clamp(length(vVel), 0.0, 0.1);
-    // kinematic update
-    vPos = vPos + (vVel * params.deltaT);
-    // Wrap around boundary
-    if (vPos.x < -1.0) {
-        vPos.x = 1.0;
-    }
-    if (vPos.x > 1.0) {
-        vPos.x = -1.0;
-    }
-    if (vPos.y < -1.0) {
-        vPos.y = 1.0;
-    }
-    if (vPos.y > 1.0) {
-        vPos.y = -1.0;
-    }
-    // Write back
-    particlesB.particles[index].pos = vPos;
-    particlesB.particles[index].vel = vVel;
+        // clamp velocity for a more pleasing simulation
+        vVel = normalize(vVel) * clamp(length(vVel), 0.0, 0.1);
+        // kinematic update
+        vPos = vPos + (vVel * params.deltaT);
+        // Wrap around boundary
+        if vPos.x < -1.0 {
+            vPos.x = 1.0;
+        }
+        if vPos.x > 1.0 {
+            vPos.x = -1.0;
+        }
+        if vPos.y < -1.0 {
+            vPos.y = 1.0;
+        }
+        if vPos.y > 1.0 {
+            vPos.y = -1.0;
+        }
+        // Write back
+        particlesB.particles[index].pos = vPos;
+        particlesB.particles[index].vel = vVel;
     }`;
             const params = new Float32Array(8);
             params[0] = 0.03999999910593033;
@@ -475,11 +475,26 @@ export async function run() {
             params[4] = 0.019999999552965164;
             params[5] = 0.05000000074505806;
             params[6] = 0.004999999888241291;
-            const particlesA = new Float32Array(10 * 4);
-            const particlesB = new Float32Array(10 * 4);
+            const particlesA = new Float32Array(1500 * 4);
+            const particlesB = new Float32Array(1500 * 4);
+            for (let i = 0; i < 1500; i += 4) {
+                particlesA[i] = i / 1499;
+                particlesA[i + 1] = i / 1499;
+                particlesA[i + 2] = i / 1499;
+
+                particlesB[i] = i / 1499;
+                particlesB[i + 1] = i / 1499;
+                particlesB[i + 2] = i / 1499;
+            }
             const bg = {0: {0: {uniform:params}, 1: particlesA, 2: particlesB }};
             const wgsl = new WgslExec(shader);
-            wgsl.dispatchWorkgroups("main", 10, bg);
+            const t1 = performance.now();
+            wgsl.dispatchWorkgroups("main", 24, bg);
+            const t2 = performance.now();
+            console.log("wgsl time: ", t2 - t1);
+            //while (dbg.stepInto());
+            //const t4 = performance.now();
+            //console.log("dbg time: ", t4 - t3);
         });
     }, true);
 }

@@ -155,6 +155,7 @@ export declare class WgslReflect {
     update(code: string): void;
     updateAST(ast: Array<AST.Node>): void;
     getStructInfo(name: string): StructInfo | null;
+    getOverrideInfo(name: string): OverrideInfo | null;
     _markStructsInUse(type: TypeInfo): void;
     _addCalls(fn: AST.Function, calls: Set<FunctionInfo>): void;
     findResource(group: number, binding: number): VariableInfo;
@@ -172,7 +173,7 @@ export declare class WgslReflect {
     _parseInt(s: string | string[]): number | string;
     _getAlias(name: string): TypeInfo | null;
     _getAliasInfo(node: AST.Alias): AliasInfo;
-    _getTypeInfo(type: AST.Type, attributes: Array<AST.Attribute> | null): TypeInfo;
+    getTypeInfo(type: AST.Type, attributes?: Array<AST.Attribute> | null): TypeInfo;
     _updateTypeInfo(type: TypeInfo): void;
     _updateStructInfo(struct: StructInfo): void;
     _getTypeSize(type: TypeInfo | MemberInfo | null | undefined): _TypeSize | null;

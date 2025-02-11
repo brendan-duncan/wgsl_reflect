@@ -1396,11 +1396,11 @@ export class WgslParser {
           throw this._error(this._peek(), `Invalid cast from ${_var.value.type.name} to ${_var.type.name}. Line:${this._currentLine}`);
         }
       }
-      this._validateTypeRange(_var.value.value, _var.type);
+      this._validateTypeRange(_var.value.scalarValue, _var.type);
       _var.value.type = _var.type;
     } else if (_var.type === null && _var.value instanceof AST.LiteralExpr) {
       _var.type = _var.value.type.name === "x32" ? AST.Type.i32 : _var.value.type;
-      this._validateTypeRange(_var.value.value, _var.type);
+      this._validateTypeRange(_var.value.scalarValue, _var.type);
     }
     return _var;
   }
@@ -1461,7 +1461,7 @@ export class WgslParser {
         }
       }
       value.type = type;
-      this._validateTypeRange(value.value, value.type);
+      this._validateTypeRange(value.scalarValue, value.type);
     } else if (type === null && value instanceof AST.LiteralExpr) {
       type = value?.type ?? AST.Type.f32;
       if (type === AST.Type.x32) {
@@ -1513,7 +1513,7 @@ export class WgslParser {
       type = value.type.name === "x32" ? AST.Type.i32 : value.type;
     }
     if (value instanceof AST.LiteralExpr) {
-      this._validateTypeRange(value.value, type);
+      this._validateTypeRange(value.scalarValue, type);
     }
     return this._updateNode(new AST.Let(name.toString(), type, "", "", value));
   }

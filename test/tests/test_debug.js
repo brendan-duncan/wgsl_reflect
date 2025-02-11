@@ -10,7 +10,8 @@ export async function run() {
         var c = (a / vec2(f32(i))) - b;`;
         const dbg = new WgslDebug(shader);
         while (dbg.stepNext());
-        test.equals(dbg.getVariableValue("c"), [-2.5, -3]);
+        const v = dbg.getVariableValue("c");
+        test.equals(v, [-2.5, -3]);
     });
 
     await test("break", async function (test) {
