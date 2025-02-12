@@ -34,6 +34,7 @@ export declare class WgslExec extends ExecInterface {
     _getScalarValue(v: Data | null): number;
     _for(node: AST.For, context: ExecContext): Data | null;
     _while(node: AST.While, context: ExecContext): Data | null;
+    _evalBitcast(node: AST.BitcastExpr, context: ExecContext): Data | null;
     _evalConst(node: AST.ConstExpr, context: ExecContext): Data | null;
     _evalCreate(node: AST.CreateExpr, context: ExecContext): Data | null;
     _evalLiteral(node: AST.LiteralExpr, context: ExecContext): Data | null;

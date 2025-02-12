@@ -22,6 +22,14 @@ export async function run() {
             test.equals(wgsl.getVariableValue("bar"), 12);
         });
 
+        await test("bitcast", function (test) {
+            const shader = `let foo = bitcast<u32>(1.5);`;
+            const wgsl = new WgslExec(shader);
+            wgsl.execute();
+            // Ensure the top-level instructions were executed and the global variable has the correct value.
+            test.equals(wgsl.getVariableValue("foo"), 1069547520);
+        });
+
         await test("call function", function (test) {
             const shader = `fn foo(a: i32, b: i32) -> i32 {
             if (b != 0) {
