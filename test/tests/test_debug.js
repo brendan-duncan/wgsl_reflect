@@ -3,6 +3,27 @@ import { WgslDebug } from "../../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Debug", async function () {
+    await test("loop", async function (test) {
+      const shader = `fn foo() -> i32 {
+        var a: i32 = 2;
+        var i: i32 = 0;
+        loop {
+          let step: i32 = 1;
+          if i % 2 == 0 { continue; }
+          a = a * 2;
+          continuing {
+            i = i + step;
+            break if i >= 4;
+          }
+        }
+        return a;
+      }
+      let j = foo();`;
+      const dbg = new WgslDebug(shader);
+      while (dbg.stepNext());
+      test.equals(dbg.getVariableValue("j"), 8);
+    });
+
     await test("vec2 operators", async function (test) {
       var shader = `let i = 2;
         var a = vec2<f32>(1.0, 2.0);
@@ -129,5 +150,5 @@ export async function run() {
       // Test that we only executed the [1, 0, 0] global_invocation_id.
       test.equals(buffer, [1, 4, 6, 0]);
     });
-  });
+  }, true);
 }

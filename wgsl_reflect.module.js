@@ -3737,6 +3737,7 @@ class WgslParser {
         }
         this._consume(TokenTypes.tokens.brace_left, "Expected '{' for loop.");
         // statement*
+        let continuing = null;
         const statements = [];
         let statement = this._statement();
         while (statement !== null) {
@@ -3748,12 +3749,14 @@ class WgslParser {
             else {
                 statements.push(statement);
             }
+            // Keep continuing in the loop body statements so it can be
+            // executed in the stackframe of the body statements.
+            if (statement instanceof Continuing) {
+                continuing = statement;
+                // Continuing should be the last statement in the loop.
+                break;
+            }
             statement = this._statement();
-        }
-        // continuing_statement: continuing compound_statement
-        let continuing = null;
-        if (this._match(TokenTypes.keywords.continuing)) {
-            continuing = this._compound_statement();
         }
         this._consume(TokenTypes.tokens.brace_right, "Expected '}' for loop.");
         return this._updateNode(new Loop(statements, continuing));
@@ -8589,7 +8592,6 @@ class WgslExec extends ExecInterface {
                     console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
                     return;
                 }
-                console.error(`TODO Struct member. Line ${node.line}`);
             }
         }
         else {
@@ -8625,8 +8627,25 @@ class WgslExec extends ExecInterface {
                 console.error(`Variable ${node.name} has no type. Line ${node.line}`);
                 return;
             }
-            const defType = new CreateExpr(node.type, []);
-            value = this._evalCreate(defType, context);
+            if (node.type.name === "f32" || node.type.name === "i32" || node.type.name === "u32" ||
+                node.type.name === "bool" || node.type.name === "f16" ||
+                node.type.name === "vec2" || node.type.name === "vec3" || node.type.name === "vec4" ||
+                node.type.name === "vec2f" || node.type.name === "vec3f" || node.type.name === "vec4f" ||
+                node.type.name === "vec2i" || node.type.name === "vec3i" || node.type.name === "vec4i" ||
+                node.type.name === "vec2u" || node.type.name === "vec3u" || node.type.name === "vec4u" ||
+                node.type.name === "vec2h" || node.type.name === "vec3h" || node.type.name === "vec4h" ||
+                node.type.name === "mat2x2" || node.type.name === "mat2x3" || node.type.name === "mat2x4" ||
+                node.type.name === "mat3x2" || node.type.name === "mat3x3" || node.type.name === "mat3x4" ||
+                node.type.name === "mat4x2" || node.type.name === "mat4x3" || node.type.name === "mat4x4" ||
+                node.type.name === "mat2x2f" || node.type.name === "mat2x3f" || node.type.name === "mat2x4f" ||
+                node.type.name === "mat3x2f" || node.type.name === "mat3x3f" || node.type.name === "mat3x4f" ||
+                node.type.name === "mat4x2f" || node.type.name === "mat4x3f" || node.type.name === "mat4x4f" ||
+                node.type.name === "mat2x2h" || node.type.name === "mat2x3h" || node.type.name === "mat2x4h" ||
+                node.type.name === "mat3x2h" || node.type.name === "mat3x3h" || node.type.name === "mat3x4h" ||
+                node.type.name === "mat4x2h" || node.type.name === "mat4x3h" || node.type.name === "mat4x4h") {
+                const defType = new CreateExpr(node.type, []);
+                value = this._evalCreate(defType, context);
+            }
         }
         context.createVariable(node.name, value, node);
     }
@@ -8731,44 +8750,33 @@ class WgslExec extends ExecInterface {
             case "vec4u":
                 return this._callConstructorVec(node, context);
             case "mat2x2":
-            case "mat2x2i":
-            case "mat2x2u":
             case "mat2x2f":
+            case "mat2x2h":
             case "mat2x3":
-            case "mat2x3i":
-            case "mat2x3u":
             case "mat2x3f":
+            case "mat2x3h":
             case "mat2x4":
-            case "mat2x4i":
-            case "mat2x4u":
             case "mat2x4f":
+            case "mat2x4h":
             case "mat3x2":
-            case "mat3x2i":
-            case "mat3x2u":
             case "mat3x2f":
+            case "mat3x2h":
             case "mat3x3":
-            case "mat3x3i":
-            case "mat3x3u":
             case "mat3x3f":
+            case "mat3x3h":
             case "mat3x4":
-            case "mat3x4i":
-            case "mat3x4u":
             case "mat3x4f":
+            case "mat3x4h":
             case "mat4x2":
-            case "mat4x2i":
-            case "mat4x2u":
             case "mat4x2f":
+            case "mat4x2h":
             case "mat4x3":
-            case "mat4x3i":
-            case "mat4x3u":
             case "mat4x3f":
+            case "mat4x3h":
             case "mat4x4":
-            case "mat4x4i":
-            case "mat4x4u":
             case "mat4x4f":
+            case "mat4x4h":
                 return this._callConstructorMatrix(node, context);
-            //case "array":
-            //return this._callConstructorArray(node, context);
         }
         const typeInfo = this.getTypeInfo(node.type);
         if (typeInfo === null) {
@@ -10355,7 +10363,10 @@ class WgslDebug {
                 if (command.position === GotoCommand.kContinue) {
                     while (!this._execStack.isEmpty) {
                         state = this._execStack.last;
-                        for (let i = state.current; i >= 0; --i) {
+                        //for (let i = state.current; i >= 0; --i) {
+                        // A continue might go forward to a continuing block, or backward to the
+                        // start of the loop.
+                        for (let i = state.commands.length - 1; i >= 0; --i) {
                             const cmd = state.commands[i];
                             if (cmd instanceof GotoCommand &&
                                 cmd.position === GotoCommand.kContinueTarget) {
@@ -10374,6 +10385,21 @@ class WgslDebug {
                 // kBreak is used as a marker for break statements. If we encounter it,
                 // then we need to find the nearest subsequent GotoCommand with a kBreakTarget.
                 if (command.position === GotoCommand.kBreak) {
+                    // break-if conditional break 
+                    if (command.condition) {
+                        const res = this._exec.evalExpression(command.condition, state.context);
+                        if (!(res instanceof ScalarData)) {
+                            console.error("Condition must be a scalar");
+                            return false;
+                        }
+                        // If the condition is false, then we should not the break.
+                        if (!res.value) {
+                            if (this._shouldExecuteNectCommand()) {
+                                continue;
+                            }
+                            return true;
+                        }
+                    }
                     while (!this._execStack.isEmpty) {
                         state = this._execStack.last;
                         for (let i = state.current; i < state.commands.length; ++i) {
@@ -10633,11 +10659,24 @@ class WgslDebug {
                 state.commands.push(new GotoCommand(null, GotoCommand.kBreakTarget));
                 conditionCmd.position = state.commands.length;
             }
+            else if (statement instanceof Loop) {
+                let loopStartPos = state.commands.length;
+                if (!statement.continuing) {
+                    state.commands.push(new GotoCommand(null, GotoCommand.kContinueTarget));
+                }
+                state.commands.push(new BlockCommand(statement.body));
+                state.commands.push(new GotoCommand(null, loopStartPos));
+                state.commands.push(new GotoCommand(null, GotoCommand.kBreakTarget));
+            }
+            else if (statement instanceof Continuing) {
+                state.commands.push(new GotoCommand(null, GotoCommand.kContinueTarget));
+                state.commands.push(new BlockCommand(statement.body));
+            }
             else if (statement instanceof Continue) {
                 state.commands.push(new GotoCommand(null, GotoCommand.kContinue));
             }
             else if (statement instanceof Break) {
-                state.commands.push(new GotoCommand(null, GotoCommand.kBreak));
+                state.commands.push(new GotoCommand(statement.condition, GotoCommand.kBreak));
             }
             else {
                 console.error(`TODO: statement type ${statement.constructor.name}`);

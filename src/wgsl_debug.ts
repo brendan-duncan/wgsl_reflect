@@ -525,7 +525,10 @@ export class WgslDebug {
                 if (command.position === GotoCommand.kContinue) {
                     while (!this._execStack.isEmpty) {
                         state = this._execStack.last;
-                        for (let i = state.current; i >= 0; --i) {
+                        //for (let i = state.current; i >= 0; --i) {
+                        // A continue might go forward to a continuing block, or backward to the
+                        // start of the loop.
+                        for (let i = state.commands.length - 1; i >= 0; --i) {
                             const cmd = state.commands[i];
                             if (cmd instanceof GotoCommand &&
                                 cmd.position === GotoCommand.kContinueTarget) {
@@ -545,6 +548,22 @@ export class WgslDebug {
                 // kBreak is used as a marker for break statements. If we encounter it,
                 // then we need to find the nearest subsequent GotoCommand with a kBreakTarget.
                 if (command.position === GotoCommand.kBreak) {
+                    // break-if conditional break 
+                    if (command.condition) {
+                        const res = this._exec.evalExpression(command.condition, state.context);
+                        if (!(res instanceof ScalarData)) {
+                            console.error("Condition must be a scalar");
+                            return false;
+                        }
+                        // If the condition is false, then we should not the break.
+                        if (!res.value) {
+                            if (this._shouldExecuteNectCommand()) {
+                                continue;
+                            }
+                            return true;
+                        }
+                    }
+
                     while (!this._execStack.isEmpty) {
                         state = this._execStack.last;
                         for (let i = state.current; i < state.commands.length; ++i) {
@@ -815,10 +834,21 @@ export class WgslDebug {
                 state.commands.push(new GotoCommand(null, conditionPos));
                 state.commands.push(new GotoCommand(null, GotoCommand.kBreakTarget));
                 conditionCmd.position = state.commands.length;
+            } else if (statement instanceof AST.Loop) {
+                let loopStartPos = state.commands.length;
+                if (!statement.continuing) {
+                    state.commands.push(new GotoCommand(null, GotoCommand.kContinueTarget));
+                }
+                state.commands.push(new BlockCommand(statement.body));
+                state.commands.push(new GotoCommand(null, loopStartPos));
+                state.commands.push(new GotoCommand(null, GotoCommand.kBreakTarget));
+            } else if (statement instanceof AST.Continuing) {
+                state.commands.push(new GotoCommand(null, GotoCommand.kContinueTarget));
+                state.commands.push(new BlockCommand(statement.body));
             } else if (statement instanceof AST.Continue) {
                 state.commands.push(new GotoCommand(null, GotoCommand.kContinue));
             } else if (statement instanceof AST.Break) {
-                state.commands.push(new GotoCommand(null, GotoCommand.kBreak));
+                state.commands.push(new GotoCommand(statement.condition, GotoCommand.kBreak));
             } else {
                 console.error(`TODO: statement type ${statement.constructor.name}`);
             }

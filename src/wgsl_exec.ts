@@ -696,7 +696,6 @@ export class WgslExec extends ExecInterface {
                     console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
                     return;
                 }
-                console.error(`TODO Struct member. Line ${node.line}`);
             }
         } else {
             v.value = value;
@@ -735,9 +734,27 @@ export class WgslExec extends ExecInterface {
                 return;
             }
 
-            const defType = new AST.CreateExpr(node.type, []);
-            value = this._evalCreate(defType, context);
+            if (node.type.name === "f32" || node.type.name === "i32" || node.type.name === "u32" ||
+                node.type.name === "bool" || node.type.name === "f16" ||
+                node.type.name === "vec2" || node.type.name === "vec3" || node.type.name === "vec4" ||
+                node.type.name === "vec2f" || node.type.name === "vec3f" || node.type.name === "vec4f" ||
+                node.type.name === "vec2i" || node.type.name === "vec3i" || node.type.name === "vec4i" ||
+                node.type.name === "vec2u" || node.type.name === "vec3u" || node.type.name === "vec4u" ||
+                node.type.name === "vec2h" || node.type.name === "vec3h" || node.type.name === "vec4h" ||
+                node.type.name === "mat2x2" || node.type.name === "mat2x3" || node.type.name === "mat2x4" ||
+                node.type.name === "mat3x2" || node.type.name === "mat3x3" || node.type.name === "mat3x4" ||
+                node.type.name === "mat4x2" || node.type.name === "mat4x3" || node.type.name === "mat4x4" ||
+                node.type.name === "mat2x2f" || node.type.name === "mat2x3f" || node.type.name === "mat2x4f" ||
+                node.type.name === "mat3x2f" || node.type.name === "mat3x3f" || node.type.name === "mat3x4f" ||
+                node.type.name === "mat4x2f" || node.type.name === "mat4x3f" || node.type.name === "mat4x4f" ||
+                node.type.name === "mat2x2h" || node.type.name === "mat2x3h" || node.type.name === "mat2x4h" ||
+                node.type.name === "mat3x2h" || node.type.name === "mat3x3h" || node.type.name === "mat3x4h" ||
+                node.type.name === "mat4x2h" || node.type.name === "mat4x3h" || node.type.name === "mat4x4h") {
+                const defType = new AST.CreateExpr(node.type, []);
+                value = this._evalCreate(defType, context);
+            }
         }
+
         context.createVariable(node.name, value, node);
     }
 
@@ -853,44 +870,33 @@ export class WgslExec extends ExecInterface {
             case "vec4u":
                 return this._callConstructorVec(node, context);
             case "mat2x2":
-            case "mat2x2i":
-            case "mat2x2u":
             case "mat2x2f":
+            case "mat2x2h":
             case "mat2x3":
-            case "mat2x3i":
-            case "mat2x3u":
             case "mat2x3f":
+            case "mat2x3h":
             case "mat2x4":
-            case "mat2x4i":
-            case "mat2x4u":
             case "mat2x4f":
+            case "mat2x4h":
             case "mat3x2":
-            case "mat3x2i":
-            case "mat3x2u":
             case "mat3x2f":
+            case "mat3x2h":
             case "mat3x3":
-            case "mat3x3i":
-            case "mat3x3u":
             case "mat3x3f":
+            case "mat3x3h":
             case "mat3x4":
-            case "mat3x4i":
-            case "mat3x4u":
             case "mat3x4f":
+            case "mat3x4h":
             case "mat4x2":
-            case "mat4x2i":
-            case "mat4x2u":
             case "mat4x2f":
+            case "mat4x2h":
             case "mat4x3":
-            case "mat4x3i":
-            case "mat4x3u":
             case "mat4x3f":
+            case "mat4x3h":
             case "mat4x4":
-            case "mat4x4i":
-            case "mat4x4u":
             case "mat4x4f":
+            case "mat4x4h":
                 return this._callConstructorMatrix(node, context);
-            //case "array":
-                //return this._callConstructorArray(node, context);
         }
 
         const typeInfo = this.getTypeInfo(node.type);

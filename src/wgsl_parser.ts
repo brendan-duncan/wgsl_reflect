@@ -665,6 +665,7 @@ export class WgslParser {
     this._consume(TokenTypes.tokens.brace_left, "Expected '{' for loop.");
 
     // statement*
+    let continuing: AST.Continuing | null = null;
     const statements: Array<AST.Statement> = [];
     let statement = this._statement();
     while (statement !== null) {
@@ -675,13 +676,14 @@ export class WgslParser {
       } else {
         statements.push(statement);
       }
+      // Keep continuing in the loop body statements so it can be
+      // executed in the stackframe of the body statements.
+      if (statement instanceof AST.Continuing) {
+        continuing = statement;
+        // Continuing should be the last statement in the loop.
+        break;
+      }
       statement = this._statement();
-    }
-
-    // continuing_statement: continuing compound_statement
-    let continuing: Array<AST.Statement> | null = null;
-    if (this._match(TokenTypes.keywords.continuing)) {
-      continuing = this._compound_statement();
     }
 
     this._consume(TokenTypes.tokens.brace_right, "Expected '}' for loop.");

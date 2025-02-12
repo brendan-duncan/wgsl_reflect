@@ -228,8 +228,8 @@ export declare class Call extends Statement {
  */
 export declare class Loop extends Statement {
     body: Array<Statement>;
-    continuing: Array<Statement> | null;
-    constructor(body: Array<Statement>, continuing: Array<Statement> | null);
+    continuing: Continuing | null;
+    constructor(body: Array<Statement>, continuing: Continuing | null);
     get astNodeType(): string;
 }
 /**
