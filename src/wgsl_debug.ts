@@ -849,7 +849,19 @@ export class WgslDebug {
                 state.commands.push(new GotoCommand(null, GotoCommand.kContinue));
             } else if (statement instanceof AST.Break) {
                 state.commands.push(new GotoCommand(statement.condition, GotoCommand.kBreak));
-            } else {
+            } else if (statement instanceof AST.StaticAssert) {
+                state.commands.push(new StatementCommand(statement));
+            }/* else if (statement instanceof AST.Override) {
+                continue;
+            } else if (statement instanceof AST.Alias) {
+                continue;
+            } else if (statement instanceof AST.Struct) {
+                continue;
+            } else if (statement instanceof AST.Diagnostic) {
+                continue;
+            } else if (statement instanceof AST.Requires) {
+                continue;
+            }*/ else {
                 console.error(`TODO: statement type ${statement.constructor.name}`);
             }
         }

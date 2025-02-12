@@ -268,6 +268,8 @@ export class WgslExec extends ExecInterface {
                     } else if (type.format.name === "u32") {
                         name += "u";
                         return name;
+                    } else if (type.format.name === "bool") {
+                        name += "b";
                     }
                 }
                 name += `<${type.format.name}>`;
@@ -1801,11 +1803,11 @@ export class WgslExec extends ExecInterface {
         const typeInfo = this.getTypeInfo(node.type);
         const typeName = this.getTypeName(node.type);
         if (node.args.length === 0) {
-            if (typeName === "vec2" || typeName === "vec2f" || typeName === "vec2i" || typeName === "vec2u") {
+            if (typeName === "vec2" || typeName === "vec2f" || typeName === "vec2i" || typeName === "vec2u" || typeName === "vec2b") {
                 return new VectorData([0, 0], typeInfo);
-            } else if (typeName === "vec3" || typeName === "vec3f" || typeName === "vec3i" || typeName === "vec3u") {
+            } else if (typeName === "vec3" || typeName === "vec3f" || typeName === "vec3i" || typeName === "vec3u" || typeName === "vec3b") {
                 return new VectorData([0, 0, 0], typeInfo);
-            } else if (typeName === "vec4" || typeName === "vec4f" || typeName === "vec4i" || typeName === "vec4u") {
+            } else if (typeName === "vec4" || typeName === "vec4f" || typeName === "vec4i" || typeName === "vec4u" || typeName === "vec4b") {
                 return new VectorData([0, 0, 0, 0], typeInfo);
             }
             console.error(`Invalid vec constructor ${typeName}. Line ${node.line}`);

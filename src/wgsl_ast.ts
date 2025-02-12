@@ -55,7 +55,7 @@ export class _BlockStart extends Node {
 }
 
  // For internal use only
-export class _BlockEnd extends Node { 
+export class _BlockEnd extends Node {
   static instance = new _BlockEnd();
 }
 
@@ -824,6 +824,9 @@ export class TemplateType extends Type {
   static vec2h = new TemplateType("vec2", Type.f16, null);
   static vec3h = new TemplateType("vec3", Type.f16, null);
   static vec4h = new TemplateType("vec4", Type.f16, null);
+  static vec2b = new TemplateType("vec2", Type.bool, null);
+  static vec3b = new TemplateType("vec3", Type.bool, null);
+  static vec4b = new TemplateType("vec4", Type.bool, null);
 
   static mat2x2f = new TemplateType("mat2x2", Type.f32, null);
   static mat2x3f = new TemplateType("mat2x3", Type.f32, null);
@@ -997,7 +1000,7 @@ export class CreateExpr extends Expression {
 
   constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
     const t = this.type;
-    if (t.name === "f32" || t.name === "f16" || t.name === "i32" || t.name === "u32") {
+    if (t.name === "f32" || t.name === "f16" || t.name === "i32" || t.name === "u32" || t.name === "bool") {
       return this.args[0].constEvaluate(context, type);
     }
 
@@ -1014,7 +1017,7 @@ export class CreateExpr extends Expression {
       }
       return v;
     }
-  
+
     if (t.name === "vec3" || t.name === "vec3f" || t.name === "vec3h" || t.name === "vec3i" || t.name === "vec3u") {
       const tx = [Type.f32];
       const ty = [Type.f32];
@@ -1030,7 +1033,7 @@ export class CreateExpr extends Expression {
       }
       return v;
     }
-    
+
     if (t.name === "vec4" || t.name === "vec4f" || t.name === "vec4h" || t.name === "vec4i" || t.name === "vec4u") {
       const tx = [Type.f32];
       const ty = [Type.f32];
