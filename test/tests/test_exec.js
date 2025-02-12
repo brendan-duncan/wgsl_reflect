@@ -3,6 +3,25 @@ import { WgslExec } from "../../../wgsl_reflect.module.js";
 
 export async function run() {
     await group("WgslExec", async function () {
+        await test("vec construction", function (test) {
+            const shader = `var<private> v2 = vec2f(-1.0, -2.0);
+            var<private> v3a = vec3f(1, 2, 3);
+            var<private> v3b = vec3f(v2, 4);
+            var<private> v3c = vec3f(5, v2);
+            var<private> v4a = vec4f(1, 2, 3, 4);
+            var<private> v4b = vec4f(v2, 3, 4);
+            var<private> v4c = vec4f(1, v2, 4);
+            var<private> v4d = vec4f(1, 2, v2);
+            var<private> v4e = vec4f(v2, v2);
+            var<private> v4f = vec4f(v3a, 4);
+            var<private> v4g = vec4f(1, v3b);
+            var<private> v4h = vec4f(v4g);`;
+            const wgsl = new WgslExec(shader);
+            wgsl.execute();
+            // Ensure the top-level instructions were executed and the global variable has the correct value.
+            test.equals(wgsl.getVariableValue("v4h"), [1, -1, -2, 4]);
+        });
+
         await test("vec bool", function (test) {
             const shader = `var<private> foo: vec3<bool>;`;
             const wgsl = new WgslExec(shader);

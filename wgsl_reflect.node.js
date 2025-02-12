@@ -9712,11 +9712,24 @@ class WgslExec extends ExecInterface {
         const values = [];
         // TODO: make sure the number of args matches the vector length.
         for (const arg of node.args) {
-            let v = this.evalExpression(arg, context).value;
-            if (isInt) {
-                v = Math.floor(v);
+            const argValue = this.evalExpression(arg, context);
+            if (argValue instanceof VectorData) {
+                const vd = argValue.value;
+                for (let i = 0; i < vd.length; ++i) {
+                    let e = vd[i];
+                    if (isInt) {
+                        e = Math.floor(e);
+                    }
+                    values.push(e);
+                }
             }
-            values.push(v);
+            else if (argValue instanceof ScalarData) {
+                let v = argValue.value;
+                if (isInt) {
+                    v = Math.floor(v);
+                }
+                values.push(v);
+            }
         }
         if (typeName === "vec2" || typeName === "vec2f" || typeName === "vec2i" || typeName === "vec2u") {
             if (values.length === 1) {
