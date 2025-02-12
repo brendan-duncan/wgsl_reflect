@@ -194,6 +194,10 @@ export class WgslExec extends ExecInterface {
             }
         } else if (stmt instanceof AST.Call) {
             this._call(stmt, context);
+        } else if (stmt instanceof AST.Diagnostic) {
+            return null; // Nothing to do here.
+        } else if (stmt instanceof AST.Alias) {
+            return null; // Nothing to do here.
         } else {
             console.error(`Invalid statement type.`, stmt, `Line ${stmt.line}`);
         }

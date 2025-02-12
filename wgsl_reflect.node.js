@@ -8008,6 +8008,12 @@ class WgslExec extends ExecInterface {
         else if (stmt instanceof Call) {
             this._call(stmt, context);
         }
+        else if (stmt instanceof Diagnostic) {
+            return null; // Nothing to do here.
+        }
+        else if (stmt instanceof Alias) {
+            return null; // Nothing to do here.
+        }
         else {
             console.error(`Invalid statement type.`, stmt, `Line ${stmt.line}`);
         }
