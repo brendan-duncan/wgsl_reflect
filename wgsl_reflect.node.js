@@ -7828,6 +7828,9 @@ const _u32 = new Uint32Array(1);
 const _u32_f32 = new Float32Array(_u32.buffer);
 const _u32_i32 = new Int32Array(_u32.buffer);
 function castScalar(v, from, to) {
+    if (from === to) {
+        return v;
+    }
     if (from === "f32") {
         if (to === "i32" || to === "x32") {
             _f32[0] = v;
