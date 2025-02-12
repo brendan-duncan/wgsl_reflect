@@ -20,8 +20,6 @@ function build2(input, format, file, sourcemap) {
 let builds = [
     build('src/index.ts', 'esm', 'wgsl_reflect.module.js', true),
     build('src/index.ts', 'cjs', 'wgsl_reflect.node.js', true),
-
-    build2('debugger/debugger.js', 'esm', 'debugger/debugger.module.js', true),
 ];
 
 export default builds;

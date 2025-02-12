@@ -16,7 +16,7 @@ export class BuiltinFunctions {
     }
 
     // Logical Built-in Functions
-    All(node: AST.CallExpr, context: ExecContext): Data {
+    All(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         let isTrue = true;
         if (value instanceof VectorData) {
@@ -26,7 +26,7 @@ export class BuiltinFunctions {
         throw new Error(`All() expects a vector argument. Line ${node.line}`);
     }
 
-    Any(node: AST.CallExpr, context: ExecContext): Data {
+    Any(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             const res = value.value.some((v: any) => v);
@@ -35,7 +35,7 @@ export class BuiltinFunctions {
         throw new Error(`Any() expects a vector argument. Line ${node.line}`);
     }
 
-    Select(node: AST.CallExpr, context: ExecContext): Data {
+    Select(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const condition = this.exec.evalExpression(node.args[2], context);
         if (!(condition instanceof ScalarData)) {
             throw new Error(`Select() expects a bool condition. Line ${node.line}`);
@@ -48,7 +48,7 @@ export class BuiltinFunctions {
     }
 
     // Array Built-in Functions
-    ArrayLength(node: AST.CallExpr, context: ExecContext): Data {
+    ArrayLength(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         let arrayArg = node.args[0];
         // TODO: handle "&" operator
         if (arrayArg instanceof AST.UnaryOperator) {
@@ -64,7 +64,7 @@ export class BuiltinFunctions {
     }
 
     // Numeric Built-in Functions
-    Abs(node: AST.CallExpr, context: ExecContext): Data {
+    Abs(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             return new VectorData(value.value.map((v: number) => Math.abs(v)), value.typeInfo);
@@ -73,7 +73,7 @@ export class BuiltinFunctions {
         return new ScalarData(Math.abs(s.value), s.typeInfo);
     }
 
-    Acos(node: AST.CallExpr, context: ExecContext): Data {
+    Acos(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             return new VectorData(value.value.map((v: number) => Math.acos(v)), value.typeInfo);
@@ -82,7 +82,7 @@ export class BuiltinFunctions {
         return new ScalarData(Math.acos(s.value), value.typeInfo);
     }
 
-    Acosh(node: AST.CallExpr, context: ExecContext): Data {
+    Acosh(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             return new VectorData(value.value.map((v: number) => Math.acosh(v)), value.typeInfo);
@@ -91,7 +91,7 @@ export class BuiltinFunctions {
         return new ScalarData(Math.acosh(s.value), value.typeInfo);
     }
 
-    Asin(node: AST.CallExpr, context: ExecContext): Data {
+    Asin(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             return new VectorData(value.value.map((v: number) => Math.asin(v)), value.typeInfo);
@@ -100,7 +100,7 @@ export class BuiltinFunctions {
         return new ScalarData(Math.asin(s.value), value.typeInfo);
     }
 
-    Asinh(node: AST.CallExpr, context: ExecContext): Data {
+    Asinh(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             return new VectorData(value.value.map((v: number) => Math.asinh(v)), value.typeInfo);
@@ -109,7 +109,7 @@ export class BuiltinFunctions {
         return new ScalarData(Math.asinh(s.value), value.typeInfo);
     }
 
-    Atan(node: AST.CallExpr, context: ExecContext): Data {
+    Atan(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             return new VectorData(value.value.map((v: number) => Math.atan(v)), value.typeInfo);
@@ -118,7 +118,7 @@ export class BuiltinFunctions {
         return new ScalarData(Math.atan(s.value), value.typeInfo);
     }
 
-    Atanh(node: AST.CallExpr, context: ExecContext): Data {
+    Atanh(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             return new VectorData(value.value.map((v: number) => Math.atanh(v)), value.typeInfo);
@@ -127,7 +127,7 @@ export class BuiltinFunctions {
         return new ScalarData(Math.atanh(s.value), value.typeInfo);
     }
 
-    Atan2(node: AST.CallExpr, context: ExecContext): Data {
+    Atan2(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const y = this.exec.evalExpression(node.args[0], context);
         const x = this.exec.evalExpression(node.args[1], context);
         if (y instanceof VectorData && x instanceof VectorData) {
@@ -138,7 +138,7 @@ export class BuiltinFunctions {
         return new ScalarData(Math.atan2(ys.value, xs.value), y.typeInfo);
     }
 
-    Ceil(node: AST.CallExpr, context: ExecContext): Data {
+    Ceil(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             return new VectorData(value.value.map((v: number) => Math.ceil(v)), value.typeInfo);
@@ -151,7 +151,7 @@ export class BuiltinFunctions {
         return Math.min(Math.max(value, min), max);
     }
 
-    Clamp(node: AST.CallExpr, context: ExecContext): Data {
+    Clamp(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         const min = this.exec.evalExpression(node.args[1], context);
         const max = this.exec.evalExpression(node.args[2], context);
@@ -164,7 +164,7 @@ export class BuiltinFunctions {
         return new ScalarData(this._clamp(s.value, minS.value, maxS.value), value.typeInfo);
     }
 
-    Cos(node: AST.CallExpr, context: ExecContext): Data {
+    Cos(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             return new VectorData(value.value.map((v: number) => Math.cos(v)), value.typeInfo);
@@ -173,7 +173,7 @@ export class BuiltinFunctions {
         return new ScalarData(Math.cos(s.value), value.typeInfo);
     }
 
-    Cosh(node: AST.CallExpr, context: ExecContext): Data {
+    Cosh(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             return new VectorData(value.value.map((v: number) => Math.cosh(v)), value.typeInfo);
@@ -182,7 +182,7 @@ export class BuiltinFunctions {
         return new ScalarData(Math.cos(s.value), value.typeInfo);
     }
 
-    CountLeadingZeros(node: AST.CallExpr, context: ExecContext): Data {
+    CountLeadingZeros(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             return new VectorData(value.value.map((v: number) => Math.clz32(v)), value.typeInfo);
@@ -202,7 +202,7 @@ export class BuiltinFunctions {
         return count;
     }
 
-    CountOneBits(node: AST.CallExpr, context: ExecContext): Data {
+    CountOneBits(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             return new VectorData(value.value.map((v: number) => this._countOneBits(v)), value.typeInfo);
@@ -223,7 +223,7 @@ export class BuiltinFunctions {
         return count;
     }
 
-    CountTrailingZeros(node: AST.CallExpr, context: ExecContext): Data {
+    CountTrailingZeros(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             return new VectorData(value.value.map((v: number) => this._countTrailingZeros(v)), value.typeInfo);
@@ -232,7 +232,7 @@ export class BuiltinFunctions {
         return new ScalarData(this._countTrailingZeros(s.value), value.typeInfo);
     }
 
-    Cross(node: AST.CallExpr, context: ExecContext): Data {
+    Cross(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const l = this.exec.evalExpression(node.args[0], context);
         const r = this.exec.evalExpression(node.args[1], context);
         if (l instanceof VectorData && r instanceof VectorData) {
@@ -252,7 +252,7 @@ export class BuiltinFunctions {
         return null;
     }
 
-    Degrees(node: AST.CallExpr, context: ExecContext): Data {
+    Degrees(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         const radToDeg = 180.0 / Math.PI;
         if (value instanceof VectorData) {
@@ -262,7 +262,7 @@ export class BuiltinFunctions {
         return new ScalarData(s.value * radToDeg, value.typeInfo);
     }
 
-    Determinant(node: AST.CallExpr, context: ExecContext): Data {
+    Determinant(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const m = this.exec.evalExpression(node.args[0], context);
         if (m instanceof MatrixData) {
             const mv = m.value;
@@ -295,7 +295,7 @@ export class BuiltinFunctions {
         return null;
     }
 
-    Distance(node: AST.CallExpr, context: ExecContext): Data {
+    Distance(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const l = this.exec.evalExpression(node.args[0], context);
         const r = this.exec.evalExpression(node.args[1], context);
         if (l instanceof VectorData && r instanceof VectorData) {
@@ -318,7 +318,7 @@ export class BuiltinFunctions {
         return dot;
     }
 
-    Dot(node: AST.CallExpr, context: ExecContext): Data {
+    Dot(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const l = this.exec.evalExpression(node.args[0], context);
         const r = this.exec.evalExpression(node.args[1], context);
         if (l instanceof VectorData && r instanceof VectorData) {
@@ -328,17 +328,17 @@ export class BuiltinFunctions {
         return null;
     }
 
-    Dot4U8Packed(node: AST.CallExpr, context: ExecContext): Data {
+    Dot4U8Packed(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error(`TODO: dot4U8Packed. Line ${node.line}`);
         return null;
     }
 
-    Dot4I8Packed(node: AST.CallExpr, context: ExecContext): Data {
+    Dot4I8Packed(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error(`TODO: dot4I8Packed. Line ${node.line}`);
         return null;
     }
 
-    Exp(node: AST.CallExpr, context: ExecContext): Data {
+    Exp(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             return new VectorData(value.value.map((v: number) => Math.exp(v)), value.typeInfo);
@@ -347,7 +347,7 @@ export class BuiltinFunctions {
         return new ScalarData(Math.exp(s.value), value.typeInfo);
     }
 
-    Exp2(node: AST.CallExpr, context: ExecContext): Data {
+    Exp2(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             return new VectorData(value.value.map((v: number) => Math.pow(2, v)), value.typeInfo);
@@ -356,7 +356,7 @@ export class BuiltinFunctions {
         return new ScalarData(Math.pow(2, s.value), value.typeInfo);
     }
 
-    ExtractBits(node: AST.CallExpr, context: ExecContext): Data {
+    ExtractBits(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         const offset = this.exec.evalExpression(node.args[1], context);
         const count = this.exec.evalExpression(node.args[2], context);
@@ -384,22 +384,22 @@ export class BuiltinFunctions {
         return new ScalarData((v >> o) & ((1 << c) - 1), this.getTypeInfo("i32"));
     }
 
-    FaceForward(node: AST.CallExpr, context: ExecContext): Data {
+    FaceForward(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error(`TODO: faceForward. Line ${node.line}`);
         return null;
     }
 
-    FirstLeadingBit(node: AST.CallExpr, context: ExecContext): Data {
+    FirstLeadingBit(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error(`TODO: firstLeadingBit. Line ${node.line}`);
         return null;
     }
 
-    FirstTrailingBit(node: AST.CallExpr, context: ExecContext): Data {
+    FirstTrailingBit(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error(`TODO: firstTrailingBit. Line ${node.line}`);
         return null;
     }
 
-    Floor(node: AST.CallExpr, context: ExecContext): Data {
+    Floor(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             return new VectorData(value.value.map((v: number) => Math.floor(v)), value.typeInfo);
@@ -408,7 +408,7 @@ export class BuiltinFunctions {
         return new ScalarData(Math.floor(s.value), value.typeInfo);
     }
 
-    Fma(node: AST.CallExpr, context: ExecContext): Data {
+    Fma(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const a = this.exec.evalExpression(node.args[0], context);
         const b = this.exec.evalExpression(node.args[1], context);
         const c = this.exec.evalExpression(node.args[2], context);
@@ -425,7 +425,7 @@ export class BuiltinFunctions {
         return new ScalarData(av.value * bv.value + cv.value, av.typeInfo);
     }
 
-    Fract(node: AST.CallExpr, context: ExecContext): Data {
+    Fract(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             return new VectorData(value.value.map((v: number) => v - Math.floor(v)), value.typeInfo);
@@ -434,12 +434,12 @@ export class BuiltinFunctions {
         return new ScalarData(s.value - Math.floor(s.value), value.typeInfo);
     }
 
-    Frexp(node: AST.CallExpr, context: ExecContext): Data {
+    Frexp(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error(`TODO: frexp. Line ${node.line}`);
         return null;
     }
 
-    InsertBits(node: AST.CallExpr, context: ExecContext): Data {
+    InsertBits(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         const insert = this.exec.evalExpression(node.args[1], context);
         const offset = this.exec.evalExpression(node.args[2], context);
@@ -465,7 +465,7 @@ export class BuiltinFunctions {
         return new ScalarData((v & invMask) | ((i << o) & mask), value.typeInfo);
     }
 
-    InverseSqrt(node: AST.CallExpr, context: ExecContext): Data {
+    InverseSqrt(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             return new VectorData(value.value.map((v: number) => 1 / Math.sqrt(v)), value.typeInfo);
@@ -474,12 +474,12 @@ export class BuiltinFunctions {
         return new ScalarData(1 / Math.sqrt(s.value), value.typeInfo);
     }
 
-    Ldexp(node: AST.CallExpr, context: ExecContext): Data {
+    Ldexp(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error(`TODO: ldexp. Line ${node.line}`);
         return null;
     }
 
-    Length(node: AST.CallExpr, context: ExecContext): Data {
+    Length(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             let sum = 0;
@@ -490,7 +490,7 @@ export class BuiltinFunctions {
         return new ScalarData(Math.abs(s.value), value.typeInfo);
     }
 
-    Log(node: AST.CallExpr, context: ExecContext): Data {
+    Log(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             return new VectorData(value.value.map((v: number) => Math.log(v)), value.typeInfo);
@@ -499,7 +499,7 @@ export class BuiltinFunctions {
         return new ScalarData(Math.log(s.value), value.typeInfo);
     }
 
-    Log2(node: AST.CallExpr, context: ExecContext): Data {
+    Log2(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             return new VectorData(value.value.map((v: number) => Math.log2(v)), value.typeInfo);
@@ -508,7 +508,7 @@ export class BuiltinFunctions {
         return new ScalarData(Math.log2(s.value), value.typeInfo);
     }
 
-    Max(node: AST.CallExpr, context: ExecContext): Data {
+    Max(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const l = this.exec.evalExpression(node.args[0], context);
         const r = this.exec.evalExpression(node.args[1], context);
         if (l instanceof VectorData && r instanceof VectorData) {
@@ -519,7 +519,7 @@ export class BuiltinFunctions {
         return new ScalarData(Math.max(ls.value, rs.value), l.typeInfo);
     }
 
-    Min(node: AST.CallExpr, context: ExecContext): Data {
+    Min(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const l = this.exec.evalExpression(node.args[0], context);
         const r = this.exec.evalExpression(node.args[1], context);
         if (l instanceof VectorData && r instanceof VectorData) {
@@ -530,7 +530,7 @@ export class BuiltinFunctions {
         return new ScalarData(Math.min(ls.value, rs.value), l.typeInfo);
     }
 
-    Mix(node: AST.CallExpr, context: ExecContext): Data {
+    Mix(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const x = this.exec.evalExpression(node.args[0], context);
         const y = this.exec.evalExpression(node.args[1], context);
         const a = this.exec.evalExpression(node.args[2], context);
@@ -543,7 +543,7 @@ export class BuiltinFunctions {
         return new ScalarData(xs.value * (1 - as.value) + ys.value * as.value, x.typeInfo);
     }
 
-    Modf(node: AST.CallExpr, context: ExecContext): Data {
+    Modf(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const x = this.exec.evalExpression(node.args[0], context);
         const y = this.exec.evalExpression(node.args[1], context);
         if (x instanceof VectorData && y instanceof VectorData) {
@@ -554,7 +554,7 @@ export class BuiltinFunctions {
         return new ScalarData(xs.value % ys.value, x.typeInfo);
     }
 
-    Normalize(node: AST.CallExpr, context: ExecContext): Data {
+    Normalize(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             const length = (this.Length(node, context) as ScalarData).value;
@@ -564,7 +564,7 @@ export class BuiltinFunctions {
         return null;
     }
 
-    Pow(node: AST.CallExpr, context: ExecContext): Data {
+    Pow(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const x = this.exec.evalExpression(node.args[0], context);
         const y = this.exec.evalExpression(node.args[1], context);
         if (x instanceof VectorData && y instanceof VectorData) {
@@ -575,12 +575,12 @@ export class BuiltinFunctions {
         return new ScalarData(Math.pow(xs.value, ys.value), x.typeInfo);
     }
 
-    QuantizeToF16(node: AST.CallExpr, context: ExecContext): Data {
+    QuantizeToF16(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error(`TODO: quantizeToF16. Line ${node.line}`);
         return null;
     }
 
-    Radians(node: AST.CallExpr, context: ExecContext): Data {
+    Radians(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             return new VectorData(value.value.map((v: number) => v * Math.PI / 180), value.typeInfo);
@@ -589,7 +589,7 @@ export class BuiltinFunctions {
         return new ScalarData(s.value * Math.PI / 180, value.typeInfo);
     }
 
-    Reflect(node: AST.CallExpr, context: ExecContext): Data {
+    Reflect(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         // e1 - 2 * dot(e2, e1) * e2
         let e1 = this.exec.evalExpression(node.args[0], context);
         let e2 = this.exec.evalExpression(node.args[1], context);
@@ -601,7 +601,7 @@ export class BuiltinFunctions {
         return null;
     }
 
-    Refract(node: AST.CallExpr, context: ExecContext): Data {
+    Refract(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         let e1 = this.exec.evalExpression(node.args[0], context);
         let e2 = this.exec.evalExpression(node.args[1], context);
         let e3 = this.exec.evalExpression(node.args[2], context);
@@ -621,12 +621,12 @@ export class BuiltinFunctions {
         return null;
     }
 
-    ReverseBits(node: AST.CallExpr, context: ExecContext): Data {
+    ReverseBits(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error(`TODO: reverseBits. Line ${node.line}`);
         return null;
     }
 
-    Round(node: AST.CallExpr, context: ExecContext): Data {
+    Round(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             return new VectorData(value.value.map((v: number) => Math.round(v)), value.typeInfo);
@@ -635,7 +635,7 @@ export class BuiltinFunctions {
         return new ScalarData(Math.round(s.value), value.typeInfo);
     }
 
-    Saturate(node: AST.CallExpr, context: ExecContext): Data {
+    Saturate(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             return new VectorData(value.value.map((v: number) => Math.min(Math.max(v, 0), 1)), value.typeInfo);
@@ -644,7 +644,7 @@ export class BuiltinFunctions {
         return new ScalarData(Math.min(Math.max(s.value, 0), 1), value.typeInfo);
     }
 
-    Sign(node: AST.CallExpr, context: ExecContext): Data {
+    Sign(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             return new VectorData(value.value.map((v: number) => Math.sign(v)), value.typeInfo);
@@ -653,7 +653,7 @@ export class BuiltinFunctions {
         return new ScalarData(Math.sign(s.value), value.typeInfo);
     }
 
-    Sin(node: AST.CallExpr, context: ExecContext): Data {
+    Sin(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             return new VectorData(value.value.map((v: number) => Math.sin(v)), value.typeInfo);
@@ -662,7 +662,7 @@ export class BuiltinFunctions {
         return new ScalarData(Math.sin(s.value), value.typeInfo);
     }
 
-    Sinh(node: AST.CallExpr, context: ExecContext): Data {
+    Sinh(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             return new VectorData(value.value.map((v: number) => Math.sinh(v)), value.typeInfo);
@@ -676,7 +676,7 @@ export class BuiltinFunctions {
         return t * t * (3 - 2 * t);
     }
 
-    SmoothStep(node: AST.CallExpr, context: ExecContext): Data {
+    SmoothStep(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const edge0 = this.exec.evalExpression(node.args[0], context);
         const edge1 = this.exec.evalExpression(node.args[1], context);
         const x = this.exec.evalExpression(node.args[2], context);
@@ -689,7 +689,7 @@ export class BuiltinFunctions {
         return new ScalarData(this._smoothstep(e0.value, e1.value, xS.value), x.typeInfo);
     }
 
-    Sqrt(node: AST.CallExpr, context: ExecContext): Data {
+    Sqrt(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             return new VectorData(value.value.map((v: number) => Math.sqrt(v)), value.typeInfo);
@@ -698,7 +698,7 @@ export class BuiltinFunctions {
         return new ScalarData(Math.sqrt(s.value), value.typeInfo);
     }
 
-    Step(node: AST.CallExpr, context: ExecContext): Data {
+    Step(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const edge = this.exec.evalExpression(node.args[0], context);
         const x = this.exec.evalExpression(node.args[1], context);
         if (x instanceof VectorData && edge instanceof VectorData) {
@@ -709,7 +709,7 @@ export class BuiltinFunctions {
         return new ScalarData(s.value < e.value ? 0 : 1, e.typeInfo);
     }
 
-    Tan(node: AST.CallExpr, context: ExecContext): Data {
+    Tan(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             return new VectorData(value.value.map((v: number) => Math.tan(v)), value.typeInfo);
@@ -718,7 +718,7 @@ export class BuiltinFunctions {
         return new ScalarData(Math.tan(s.value), value.typeInfo);
     }
 
-    Tanh(node: AST.CallExpr, context: ExecContext): Data {
+    Tanh(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             return new VectorData(value.value.map((v: number) => Math.tanh(v)), value.typeInfo);
@@ -727,12 +727,12 @@ export class BuiltinFunctions {
         return new ScalarData(Math.tanh(s.value), value.typeInfo);
     }
 
-    Transpose(node: AST.CallExpr, context: ExecContext): Data {
+    Transpose(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error(`TODO: transpose. Line ${node.line}`);
         return null;
     }
 
-    Trunc(node: AST.CallExpr, context: ExecContext): Data {
+    Trunc(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             return new VectorData(value.value.map((v: number) => Math.trunc(v)), value.typeInfo);
@@ -742,53 +742,53 @@ export class BuiltinFunctions {
     }
 
     // Derivative Built-in Functions
-    Dpdx(node: AST.CallExpr, context: ExecContext): Data {
+    Dpdx(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error(`TODO: dpdx. Line ${node.line}`);
         return null;
     }
 
-    DpdxCoarse(node: AST.CallExpr, context: ExecContext): Data {
+    DpdxCoarse(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error(`TODO: dpdxCoarse. Line ${node.line}`);
         return null;
     }
 
-    DpdxFine(node: AST.CallExpr, context: ExecContext): Data {
+    DpdxFine(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: dpdxFine");
         return null;
     }
 
-    Dpdy(node: AST.CallExpr, context: ExecContext): Data {
+    Dpdy(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: dpdy");
         return null;
     }
 
-    DpdyCoarse(node: AST.CallExpr, context: ExecContext): Data {
+    DpdyCoarse(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: dpdyCoarse");
         return null;
     }
 
-    DpdyFine(node: AST.CallExpr, context: ExecContext): Data {
+    DpdyFine(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: dpdyFine");
         return null;
     }
 
-    Fwidth(node: AST.CallExpr, context: ExecContext): Data {
+    Fwidth(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: fwidth");
         return null;
     }
 
-    FwidthCoarse(node: AST.CallExpr, context: ExecContext): Data {
+    FwidthCoarse(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: fwidthCoarse");
         return null;
     }
 
-    FwidthFine(node: AST.CallExpr, context: ExecContext): Data {
+    FwidthFine(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: fwidthFine");
         return null;
     }
 
     // Texture Built-in Functions
-    TextureDimensions(node: AST.CallExpr, context: ExecContext): Data {
+    TextureDimensions(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const textureArg = node.args[0];
         const level = node.args.length > 1 ? (this.exec.evalExpression(node.args[1], context) as ScalarData).value : 0;
         if (level > 0) {
@@ -810,17 +810,17 @@ export class BuiltinFunctions {
         return null;
     }
 
-    TextureGather(node: AST.CallExpr, context: ExecContext): Data {
+    TextureGather(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: textureGather");
         return null;
     }
 
-    TextureGatherCompare(node: AST.CallExpr, context: ExecContext): Data {
+    TextureGatherCompare(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: textureGatherCompare");
         return null;
     }
 
-    TextureLoad(node: AST.CallExpr, context: ExecContext): Data {
+    TextureLoad(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         const textureArg = node.args[0];
         const uv = this.exec.evalExpression(node.args[1], context);
         const level = node.args.length > 2 ? (this.exec.evalExpression(node.args[2], context) as ScalarData).value : 0;
@@ -861,343 +861,530 @@ export class BuiltinFunctions {
         return null;
     }
 
-    TextureNumLayers(node: AST.CallExpr, context: ExecContext): Data {
+    TextureNumLayers(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: textureNumLayers");
         return null;
     }
 
-    TextureNumLevels(node: AST.CallExpr, context: ExecContext): Data {
+    TextureNumLevels(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: textureNumLevels");
         return null;
     }
 
-    TextureNumSamples(node: AST.CallExpr, context: ExecContext): Data {
+    TextureNumSamples(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: textureNumSamples");
         return null;
     }
 
-    TextureSample(node: AST.CallExpr, context: ExecContext): Data {
+    TextureSample(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: textureSample");
         return null;
     }
 
-    TextureSampleBias(node: AST.CallExpr, context: ExecContext): Data {
+    TextureSampleBias(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: textureSampleBias");
         return null;
     }
 
-    TextureSampleCompare(node: AST.CallExpr, context: ExecContext): Data {
+    TextureSampleCompare(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: textureSampleCompare");
         return null;
     }
 
-    TextureSampleCompareLevel(node: AST.CallExpr, context: ExecContext): Data {
+    TextureSampleCompareLevel(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: textureSampleCompareLevel");
         return null;
     }
 
-    TextureSampleGrad(node: AST.CallExpr, context: ExecContext): Data {
+    TextureSampleGrad(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: textureSampleGrad");
         return null;
     }
 
-    TextureSampleLevel(node: AST.CallExpr, context: ExecContext): Data {
+    TextureSampleLevel(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: textureSampleLevel");
         return null;
     }
 
-    TextureSampleBaseClampToEdge(node: AST.CallExpr, context: ExecContext): Data {
+    TextureSampleBaseClampToEdge(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: textureSampleBaseClampToEdge");
         return null;
     }
 
-    TextureStore(node: AST.CallExpr, context: ExecContext): Data {
+    TextureStore(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: textureStore");
         return null;
     }
 
     // Atomic Built-in Functions
-    AtomicLoad(node: AST.CallExpr, context: ExecContext): Data {
-        console.error("TODO: atomicLoad");
+    AtomicLoad(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
+        let l = node.args[0];
+        if (l instanceof AST.UnaryOperator) {
+            // TODO: handle & operator
+            l = l.right;
+        }
+
+        const name = this.exec._getVariableName(l, context);
+        const v = context.getVariable(name);
+
+        const currentValue = v.value.getDataValue(this.exec, l.postfix, context);
+        return currentValue;
+    }
+
+    AtomicStore(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
+        let l = node.args[0];
+        if (l instanceof AST.UnaryOperator) {
+            // TODO: handle & operator
+            l = l.right;
+        }
+
+        const name = this.exec._getVariableName(l, context);
+        const v = context.getVariable(name);
+
+        let r = node.args[1];
+        const value = this.exec.evalExpression(r, context);
+
+        const currentValue = v.value.getDataValue(this.exec, l.postfix, context);
+
+        if (currentValue instanceof ScalarData && value instanceof ScalarData) {
+            currentValue.value = value.value;
+        }
+
+        if (v.value instanceof TypedData) {
+            v.value.setDataValue(this.exec, currentValue, l.postfix, context);
+        }
+
         return null;
     }
 
-    AtomicStore(node: AST.CallExpr, context: ExecContext): Data {
-        console.error("TODO: atomicStore");
+    AtomicAdd(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
+        let l = node.args[0];
+        if (l instanceof AST.UnaryOperator) {
+            // TODO: handle & operator
+            l = l.right;
+        }
+
+        const name = this.exec._getVariableName(l, context);
+        const v = context.getVariable(name);
+
+        let r = node.args[1];
+        const value = this.exec.evalExpression(r, context);
+
+        const currentValue = v.value.getDataValue(this.exec, l.postfix, context);
+
+        if (currentValue instanceof ScalarData && value instanceof ScalarData) {
+            currentValue.value += value.value;
+        }
+
+        if (v.value instanceof TypedData) {
+            v.value.setDataValue(this.exec, currentValue, l.postfix, context);
+        }
+
         return null;
     }
 
-    AtomicAdd(node: AST.CallExpr, context: ExecContext): Data {
-        console.error("TODO: atomicAdd");
+    AtomicSub(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
+        let l = node.args[0];
+        if (l instanceof AST.UnaryOperator) {
+            // TODO: handle & operator
+            l = l.right;
+        }
+
+        const name = this.exec._getVariableName(l, context);
+        const v = context.getVariable(name);
+
+        let r = node.args[1];
+        const value = this.exec.evalExpression(r, context);
+
+        const currentValue = v.value.getDataValue(this.exec, l.postfix, context);
+
+        if (currentValue instanceof ScalarData && value instanceof ScalarData) {
+            currentValue.value -= value.value;
+        }
+
+        if (v.value instanceof TypedData) {
+            v.value.setDataValue(this.exec, currentValue, l.postfix, context);
+        }
+
         return null;
     }
 
-    AtomicSub(node: AST.CallExpr, context: ExecContext): Data {
-        console.error("TODO: atomicSub");
-        return null;
+    AtomicMax(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
+        let l = node.args[0];
+        if (l instanceof AST.UnaryOperator) {
+            // TODO: handle & operator
+            l = l.right;
+        }
+
+        const name = this.exec._getVariableName(l, context);
+        const v = context.getVariable(name);
+
+        let r = node.args[1];
+        const value = this.exec.evalExpression(r, context);
+
+        const currentValue = v.value.getDataValue(this.exec, l.postfix, context);
+
+        const originalValue = new ScalarData((currentValue as ScalarData).value, currentValue.typeInfo);
+
+        if (currentValue instanceof ScalarData && value instanceof ScalarData) {
+            currentValue.value = Math.max(currentValue.value, value.value);
+        }
+
+        if (v.value instanceof TypedData) {
+            v.value.setDataValue(this.exec, currentValue, l.postfix, context);
+        }
+
+        return originalValue;
     }
 
-    AtomicMax(node: AST.CallExpr, context: ExecContext): Data {
-        console.error("TODO: atomicMax");
-        return null;
+    AtomicMin(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
+        let l = node.args[0];
+        if (l instanceof AST.UnaryOperator) {
+            // TODO: handle & operator
+            l = l.right;
+        }
+
+        const name = this.exec._getVariableName(l, context);
+        const v = context.getVariable(name);
+
+        let r = node.args[1];
+        const value = this.exec.evalExpression(r, context);
+
+        const currentValue = v.value.getDataValue(this.exec, l.postfix, context);
+
+        const originalValue = new ScalarData((currentValue as ScalarData).value, currentValue.typeInfo);
+
+        if (currentValue instanceof ScalarData && value instanceof ScalarData) {
+            currentValue.value = Math.min(currentValue.value, value.value);
+        }
+
+        if (v.value instanceof TypedData) {
+            v.value.setDataValue(this.exec, currentValue, l.postfix, context);
+        }
+
+        return originalValue;
     }
 
-    AtomicMin(node: AST.CallExpr, context: ExecContext): Data {
-        console.error("TODO: atomicMin");
-        return null;
+    AtomicAnd(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
+        let l = node.args[0];
+        if (l instanceof AST.UnaryOperator) {
+            // TODO: handle & operator
+            l = l.right;
+        }
+
+        const name = this.exec._getVariableName(l, context);
+        const v = context.getVariable(name);
+
+        let r = node.args[1];
+        const value = this.exec.evalExpression(r, context);
+
+        const currentValue = v.value.getDataValue(this.exec, l.postfix, context);
+
+        const originalValue = new ScalarData((currentValue as ScalarData).value, currentValue.typeInfo);
+
+        if (currentValue instanceof ScalarData && value instanceof ScalarData) {
+            currentValue.value = currentValue.value & value.value;
+        }
+
+        if (v.value instanceof TypedData) {
+            v.value.setDataValue(this.exec, currentValue, l.postfix, context);
+        }
+
+        return originalValue;
     }
 
-    AtomicAnd(node: AST.CallExpr, context: ExecContext): Data {
-        console.error("TODO: atomicAnd");
-        return null;
+    AtomicOr(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
+        let l = node.args[0];
+        if (l instanceof AST.UnaryOperator) {
+            // TODO: handle & operator
+            l = l.right;
+        }
+
+        const name = this.exec._getVariableName(l, context);
+        const v = context.getVariable(name);
+
+        let r = node.args[1];
+        const value = this.exec.evalExpression(r, context);
+
+        const currentValue = v.value.getDataValue(this.exec, l.postfix, context);
+
+        const originalValue = new ScalarData((currentValue as ScalarData).value, currentValue.typeInfo);
+
+        if (currentValue instanceof ScalarData && value instanceof ScalarData) {
+            currentValue.value = currentValue.value | value.value;
+        }
+
+        if (v.value instanceof TypedData) {
+            v.value.setDataValue(this.exec, currentValue, l.postfix, context);
+        }
+
+        return originalValue;
     }
 
-    AtomicOr(node: AST.CallExpr, context: ExecContext): Data {
-        console.error("TODO: atomicOr");
-        return null;
+    AtomicXor(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
+        let l = node.args[0];
+        if (l instanceof AST.UnaryOperator) {
+            // TODO: handle & operator
+            l = l.right;
+        }
+
+        const name = this.exec._getVariableName(l, context);
+        const v = context.getVariable(name);
+
+        let r = node.args[1];
+        const value = this.exec.evalExpression(r, context);
+
+        const currentValue = v.value.getDataValue(this.exec, l.postfix, context);
+
+        const originalValue = new ScalarData((currentValue as ScalarData).value, currentValue.typeInfo);
+
+        if (currentValue instanceof ScalarData && value instanceof ScalarData) {
+            currentValue.value = currentValue.value ^ value.value;
+        }
+
+        if (v.value instanceof TypedData) {
+            v.value.setDataValue(this.exec, currentValue, l.postfix, context);
+        }
+
+        return originalValue;
     }
 
-    AtomicXor(node: AST.CallExpr, context: ExecContext): Data {
-        console.error("TODO: atomicXor");
-        return null;
-    }
-
-    AtomicExchange(node: AST.CallExpr, context: ExecContext): Data {
+    AtomicExchange(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: atomicExchange");
         return null;
     }
 
-    AtomicCompareExchangeWeak(node: AST.CallExpr, context: ExecContext): Data {
+    AtomicCompareExchangeWeak(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: atomicCompareExchangeWeak");
         return null;
     }
 
     // Data Packing Built-in Functions
-    Pack4x8snorm(node: AST.CallExpr, context: ExecContext): Data {
+    Pack4x8snorm(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: pack4x8snorm");
         return null;
     }
 
-    Pack4x8unorm(node: AST.CallExpr, context: ExecContext): Data {
+    Pack4x8unorm(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: pack4x8unorm");
         return null;
     }
 
-    Pack4xI8(node: AST.CallExpr, context: ExecContext): Data {
+    Pack4xI8(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: pack4xI8");
         return null;
     }
 
-    Pack4xU8(node: AST.CallExpr, context: ExecContext): Data {
+    Pack4xU8(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: pack4xU8");
         return null;
     }
 
-    Pack4x8Clamp(node: AST.CallExpr, context: ExecContext): Data {
+    Pack4x8Clamp(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: pack4x8Clamp");
         return null;
     }
 
-    Pack4xU8Clamp(node: AST.CallExpr, context: ExecContext): Data {
+    Pack4xU8Clamp(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: pack4xU8Clamp");
         return null;
     }
 
-    Pack2x16snorm(node: AST.CallExpr, context: ExecContext): Data {
+    Pack2x16snorm(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: pack2x16snorm");
         return null;
     }
 
-    Pack2x16unorm(node: AST.CallExpr, context: ExecContext): Data {
+    Pack2x16unorm(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: pack2x16unorm");
         return null;
     }
 
-    Pack2x16float(node: AST.CallExpr, context: ExecContext): Data {
+    Pack2x16float(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: pack2x16float");
         return null;
     }
 
     // Data Unpacking Built-in Functions
-    Unpack4x8snorm(node: AST.CallExpr, context: ExecContext): Data {
+    Unpack4x8snorm(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: unpack4x8snorm");
         return null;
     }
 
-    Unpack4x8unorm(node: AST.CallExpr, context: ExecContext): Data {
+    Unpack4x8unorm(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: unpack4x8unorm");
         return null;
     }
 
-    Unpack4xI8(node: AST.CallExpr, context: ExecContext): Data {
+    Unpack4xI8(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: unpack4xI8");
         return null;
     }
 
-    Unpack4xU8(node: AST.CallExpr, context: ExecContext): Data {
+    Unpack4xU8(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: unpack4xU8");
         return null;
     }
 
-    Unpack2x16snorm(node: AST.CallExpr, context: ExecContext): Data {
+    Unpack2x16snorm(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: unpack2x16snorm");
         return null;
     }
 
-    Unpack2x16unorm(node: AST.CallExpr, context: ExecContext): Data {
+    Unpack2x16unorm(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: unpack2x16unorm");
         return null;
     }
 
-    Unpack2x16float(node: AST.CallExpr, context: ExecContext): Data {
+    Unpack2x16float(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: unpack2x16float");
         return null;
     }
 
     // Synchronization Functions
-    StorageBarrier(node: AST.CallExpr, context: ExecContext): Data {
+    StorageBarrier(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         // Execution is single threaded, barriers not necessary.
         return null;
     }
 
-    TextureBarrier(node: AST.CallExpr, context: ExecContext): Data {
+    TextureBarrier(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         // Execution is single threaded, barriers not necessary.
         return null;
     }
 
-    WorkgroupBarrier(node: AST.CallExpr, context: ExecContext): Data {
+    WorkgroupBarrier(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         // Execution is single threaded, barriers not necessary.
         return null;
     }
 
-    WorkgroupUniformLoad(node: AST.CallExpr, context: ExecContext): Data {
+    WorkgroupUniformLoad(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         // Execution is single threaded, barriers not necessary.
         return null;
     }
 
     // Subgroup Functions
-    SubgroupAdd(node: AST.CallExpr, context: ExecContext): Data {
+    SubgroupAdd(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: subgroupAdd");
         return null;
     }
 
-    SubgroupExclusiveAdd(node: AST.CallExpr, context: ExecContext): Data {
+    SubgroupExclusiveAdd(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: subgroupExclusiveAdd");
         return null;
     }
 
-    SubgroupInclusiveAdd(node: AST.CallExpr, context: ExecContext): Data {
+    SubgroupInclusiveAdd(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: subgroupInclusiveAdd");
         return null;
     }
 
-    SubgroupAll(node: AST.CallExpr, context: ExecContext): Data {
+    SubgroupAll(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: subgroupAll");
         return null;
     }
 
-    SubgroupAnd(node: AST.CallExpr, context: ExecContext): Data {
+    SubgroupAnd(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: subgroupAnd");
         return null;
     }
 
-    SubgroupAny(node: AST.CallExpr, context: ExecContext): Data {
+    SubgroupAny(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: subgroupAny");
         return null;
     }
 
-    SubgroupBallot(node: AST.CallExpr, context: ExecContext): Data {
+    SubgroupBallot(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: subgroupBallot");
         return null;
     }
 
-    SubgroupBroadcast(node: AST.CallExpr, context: ExecContext): Data {
+    SubgroupBroadcast(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: subgroupBroadcast");
         return null;
     }
 
-    SubgroupBroadcastFirst(node: AST.CallExpr, context: ExecContext): Data {
+    SubgroupBroadcastFirst(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: subgroupBroadcastFirst");
         return null;
     }
 
-    SubgroupElect(node: AST.CallExpr, context: ExecContext): Data {
+    SubgroupElect(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: subgroupElect");
         return null;
     }
 
-    SubgroupMax(node: AST.CallExpr, context: ExecContext): Data {
+    SubgroupMax(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: subgroupMax");
         return null;
     }
 
-    SubgroupMin(node: AST.CallExpr, context: ExecContext): Data {
+    SubgroupMin(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: subgroupMin");
         return null;
     }
 
-    SubgroupMul(node: AST.CallExpr, context: ExecContext): Data {
+    SubgroupMul(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: subgroupMul");
         return null;
     }
 
-    SubgroupExclusiveMul(node: AST.CallExpr, context: ExecContext): Data {
+    SubgroupExclusiveMul(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: subgroupExclusiveMul");
         return null;
     }
 
-    SubgroupInclusiveMul(node: AST.CallExpr, context: ExecContext): Data {
+    SubgroupInclusiveMul(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: subgroupInclusiveMul");
         return null;
     }
 
-    SubgroupOr(node: AST.CallExpr, context: ExecContext): Data {
+    SubgroupOr(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: subgroupOr");
         return null;
     }
 
-    SubgroupShuffle(node: AST.CallExpr, context: ExecContext): Data {
+    SubgroupShuffle(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: subgroupShuffle");
         return null;
     }
 
-    SubgroupShuffleDown(node: AST.CallExpr, context: ExecContext): Data {
+    SubgroupShuffleDown(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: subgroupShuffleDown");
         return null;
     }
 
-    SubgroupShuffleUp(node: AST.CallExpr, context: ExecContext): Data {
+    SubgroupShuffleUp(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: subgroupShuffleUp");
         return null;
     }
 
-    SubgroupShuffleXor(node: AST.CallExpr, context: ExecContext): Data {
+    SubgroupShuffleXor(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: subgroupShuffleXor");
         return null;
     }
 
-    SubgroupXor(node: AST.CallExpr, context: ExecContext): Data {
+    SubgroupXor(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: subgroupXor");
         return null;
     }
 
     // Quad Functions
-    QuadBroadcast(node: AST.CallExpr, context: ExecContext): Data {
+    QuadBroadcast(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: quadBroadcast");
         return null;
     }
 
-    QuadSwapDiagonal(node: AST.CallExpr, context: ExecContext): Data {
+    QuadSwapDiagonal(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: quadSwapDiagonal");
         return null;
     }
 
-    QuadSwapX(node: AST.CallExpr, context: ExecContext): Data {
+    QuadSwapX(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: quadSwapX");
         return null;
     }
 
-    QuadSwapY(node: AST.CallExpr, context: ExecContext): Data {
+    QuadSwapY(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         console.error("TODO: quadSwapY");
         return null;
     }

@@ -114,7 +114,6 @@ export class WgslExec extends ExecInterface {
         const height = dispatchCount[1];
         const depth = dispatchCount[2];
 
-        console.log(dispatchCount);
         const vec3u = this.getTypeInfo("vec3u");
         context.setVariable("@num_workgroups", new VectorData(dispatchCount, vec3u));
 
@@ -193,6 +192,8 @@ export class WgslExec extends ExecInterface {
             if (context.getVariable(name) === null) {
                 console.error(`Override constant ${name} not found. Line ${stmt.line}`);
             }
+        } else if (stmt instanceof AST.Call) {
+            this._call(stmt, context);
         } else {
             console.error(`Invalid statement type.`, stmt, `Line ${stmt.line}`);
         }
@@ -219,6 +220,59 @@ export class WgslExec extends ExecInterface {
         }
         console.error(`Invalid expression type`, node, `Line ${node.line}`);
         return null;
+    }
+
+    getTypeInfo(type: AST.Type | string): TypeInfo | null {
+        if (type instanceof AST.Type) {
+            const t = this.reflection.getTypeInfo(type as AST.Type);
+            if (t !== null) {
+                return t;
+            }
+        }
+
+        const t = this.typeInfo[type as string] ?? null;
+        if (t !== null) {
+            return t;
+        }
+
+        return null;
+    }
+
+    getTypeName(type: TypeInfo | AST.Type): string {
+        /*if (type instanceof AST.Type) {
+            type = this.getTypeInfo(type);
+        }*/
+        if (type === null) {
+            console.error(`Type is null.`);
+            return "unknown";
+        }
+        let name = type.name;
+        if (type instanceof TemplateInfo || type instanceof AST.TemplateType) {
+            if (type.format !== null) {
+                if (name === "vec2" || name === "vec3" || name === "vec4" ||
+                    name === "mat2x2" || name === "mat2x3" || name === "mat2x4" ||
+                    name === "mat3x2" || name === "mat3x3" || name === "mat3x4" ||
+                    name === "mat4x2" || name === "mat4x3" || name === "mat4x4") {
+                    if (type.format.name === "f32") {
+                        name += "f";
+                        return name;
+                    } else if (type.format.name === "i32") {
+                        name += "i";
+                        return name;
+                    } else if (type.format.name === "u32") {
+                        name += "u";
+                        return name;
+                    }
+                }
+                name += `<${type.format.name}>`;
+            } else {
+                if (name === "vec2" || name === "vec3" || name === "vec4") {
+                    return name;
+                }
+                console.error("Template format is null.");
+            }
+        }
+        return name;
     }
 
     _setOverrides(constants: Object, context: ExecContext): void {
@@ -321,59 +375,6 @@ export class WgslExec extends ExecInterface {
         this._execStatements(f.node.body, context);
     }
 
-    getTypeInfo(type: AST.Type | string): TypeInfo | null {
-        if (type instanceof AST.Type) {
-            const t = this.reflection.getTypeInfo(type as AST.Type);
-            if (t !== null) {
-                return t;
-            }
-        }
-
-        const t = this.typeInfo[type as string] ?? null;
-        if (t !== null) {
-            return t;
-        }
-
-        return null;
-    }
-
-    getTypeName(type: TypeInfo | AST.Type): string {
-        /*if (type instanceof AST.Type) {
-            type = this.getTypeInfo(type);
-        }*/
-        if (type === null) {
-            console.error(`Type is null.`);
-            return "unknown";
-        }
-        let name = type.name;
-        if (type instanceof TemplateInfo || type instanceof AST.TemplateType) {
-            if (type.format !== null) {
-                if (name === "vec2" || name === "vec3" || name === "vec4" ||
-                    name === "mat2x2" || name === "mat2x3" || name === "mat2x4" ||
-                    name === "mat3x2" || name === "mat3x3" || name === "mat3x4" ||
-                    name === "mat4x2" || name === "mat4x3" || name === "mat4x4") {
-                    if (type.format.name === "f32") {
-                        name += "f";
-                        return name;
-                    } else if (type.format.name === "i32") {
-                        name += "i";
-                        return name;
-                    } else if (type.format.name === "u32") {
-                        name += "u";
-                        return name;
-                    }
-                }
-                name += `<${type.format.name}>`;
-            } else {
-                if (name === "vec2" || name === "vec3" || name === "vec4") {
-                    return name;
-                }
-                console.log("Template format is null.");
-            }
-        }
-        return name;
-    }
-
     _getVariableName(node: AST.Node, context: ExecContext): string | null {
         if (node instanceof AST.VariableExpr) {
             return (node as AST.VariableExpr).name;
@@ -401,6 +402,25 @@ export class WgslExec extends ExecInterface {
             }
         }
         return null;
+    }
+
+    _call(node: AST.Call, context: ExecContext): void {
+        const subContext = context.clone();
+        subContext.currentFunctionName = node.name;
+
+        const f = context.functions.get(node.name);
+        if (!f) {
+            this._callBuiltinFunction(node, subContext);
+            return;
+        }
+
+        for (let ai = 0; ai < f.node.args.length; ++ai) {
+            const arg = f.node.args[ai];
+            const value = this.evalExpression(node.args[ai], subContext);
+            subContext.setVariable(arg.name, value, arg);
+        }
+
+        this._execStatements(f.node.body, subContext);
     }
 
     _increment(node: AST.Increment, context: ExecContext): void {
@@ -1249,7 +1269,7 @@ export class WgslExec extends ExecInterface {
         return this._execStatements(f.node.body, subContext);
     }
 
-    _callBuiltinFunction(node: AST.CallExpr, context: ExecContext): Data | null {
+    _callBuiltinFunction(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
         switch (node.name) {
             // Logical Built-in Functions
             case "all":

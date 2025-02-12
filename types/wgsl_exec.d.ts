@@ -16,13 +16,14 @@ export declare class WgslExec extends ExecInterface {
     dispatchWorkgroups(kernel: string, dispatchCount: number | number[], bindGroups: Object, config?: Object): void;
     execStatement(stmt: AST.Node, context: ExecContext): Data | null;
     evalExpression(node: AST.Node, context: ExecContext): Data | null;
+    getTypeInfo(type: AST.Type | string): TypeInfo | null;
+    getTypeName(type: TypeInfo | AST.Type): string;
     _setOverrides(constants: Object, context: ExecContext): void;
     _dispatchWorkgroup(f: Function, workgroup_id: number[], context: ExecContext): void;
     _dispatchExec(f: Function, context: ExecContext): void;
-    getTypeInfo(type: AST.Type | string): TypeInfo | null;
-    getTypeName(type: TypeInfo | AST.Type): string;
     _getVariableName(node: AST.Node, context: ExecContext): string | null;
     _execStatements(statements: Array<AST.Node>, context: ExecContext): Data | null;
+    _call(node: AST.Call, context: ExecContext): void;
     _increment(node: AST.Increment, context: ExecContext): void;
     _assign(node: AST.Assign, context: ExecContext): void;
     _function(node: AST.Function, context: ExecContext): void;
@@ -41,7 +42,7 @@ export declare class WgslExec extends ExecInterface {
     _maxFormatTypeInfo(x: TypeInfo[]): TypeInfo | null;
     _evalBinaryOp(node: AST.BinaryOperator, context: ExecContext): Data | null;
     _evalCall(node: AST.CallExpr, context: ExecContext): Data | null;
-    _callBuiltinFunction(node: AST.CallExpr, context: ExecContext): Data | null;
+    _callBuiltinFunction(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null;
     _callConstructorValue(node: AST.CreateExpr, context: ExecContext): Data | null;
     _callConstructorArray(node: AST.CreateExpr, context: ExecContext): Data | null;
     _callConstructorVec(node: AST.CreateExpr, context: ExecContext): Data | null;

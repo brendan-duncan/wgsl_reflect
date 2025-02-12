@@ -6,4 +6,5 @@ export declare class ExecInterface {
     evalExpression(node: AST.Node, context: ExecContext): Data | null;
     getTypeName(type: TypeInfo | AST.Type): string;
     getTypeInfo(type: AST.Type | string): TypeInfo | null;
+    _getVariableName(node: AST.Node, context: ExecContext): string | null;
 }

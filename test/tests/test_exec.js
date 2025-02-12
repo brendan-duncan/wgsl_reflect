@@ -414,6 +414,52 @@ export async function run() {
                 test.equals(histogramBuffer, webgpuData);
         });
 
+        await test("atomic", async function (test) {
+            const shader = `
+                @group(0) @binding(0) var<storage, read_write> bins: array<atomic<u32>>;
+                @group(0) @binding(1) var ourTexture: texture_2d<f32>;
+
+                const kSRGBLuminanceFactors = vec3f(0.2126, 0.7152, 0.0722);
+                fn srgbLuminance(color: vec3f) -> f32 {
+                    return saturate(dot(color, kSRGBLuminanceFactors));
+                }
+
+                @compute @workgroup_size(1, 1, 1)
+                fn main(@builtin(global_invocation_id) global_invocation_id: vec3u) {
+                    let numBins = f32(arrayLength(&bins));
+                    let lastBinIndex = u32(numBins - 1);
+                    let position = global_invocation_id.xy;
+                    let color = textureLoad(ourTexture, position, 0);
+                    let v = srgbLuminance(color.rgb);
+                    let bin = min(u32(v * numBins), lastBinIndex);
+                    atomicAdd(&bins[bin], 1u);
+                }`;
+
+            const numBins = 256;
+            const histogramBuffer = new Uint32Array(numBins);
+
+            const size = [16, 16];
+            const texture = new Uint8Array(size[0] * size[1] * 4);
+            for (let y = 0, idx = 0; y < size[1]; ++y) {
+                for (let x = 0; x < size[0]; ++x, idx += 4) {
+                    texture[idx + 0] = x * (255 / size[0]);
+                    texture[idx + 1] = y * (255 / size[1]);
+                    texture[idx + 2] = 0;
+                    texture[idx + 3] = 255;
+                }
+            }
+
+            const bg = {0: {0: histogramBuffer, 1: {texture, size}}};
+
+            const _data = await webgpuDispatch(shader, "main", 1, bg);
+            const webgpuData = new Uint32Array(_data);
+
+            const wgsl = new WgslExec(shader);
+            wgsl.dispatchWorkgroups("main", 1, bg);
+
+            test.equals(histogramBuffer, webgpuData);
+        });
+
         test("particles", async function (test) {
             const shader = `
     struct Particle {
@@ -523,7 +569,7 @@ export async function run() {
             const t1 = performance.now();
             wgsl.dispatchWorkgroups("main", 24, bg);
             const t2 = performance.now();
-            console.log("wgsl time: ", t2 - t1);
+            //console.log("wgsl time: ", t2 - t1);
             //while (dbg.stepInto());
             //const t4 = performance.now();
             //console.log("dbg time: ", t4 - t3);

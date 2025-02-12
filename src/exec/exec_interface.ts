@@ -15,4 +15,8 @@ export class ExecInterface {
     getTypeInfo(type: AST.Type | string): TypeInfo | null {
         return null; 
     }
+
+    _getVariableName(node: AST.Node, context: ExecContext): string | null {
+        return "";
+    }
 }

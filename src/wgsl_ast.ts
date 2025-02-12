@@ -32,9 +32,9 @@ export class Node {
     return this.constEvaluate(context).toString();
   }
 
-  search(callback: (node: Node) => void) {}
+  search(callback: (node: Node) => void): void {}
 
-  searchBlock(block: Array<Node> | null, callback: (node: Node) => void) {
+  searchBlock(block: Array<Node> | null, callback: (node: Node) => void): void {
     if (block) {
       callback(_BlockStart.instance);
       for (const node of block) {
@@ -106,7 +106,7 @@ export class Function extends Statement {
     return "function";
   }
 
-  search(callback: (node: Node) => void) {
+  search(callback: (node: Node) => void): void {
     this.searchBlock(this.body, callback);
   }
 }
@@ -128,7 +128,7 @@ export class StaticAssert extends Statement {
     return "staticAssert";
   }
 
-  search(callback: (node: Node) => void) {
+  search(callback: (node: Node) => void): void {
     this.expression.search(callback);
   }
 }
@@ -152,7 +152,7 @@ export class While extends Statement {
     return "while";
   }
 
-  search(callback: (node: Node) => void) {
+  search(callback: (node: Node) => void): void {
     this.condition.search(callback);
     this.searchBlock(this.body, callback);
   }
@@ -175,7 +175,7 @@ export class Continuing extends Statement {
     return "continuing";
   }
 
-  search(callback: (node: Node) => void) {
+  search(callback: (node: Node) => void): void {
     this.searchBlock(this.body, callback);
   }
 }
@@ -208,7 +208,7 @@ export class For extends Statement {
     return "for";
   }
 
-  search(callback: (node: Node) => void) {
+  search(callback: (node: Node) => void): void {
     this.init?.search(callback);
     this.condition?.search(callback);
     this.increment?.search(callback);
@@ -248,7 +248,7 @@ export class Var extends Statement {
     return "var";
   }
 
-  search(callback: (node: Node) => void) {
+  search(callback: (node: Node) => void): void {
     callback(this);
     this.value?.search(callback);
   }
@@ -276,7 +276,7 @@ export class Override extends Statement {
     return "override";
   }
 
-  search(callback: (node: Node) => void) {
+  search(callback: (node: Node) => void): void {
     this.value?.search(callback);
   }
 }
@@ -313,7 +313,7 @@ export class Let extends Statement {
     return "let";
   }
 
-  search(callback: (node: Node) => void) {
+  search(callback: (node: Node) => void): void {
     callback(this);
     this.value?.search(callback);
   }
@@ -355,7 +355,7 @@ export class Const extends Statement {
     return this.value.constEvaluate(context, type);
   }
 
-  search(callback: (node: Node) => void) {
+  search(callback: (node: Node) => void): void {
     callback(this);
     this.value?.search(callback);
   }
@@ -393,7 +393,7 @@ export class Increment extends Statement {
     return "increment";
   }
 
-  search(callback: (node: Node) => void) {
+  search(callback: (node: Node) => void): void {
     this.variable.search(callback);
   }
 }
@@ -473,7 +473,7 @@ export class Call extends Statement {
     return "call";
   }
 
-  search(callback: (node: Node) => void) {
+  search(callback: (node: Node) => void): void {
     for (const node of this.args) {
       node.search(callback);
     }
@@ -549,7 +549,7 @@ export class If extends Statement {
     return "if";
   }
 
-  search(callback: (node: Node) => void) {
+  search(callback: (node: Node) => void): void {
     this.condition.search(callback);
     this.searchBlock(this.body, callback);
     this.searchBlock(this.elseif, callback);
@@ -574,7 +574,7 @@ export class Return extends Statement {
     return "return";
   }
 
-  search(callback: (node: Node) => void) {
+  search(callback: (node: Node) => void): void {
     this.value?.search(callback);
   }
 }
@@ -986,7 +986,7 @@ export class CreateExpr extends Expression {
     return "createExpr";
   }
 
-  search(callback: (node: Node) => void) {
+  search(callback: (node: Node) => void): void {
     callback(this);
     if (this.args) {
       for (const node of this.args) {
@@ -1777,7 +1777,7 @@ export class CallExpr extends Expression {
     return "callExpr";
   }
 
-  setCachedReturnValue(value: any) {
+  setCachedReturnValue(value: any): void {
     this.cachedReturnValue = value;
   }
 
@@ -2353,7 +2353,7 @@ export class ConstExpr extends Expression {
     return this.initializer.constEvaluate(context, type);
   }
 
-  search(callback: (node: Node) => void) {
+  search(callback: (node: Node) => void): void {
     this.initializer.search(callback);
   }
 }
@@ -2384,9 +2384,9 @@ export class LiteralExpr extends Expression {
     return this.value;
   }
 
-  get scalarValue() { return this.value as number; }
+  get scalarValue(): number { return this.value as number; }
 
-  get vectorValue() { return this.value as number[]; }
+  get vectorValue(): number[] { return this.value as number[]; }
 }
 
 /**
@@ -2439,7 +2439,7 @@ export class TypecastExpr extends Expression {
     return this.args[0].constEvaluate(context);
   }
 
-  search(callback: (node: Node) => void) {
+  search(callback: (node: Node) => void): void {
     this.searchBlock(this.args, callback);
   }
 }
@@ -2721,7 +2721,7 @@ export class BinaryOperator extends Operator {
     }
   }
 
-  search(callback: (node: Node) => void) {
+  search(callback: (node: Node) => void): void {
     this.left.search(callback);
     this.right.search(callback);
   }

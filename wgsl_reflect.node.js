@@ -5731,6 +5731,9 @@ class ExecInterface {
     getTypeInfo(type) {
         return null;
     }
+    _getVariableName(node, context) {
+        return "";
+    }
 }
 
 class Data {
@@ -5768,13 +5771,14 @@ class ScalarData extends Data {
             console.error(`SetDataValue: Scalar data does not support postfix`, postfix);
             return;
         }
-        if (this.typeInfo.name === "i32" || this.typeInfo.name === "u32") {
-            value = Math.floor(value);
+        if (!(value instanceof ScalarData)) {
+            console.error(`SetDataValue: Invalid value`, value);
+            return;
         }
-        else if (this.typeInfo.name === "bool") {
-            value = value ? 1 : 0;
-        }
-        this.value = value;
+        value.value;
+        if (this.typeInfo.name === "i32" || this.typeInfo.name === "u32") ;
+        else if (this.typeInfo.name === "bool") ;
+        this.value = value.value;
     }
     getDataValue(exec, postfix, context) {
         if (postfix) {
@@ -5856,7 +5860,11 @@ class VectorData extends Data {
             console.error("TODO: Set vector postfix");
             return;
         }
-        this.value = value;
+        if (!(value instanceof VectorData)) {
+            console.error(`SetDataValue: Invalid value`, value);
+            return;
+        }
+        this.value = value.value;
     }
     getDataValue(exec, postfix, context) {
         let format = exec.getTypeInfo("f32");
@@ -5941,7 +5949,11 @@ class MatrixData extends Data {
             console.error("TODO: Set matrix postfix");
             return;
         }
-        this.value = value;
+        if (!(value instanceof MatrixData)) {
+            console.error(`SetDataValue: Invalid value`, value);
+            return;
+        }
+        this.value = value.value;
     }
     getDataValue(exec, postfix, context) {
         const typeName = this.typeInfo.name;
@@ -6100,7 +6112,11 @@ class TypedData extends Data {
                         console.error(`SetDataValue: Unknown member ${member}`);
                         return;
                     }
-                    const v = value instanceof ScalarData ? value.value : value;
+                    if (!(value instanceof ScalarData)) {
+                        console.error(`SetDataValue: Invalid value`, value);
+                        return;
+                    }
+                    const v = value.value;
                     if (typeName === "vec2f") {
                         new Float32Array(this.buffer, offset, 2)[element] = v;
                         return;
@@ -6155,26 +6171,17 @@ class TypedData extends Data {
             if (value instanceof ScalarData) {
                 new Float32Array(this.buffer, offset, 1)[0] = value.value;
             }
-            else {
-                new Float32Array(this.buffer, offset, 1)[0] = value;
-            }
             return;
         }
-        else if (typeName === "i32") {
+        else if (typeName === "i32" || typeName === "atomic<i32>") {
             if (value instanceof ScalarData) {
                 new Int32Array(this.buffer, offset, 1)[0] = value.value;
             }
-            else {
-                new Int32Array(this.buffer, offset, 1)[0] = value;
-            }
             return;
         }
-        else if (typeName === "u32") {
+        else if (typeName === "u32" || typeName === "atomic<u32>") {
             if (value instanceof ScalarData) {
                 new Uint32Array(this.buffer, offset, 1)[0] = value.value;
-            }
-            else {
-                new Uint32Array(this.buffer, offset, 1)[0] = value;
             }
             return;
         }
@@ -6486,6 +6493,18 @@ class TypedData extends Data {
         }
         else if (typeName === "vec4u") {
             return new VectorData(new Uint32Array(this.buffer, offset, 4), typeInfo);
+        }
+        if (typeInfo instanceof TemplateInfo && typeInfo.name === "atomic") {
+            if (typeInfo.format.name === "u32") {
+                return new ScalarData(new Uint32Array(this.buffer, offset, 1)[0], typeInfo.format);
+            }
+            else if (typeInfo.format.name === "i32") {
+                return new ScalarData(new Int32Array(this.buffer, offset, 1)[0], typeInfo.format);
+            }
+            else {
+                console.error(`GetDataValue: Invalid atomic format ${typeInfo.format.name}`);
+                return null;
+            }
         }
         return new TypedData(this.buffer, typeInfo, offset);
     }
@@ -7308,40 +7327,172 @@ class BuiltinFunctions {
     }
     // Atomic Built-in Functions
     AtomicLoad(node, context) {
-        console.error("TODO: atomicLoad");
-        return null;
+        let l = node.args[0];
+        if (l instanceof UnaryOperator) {
+            // TODO: handle & operator
+            l = l.right;
+        }
+        const name = this.exec._getVariableName(l, context);
+        const v = context.getVariable(name);
+        const currentValue = v.value.getDataValue(this.exec, l.postfix, context);
+        return currentValue;
     }
     AtomicStore(node, context) {
-        console.error("TODO: atomicStore");
+        let l = node.args[0];
+        if (l instanceof UnaryOperator) {
+            // TODO: handle & operator
+            l = l.right;
+        }
+        const name = this.exec._getVariableName(l, context);
+        const v = context.getVariable(name);
+        let r = node.args[1];
+        const value = this.exec.evalExpression(r, context);
+        const currentValue = v.value.getDataValue(this.exec, l.postfix, context);
+        if (currentValue instanceof ScalarData && value instanceof ScalarData) {
+            currentValue.value = value.value;
+        }
+        if (v.value instanceof TypedData) {
+            v.value.setDataValue(this.exec, currentValue, l.postfix, context);
+        }
         return null;
     }
     AtomicAdd(node, context) {
-        console.error("TODO: atomicAdd");
+        let l = node.args[0];
+        if (l instanceof UnaryOperator) {
+            // TODO: handle & operator
+            l = l.right;
+        }
+        const name = this.exec._getVariableName(l, context);
+        const v = context.getVariable(name);
+        let r = node.args[1];
+        const value = this.exec.evalExpression(r, context);
+        const currentValue = v.value.getDataValue(this.exec, l.postfix, context);
+        if (currentValue instanceof ScalarData && value instanceof ScalarData) {
+            currentValue.value += value.value;
+        }
+        if (v.value instanceof TypedData) {
+            v.value.setDataValue(this.exec, currentValue, l.postfix, context);
+        }
         return null;
     }
     AtomicSub(node, context) {
-        console.error("TODO: atomicSub");
+        let l = node.args[0];
+        if (l instanceof UnaryOperator) {
+            // TODO: handle & operator
+            l = l.right;
+        }
+        const name = this.exec._getVariableName(l, context);
+        const v = context.getVariable(name);
+        let r = node.args[1];
+        const value = this.exec.evalExpression(r, context);
+        const currentValue = v.value.getDataValue(this.exec, l.postfix, context);
+        if (currentValue instanceof ScalarData && value instanceof ScalarData) {
+            currentValue.value -= value.value;
+        }
+        if (v.value instanceof TypedData) {
+            v.value.setDataValue(this.exec, currentValue, l.postfix, context);
+        }
         return null;
     }
     AtomicMax(node, context) {
-        console.error("TODO: atomicMax");
-        return null;
+        let l = node.args[0];
+        if (l instanceof UnaryOperator) {
+            // TODO: handle & operator
+            l = l.right;
+        }
+        const name = this.exec._getVariableName(l, context);
+        const v = context.getVariable(name);
+        let r = node.args[1];
+        const value = this.exec.evalExpression(r, context);
+        const currentValue = v.value.getDataValue(this.exec, l.postfix, context);
+        const originalValue = new ScalarData(currentValue.value, currentValue.typeInfo);
+        if (currentValue instanceof ScalarData && value instanceof ScalarData) {
+            currentValue.value = Math.max(currentValue.value, value.value);
+        }
+        if (v.value instanceof TypedData) {
+            v.value.setDataValue(this.exec, currentValue, l.postfix, context);
+        }
+        return originalValue;
     }
     AtomicMin(node, context) {
-        console.error("TODO: atomicMin");
-        return null;
+        let l = node.args[0];
+        if (l instanceof UnaryOperator) {
+            // TODO: handle & operator
+            l = l.right;
+        }
+        const name = this.exec._getVariableName(l, context);
+        const v = context.getVariable(name);
+        let r = node.args[1];
+        const value = this.exec.evalExpression(r, context);
+        const currentValue = v.value.getDataValue(this.exec, l.postfix, context);
+        const originalValue = new ScalarData(currentValue.value, currentValue.typeInfo);
+        if (currentValue instanceof ScalarData && value instanceof ScalarData) {
+            currentValue.value = Math.min(currentValue.value, value.value);
+        }
+        if (v.value instanceof TypedData) {
+            v.value.setDataValue(this.exec, currentValue, l.postfix, context);
+        }
+        return originalValue;
     }
     AtomicAnd(node, context) {
-        console.error("TODO: atomicAnd");
-        return null;
+        let l = node.args[0];
+        if (l instanceof UnaryOperator) {
+            // TODO: handle & operator
+            l = l.right;
+        }
+        const name = this.exec._getVariableName(l, context);
+        const v = context.getVariable(name);
+        let r = node.args[1];
+        const value = this.exec.evalExpression(r, context);
+        const currentValue = v.value.getDataValue(this.exec, l.postfix, context);
+        const originalValue = new ScalarData(currentValue.value, currentValue.typeInfo);
+        if (currentValue instanceof ScalarData && value instanceof ScalarData) {
+            currentValue.value = currentValue.value & value.value;
+        }
+        if (v.value instanceof TypedData) {
+            v.value.setDataValue(this.exec, currentValue, l.postfix, context);
+        }
+        return originalValue;
     }
     AtomicOr(node, context) {
-        console.error("TODO: atomicOr");
-        return null;
+        let l = node.args[0];
+        if (l instanceof UnaryOperator) {
+            // TODO: handle & operator
+            l = l.right;
+        }
+        const name = this.exec._getVariableName(l, context);
+        const v = context.getVariable(name);
+        let r = node.args[1];
+        const value = this.exec.evalExpression(r, context);
+        const currentValue = v.value.getDataValue(this.exec, l.postfix, context);
+        const originalValue = new ScalarData(currentValue.value, currentValue.typeInfo);
+        if (currentValue instanceof ScalarData && value instanceof ScalarData) {
+            currentValue.value = currentValue.value | value.value;
+        }
+        if (v.value instanceof TypedData) {
+            v.value.setDataValue(this.exec, currentValue, l.postfix, context);
+        }
+        return originalValue;
     }
     AtomicXor(node, context) {
-        console.error("TODO: atomicXor");
-        return null;
+        let l = node.args[0];
+        if (l instanceof UnaryOperator) {
+            // TODO: handle & operator
+            l = l.right;
+        }
+        const name = this.exec._getVariableName(l, context);
+        const v = context.getVariable(name);
+        let r = node.args[1];
+        const value = this.exec.evalExpression(r, context);
+        const currentValue = v.value.getDataValue(this.exec, l.postfix, context);
+        const originalValue = new ScalarData(currentValue.value, currentValue.typeInfo);
+        if (currentValue instanceof ScalarData && value instanceof ScalarData) {
+            currentValue.value = currentValue.value ^ value.value;
+        }
+        if (v.value instanceof TypedData) {
+            v.value.setDataValue(this.exec, currentValue, l.postfix, context);
+        }
+        return originalValue;
     }
     AtomicExchange(node, context) {
         console.error("TODO: atomicExchange");
@@ -7637,7 +7788,6 @@ class WgslExec extends ExecInterface {
         const width = dispatchCount[0];
         const height = dispatchCount[1];
         const depth = dispatchCount[2];
-        console.log(dispatchCount);
         const vec3u = this.getTypeInfo("vec3u");
         context.setVariable("@num_workgroups", new VectorData(dispatchCount, vec3u));
         for (const set in bindGroups) {
@@ -7729,6 +7879,9 @@ class WgslExec extends ExecInterface {
                 console.error(`Override constant ${name} not found. Line ${stmt.line}`);
             }
         }
+        else if (stmt instanceof Call) {
+            this._call(stmt, context);
+        }
         else {
             console.error(`Invalid statement type.`, stmt, `Line ${stmt.line}`);
         }
@@ -7758,6 +7911,59 @@ class WgslExec extends ExecInterface {
         }
         console.error(`Invalid expression type`, node, `Line ${node.line}`);
         return null;
+    }
+    getTypeInfo(type) {
+        var _a;
+        if (type instanceof Type) {
+            const t = this.reflection.getTypeInfo(type);
+            if (t !== null) {
+                return t;
+            }
+        }
+        const t = (_a = this.typeInfo[type]) !== null && _a !== void 0 ? _a : null;
+        if (t !== null) {
+            return t;
+        }
+        return null;
+    }
+    getTypeName(type) {
+        /*if (type instanceof AST.Type) {
+            type = this.getTypeInfo(type);
+        }*/
+        if (type === null) {
+            console.error(`Type is null.`);
+            return "unknown";
+        }
+        let name = type.name;
+        if (type instanceof TemplateInfo || type instanceof TemplateType) {
+            if (type.format !== null) {
+                if (name === "vec2" || name === "vec3" || name === "vec4" ||
+                    name === "mat2x2" || name === "mat2x3" || name === "mat2x4" ||
+                    name === "mat3x2" || name === "mat3x3" || name === "mat3x4" ||
+                    name === "mat4x2" || name === "mat4x3" || name === "mat4x4") {
+                    if (type.format.name === "f32") {
+                        name += "f";
+                        return name;
+                    }
+                    else if (type.format.name === "i32") {
+                        name += "i";
+                        return name;
+                    }
+                    else if (type.format.name === "u32") {
+                        name += "u";
+                        return name;
+                    }
+                }
+                name += `<${type.format.name}>`;
+            }
+            else {
+                if (name === "vec2" || name === "vec3" || name === "vec4") {
+                    return name;
+                }
+                console.error("Template format is null.");
+            }
+        }
+        return name;
     }
     _setOverrides(constants, context) {
         for (const k in constants) {
@@ -7858,59 +8064,6 @@ class WgslExec extends ExecInterface {
         }
         this._execStatements(f.node.body, context);
     }
-    getTypeInfo(type) {
-        var _a;
-        if (type instanceof Type) {
-            const t = this.reflection.getTypeInfo(type);
-            if (t !== null) {
-                return t;
-            }
-        }
-        const t = (_a = this.typeInfo[type]) !== null && _a !== void 0 ? _a : null;
-        if (t !== null) {
-            return t;
-        }
-        return null;
-    }
-    getTypeName(type) {
-        /*if (type instanceof AST.Type) {
-            type = this.getTypeInfo(type);
-        }*/
-        if (type === null) {
-            console.error(`Type is null.`);
-            return "unknown";
-        }
-        let name = type.name;
-        if (type instanceof TemplateInfo || type instanceof TemplateType) {
-            if (type.format !== null) {
-                if (name === "vec2" || name === "vec3" || name === "vec4" ||
-                    name === "mat2x2" || name === "mat2x3" || name === "mat2x4" ||
-                    name === "mat3x2" || name === "mat3x3" || name === "mat3x4" ||
-                    name === "mat4x2" || name === "mat4x3" || name === "mat4x4") {
-                    if (type.format.name === "f32") {
-                        name += "f";
-                        return name;
-                    }
-                    else if (type.format.name === "i32") {
-                        name += "i";
-                        return name;
-                    }
-                    else if (type.format.name === "u32") {
-                        name += "u";
-                        return name;
-                    }
-                }
-                name += `<${type.format.name}>`;
-            }
-            else {
-                if (name === "vec2" || name === "vec3" || name === "vec4") {
-                    return name;
-                }
-                console.log("Template format is null.");
-            }
-        }
-        return name;
-    }
     _getVariableName(node, context) {
         if (node instanceof VariableExpr) {
             return node.name;
@@ -7937,6 +8090,21 @@ class WgslExec extends ExecInterface {
             }
         }
         return null;
+    }
+    _call(node, context) {
+        const subContext = context.clone();
+        subContext.currentFunctionName = node.name;
+        const f = context.functions.get(node.name);
+        if (!f) {
+            this._callBuiltinFunction(node, subContext);
+            return;
+        }
+        for (let ai = 0; ai < f.node.args.length; ++ai) {
+            const arg = f.node.args[ai];
+            const value = this.evalExpression(node.args[ai], subContext);
+            subContext.setVariable(arg.name, value, arg);
+        }
+        this._execStatements(f.node.body, subContext);
     }
     _increment(node, context) {
         const name = this._getVariableName(node.variable, context);

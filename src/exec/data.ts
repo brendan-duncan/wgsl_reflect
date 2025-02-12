@@ -9,7 +9,7 @@ export class Data {
         this.typeInfo = typeInfo;
     }
 
-    setDataValue(exec: ExecInterface, value: any, postfix: AST.Expression | null, context: ExecContext): void {
+    setDataValue(exec: ExecInterface, value: Data, postfix: AST.Expression | null, context: ExecContext): void {
         console.error(`SetDataValue: Not implemented`, value, postfix);
     }
 
@@ -41,19 +41,26 @@ export class ScalarData extends Data {
         this.value = value;
     }
 
-    setDataValue(exec: ExecInterface, value: any, postfix: AST.Expression | null, context: ExecContext): void {
+    setDataValue(exec: ExecInterface, value: Data, postfix: AST.Expression | null, context: ExecContext): void {
         if (postfix) {
             console.error(`SetDataValue: Scalar data does not support postfix`, postfix);
             return;
         }
 
-        if (this.typeInfo.name === "i32" || this.typeInfo.name === "u32") {
-            value = Math.floor(value);
-        } else if (this.typeInfo.name === "bool") {
-            value = value ? 1 : 0;
+        if (!(value instanceof ScalarData)) {
+            console.error(`SetDataValue: Invalid value`, value);
+            return;
         }
 
-        this.value = value;
+        let v = value.value;
+
+        if (this.typeInfo.name === "i32" || this.typeInfo.name === "u32") {
+            v = Math.floor(v);
+        } else if (this.typeInfo.name === "bool") {
+            v = v ? 1 : 0;
+        }
+
+        this.value = value.value;
     }
 
     getDataValue(exec: ExecInterface, postfix: AST.Expression | null, context: ExecContext): Data | null {
@@ -128,13 +135,18 @@ export class VectorData extends Data {
         }
     }
 
-    setDataValue(exec: ExecInterface, value: any, postfix: AST.Expression | null, context: ExecContext): void {
+    setDataValue(exec: ExecInterface, value: Data, postfix: AST.Expression | null, context: ExecContext): void {
         if (postfix instanceof AST.StringExpr) {
             console.error("TODO: Set vector postfix");
             return;
         }
 
-        this.value = value;
+        if (!(value instanceof VectorData)) {
+            console.error(`SetDataValue: Invalid value`, value);
+            return
+        }
+
+        this.value = value.value;
     }
 
     getDataValue(exec: ExecInterface, postfix: AST.Expression | null, context: ExecContext): Data | null {
@@ -213,13 +225,18 @@ export class MatrixData extends Data {
         this.value = value;
     }
 
-    setDataValue(exec: ExecInterface, value: any, postfix: AST.Expression | null, context: ExecContext): void {
+    setDataValue(exec: ExecInterface, value: Data, postfix: AST.Expression | null, context: ExecContext): void {
         if (postfix instanceof AST.StringExpr) {
             console.error("TODO: Set matrix postfix");
             return;
         }
 
-        this.value = value;
+        if (!(value instanceof MatrixData)) {
+            console.error(`SetDataValue: Invalid value`, value);
+            return
+        }
+
+        this.value = value.value;
     }
 
     getDataValue(exec: ExecInterface, postfix: AST.Expression | null, context: ExecContext): Data | null {
@@ -307,7 +324,7 @@ export class TypedData extends Data {
         }
     }
 
-    setDataValue(exec: ExecInterface, value: any, postfix: AST.Expression | null, context: ExecContext): void {
+    setDataValue(exec: ExecInterface, value: Data, postfix: AST.Expression | null, context: ExecContext): void {
         if (value === null) {
             console.log(`setDataValue: NULL data.`);
             return;
@@ -365,7 +382,11 @@ export class TypedData extends Data {
                         console.error(`SetDataValue: Unknown member ${member}`);
                         return;
                     }
-                    const v = value instanceof ScalarData ? value.value : value;
+                    if (!(value instanceof ScalarData)) {
+                        console.error(`SetDataValue: Invalid value`, value);
+                        return;
+                    }
+                    const v = value.value;
                     if (typeName === "vec2f") {
                         new Float32Array(this.buffer, offset, 2)[element] = v;
                         return;
@@ -407,28 +428,22 @@ export class TypedData extends Data {
         this.setData(exec, value, typeInfo, offset, context);
     }
 
-    setData(exec: ExecInterface, value: any, typeInfo: TypeInfo, offset: number, context: ExecContext): void {
+    setData(exec: ExecInterface, value: Data, typeInfo: TypeInfo, offset: number, context: ExecContext): void {
         const typeName = exec.getTypeName(typeInfo);
 
         if (typeName === "f32") {
             if (value instanceof ScalarData) {
                 new Float32Array(this.buffer, offset, 1)[0] = value.value;
-            } else {
-                new Float32Array(this.buffer, offset, 1)[0] = value;
             }
             return;
-        } else if (typeName === "i32") {
+        } else if (typeName === "i32" || typeName === "atomic<i32>") {
             if (value instanceof ScalarData) {
                 new Int32Array(this.buffer, offset, 1)[0] = value.value;
-            } else {
-                new Int32Array(this.buffer, offset, 1)[0] = value;
             }
             return;
-        } else if (typeName === "u32") {
+        } else if (typeName === "u32" || typeName === "atomic<u32>") {
             if (value instanceof ScalarData) {
                 new Uint32Array(this.buffer, offset, 1)[0] = value.value;
-            } else {
-                new Uint32Array(this.buffer, offset, 1)[0] = value;
             }
             return;
         } else if (typeName === "vec2f") {
@@ -700,6 +715,17 @@ export class TypedData extends Data {
             return new VectorData(new Uint32Array(this.buffer, offset, 3), typeInfo);
         } else if (typeName === "vec4u") {
             return new VectorData(new Uint32Array(this.buffer, offset, 4), typeInfo);
+        }
+
+        if (typeInfo instanceof TemplateInfo && typeInfo.name === "atomic") {
+            if (typeInfo.format.name === "u32") {
+                return new ScalarData(new Uint32Array(this.buffer, offset, 1)[0], typeInfo.format);
+            } else if (typeInfo.format.name === "i32") {
+                return new ScalarData(new Int32Array(this.buffer, offset, 1)[0], typeInfo.format);
+            } else {
+                console.error(`GetDataValue: Invalid atomic format ${typeInfo.format.name}`);
+                return null;
+            }
         }
 
         return new TypedData(this.buffer, typeInfo, offset);
