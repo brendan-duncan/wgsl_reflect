@@ -82,6 +82,38 @@ export async function run() {
             test.equals(buffer, webgpuData);
         });
 
+        await test("struct data", async function (test) {
+            const shader = `
+                @group(0) @binding(0) var<storage, read_write> buffer: array<f32>;
+                struct Bar {
+                    a: vec3f,
+                    b: vec2f
+                }
+                struct Foo {
+                    bar: Bar,
+                    bar2: Bar
+                }
+                @compute @workgroup_size(1)
+                fn main(@builtin(global_invocation_id) id: vec3<u32>) {
+                    let foo = Foo(Bar(vec3f(1.0, 2.0, 3.0), vec2f(4.0, 5.0)),
+                                Bar(vec3f(6.0, 7.0, 8.0), vec2f(10.0, 10.0)));
+                    let i = id.x;
+                    let bar2 = foo.bar2;
+                    buffer[i] = bar2.b.y;
+                }`;
+
+            // Verify the emulated dispatch has the same results as the WebGPU dispatch.
+            const buffer = new Float32Array([1, 2, 6, 0]);
+            const bg = {0: {0: buffer}};
+
+            const _data = await webgpuDispatch(shader, "main", 4, bg);
+            const webgpuData = new Float32Array(_data);
+
+            const wgsl = new WgslExec(shader);
+            wgsl.dispatchWorkgroups("main", 4, bg);
+            test.equals(buffer, webgpuData);
+        });
+
         await test("vec3f buffer stride", async function (test) {
             const shader = `@group(0) @binding(0) var<storage, read_write> data: array<vec3f>;
             @compute @workgroup_size(1) fn main(@builtin(global_invocation_id) id: vec3<u32>) {
