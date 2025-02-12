@@ -75,6 +75,7 @@ export declare class BuiltinFunctions {
     Step(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null;
     Tan(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null;
     Tanh(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null;
+    _getTransposeType(t: TypeInfo): TypeInfo;
     Transpose(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null;
     Trunc(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null;
     Dpdx(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null;

@@ -6857,7 +6857,17 @@ class BuiltinFunctions {
         return new ScalarData((v >> o) & ((1 << c) - 1), this.getTypeInfo("i32"));
     }
     FaceForward(node, context) {
-        console.error(`TODO: faceForward. Line ${node.line}`);
+        const e1 = this.exec.evalExpression(node.args[0], context);
+        const e2 = this.exec.evalExpression(node.args[1], context);
+        const n = this.exec.evalExpression(node.args[2], context);
+        if (e1 instanceof VectorData && e2 instanceof VectorData && n instanceof VectorData) {
+            const dot = this._dot(e2.value, n.value);
+            if (dot < 0) {
+                return new VectorData(e1.value, e1.typeInfo);
+            }
+            return new VectorData(e1.value.map((v) => -v), e1.typeInfo);
+        }
+        console.error(`FaceForward() expects vector arguments. Line ${node.line}`);
         return null;
     }
     FirstLeadingBit(node, context) {
@@ -7026,8 +7036,13 @@ class BuiltinFunctions {
         return new ScalarData(Math.pow(xs.value, ys.value), x.typeInfo);
     }
     QuantizeToF16(node, context) {
-        console.error(`TODO: quantizeToF16. Line ${node.line}`);
-        return null;
+        // TODO: actually quantize the f32 to f16
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => v), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(s.value, value.typeInfo);
     }
     Radians(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
@@ -7160,8 +7175,103 @@ class BuiltinFunctions {
         const s = value;
         return new ScalarData(Math.tanh(s.value), value.typeInfo);
     }
+    _getTransposeType(t) {
+        const tname = this.exec.getTypeName(t);
+        if (tname === "mat2x2f" || tname === "mat2x2h") {
+            return t;
+        }
+        else if (tname === "mat2x3f") {
+            return this.getTypeInfo("mat3x2f");
+        }
+        else if (tname === "mat2x3h") {
+            return this.getTypeInfo("mat3x2h");
+        }
+        else if (tname === "mat2x4f") {
+            return this.getTypeInfo("mat4x2f");
+        }
+        else if (tname === "mat2x4h") {
+            return this.getTypeInfo("mat4x2h");
+        }
+        else if (tname === "mat3x2f") {
+            return this.getTypeInfo("mat2x3f");
+        }
+        else if (tname === "mat3x2h") {
+            return this.getTypeInfo("mat2x3h");
+        }
+        else if (tname === "mat3x3f" || tname === "mat3x3h") {
+            return t;
+        }
+        else if (tname === "mat3x4f") {
+            return this.getTypeInfo("mat4x3f");
+        }
+        else if (tname === "mat3x4h") {
+            return this.getTypeInfo("mat4x3h");
+        }
+        else if (tname === "mat4x2f") {
+            return this.getTypeInfo("mat2x4f");
+        }
+        else if (tname === "mat4x2h") {
+            return this.getTypeInfo("mat2x4h");
+        }
+        else if (tname === "mat4x3f") {
+            return this.getTypeInfo("mat3x4f");
+        }
+        else if (tname === "mat4x3h") {
+            return this.getTypeInfo("mat3x4h");
+        }
+        else if (tname === "mat4x4f" || tname === "mat4x4h") {
+            return t;
+        }
+        console.error(`Invalid matrix type ${tname}`);
+        return t;
+    }
     Transpose(node, context) {
-        console.error(`TODO: transpose. Line ${node.line}`);
+        const m = this.exec.evalExpression(node.args[0], context);
+        if (!(m instanceof MatrixData)) {
+            console.error(`Transpose() expects a matrix argument. Line ${node.line}`);
+            return null;
+        }
+        const ttype = this._getTransposeType(m.typeInfo);
+        if (m.typeInfo.name === "mat2x2" || m.typeInfo.name === "mat2x2f" || m.typeInfo.name === "mat2x2h") {
+            const mv = m.value;
+            return new MatrixData([mv[0], mv[2], mv[1], mv[3]], ttype);
+        }
+        else if (m.typeInfo.name === "mat2x3" || m.typeInfo.name === "mat2x3f" || m.typeInfo.name === "mat2x3h") {
+            const mv = m.value;
+            return new MatrixData([mv[0], mv[3], mv[6], mv[1], mv[4], mv[7]], ttype);
+        }
+        else if (m.typeInfo.name === "mat2x4" || m.typeInfo.name === "mat2x4f" || m.typeInfo.name === "mat2x4h") {
+            const mv = m.value;
+            return new MatrixData([mv[0], mv[4], mv[8], mv[12], mv[1], mv[5], mv[9], mv[13]], ttype);
+        }
+        else if (m.typeInfo.name === "mat3x2" || m.typeInfo.name === "mat3x2f" || m.typeInfo.name === "mat3x2h") {
+            const mv = m.value;
+            return new MatrixData([mv[0], mv[3], mv[1], mv[4], mv[2], mv[5]], ttype);
+        }
+        else if (m.typeInfo.name === "mat3x3" || m.typeInfo.name === "mat3x3f" || m.typeInfo.name === "mat3x3h") {
+            const mv = m.value;
+            return new MatrixData([mv[0], mv[3], mv[6], mv[1], mv[4], mv[7], mv[2], mv[5], mv[8]], ttype);
+        }
+        else if (m.typeInfo.name === "mat3x4" || m.typeInfo.name === "mat3x4f" || m.typeInfo.name === "mat3x4h") {
+            const mv = m.value;
+            return new MatrixData([mv[0], mv[4], mv[8], mv[12], mv[1], mv[5], mv[9], mv[13], mv[2], mv[6], mv[10], mv[14]], ttype);
+        }
+        else if (m.typeInfo.name === "mat4x2" || m.typeInfo.name === "mat4x2f" || m.typeInfo.name === "mat4x2h") {
+            const mv = m.value;
+            return new MatrixData([mv[0], mv[4], mv[1], mv[5], mv[2], mv[6]], ttype);
+        }
+        else if (m.typeInfo.name === "mat4x3" || m.typeInfo.name === "mat4x3f" || m.typeInfo.name === "mat4x3h") {
+            const mv = m.value;
+            return new MatrixData([mv[0], mv[4], mv[8], mv[1], mv[5], mv[9], mv[2], mv[6], mv[10]], ttype);
+        }
+        else if (m.typeInfo.name === "mat4x4" || m.typeInfo.name === "mat4x4f" || m.typeInfo.name === "mat4x4h") {
+            const mv = m.value;
+            return new MatrixData([mv[0], mv[4], mv[8], mv[12],
+                mv[1], mv[5], mv[9], mv[13],
+                mv[2], mv[6], mv[10], mv[14],
+                mv[3], mv[7], mv[11], mv[15]], ttype);
+        }
+        console.error(`Invalid matrix type ${m.typeInfo.name}`);
         return null;
     }
     Trunc(node, context) {
@@ -7491,8 +7601,24 @@ class BuiltinFunctions {
         return originalValue;
     }
     AtomicExchange(node, context) {
-        console.error("TODO: atomicExchange");
-        return null;
+        let l = node.args[0];
+        if (l instanceof UnaryOperator) {
+            // TODO: handle & operator
+            l = l.right;
+        }
+        const name = this.exec._getVariableName(l, context);
+        const v = context.getVariable(name);
+        let r = node.args[1];
+        const value = this.exec.evalExpression(r, context);
+        const currentValue = v.value.getDataValue(this.exec, l.postfix, context);
+        const originalValue = new ScalarData(currentValue.value, currentValue.typeInfo);
+        if (currentValue instanceof ScalarData && value instanceof ScalarData) {
+            currentValue.value = value.value;
+        }
+        if (v.value instanceof TypedData) {
+            v.value.setDataValue(this.exec, currentValue, l.postfix, context);
+        }
+        return originalValue;
     }
     AtomicCompareExchangeWeak(node, context) {
         console.error("TODO: atomicCompareExchangeWeak");
