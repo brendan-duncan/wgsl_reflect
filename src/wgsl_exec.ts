@@ -270,6 +270,7 @@ export class WgslExec extends ExecInterface {
                         return name;
                     } else if (type.format.name === "bool") {
                         name += "b";
+                        return name;
                     }
                 }
                 name += `<${type.format.name}>`;
@@ -870,6 +871,9 @@ export class WgslExec extends ExecInterface {
             case "vec2u":
             case "vec3u":
             case "vec4u":
+            case "vec2b":
+            case "vec3b":
+            case "vec4b":
                 return this._callConstructorVec(node, context);
             case "mat2x2":
             case "mat2x2f":
@@ -936,7 +940,7 @@ export class WgslExec extends ExecInterface {
         const typeInfo = this.getTypeInfo(node.type);
         const typeName = typeInfo.name;
         if (typeName === "x32" || typeName === "u32" || typeName === "f32" || typeName === "f16" ||
-            typeName === "i32") {
+            typeName === "i32" || typeName === "bool") {
             const data = new ScalarData(node.scalarValue, typeInfo);
             return data;
         }

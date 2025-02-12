@@ -395,6 +395,9 @@ export declare class TemplateType extends Type {
     static vec2h: TemplateType;
     static vec3h: TemplateType;
     static vec4h: TemplateType;
+    static vec2b: TemplateType;
+    static vec3b: TemplateType;
+    static vec4b: TemplateType;
     static mat2x2f: TemplateType;
     static mat2x3f: TemplateType;
     static mat2x4f: TemplateType;

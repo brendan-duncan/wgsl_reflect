@@ -8,7 +8,7 @@ export async function run() {
             const wgsl = new WgslExec(shader);
             wgsl.execute();
             // Ensure the top-level instructions were executed and the global variable has the correct value.
-            test.equals(wgsl.getVariableValue("foo"), 3);
+            test.equals(wgsl.getVariableValue("foo"), [0, 0, 0]);
         });
 
         await test("set variable", function (test) {
@@ -50,10 +50,13 @@ export async function run() {
 
         await test("call function", function (test) {
             const shader = `
+            var<private> bvec: vec2<bool>;
             fn foo(a: i32, b: i32) -> i32 {
                 if (b != 0) {
+                    bvec.x = true;
                     return a / b;
                 } else {
+                    bvec.y = true;
                     return a * b;
                 }
             }
@@ -62,6 +65,7 @@ export async function run() {
             wgsl.execute();
             // Ensure calling a function works as expected.
             test.equals(wgsl.getVariableValue("bar"), 0);
+            test.equals(wgsl.getVariableValue("bvec"), [1, 0]);
         });
 
         await test("data", async function (test) {

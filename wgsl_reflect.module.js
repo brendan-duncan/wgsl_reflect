@@ -617,6 +617,9 @@ TemplateType.vec4u = new TemplateType("vec4", Type.u32, null);
 TemplateType.vec2h = new TemplateType("vec2", Type.f16, null);
 TemplateType.vec3h = new TemplateType("vec3", Type.f16, null);
 TemplateType.vec4h = new TemplateType("vec4", Type.f16, null);
+TemplateType.vec2b = new TemplateType("vec2", Type.bool, null);
+TemplateType.vec3b = new TemplateType("vec3", Type.bool, null);
+TemplateType.vec4b = new TemplateType("vec4", Type.bool, null);
 TemplateType.mat2x2f = new TemplateType("mat2x2", Type.f32, null);
 TemplateType.mat2x3f = new TemplateType("mat2x3", Type.f32, null);
 TemplateType.mat2x4f = new TemplateType("mat2x4", Type.f32, null);
@@ -739,7 +742,7 @@ class CreateExpr extends Expression {
     }
     constEvaluate(context, type) {
         const t = this.type;
-        if (t.name === "f32" || t.name === "f16" || t.name === "i32" || t.name === "u32") {
+        if (t.name === "f32" || t.name === "f16" || t.name === "i32" || t.name === "u32" || t.name === "bool") {
             return this.args[0].constEvaluate(context, type);
         }
         if (t.name === "vec2" || t.name === "vec2f" || t.name === "vec2h" || t.name === "vec2i" || t.name === "vec2u") {
@@ -8133,6 +8136,10 @@ class WgslExec extends ExecInterface {
                         name += "u";
                         return name;
                     }
+                    else if (type.format.name === "bool") {
+                        name += "b";
+                        return name;
+                    }
                 }
                 name += `<${type.format.name}>`;
             }
@@ -8748,6 +8755,9 @@ class WgslExec extends ExecInterface {
             case "vec2u":
             case "vec3u":
             case "vec4u":
+            case "vec2b":
+            case "vec3b":
+            case "vec4b":
                 return this._callConstructorVec(node, context);
             case "mat2x2":
             case "mat2x2f":
@@ -8811,7 +8821,7 @@ class WgslExec extends ExecInterface {
         const typeInfo = this.getTypeInfo(node.type);
         const typeName = typeInfo.name;
         if (typeName === "x32" || typeName === "u32" || typeName === "f32" || typeName === "f16" ||
-            typeName === "i32") {
+            typeName === "i32" || typeName === "bool") {
             const data = new ScalarData(node.scalarValue, typeInfo);
             return data;
         }
@@ -9679,13 +9689,13 @@ class WgslExec extends ExecInterface {
         const typeInfo = this.getTypeInfo(node.type);
         const typeName = this.getTypeName(node.type);
         if (node.args.length === 0) {
-            if (typeName === "vec2" || typeName === "vec2f" || typeName === "vec2i" || typeName === "vec2u") {
+            if (typeName === "vec2" || typeName === "vec2f" || typeName === "vec2i" || typeName === "vec2u" || typeName === "vec2b") {
                 return new VectorData([0, 0], typeInfo);
             }
-            else if (typeName === "vec3" || typeName === "vec3f" || typeName === "vec3i" || typeName === "vec3u") {
+            else if (typeName === "vec3" || typeName === "vec3f" || typeName === "vec3i" || typeName === "vec3u" || typeName === "vec3b") {
                 return new VectorData([0, 0, 0], typeInfo);
             }
-            else if (typeName === "vec4" || typeName === "vec4f" || typeName === "vec4i" || typeName === "vec4u") {
+            else if (typeName === "vec4" || typeName === "vec4f" || typeName === "vec4i" || typeName === "vec4u" || typeName === "vec4b") {
                 return new VectorData([0, 0, 0, 0], typeInfo);
             }
             console.error(`Invalid vec constructor ${typeName}. Line ${node.line}`);
@@ -10678,6 +10688,19 @@ class WgslDebug {
             else if (statement instanceof Break) {
                 state.commands.push(new GotoCommand(statement.condition, GotoCommand.kBreak));
             }
+            else if (statement instanceof StaticAssert) {
+                state.commands.push(new StatementCommand(statement));
+            } /* else if (statement instanceof AST.Override) {
+                continue;
+            } else if (statement instanceof AST.Alias) {
+                continue;
+            } else if (statement instanceof AST.Struct) {
+                continue;
+            } else if (statement instanceof AST.Diagnostic) {
+                continue;
+            } else if (statement instanceof AST.Requires) {
+                continue;
+            }*/
             else {
                 console.error(`TODO: statement type ${statement.constructor.name}`);
             }
