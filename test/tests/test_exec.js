@@ -30,13 +30,24 @@ export async function run() {
             test.equals(wgsl.getVariableValue("foo"), 1069547520);
         });
 
+        await test("default value", function (test) {
+            const shader = `var<private> foo: vec3f; var<private> bar: vec3f;
+            fn main()-> f32 { bar.y = 5.0; foo.x = bar.y; return foo.x; }
+            let bar2 = main();`;
+            const wgsl = new WgslExec(shader);
+            wgsl.execute();
+            // Ensure the top-level instructions were executed and the global variable has the correct value.
+            test.equals(wgsl.getVariableValue("bar2"), 5);
+        });
+
         await test("call function", function (test) {
-            const shader = `fn foo(a: i32, b: i32) -> i32 {
-            if (b != 0) {
-                return a / b;
-            } else {
-                return a * b;
-            }
+            const shader = `
+            fn foo(a: i32, b: i32) -> i32 {
+                if (b != 0) {
+                    return a / b;
+                } else {
+                    return a * b;
+                }
             }
             let bar = foo(3, 4);`;
             const wgsl = new WgslExec(shader);
@@ -101,13 +112,16 @@ export async function run() {
                     bar: Bar,
                     bar2: Bar
                 }
+                var<private> bar3: vec2f;
                 @compute @workgroup_size(1)
                 fn main(@builtin(global_invocation_id) id: vec3<u32>) {
                     let foo = Foo(Bar(vec3f(1.0, 2.0, 3.0), vec2f(4.0, 5.0)),
                                 Bar(vec3f(6.0, 7.0, 8.0), vec2f(10.0, 10.0)));
                     let i = id.x;
                     let bar2 = foo.bar2;
-                    buffer[i] = bar2.b.y;
+                    bar3.x = foo.bar2.a.y;
+                    bar3.y = foo.bar2.a.x;
+                    buffer[i] = bar3.x;
                 }`;
 
             // Verify the emulated dispatch has the same results as the WebGPU dispatch.

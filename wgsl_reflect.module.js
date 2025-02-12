@@ -8489,39 +8489,106 @@ class WgslExec extends ExecInterface {
             v.value.setDataValue(this, value, node.variable.postfix, context);
         }
         else if (node.variable.postfix) {
+            if (!(v.value instanceof VectorData) && !(v.value instanceof MatrixData)) {
+                console.error(`Variable ${v.name} is not a vector or matrix. Line ${node.line}`);
+                return;
+            }
             if (node.variable.postfix instanceof ArrayIndex) {
-                this.evalExpression(node.variable.postfix.index, context).value;
-                // TODO: use array format to determine how to set the value
-                /*if (v.value instanceof VectorData || v.value instanceof MatrixData) {
-                    if (v.node.type.isArray) {
-                        const arrayType = v.node.type as AST.ArrayType;
-                        if (arrayType.format.name === "vec3" ||
-                            arrayType.format.name === "vec3u" ||
-                            arrayType.format.name === "vec3i" ||
-                            arrayType.format.name === "vec3f") {
-                            v.value[idx * 3 + 0] = value[0];
-                            v.value[idx * 3 + 1] = value[1];
-                            v.value[idx * 3 + 2] = value[2];
-                        } else if (arrayType.format.name === "vec4" ||
-                            arrayType.format.name === "vec4u" ||
-                            arrayType.format.name === "vec4i" ||
-                            arrayType.format.name === "vec4f") {
-                            v.value[idx * 4 + 0] = value[0];
-                            v.value[idx * 4 + 1] = value[1];
-                            v.value[idx * 4 + 2] = value[2];
-                            v.value[idx * 4 + 3] = value[3];
-                        } else {
-                            v.value[idx] = value;
-                        }
-                    } else {
-                        v.value[idx] = value;
+                const idx = this.evalExpression(node.variable.postfix.index, context).value;
+                if (v.value instanceof VectorData) {
+                    if (value instanceof ScalarData) {
+                        v.value.value[idx] = value.value;
                     }
-                } else {
-                    console.error(`Variable ${v.name} is not an array. Line ${node.line}`);
-                }*/
-                console.error(`TODO Array index. Line ${node.line}`);
+                    else {
+                        console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
+                        return;
+                    }
+                }
+                else if (v.value instanceof MatrixData) {
+                    console.error("TODO Matrix array index assignment. Line", node.line);
+                }
+                else {
+                    console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
+                    return;
+                }
             }
             else if (node.variable.postfix instanceof StringExpr) {
+                const member = node.variable.postfix.value;
+                if (!(v.value instanceof VectorData)) {
+                    console.error(`Invalid assignment to ${member}. Variable ${v.name} is not a vector. Line ${node.line}`);
+                    return;
+                }
+                if (value instanceof ScalarData) {
+                    if (member.length > 1) {
+                        console.error(`Invalid assignment to ${member} for variable ${v.name}. Line ${node.line}`);
+                        return;
+                    }
+                    if (member === "x") {
+                        v.value.value[0] = value.value;
+                    }
+                    else if (member === "y") {
+                        if (v.value.value.length < 2) {
+                            console.error(`Invalid assignment to ${member} for variable ${v.name}. Line ${node.line}`);
+                            return;
+                        }
+                        v.value.value[1] = value.value;
+                    }
+                    else if (member === "z") {
+                        if (v.value.value.length < 3) {
+                            console.error(`Invalid assignment to ${member} for variable ${v.name}. Line ${node.line}`);
+                            return;
+                        }
+                        v.value.value[2] = value.value;
+                    }
+                    else if (member === "w") {
+                        if (v.value.value.length < 4) {
+                            console.error(`Invalid assignment to ${member} for variable ${v.name}. Line ${node.line}`);
+                            return;
+                        }
+                        v.value.value[3] = value.value;
+                    }
+                }
+                else if (value instanceof VectorData) {
+                    if (member.length !== value.value.length) {
+                        console.error(`Invalid assignment to ${member} for variable ${v.name}. Line ${node.line}`);
+                        return;
+                    }
+                    for (let i = 0; i < member.length; ++i) {
+                        const m = member[i];
+                        if (m === "x" || m === "r") {
+                            v.value.value[0] = value.value[i];
+                        }
+                        else if (m === "y" || m === "g") {
+                            if (value.value.length < 2) {
+                                console.error(`Invalid assignment to ${m} for variable ${v.name}. Line ${node.line}`);
+                                return;
+                            }
+                            v.value.value[1] = value.value[i];
+                        }
+                        else if (m === "z" || m === "b") {
+                            if (value.value.length < 3) {
+                                console.error(`Invalid assignment to ${m} for variable ${v.name}. Line ${node.line}`);
+                                return;
+                            }
+                            v.value.value[2] = value.value[i];
+                        }
+                        else if (m === "w" || m === "a") {
+                            if (value.value.length < 4) {
+                                console.error(`Invalid assignment to ${m} for variable ${v.name}. Line ${node.line}`);
+                                return;
+                            }
+                            v.value.value[3] = value.value[i];
+                        }
+                        else {
+                            console.error(`Invalid assignment to ${m} for variable ${v.name}. Line ${node.line}`);
+                            return;
+                        }
+                    }
+                }
+                else {
+                    console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
+                    return;
+                }
                 console.error(`TODO Struct member. Line ${node.line}`);
             }
         }
@@ -8552,6 +8619,14 @@ class WgslExec extends ExecInterface {
         let value = null;
         if (node.value != null) {
             value = this.evalExpression(node.value, context);
+        }
+        else {
+            if (node.type === null) {
+                console.error(`Variable ${node.name} has no type. Line ${node.line}`);
+                return;
+            }
+            const defType = new CreateExpr(node.type, []);
+            value = this._evalCreate(defType, context);
         }
         context.createVariable(node.name, value, node);
     }
