@@ -1060,6 +1060,58 @@ export class WgslExec extends ExecInterface {
                 const t = this._maxFormatTypeInfo([_l.typeInfo, _r.typeInfo]);
                 return new ScalarData(ln / rn, t);
             }
+            case "<<": {
+                if (isArray(l) && isArray(r)) {
+                    const la = l as number[];
+                    const ra = r as number[];
+                    if (la.length !== ra.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    const result = la.map((x: number, i: number) => x << ra[i]);
+                    return new VectorData(result, _l.typeInfo);
+                } else if (isArray(l)) {
+                    const la = l as number[];
+                    const rn = r as number;
+                    const result = la.map((x: number, i: number) => x << rn);
+                    return new VectorData(result, _l.typeInfo);
+                } else if (isArray(r)) {
+                    const ln = l as number;
+                    const ra = r as number[];
+                    const result = ra.map((x: number, i: number) => ln << x);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l as number;
+                const rn = r as number;
+                const t = this._maxFormatTypeInfo([_l.typeInfo, _r.typeInfo]);
+                return new ScalarData(ln << rn, t);
+            }
+            case ">>": {
+                if (isArray(l) && isArray(r)) {
+                    const la = l as number[];
+                    const ra = r as number[];
+                    if (la.length !== ra.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    const result = la.map((x: number, i: number) => x >> ra[i]);
+                    return new VectorData(result, _l.typeInfo);
+                } else if (isArray(l)) {
+                    const la = l as number[];
+                    const rn = r as number;
+                    const result = la.map((x: number, i: number) => x >> rn);
+                    return new VectorData(result, _l.typeInfo);
+                } else if (isArray(r)) {
+                    const ln = l as number;
+                    const ra = r as number[];
+                    const result = ra.map((x: number, i: number) => ln >> x);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l as number;
+                const rn = r as number;
+                const t = this._maxFormatTypeInfo([_l.typeInfo, _r.typeInfo]);
+                return new ScalarData(ln >> rn, t);
+            }
             case ">": {
                 if (isArray(l) && isArray(r)) {
                     const la = l as number[];
