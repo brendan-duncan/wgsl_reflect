@@ -11,6 +11,7 @@ export class WgslParser {
   _currentLine: number = 0;
   _context: AST.ParseContext = new AST.ParseContext();
   _deferArrayCountEval: Array<Object> = [];
+  _currentLoop: Array<AST.Statement> = [];
 
   parse(tokensOrCode: Array<Token> | string): Array<AST.Statement> {
     this._initialize(tokensOrCode);
@@ -397,6 +398,13 @@ export class WgslParser {
       result = this._updateNode(new AST.Discard());
     } else if (this._match(TokenTypes.keywords.break)) {
       const breakStmt = this._updateNode(new AST.Break());
+      if (this._currentLoop.length > 0) {
+        const loop = this._currentLoop[this._currentLoop.length - 1];
+        breakStmt.loopId = loop.id;
+      } else {
+        // This break statement is not inside a loop. 
+        throw this._error(this._peek(), "Break statement must be inside a loop.");
+      }
       result = breakStmt;
       if (this._check(TokenTypes.keywords.if)) {
         // break-if
@@ -407,7 +415,15 @@ export class WgslParser {
         }
       }
     } else if (this._match(TokenTypes.keywords.continue)) {
-      result = this._updateNode(new AST.Continue());
+      const continueStmt = this._updateNode(new AST.Continue());
+      if (this._currentLoop.length > 0) {
+        const loop = this._currentLoop[this._currentLoop.length - 1];
+        continueStmt.loopId = loop.id;
+      } else {
+        // This continue statement is not inside a loop. 
+        throw this._error(this._peek(), "Continue statement must be inside a loop.");
+      }
+      result = continueStmt;
     } else {
       result =
         this._increment_decrement_statement() ||
@@ -437,15 +453,22 @@ export class WgslParser {
     if (!this._match(TokenTypes.keywords.while)) {
       return null;
     }
-    const condition = this._optional_paren_expression();
+
+    const whileLoop = this._updateNode(new AST.While(null, null));
+    this._currentLoop.push(whileLoop);
+
+    whileLoop.condition = this._optional_paren_expression();
 
     let attributes = null;
     if (this._check(TokenTypes.tokens.attr)) {
       attributes = this._attribute();
     }
 
-    const block = this._compound_statement();
-    return this._updateNode(new AST.While(condition, block));
+    whileLoop.body = this._compound_statement();
+
+    this._currentLoop.pop();
+
+    return whileLoop;
   }
 
   _continuing_statement(): AST.Continuing | null {
@@ -464,16 +487,20 @@ export class WgslParser {
 
     this._consume(TokenTypes.tokens.paren_left, "Expected '('.");
 
+    const forLoop = this._updateNode(new AST.For(null, null, null, null));
+
+    this._currentLoop.push(forLoop);
+
     // for_header: (variable_statement assignment_statement func_call_statement)? semicolon short_circuit_or_expression? semicolon (assignment_statement func_call_statement)?
-    const init = !this._check(TokenTypes.tokens.semicolon)
+    forLoop.init = !this._check(TokenTypes.tokens.semicolon)
       ? this._for_init()
       : null;
     this._consume(TokenTypes.tokens.semicolon, "Expected ';'.");
-    const condition = !this._check(TokenTypes.tokens.semicolon)
+    forLoop.condition = !this._check(TokenTypes.tokens.semicolon)
       ? this._short_circuit_or_expression()
       : null;
     this._consume(TokenTypes.tokens.semicolon, "Expected ';'.");
-    const increment = !this._check(TokenTypes.tokens.paren_right)
+    forLoop.increment = !this._check(TokenTypes.tokens.paren_right)
       ? this._for_increment()
       : null;
 
@@ -484,9 +511,11 @@ export class WgslParser {
       attributes = this._attribute();
     }
 
-    const body = this._compound_statement();
+    forLoop.body = this._compound_statement();
 
-    return this._updateNode(new AST.For(init, condition, increment, body));
+    this._currentLoop.pop();
+
+    return forLoop;
   }
 
   _for_init(): AST.Statement | null {
@@ -664,31 +693,34 @@ export class WgslParser {
 
     this._consume(TokenTypes.tokens.brace_left, "Expected '{' for loop.");
 
+    const loop = this._updateNode(new AST.Loop([], null));
+    this._currentLoop.push(loop);
+
     // statement*
-    let continuing: AST.Continuing | null = null;
-    const statements: Array<AST.Statement> = [];
     let statement = this._statement();
     while (statement !== null) {
       if (Array.isArray(statement)) {
         for (let s of statement) {
-          statements.push(s);
+          loop.body.push(s);
         }
       } else {
-        statements.push(statement);
+        loop.body.push(statement);
       }
       // Keep continuing in the loop body statements so it can be
       // executed in the stackframe of the body statements.
       if (statement instanceof AST.Continuing) {
-        continuing = statement;
+        loop.continuing = statement;
         // Continuing should be the last statement in the loop.
         break;
       }
       statement = this._statement();
     }
 
+    this._currentLoop.pop();
+
     this._consume(TokenTypes.tokens.brace_right, "Expected '}' for loop.");
 
-    return this._updateNode(new AST.Loop(statements, continuing));
+    return loop;
   }
 
   _switch_statement(): AST.Switch | null {

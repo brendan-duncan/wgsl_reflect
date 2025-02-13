@@ -9,6 +9,8 @@ export declare class ParseContext {
  * Base class for AST nodes parsed from a WGSL shader.
  */
 export declare class Node {
+    static _id: number;
+    id: number;
     line: number;
     constructor();
     get isAstNode(): boolean;
@@ -326,6 +328,7 @@ export declare class Discard extends Statement {
  */
 export declare class Break extends Statement {
     condition: Expression | null;
+    loopId: number;
     constructor();
     get astNodeType(): string;
 }
@@ -335,6 +338,7 @@ export declare class Break extends Statement {
  * @category AST
  */
 export declare class Continue extends Statement {
+    loopId: number;
     constructor();
     get astNodeType(): string;
 }

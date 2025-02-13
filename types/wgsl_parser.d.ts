@@ -9,6 +9,7 @@ export declare class WgslParser {
     _currentLine: number;
     _context: AST.ParseContext;
     _deferArrayCountEval: Array<Object>;
+    _currentLoop: Array<AST.Statement>;
     parse(tokensOrCode: Array<Token> | string): Array<AST.Statement>;
     _initialize(tokensOrCode: Array<Token> | string): void;
     _updateNode<T extends AST.Node>(n: T, l?: number): T;

@@ -3,15 +3,35 @@ import { WgslDebug } from "../../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Debug", async function () {
+    await test("nested loops", async function (test) {
+      const shader = `
+      fn foo() -> i32 {
+        let j = 0;
+        loop {
+          if j >= 2 { break; }
+          loop {
+            j++;
+            if j >= 3 { break; }
+          }
+        }
+        return j;
+      }
+      let bar = foo();`;
+      const dbg = new WgslDebug(shader);
+      while (dbg.stepNext());
+      const v = dbg.getVariableValue("bar");
+      test.equals(v, 3);
+    });
+
     await test("vec2 operators", async function (test) {
       var shader = `let i = 2;
         var a = vec2<f32>(1.0, 2.0);
         var b = vec2<f32>(3.0, 4.0);
         var c = (a / vec2(f32(i))) - b;`;
-        const dbg = new WgslDebug(shader);
-        while (dbg.stepNext());
-        const v = dbg.getVariableValue("c");
-        test.equals(v, [-2.5, -3]);
+      const dbg = new WgslDebug(shader);
+      while (dbg.stepNext());
+      const v = dbg.getVariableValue("c");
+      test.equals(v, [-2.5, -3]);
     });
 
     await test("call statement", async function (test) {

@@ -1,9 +1,7 @@
 import * as AST from "./wgsl_ast.js";
 import { WgslExec } from "./wgsl_exec.js";
 import { ExecContext, Function } from "./exec/exec_context.js";
-declare class Command {
-    get line(): number;
-}
+import { Command } from "./exec/command.js";
 export declare class StackFrame {
     parent: StackFrame | null;
     context: ExecContext;

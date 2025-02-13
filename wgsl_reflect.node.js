@@ -16,6 +16,7 @@ class ParseContext {
  */
 class Node {
     constructor() {
+        this.id = Node._id++;
         this.line = 0;
     }
     get isAstNode() {
@@ -46,6 +47,7 @@ class Node {
         }
     }
 }
+Node._id = 0;
 // For internal use only
 class _BlockStart extends Node {
 }
@@ -172,6 +174,7 @@ class For extends Statement {
 class Var$1 extends Statement {
     constructor(name, type, storage, access, value) {
         super();
+        this.attributes = null;
         this.name = name;
         this.type = type;
         this.storage = storage;
@@ -195,6 +198,7 @@ class Var$1 extends Statement {
 class Override extends Statement {
     constructor(name, type, value) {
         super();
+        this.attributes = null;
         this.name = name;
         this.type = type;
         this.value = value;
@@ -215,6 +219,7 @@ class Override extends Statement {
 class Let extends Statement {
     constructor(name, type, storage, access, value) {
         super();
+        this.attributes = null;
         this.name = name;
         this.type = type;
         this.storage = storage;
@@ -238,6 +243,7 @@ class Let extends Statement {
 class Const extends Statement {
     constructor(name, type, storage, access, value) {
         super();
+        this.attributes = null;
         this.name = name;
         this.type = type;
         this.storage = storage;
@@ -505,6 +511,7 @@ class Break extends Statement {
     constructor() {
         super();
         this.condition = null;
+        this.loopId = -1;
     }
     get astNodeType() {
         return "break";
@@ -518,6 +525,7 @@ class Break extends Statement {
 class Continue extends Statement {
     constructor() {
         super();
+        this.loopId = -1;
     }
     get astNodeType() {
         return "continue";
@@ -531,6 +539,7 @@ class Continue extends Statement {
 class Type extends Statement {
     constructor(name) {
         super();
+        this.attributes = null;
         this.name = name;
     }
     get astNodeType() {
@@ -700,6 +709,7 @@ class SamplerType extends Type {
 class Expression extends Node {
     constructor() {
         super();
+        this.postfix = null;
     }
 }
 /**
@@ -3238,6 +3248,7 @@ class WgslParser {
         this._currentLine = 0;
         this._context = new ParseContext();
         this._deferArrayCountEval = [];
+        this._currentLoop = [];
     }
     parse(tokensOrCode) {
         this._initialize(tokensOrCode);
@@ -3553,6 +3564,14 @@ class WgslParser {
         }
         else if (this._match(TokenTypes.keywords.break)) {
             const breakStmt = this._updateNode(new Break());
+            if (this._currentLoop.length > 0) {
+                const loop = this._currentLoop[this._currentLoop.length - 1];
+                breakStmt.loopId = loop.id;
+            }
+            else {
+                // This break statement is not inside a loop. 
+                throw this._error(this._peek(), "Break statement must be inside a loop.");
+            }
             result = breakStmt;
             if (this._check(TokenTypes.keywords.if)) {
                 // break-if
@@ -3564,7 +3583,16 @@ class WgslParser {
             }
         }
         else if (this._match(TokenTypes.keywords.continue)) {
-            result = this._updateNode(new Continue());
+            const continueStmt = this._updateNode(new Continue());
+            if (this._currentLoop.length > 0) {
+                const loop = this._currentLoop[this._currentLoop.length - 1];
+                continueStmt.loopId = loop.id;
+            }
+            else {
+                // This continue statement is not inside a loop. 
+                throw this._error(this._peek(), "Continue statement must be inside a loop.");
+            }
+            result = continueStmt;
         }
         else {
             result =
@@ -3588,12 +3616,15 @@ class WgslParser {
         if (!this._match(TokenTypes.keywords.while)) {
             return null;
         }
-        const condition = this._optional_paren_expression();
+        const whileLoop = this._updateNode(new While(null, null));
+        this._currentLoop.push(whileLoop);
+        whileLoop.condition = this._optional_paren_expression();
         if (this._check(TokenTypes.tokens.attr)) {
             this._attribute();
         }
-        const block = this._compound_statement();
-        return this._updateNode(new While(condition, block));
+        whileLoop.body = this._compound_statement();
+        this._currentLoop.pop();
+        return whileLoop;
     }
     _continuing_statement() {
         if (!this._match(TokenTypes.keywords.continuing)) {
@@ -3608,24 +3639,27 @@ class WgslParser {
             return null;
         }
         this._consume(TokenTypes.tokens.paren_left, "Expected '('.");
+        const forLoop = this._updateNode(new For(null, null, null, null));
+        this._currentLoop.push(forLoop);
         // for_header: (variable_statement assignment_statement func_call_statement)? semicolon short_circuit_or_expression? semicolon (assignment_statement func_call_statement)?
-        const init = !this._check(TokenTypes.tokens.semicolon)
+        forLoop.init = !this._check(TokenTypes.tokens.semicolon)
             ? this._for_init()
             : null;
         this._consume(TokenTypes.tokens.semicolon, "Expected ';'.");
-        const condition = !this._check(TokenTypes.tokens.semicolon)
+        forLoop.condition = !this._check(TokenTypes.tokens.semicolon)
             ? this._short_circuit_or_expression()
             : null;
         this._consume(TokenTypes.tokens.semicolon, "Expected ';'.");
-        const increment = !this._check(TokenTypes.tokens.paren_right)
+        forLoop.increment = !this._check(TokenTypes.tokens.paren_right)
             ? this._for_increment()
             : null;
         this._consume(TokenTypes.tokens.paren_right, "Expected ')'.");
         if (this._check(TokenTypes.tokens.attr)) {
             this._attribute();
         }
-        const body = this._compound_statement();
-        return this._updateNode(new For(init, condition, increment, body));
+        forLoop.body = this._compound_statement();
+        this._currentLoop.pop();
+        return forLoop;
     }
     _for_init() {
         // (variable_statement assignment_statement func_call_statement)?
@@ -3743,30 +3777,31 @@ class WgslParser {
             this._attribute();
         }
         this._consume(TokenTypes.tokens.brace_left, "Expected '{' for loop.");
+        const loop = this._updateNode(new Loop([], null));
+        this._currentLoop.push(loop);
         // statement*
-        let continuing = null;
-        const statements = [];
         let statement = this._statement();
         while (statement !== null) {
             if (Array.isArray(statement)) {
                 for (let s of statement) {
-                    statements.push(s);
+                    loop.body.push(s);
                 }
             }
             else {
-                statements.push(statement);
+                loop.body.push(statement);
             }
             // Keep continuing in the loop body statements so it can be
             // executed in the stackframe of the body statements.
             if (statement instanceof Continuing) {
-                continuing = statement;
+                loop.continuing = statement;
                 // Continuing should be the last statement in the loop.
                 break;
             }
             statement = this._statement();
         }
+        this._currentLoop.pop();
         this._consume(TokenTypes.tokens.brace_right, "Expected '}' for loop.");
-        return this._updateNode(new Loop(statements, continuing));
+        return loop;
     }
     _switch_statement() {
         // switch optional_paren_expression brace_left switch_body+ brace_right
@@ -9958,6 +9993,35 @@ class CallExprCommand extends Command {
     }
     get line() { return this.statement.line; }
 }
+class ContinueTargetCommand extends Command {
+    constructor(id) {
+        super();
+        this.id = id;
+    }
+}
+class BreakTargetCommand extends Command {
+    constructor(id) {
+        super();
+        this.id = id;
+    }
+}
+class ContinueCommand extends Command {
+    constructor(id, node) {
+        super();
+        this.id = id;
+        this.node = node;
+    }
+    get line() { return this.node.line; }
+}
+class BreakCommand extends Command {
+    constructor(id, condition, node) {
+        super();
+        this.id = id;
+        this.condition = condition;
+        this.node = node;
+    }
+    get line() { return this.node.line; }
+}
 class GotoCommand extends Command {
     constructor(condition, position) {
         super();
@@ -9969,10 +10033,6 @@ class GotoCommand extends Command {
         return (_b = (_a = this.condition) === null || _a === void 0 ? void 0 : _a.line) !== null && _b !== void 0 ? _b : -1;
     }
 }
-GotoCommand.kContinueTarget = -1;
-GotoCommand.kBreakTarget = -2;
-GotoCommand.kContinue = -3;
-GotoCommand.kBreak = -4;
 class BlockCommand extends Command {
     constructor(statements) {
         super();
@@ -9983,6 +10043,7 @@ class BlockCommand extends Command {
         return this.statements.length > 0 ? this.statements[0].line : -1;
     }
 }
+
 class StackFrame {
     constructor(context, parent) {
         this.parent = null;
@@ -10250,11 +10311,11 @@ class WgslDebug {
         if (command === null) {
             return false;
         }
-        if (command instanceof GotoCommand) {
+        /*if (command instanceof GotoCommand) {
             if (command.condition === null) {
                 return true;
             }
-        }
+        }*/
         return false;
     }
     stepInto() {
@@ -10397,13 +10458,77 @@ class WgslDebug {
                     return true;
                 }
             }
+            else if (command instanceof ContinueTargetCommand) {
+                continue;
+            }
+            else if (command instanceof BreakTargetCommand) {
+                continue;
+            }
+            else if (command instanceof ContinueCommand) {
+                const targetId = command.id;
+                while (!this._execStack.isEmpty) {
+                    state = this._execStack.last;
+                    for (let i = state.commands.length - 1; i >= 0; --i) {
+                        const cmd = state.commands[i];
+                        if (cmd instanceof ContinueTargetCommand) {
+                            if (cmd.id === targetId) {
+                                state.current = i + 1;
+                                return true;
+                            }
+                        }
+                    }
+                    // No Goto -1 found (loop), pop the current state and continue searching.
+                    this._execStack.pop();
+                }
+                // If we got here, we've reached the end of the stack and didn't find a -1.
+                // That means a continue was used outside of a loop, so we're done.
+                console.error("Continue statement used outside of a loop");
+                return false;
+            }
+            else if (command instanceof BreakCommand) {
+                const targetId = command.id;
+                // break-if conditional break 
+                if (command.condition) {
+                    const res = this._exec.evalExpression(command.condition, state.context);
+                    if (!(res instanceof ScalarData)) {
+                        console.error("Condition must be a scalar");
+                        return false;
+                    }
+                    // If the condition is false, then we should not the break.
+                    if (!res.value) {
+                        if (this._shouldExecuteNectCommand()) {
+                            continue;
+                        }
+                        return true;
+                    }
+                }
+                while (!this._execStack.isEmpty) {
+                    state = this._execStack.last;
+                    for (let i = state.commands.length - 1; i >= 0; --i) {
+                        const cmd = state.commands[i];
+                        if (cmd instanceof BreakTargetCommand) {
+                            if (cmd.id === targetId) {
+                                state.current = i + 1;
+                                return true;
+                            }
+                        }
+                    }
+                    // No Goto -2 found (loop), pop the current state and continue searching.
+                    this._execStack.pop();
+                }
+                // If we got here, we've reached the end of the stack and didn't find a BreakTarget.
+                // That means a break was used outside of a loop, so we're done.
+                console.error("Break statement used outside of a loop");
+                return false;
+            }
             else if (command instanceof GotoCommand) {
                 // kContinueTarget is used as a marker for continue statements, and
                 // kBreakTarget is used as a marker for break statements. Skip them.
-                if (command.position === GotoCommand.kContinueTarget ||
+                /*if (command.position === GotoCommand.kContinueTarget ||
                     command.position === GotoCommand.kBreakTarget) {
                     continue; // continue to the next command
                 }
+
                 // kContinue is used as a marker for continue statements. If we encounter it,
                 // then we need to find the nearest proceding GotoCommand with a kContinueTarget.
                 if (command.position === GotoCommand.kContinue) {
@@ -10428,10 +10553,11 @@ class WgslDebug {
                     console.error("Continue statement used outside of a loop");
                     return false;
                 }
+
                 // kBreak is used as a marker for break statements. If we encounter it,
                 // then we need to find the nearest subsequent GotoCommand with a kBreakTarget.
                 if (command.position === GotoCommand.kBreak) {
-                    // break-if conditional break 
+                    // break-if conditional break
                     if (command.condition) {
                         const res = this._exec.evalExpression(command.condition, state.context);
                         if (!(res instanceof ScalarData)) {
@@ -10446,6 +10572,7 @@ class WgslDebug {
                             return true;
                         }
                     }
+
                     while (!this._execStack.isEmpty) {
                         state = this._execStack.last;
                         for (let i = state.current; i < state.commands.length; ++i) {
@@ -10463,7 +10590,7 @@ class WgslDebug {
                     // That means a break was used outside of a loop, so we're done.
                     console.error("Break statement used outside of a loop");
                     return false;
-                }
+                }*/
                 if (command.condition) {
                     const res = this._exec.evalExpression(command.condition, state.context);
                     if (!(res instanceof ScalarData)) {
@@ -10635,22 +10762,6 @@ class WgslDebug {
                 state.context.functions.set(statement.name, f);
                 continue;
             }
-            else if (statement instanceof While) {
-                const functionCalls = [];
-                state.commands.push(new GotoCommand(null, GotoCommand.kContinueTarget));
-                this._collectFunctionCalls(statement.condition, functionCalls);
-                for (const call of functionCalls) {
-                    state.commands.push(new CallExprCommand(call, statement));
-                }
-                const conditionCmd = new GotoCommand(statement.condition, 0);
-                state.commands.push(conditionCmd);
-                if (statement.body.length > 0) {
-                    state.commands.push(new BlockCommand(statement.body));
-                }
-                state.commands.push(new GotoCommand(statement.condition, 0));
-                state.commands.push(new GotoCommand(null, GotoCommand.kBreakTarget));
-                conditionCmd.position = state.commands.length;
-            }
             else if (statement instanceof If) {
                 const functionCalls = [];
                 this._collectFunctionCalls(statement.condition, functionCalls);
@@ -10684,13 +10795,29 @@ class WgslDebug {
                 }
                 gotoEnd.position = state.commands.length;
             }
+            else if (statement instanceof While) {
+                const functionCalls = [];
+                state.commands.push(new ContinueTargetCommand(statement.id));
+                this._collectFunctionCalls(statement.condition, functionCalls);
+                for (const call of functionCalls) {
+                    state.commands.push(new CallExprCommand(call, statement));
+                }
+                const conditionCmd = new GotoCommand(statement.condition, 0);
+                state.commands.push(conditionCmd);
+                if (statement.body.length > 0) {
+                    state.commands.push(new BlockCommand(statement.body));
+                }
+                state.commands.push(new GotoCommand(statement.condition, 0));
+                state.commands.push(new BreakTargetCommand(statement.id));
+                conditionCmd.position = state.commands.length;
+            }
             else if (statement instanceof For) {
                 if (statement.init) {
                     state.commands.push(new StatementCommand(statement.init));
                 }
                 let conditionPos = state.commands.length;
                 if (statement.increment === null) {
-                    state.commands.push(new GotoCommand(null, GotoCommand.kContinueTarget));
+                    state.commands.push(new ContinueTargetCommand(statement.id));
                 }
                 let conditionCmd = null;
                 if (statement.condition) {
@@ -10706,33 +10833,33 @@ class WgslDebug {
                     state.commands.push(new BlockCommand(statement.body));
                 }
                 if (statement.increment) {
-                    state.commands.push(new GotoCommand(null, GotoCommand.kContinueTarget));
+                    state.commands.push(new ContinueTargetCommand(statement.id));
                     state.commands.push(new StatementCommand(statement.increment));
                 }
                 state.commands.push(new GotoCommand(null, conditionPos));
-                state.commands.push(new GotoCommand(null, GotoCommand.kBreakTarget));
+                state.commands.push(new BreakTargetCommand(statement.id));
                 conditionCmd.position = state.commands.length;
             }
             else if (statement instanceof Loop) {
                 let loopStartPos = state.commands.length;
                 if (!statement.continuing) {
-                    state.commands.push(new GotoCommand(null, GotoCommand.kContinueTarget));
+                    state.commands.push(new ContinueTargetCommand(statement.id));
                 }
                 if (statement.body.length > 0) {
                     state.commands.push(new BlockCommand(statement.body));
                 }
                 state.commands.push(new GotoCommand(null, loopStartPos));
-                state.commands.push(new GotoCommand(null, GotoCommand.kBreakTarget));
+                state.commands.push(new BreakTargetCommand(statement.id));
             }
             else if (statement instanceof Continuing) {
-                state.commands.push(new GotoCommand(null, GotoCommand.kContinueTarget));
+                state.commands.push(new ContinueTargetCommand(statement.id));
                 state.commands.push(new BlockCommand(statement.body));
             }
             else if (statement instanceof Continue) {
-                state.commands.push(new GotoCommand(null, GotoCommand.kContinue));
+                state.commands.push(new ContinueCommand(statement.loopId, statement));
             }
             else if (statement instanceof Break) {
-                state.commands.push(new GotoCommand(statement.condition, GotoCommand.kBreak));
+                state.commands.push(new BreakCommand(statement.loopId, statement.condition, statement));
             }
             else if (statement instanceof StaticAssert) {
                 state.commands.push(new StatementCommand(statement));

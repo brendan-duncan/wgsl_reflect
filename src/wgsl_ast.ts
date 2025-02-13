@@ -10,9 +10,13 @@ export class ParseContext {
  * Base class for AST nodes parsed from a WGSL shader.
  */
 export class Node {
+  static _id = 0;
+
+  id: number;
   line: number;
 
   constructor() {
+    this.id = Node._id++;
     this.line = 0;
   }
 
@@ -227,7 +231,7 @@ export class Var extends Statement {
   storage: string | null;
   access: string | null;
   value: Expression | null;
-  attributes: Array<Attribute> | null;
+  attributes: Array<Attribute> | null = null;
 
   constructor(
     name: string,
@@ -263,7 +267,7 @@ export class Override extends Statement {
   name: string;
   type: Type | null;
   value: Expression | null;
-  attributes: Array<Attribute> | null;
+  attributes: Array<Attribute> | null = null;
 
   constructor(name: string, type: Type | null, value: Expression | null) {
     super();
@@ -292,7 +296,7 @@ export class Let extends Statement {
   storage: string | null;
   access: string | null;
   value: Expression | null;
-  attributes: Array<Attribute> | null;
+  attributes: Array<Attribute> | null = null;
 
   constructor(
     name: string,
@@ -330,7 +334,7 @@ export class Const extends Statement {
   storage: string | null;
   access: string | null;
   value: Expression;
-  attributes: Array<Attribute> | null;
+  attributes: Array<Attribute> | null = null;
 
   constructor(
     name: string,
@@ -676,11 +680,11 @@ export class Discard extends Statement {
  * @category AST
  */
 export class Break extends Statement {
-  condition: Expression | null;
+  condition: Expression | null = null;
+  loopId: number = -1;
 
   constructor() {
     super();
-    this.condition = null;
   }
 
   get astNodeType(): string {
@@ -694,6 +698,8 @@ export class Break extends Statement {
  * @category AST
  */
 export class Continue extends Statement {
+  loopId: number = -1;
+
   constructor() {
     super();
   }
@@ -710,7 +716,7 @@ export class Continue extends Statement {
  */
 export class Type extends Statement {
   name: string;
-  attributes: Array<Attribute> | null;
+  attributes: Array<Attribute> | null = null;
 
   constructor(name: string) {
     super();
@@ -937,7 +943,7 @@ export class SamplerType extends Type {
  * @category AST
  */
 export class Expression extends Node {
-  postfix: Expression | null;
+  postfix: Expression | null = null;
 
   constructor() {
     super();
