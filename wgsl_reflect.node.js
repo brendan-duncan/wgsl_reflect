@@ -10311,11 +10311,11 @@ class WgslDebug {
         if (command === null) {
             return false;
         }
-        /*if (command instanceof GotoCommand) {
+        if (command instanceof GotoCommand) {
             if (command.condition === null) {
                 return true;
             }
-        }*/
+        }
         return false;
     }
     stepInto() {
