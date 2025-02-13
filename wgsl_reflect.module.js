@@ -8092,6 +8092,9 @@ class WgslExec extends ExecInterface {
         else if (node instanceof BitcastExpr) {
             return this._evalBitcast(node, context);
         }
+        else if (node instanceof UnaryOperator) {
+            return this._evalUnaryOp(node, context);
+        }
         console.error(`Invalid expression type`, node, `Line ${node.line}`);
         return null;
     }
@@ -8871,6 +8874,55 @@ class WgslExec extends ExecInterface {
             return this.getTypeInfo("i32");
         }
         return t;
+    }
+    _evalUnaryOp(node, context) {
+        const _r = this.evalExpression(node.right, context);
+        const r = _r instanceof ScalarData ? _r.value :
+            _r instanceof VectorData ? _r.value : null;
+        switch (node.operator) {
+            case "+": {
+                if (isArray(r)) {
+                    const ra = r;
+                    const result = ra.map((x, i) => +x);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const rn = r;
+                const t = this._maxFormatTypeInfo([_r.typeInfo, _r.typeInfo]);
+                return new ScalarData(+rn, t);
+            }
+            case "-": {
+                if (isArray(r)) {
+                    const ra = r;
+                    const result = ra.map((x, i) => -x);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const rn = r;
+                const t = this._maxFormatTypeInfo([_r.typeInfo, _r.typeInfo]);
+                return new ScalarData(-rn, t);
+            }
+            case "!": {
+                if (isArray(r)) {
+                    const ra = r;
+                    const result = ra.map((x, i) => !x ? 1 : 0);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const rn = r;
+                const t = this._maxFormatTypeInfo([_r.typeInfo, _r.typeInfo]);
+                return new ScalarData(!rn ? 1 : 0, t);
+            }
+            case "~": {
+                if (isArray(r)) {
+                    const ra = r;
+                    const result = ra.map((x, i) => ~x);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const rn = r;
+                const t = this._maxFormatTypeInfo([_r.typeInfo, _r.typeInfo]);
+                return new ScalarData(~rn, t);
+            }
+        }
+        console.error(`Invalid unary operator ${node.operator}. Line ${node.line}`);
+        return null;
     }
     _evalBinaryOp(node, context) {
         const _l = this.evalExpression(node.left, context);

@@ -41,6 +41,7 @@ export declare class WgslExec extends ExecInterface {
     _evalVariable(node: AST.VariableExpr, context: ExecContext): Data | null;
     static _priority: Map<string, number>;
     _maxFormatTypeInfo(x: TypeInfo[]): TypeInfo | null;
+    _evalUnaryOp(node: AST.UnaryOperator, context: ExecContext): Data | null;
     _evalBinaryOp(node: AST.BinaryOperator, context: ExecContext): Data | null;
     _evalCall(node: AST.CallExpr, context: ExecContext): Data | null;
     _callBuiltinFunction(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null;

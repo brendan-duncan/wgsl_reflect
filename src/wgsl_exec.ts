@@ -210,19 +210,21 @@ export class WgslExec extends ExecInterface {
         }
 
         if (node instanceof AST.BinaryOperator) {
-            return this._evalBinaryOp(node as AST.BinaryOperator, context);
+            return this._evalBinaryOp(node, context);
         } else if (node instanceof AST.LiteralExpr) {
-            return this._evalLiteral(node as AST.LiteralExpr, context);
+            return this._evalLiteral(node, context);
         } else if (node instanceof AST.VariableExpr) {
-            return this._evalVariable(node as AST.VariableExpr, context);
+            return this._evalVariable(node, context);
         } else if (node instanceof AST.CallExpr) {
-            return this._evalCall(node as AST.CallExpr, context);
+            return this._evalCall(node, context);
         } else if (node instanceof AST.CreateExpr) {
-            return this._evalCreate(node as AST.CreateExpr, context);
+            return this._evalCreate(node, context);
         } else if (node instanceof AST.ConstExpr) {
-            return this._evalConst(node as AST.ConstExpr, context);
+            return this._evalConst(node, context);
         } else if (node instanceof AST.BitcastExpr) {
-            return this._evalBitcast(node as AST.BitcastExpr, context);
+            return this._evalBitcast(node, context);
+        } else if (node instanceof AST.UnaryOperator) {
+            return this._evalUnaryOp(node, context);
         }
         console.error(`Invalid expression type`, node, `Line ${node.line}`);
         return null;
@@ -995,6 +997,57 @@ export class WgslExec extends ExecInterface {
         }
 
         return t;
+    }
+
+    _evalUnaryOp(node: AST.UnaryOperator, context: ExecContext): Data | null {
+        const _r = this.evalExpression(node.right, context);
+        const r = _r instanceof ScalarData ? _r.value : 
+            _r instanceof VectorData ? _r.value : null;
+
+        switch (node.operator) {
+            case "+": {
+                if (isArray(r)) {
+                    const ra = r as number[];
+                    const result = ra.map((x: number, i: number) => +x);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const rn = r as number;
+                const t = this._maxFormatTypeInfo([_r.typeInfo, _r.typeInfo]);
+                return new ScalarData(+rn, t);
+            }
+            case "-": {
+                if (isArray(r)) {
+                    const ra = r as number[];
+                    const result = ra.map((x: number, i: number) => -x);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const rn = r as number;
+                const t = this._maxFormatTypeInfo([_r.typeInfo, _r.typeInfo]);
+                return new ScalarData(-rn, t);
+            }
+            case "!": {
+                if (isArray(r)) {
+                    const ra = r as number[];
+                    const result = ra.map((x: number, i: number) => !x ? 1 : 0);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const rn = r as number;
+                const t = this._maxFormatTypeInfo([_r.typeInfo, _r.typeInfo]);
+                return new ScalarData(!rn ? 1 : 0, t);
+            }
+            case "~": {
+                if (isArray(r)) {
+                    const ra = r as number[];
+                    const result = ra.map((x: number, i: number) => ~x);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const rn = r as number;
+                const t = this._maxFormatTypeInfo([_r.typeInfo, _r.typeInfo]);
+                return new ScalarData(~rn, t);
+            }
+        }
+        console.error(`Invalid unary operator ${node.operator}. Line ${node.line}`);
+        return null;
     }
 
     _evalBinaryOp(node: AST.BinaryOperator, context: ExecContext): Data | null {
