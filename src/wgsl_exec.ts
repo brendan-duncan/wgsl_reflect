@@ -777,6 +777,11 @@ export class WgslExec extends ExecInterface {
                 const defType = new AST.CreateExpr(node.type, []);
                 value = this._evalCreate(defType, context);
             }
+
+            if (node.type.name === "array") {
+                const defType = new AST.CreateExpr(node.type, []);
+                value = this._evalCreate(defType, context);
+            }
         }
 
         context.createVariable(node.name, value, node);
@@ -1055,6 +1060,9 @@ export class WgslExec extends ExecInterface {
 
     _evalVariable(node: AST.VariableExpr, context: ExecContext): Data | null {
         const value = context.getVariableValue(node.name);
+        if (value === null) {
+            return value;
+        }
         if (node?.postfix) {
             return value.getDataValue(this, node.postfix, context);
         }

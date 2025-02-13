@@ -7,28 +7,33 @@ export declare class Data {
     constructor(typeInfo: TypeInfo);
     setDataValue(exec: ExecInterface, value: Data, postfix: AST.Expression | null, context: ExecContext): void;
     getDataValue(exec: ExecInterface, postfix: AST.Expression | null, context: ExecContext): Data | null;
+    toString(): string;
 }
 export declare class VoidData extends Data {
     constructor();
     static void: VoidData;
+    toString(): string;
 }
 export declare class ScalarData extends Data {
     value: number;
     constructor(value: number, typeInfo: TypeInfo);
     setDataValue(exec: ExecInterface, value: Data, postfix: AST.Expression | null, context: ExecContext): void;
     getDataValue(exec: ExecInterface, postfix: AST.Expression | null, context: ExecContext): Data | null;
+    toString(): string;
 }
 export declare class VectorData extends Data {
     value: number[];
     constructor(value: number[] | Float32Array | Uint32Array | Int32Array, typeInfo: TypeInfo);
     setDataValue(exec: ExecInterface, value: Data, postfix: AST.Expression | null, context: ExecContext): void;
     getDataValue(exec: ExecInterface, postfix: AST.Expression | null, context: ExecContext): Data | null;
+    toString(): string;
 }
 export declare class MatrixData extends Data {
     value: number[];
     constructor(value: number[], typeInfo: TypeInfo);
     setDataValue(exec: ExecInterface, value: Data, postfix: AST.Expression | null, context: ExecContext): void;
     getDataValue(exec: ExecInterface, postfix: AST.Expression | null, context: ExecContext): Data | null;
+    toString(): string;
 }
 export declare class TypedData extends Data {
     buffer: ArrayBuffer;

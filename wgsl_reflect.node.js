@@ -5753,10 +5753,16 @@ class Data {
         console.error(`GetDataValue: Not implemented`, postfix);
         return null;
     }
+    toString() {
+        return `<${this.typeInfo.name}>`;
+    }
 }
 class VoidData extends Data {
     constructor() {
         super(new TypeInfo("void", null));
+    }
+    toString() {
+        return "void";
     }
 }
 VoidData.void = new VoidData();
@@ -5792,6 +5798,9 @@ class ScalarData extends Data {
             return null;
         }
         return this;
+    }
+    toString() {
+        return `${this.value}`;
     }
 }
 function _getVectorData(exec, values, formatName) {
@@ -5944,6 +5953,9 @@ class VectorData extends Data {
         }
         return this;
     }
+    toString() {
+        return `${this.value}`;
+    }
 }
 class MatrixData extends Data {
     constructor(value, typeInfo) {
@@ -6039,6 +6051,9 @@ class MatrixData extends Data {
             return _getVectorData(exec, values, format.name);
         }
         return this;
+    }
+    toString() {
+        return `${this.value}`;
     }
 }
 // Used to store array and struct data
@@ -8688,6 +8703,10 @@ class WgslExec extends ExecInterface {
                 const defType = new CreateExpr(node.type, []);
                 value = this._evalCreate(defType, context);
             }
+            if (node.type.name === "array") {
+                const defType = new CreateExpr(node.type, []);
+                value = this._evalCreate(defType, context);
+            }
         }
         context.createVariable(node.name, value, node);
     }
@@ -8953,6 +8972,9 @@ class WgslExec extends ExecInterface {
     }
     _evalVariable(node, context) {
         const value = context.getVariableValue(node.name);
+        if (value === null) {
+            return value;
+        }
         if (node === null || node === void 0 ? void 0 : node.postfix) {
             return value.getDataValue(this, node.postfix, context);
         }

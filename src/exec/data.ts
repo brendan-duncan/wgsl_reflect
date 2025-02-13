@@ -17,6 +17,10 @@ export class Data {
         console.error(`GetDataValue: Not implemented`, postfix);
         return null;
     }
+
+    toString(): string {
+        return `<${this.typeInfo.name}>`;
+    }
 }
 
 export class VoidData extends Data {
@@ -25,6 +29,10 @@ export class VoidData extends Data {
     }
 
     static void = new VoidData();
+
+    toString(): string {
+        return "void";
+    }
 }
 
 // Used to store scalar data
@@ -70,6 +78,10 @@ export class ScalarData extends Data {
         }
 
         return this;
+    }
+
+    toString(): string {
+        return `${this.value}`;
     }
 }
 
@@ -215,6 +227,10 @@ export class VectorData extends Data {
 
         return this;
     }
+
+    toString(): string {
+        return `${this.value}`;
+    }
 }
 
 export class MatrixData extends Data {
@@ -305,6 +321,10 @@ export class MatrixData extends Data {
         }
 
         return this;
+    }
+
+    toString(): string {
+        return `${this.value}`;
     }
 }
 
