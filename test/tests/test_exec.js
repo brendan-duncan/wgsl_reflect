@@ -5,6 +5,17 @@ export async function run() {
     await group("WgslExec", async function () {
         await test("vec construction", function (test) {
             const shader = `var<private> v2 = vec2f(-1.0, -2.0);
+            var<private> v3a = bitcast<vec2u>(v2);
+            var<private> v3b = bitcast<vec2<i32>>(v2);`;
+            const wgsl = new WgslExec(shader);
+            wgsl.execute();
+            // Ensure the top-level instructions were executed and the global variable has the correct value.
+            test.equals(wgsl.getVariableValue("v3a"), [3212836864, 3221225472]);
+            test.equals(wgsl.getVariableValue("v3b"), [3212836864, 3221225472]);
+        });
+
+        await test("vec construction", function (test) {
+            const shader = `var<private> v2 = vec2f(-1.0, -2.0);
             var<private> v3a = vec3f(1, 2, 3);
             var<private> v3b = vec3f(v2, 4);
             var<private> v3c = vec3f(5, v2);

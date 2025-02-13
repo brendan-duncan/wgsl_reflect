@@ -789,7 +789,9 @@ export class WgslDebug {
                 }
                 const conditionCmd = new GotoCommand(statement.condition, 0);
                 state.commands.push(conditionCmd);
-                state.commands.push(new BlockCommand(statement.body));
+                if (statement.body.length > 0) {
+                    state.commands.push(new BlockCommand(statement.body));
+                }
                 state.commands.push(new GotoCommand(statement.condition, 0));
                 state.commands.push(new GotoCommand(null, GotoCommand.kBreakTarget));
                 conditionCmd.position = state.commands.length;
@@ -802,7 +804,9 @@ export class WgslDebug {
 
                 let conditionCmd = new GotoCommand(statement.condition, 0);
                 state.commands.push(conditionCmd);
-                state.commands.push(new BlockCommand(statement.body));
+                if (statement.body.length > 0) {
+                    state.commands.push(new BlockCommand(statement.body));
+                }
                 const gotoEnd = new GotoCommand(null, 0);
                 state.commands.push(gotoEnd);
 
@@ -817,7 +821,9 @@ export class WgslDebug {
 
                     conditionCmd = new GotoCommand(elseIf.condition, 0);
                     state.commands.push(conditionCmd);
-                    state.commands.push(new BlockCommand(elseIf.body));
+                    if (elseIf.body.length > 0) {
+                        state.commands.push(new BlockCommand(elseIf.body));
+                    }
                     state.commands.push(gotoEnd);
                 }
 
@@ -848,7 +854,9 @@ export class WgslDebug {
                     state.commands.push(conditionCmd);
                 }
 
-                state.commands.push(new BlockCommand(statement.body));
+                if (statement.body.length > 0) {
+                    state.commands.push(new BlockCommand(statement.body));
+                }
 
                 if (statement.increment) {
                     state.commands.push(new GotoCommand(null, GotoCommand.kContinueTarget));
@@ -862,7 +870,9 @@ export class WgslDebug {
                 if (!statement.continuing) {
                     state.commands.push(new GotoCommand(null, GotoCommand.kContinueTarget));
                 }
-                state.commands.push(new BlockCommand(statement.body));
+                if (statement.body.length > 0) {
+                    state.commands.push(new BlockCommand(statement.body));
+                }
                 state.commands.push(new GotoCommand(null, loopStartPos));
                 state.commands.push(new GotoCommand(null, GotoCommand.kBreakTarget));
             } else if (statement instanceof AST.Continuing) {
@@ -894,8 +904,10 @@ export class WgslDebug {
 
     _collectFunctionCalls(node: AST.Expression, functionCalls: Array<AST.CallExpr>) {
         if (node instanceof AST.CallExpr) {
-            for (const arg of node.args) {
-                this._collectFunctionCalls(arg, functionCalls);
+            if (node.args) {
+                for (const arg of node.args) {
+                    this._collectFunctionCalls(arg, functionCalls);
+                }
             }
             // Only collect custom function calls, not built-in functions.
             if (!node.isBuiltin) {
@@ -911,14 +923,17 @@ export class WgslDebug {
                 this._collectFunctionCalls(n, functionCalls);
             }
         } else if (node instanceof AST.CreateExpr) {
-            for (const arg of node.args) {
-                this._collectFunctionCalls(arg, functionCalls);
+            if (node.args) {
+                for (const arg of node.args) {
+                    this._collectFunctionCalls(arg, functionCalls);
+                }
             }
         } else if (node instanceof AST.BitcastExpr) {
             this._collectFunctionCalls(node.value, functionCalls);
         } else if (node instanceof AST.ArrayIndex) {
             this._collectFunctionCalls(node.index, functionCalls);
         } else if (AST.LiteralExpr) {
+            // nothing to do
         } else {
             console.error(`TODO: expression type ${node.constructor.name}`);
         }

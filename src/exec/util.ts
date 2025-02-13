@@ -50,3 +50,16 @@ export function castScalar(v: number, from: string, to: string): number {
     console.error(`Unsupported cast from ${from} to ${to}`);
     return v;
 }
+
+export function castVector(v: number[], from: string, to: string): number[] {
+    if (from === to) {
+        return v;
+    }
+
+    const cast = new Array<number>(v.length);
+    for (let i = 0; i < v.length; i++) {
+        cast[i] = castScalar(v[i], from, to);
+    }
+
+    return cast;
+}

@@ -7866,6 +7866,16 @@ function castScalar(v, from, to) {
     console.error(`Unsupported cast from ${from} to ${to}`);
     return v;
 }
+function castVector(v, from, to) {
+    if (from === to) {
+        return v;
+    }
+    const cast = new Array(v.length);
+    for (let i = 0; i < v.length; i++) {
+        cast[i] = castScalar(v[i], from, to);
+    }
+    return cast;
+}
 
 class WgslExec extends ExecInterface {
     constructor(code, context) {
@@ -8767,6 +8777,52 @@ class WgslExec extends ExecInterface {
         if (value instanceof ScalarData) {
             const v = castScalar(value.value, value.typeInfo.name, type.name);
             return new ScalarData(v, this.getTypeInfo(type));
+        }
+        if (value instanceof VectorData) {
+            const fromType = this.getTypeName(value.typeInfo);
+            let fromCast = "";
+            if (fromType.endsWith("f")) {
+                fromCast = "f32";
+            }
+            else if (fromType.endsWith("i")) {
+                fromCast = "i32";
+            }
+            else if (fromType.endsWith("u")) {
+                fromCast = "u32";
+            }
+            else if (fromType.endsWith("b")) {
+                fromCast = "bool";
+            }
+            else if (fromType.endsWith("h")) {
+                fromCast = "f16";
+            }
+            else {
+                console.error(`Unknown vector type ${fromType}. Line ${node.line}`);
+                return null;
+            }
+            const toType = this.getTypeName(type);
+            let toCast = "";
+            if (toType.endsWith("f")) {
+                toCast = "f32";
+            }
+            else if (toType.endsWith("i")) {
+                toCast = "i32";
+            }
+            else if (toType.endsWith("u")) {
+                toCast = "u32";
+            }
+            else if (toType.endsWith("b")) {
+                toCast = "bool";
+            }
+            else if (toType.endsWith("h")) {
+                toCast = "f16";
+            }
+            else {
+                console.error(`Unknown vector type ${toCast}. Line ${node.line}`);
+                return null;
+            }
+            const v = castVector(value.value, fromCast, toCast);
+            return new VectorData(v, this.getTypeInfo(type));
         }
         console.error(`TODO: bitcast for ${value.typeInfo.name}. Line ${node.line}`);
         return null;
@@ -10562,7 +10618,9 @@ class WgslDebug {
                 }
                 const conditionCmd = new GotoCommand(statement.condition, 0);
                 state.commands.push(conditionCmd);
-                state.commands.push(new BlockCommand(statement.body));
+                if (statement.body.length > 0) {
+                    state.commands.push(new BlockCommand(statement.body));
+                }
                 state.commands.push(new GotoCommand(statement.condition, 0));
                 state.commands.push(new GotoCommand(null, GotoCommand.kBreakTarget));
                 conditionCmd.position = state.commands.length;
@@ -10575,7 +10633,9 @@ class WgslDebug {
                 }
                 let conditionCmd = new GotoCommand(statement.condition, 0);
                 state.commands.push(conditionCmd);
-                state.commands.push(new BlockCommand(statement.body));
+                if (statement.body.length > 0) {
+                    state.commands.push(new BlockCommand(statement.body));
+                }
                 const gotoEnd = new GotoCommand(null, 0);
                 state.commands.push(gotoEnd);
                 for (const elseIf of statement.elseif) {
@@ -10587,7 +10647,9 @@ class WgslDebug {
                     }
                     conditionCmd = new GotoCommand(elseIf.condition, 0);
                     state.commands.push(conditionCmd);
-                    state.commands.push(new BlockCommand(elseIf.body));
+                    if (elseIf.body.length > 0) {
+                        state.commands.push(new BlockCommand(elseIf.body));
+                    }
                     state.commands.push(gotoEnd);
                 }
                 conditionCmd.position = state.commands.length;
@@ -10614,7 +10676,9 @@ class WgslDebug {
                     conditionCmd = new GotoCommand(statement.condition, 0);
                     state.commands.push(conditionCmd);
                 }
-                state.commands.push(new BlockCommand(statement.body));
+                if (statement.body.length > 0) {
+                    state.commands.push(new BlockCommand(statement.body));
+                }
                 if (statement.increment) {
                     state.commands.push(new GotoCommand(null, GotoCommand.kContinueTarget));
                     state.commands.push(new StatementCommand(statement.increment));
@@ -10628,7 +10692,9 @@ class WgslDebug {
                 if (!statement.continuing) {
                     state.commands.push(new GotoCommand(null, GotoCommand.kContinueTarget));
                 }
-                state.commands.push(new BlockCommand(statement.body));
+                if (statement.body.length > 0) {
+                    state.commands.push(new BlockCommand(statement.body));
+                }
                 state.commands.push(new GotoCommand(null, loopStartPos));
                 state.commands.push(new GotoCommand(null, GotoCommand.kBreakTarget));
             }
@@ -10663,8 +10729,10 @@ class WgslDebug {
     }
     _collectFunctionCalls(node, functionCalls) {
         if (node instanceof CallExpr) {
-            for (const arg of node.args) {
-                this._collectFunctionCalls(arg, functionCalls);
+            if (node.args) {
+                for (const arg of node.args) {
+                    this._collectFunctionCalls(arg, functionCalls);
+                }
             }
             // Only collect custom function calls, not built-in functions.
             if (!node.isBuiltin) {
@@ -10684,8 +10752,10 @@ class WgslDebug {
             }
         }
         else if (node instanceof CreateExpr) {
-            for (const arg of node.args) {
-                this._collectFunctionCalls(arg, functionCalls);
+            if (node.args) {
+                for (const arg of node.args) {
+                    this._collectFunctionCalls(arg, functionCalls);
+                }
             }
         }
         else if (node instanceof BitcastExpr) {

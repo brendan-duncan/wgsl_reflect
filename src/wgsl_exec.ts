@@ -5,7 +5,7 @@ import { ExecContext, Function } from "./exec/exec_context.js";
 import { ExecInterface } from "./exec/exec_interface.js";
 import { BuiltinFunctions } from "./exec/builtin_functions.js";
 import { Data, ScalarData, VectorData, MatrixData, TypedData, VoidData } from "./exec/data.js";
-import { isArray, castScalar } from "./exec/util.js";
+import { isArray, castScalar, castVector } from "./exec/util.js";
 
 export class WgslExec extends ExecInterface {
     ast: Array<AST.Node>;
@@ -877,10 +877,51 @@ export class WgslExec extends ExecInterface {
     _evalBitcast(node: AST.BitcastExpr, context: ExecContext): Data | null {
         const value = this.evalExpression(node.value, context);
         const type = node.type;
+
         if (value instanceof ScalarData) {
             const v = castScalar(value.value, value.typeInfo.name, type.name);
             return new ScalarData(v, this.getTypeInfo(type));
         }
+
+        if (value instanceof VectorData) {
+            const fromType = this.getTypeName(value.typeInfo);
+            let fromCast = "";
+            if (fromType.endsWith("f")) {
+                fromCast = "f32";
+            } else if (fromType.endsWith("i")) {
+                fromCast = "i32";
+            } else if (fromType.endsWith("u")) {
+                fromCast = "u32";
+            } else if (fromType.endsWith("b")) {
+                fromCast = "bool";
+            } else if (fromType.endsWith("h")) {
+                fromCast = "f16";
+            } else {
+                console.error(`Unknown vector type ${fromType}. Line ${node.line}`);
+                return null;
+            }
+
+            const toType = this.getTypeName(type);
+            let toCast = "";
+            if (toType.endsWith("f")) {
+                toCast = "f32";
+            } else if (toType.endsWith("i")) {
+                toCast = "i32";
+            } else if (toType.endsWith("u")) {
+                toCast = "u32";
+            } else if (toType.endsWith("b")) {
+                toCast = "bool";
+            } else if (toType.endsWith("h")) {
+                toCast = "f16";
+            } else {
+                console.error(`Unknown vector type ${toCast}. Line ${node.line}`);
+                return null;
+            }
+
+            const v = castVector(value.value, fromCast, toCast);
+            return new VectorData(v, this.getTypeInfo(type));
+        }
+
         console.error(`TODO: bitcast for ${value.typeInfo.name}. Line ${node.line}`);
         return null;
     }
