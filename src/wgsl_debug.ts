@@ -493,7 +493,30 @@ export class WgslDebug {
                 }
                 return true;
             } else if (command instanceof StatementCommand) {
-                const res = this._exec.execStatement(command.node, state.context);
+                const node = command.node;
+                if (node instanceof AST.Call) {
+                    const fn = state.context.functions.get(node.name);
+                    // We want to step into custom functions, not directly execute them
+                    if (fn) {
+                        const fnState = this._createState(fn.node.body, state.context.clone(), state);
+
+                        for (let ai = 0; ai < fn.node.args.length; ++ai) {
+                            const arg = fn.node.args[ai];
+                            const value = this._exec.evalExpression(node.args[ai], fnState.context);
+                            fnState.context.setVariable(arg.name, value, arg);
+                        }
+
+                        this._execStack.states.push(fnState);
+                        fnState.context.currentFunctionName = fn.name;
+
+                        if (this._shouldExecuteNectCommand()) {
+                            continue;
+                        }
+                        return true;
+                    }
+                }
+
+                const res = this._exec.execStatement(node, state.context);
                 if (res !== null && res !== undefined) {
                     let s = state;
                     // Find the CallExpr to store the return value in.

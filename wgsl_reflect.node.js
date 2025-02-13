@@ -8016,10 +8016,19 @@ class WgslExec extends ExecInterface {
             return this.evalExpression(stmt.value, context);
         }
         else if (stmt instanceof Break) {
-            return null;
+            if (stmt.condition) {
+                const c = this.evalExpression(stmt.condition, context);
+                if (!(c instanceof ScalarData)) {
+                    throw new Error(`Invalid break-if condition`);
+                }
+                if (!c.value) {
+                    return null;
+                }
+            }
+            return WgslExec._breakObj;
         }
         else if (stmt instanceof Continue) {
-            return null;
+            return WgslExec._continueObj;
         }
         else if (stmt instanceof Let) {
             this._let(stmt, context);
@@ -8041,6 +8050,14 @@ class WgslExec extends ExecInterface {
         }
         else if (stmt instanceof While) {
             return this._while(stmt, context);
+        }
+        else if (stmt instanceof Loop) {
+            return this._loop(stmt, context);
+        }
+        else if (stmt instanceof Continuing) {
+            const subContext = context.clone();
+            subContext.currentFunctionName = context.currentFunctionName;
+            return this._execStatements(stmt.body, subContext);
         }
         else if (stmt instanceof Assign) {
             this._assign(stmt, context);
@@ -8700,10 +8717,34 @@ class WgslExec extends ExecInterface {
         this.execStatement(node.init, context);
         while (this._getScalarValue(this.evalExpression(node.condition, context))) {
             const res = this._execStatements(node.body, context);
-            if (res !== null) {
+            if (res === WgslExec._breakObj) {
+                break;
+            }
+            if (res !== null && res !== WgslExec._continueObj) {
                 return res;
             }
             this.execStatement(node.increment, context);
+        }
+        return null;
+    }
+    _loop(node, context) {
+        context = context.clone();
+        while (true) {
+            const res = this._execStatements(node.body, context);
+            if (res === WgslExec._breakObj) {
+                break;
+            }
+            else if (res === WgslExec._continueObj) {
+                if (node.continuing) {
+                    const cres = this._execStatements(node.continuing.body, context);
+                    if (cres === WgslExec._breakObj) {
+                        break;
+                    }
+                }
+            }
+            else if (res !== null) {
+                return res;
+            }
         }
         return null;
     }
@@ -8711,10 +8752,10 @@ class WgslExec extends ExecInterface {
         context = context.clone();
         while (this._getScalarValue(this.evalExpression(node.condition, context))) {
             const res = this._execStatements(node.body, context);
-            if (res instanceof Break) {
+            if (res === WgslExec._breakObj) {
                 break;
             }
-            else if (res instanceof Continue) {
+            else if (res === WgslExec._continueObj) {
                 continue;
             }
             else if (res !== null) {
@@ -9990,6 +10031,8 @@ class WgslExec extends ExecInterface {
         return new MatrixData(values, typeInfo);
     }
 }
+WgslExec._breakObj = new Data(new TypeInfo("BREAK", null));
+WgslExec._continueObj = new Data(new TypeInfo("CONTINUE", null));
 WgslExec._priority = new Map([["f32", 0], ["f16", 1], ["u32", 2], ["i32", 3], ["x32", 3]]);
 
 class Command {
@@ -10410,7 +10453,26 @@ class WgslDebug {
                 return true;
             }
             else if (command instanceof StatementCommand) {
-                const res = this._exec.execStatement(command.node, state.context);
+                const node = command.node;
+                if (node instanceof Call) {
+                    const fn = state.context.functions.get(node.name);
+                    // We want to step into custom functions, not directly execute them
+                    if (fn) {
+                        const fnState = this._createState(fn.node.body, state.context.clone(), state);
+                        for (let ai = 0; ai < fn.node.args.length; ++ai) {
+                            const arg = fn.node.args[ai];
+                            const value = this._exec.evalExpression(node.args[ai], fnState.context);
+                            fnState.context.setVariable(arg.name, value, arg);
+                        }
+                        this._execStack.states.push(fnState);
+                        fnState.context.currentFunctionName = fn.name;
+                        if (this._shouldExecuteNectCommand()) {
+                            continue;
+                        }
+                        return true;
+                    }
+                }
+                const res = this._exec.execStatement(node, state.context);
                 if (res !== null && res !== undefined) {
                     let s = state;
                     // Find the CallExpr to store the return value in.

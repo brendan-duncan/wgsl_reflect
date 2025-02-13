@@ -160,35 +160,53 @@ export class WgslExec extends ExecInterface {
         }
     }
 
+    static _breakObj = new Data(new TypeInfo("BREAK", null));
+    static _continueObj = new Data(new TypeInfo("CONTINUE", null));
+
     execStatement(stmt: AST.Node, context: ExecContext): Data | null {
         if (stmt instanceof AST.Return) {
             return this.evalExpression(stmt.value, context);
         } else if (stmt instanceof AST.Break) {
-            return null;
+            if (stmt.condition) {
+                const c = this.evalExpression(stmt.condition, context);
+                if (!(c instanceof ScalarData)) {
+                    throw new Error(`Invalid break-if condition`);
+                }
+                if (!c.value) {
+                    return null;
+                }
+            }
+            return WgslExec._breakObj;
         } else if (stmt instanceof AST.Continue) {
-            return null;
+            return WgslExec._continueObj;
         } else if (stmt instanceof AST.Let) {
-            this._let(stmt as AST.Let, context);
+            this._let(stmt, context);
         } else if (stmt instanceof AST.Var) {
-            this._var(stmt as AST.Var, context);
+            this._var(stmt, context);
         } else if (stmt instanceof AST.Const) {
-            this._const(stmt as AST.Const, context);
+            this._const(stmt, context);
         } else if (stmt instanceof AST.Function) {
-            this._function(stmt as AST.Function, context);
+            this._function(stmt, context);
         } else if (stmt instanceof AST.If) {
-            return this._if(stmt as AST.If, context);
+            return this._if(stmt, context);
         } else if (stmt instanceof AST.For) {
-            return this._for(stmt as AST.For, context);
+            return this._for(stmt, context);
         } else if (stmt instanceof AST.While) {
-            return this._while(stmt as AST.While, context);
+            return this._while(stmt, context);
+        } else if (stmt instanceof AST.Loop) {
+            return this._loop(stmt, context);
+        } else if (stmt instanceof AST.Continuing) {
+            const subContext = context.clone();
+            subContext.currentFunctionName = context.currentFunctionName;
+            return this._execStatements(stmt.body, subContext);
         } else if (stmt instanceof AST.Assign) {
-            this._assign(stmt as AST.Assign, context);
+            this._assign(stmt, context);
         } else if (stmt instanceof AST.Increment) {
-            this._increment(stmt as AST.Increment, context);
+            this._increment(stmt, context);
         } else if (stmt instanceof AST.Struct) {
             return null;
         } else if (stmt instanceof AST.Override) {
-            const name = (stmt as AST.Override).name;
+            const name = stmt.name;
             if (context.getVariable(name) === null) {
                 console.error(`Override constant ${name} not found. Line ${stmt.line}`);
             }
@@ -806,10 +824,35 @@ export class WgslExec extends ExecInterface {
         this.execStatement(node.init, context);
         while (this._getScalarValue(this.evalExpression(node.condition, context))) {
             const res = this._execStatements(node.body, context);
-            if (res !== null) {
+            if (res === WgslExec._breakObj) {
+                break;
+            }
+            if (res !== null && res !== WgslExec._continueObj) {
                 return res;
             }
             this.execStatement(node.increment, context);
+        }
+
+        return null;
+    }
+
+    _loop(node: AST.Loop, context: ExecContext): Data | null {
+        context = context.clone();
+
+        while (true) {
+            const res = this._execStatements(node.body, context);
+            if (res === WgslExec._breakObj) {
+                break;
+            } else if (res === WgslExec._continueObj) {
+                if (node.continuing) {
+                    const cres = this._execStatements(node.continuing.body, context);
+                    if (cres === WgslExec._breakObj) {
+                        break;
+                    }
+                }
+            } else if (res !== null) {
+                return res;
+            }
         }
 
         return null;
@@ -819,9 +862,9 @@ export class WgslExec extends ExecInterface {
         context = context.clone();
         while (this._getScalarValue(this.evalExpression(node.condition, context))) {
             const res = this._execStatements(node.body, context);
-            if (res instanceof AST.Break) {
+            if (res === WgslExec._breakObj) {
                 break;
-            } else if (res instanceof AST.Continue) {
+            } else if (res === WgslExec._continueObj) {
                 continue;
             } else if (res !== null) {
                 return res;

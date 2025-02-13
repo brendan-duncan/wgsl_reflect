@@ -14,6 +14,8 @@ export declare class WgslExec extends ExecInterface {
     getVariableValue(name: string): number | number[] | null;
     execute(config?: Object): void;
     dispatchWorkgroups(kernel: string, dispatchCount: number | number[], bindGroups: Object, config?: Object): void;
+    static _breakObj: Data;
+    static _continueObj: Data;
     execStatement(stmt: AST.Node, context: ExecContext): Data | null;
     evalExpression(node: AST.Node, context: ExecContext): Data | null;
     getTypeInfo(type: AST.Type | string): TypeInfo | null;
@@ -33,6 +35,7 @@ export declare class WgslExec extends ExecInterface {
     _if(node: AST.If, context: ExecContext): Data | null;
     _getScalarValue(v: Data | null): number;
     _for(node: AST.For, context: ExecContext): Data | null;
+    _loop(node: AST.Loop, context: ExecContext): Data | null;
     _while(node: AST.While, context: ExecContext): Data | null;
     _evalBitcast(node: AST.BitcastExpr, context: ExecContext): Data | null;
     _evalConst(node: AST.ConstExpr, context: ExecContext): Data | null;

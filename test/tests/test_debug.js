@@ -4,7 +4,8 @@ import { WgslDebug } from "../../../wgsl_reflect.module.js";
 export async function run() {
   await group("Debug", async function () {
     await test("loop", async function (test) {
-      const shader = `fn foo() -> i32 {
+      const shader = `var j: i32;
+      fn foo() -> i32 {
         var a: i32 = 2;
         var i: i32 = 0;
         loop {
@@ -16,9 +17,9 @@ export async function run() {
             break if i >= 4;
           }
         }
-        return a;
+        j = a;
       }
-      let j = foo();`;
+      foo();`;
       const dbg = new WgslDebug(shader);
       while (dbg.stepNext());
       test.equals(dbg.getVariableValue("j"), 8);
