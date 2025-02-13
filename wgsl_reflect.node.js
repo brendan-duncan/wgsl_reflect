@@ -10316,6 +10316,9 @@ class WgslDebug {
                 return true;
             }
         }
+        else if (command instanceof ContinueTargetCommand || command instanceof BreakTargetCommand) {
+            return true;
+        }
         return false;
     }
     stepInto() {

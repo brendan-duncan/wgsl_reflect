@@ -316,6 +316,8 @@ export class WgslDebug {
             if (command.condition === null) {
                 return true;
             }
+        } else if (command instanceof ContinueTargetCommand || command instanceof BreakTargetCommand) {
+            return true;
         }
         return false;
     }
