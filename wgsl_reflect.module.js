@@ -8186,7 +8186,8 @@ class WgslExec extends ExecInterface {
                 else if (override.type.name === "vec2" || override.type.name === "vec3" || override.type.name === "vec4" ||
                     override.type.name === "vec2f" || override.type.name === "vec3f" || override.type.name === "vec4f" ||
                     override.type.name === "vec2i" || override.type.name === "vec3i" || override.type.name === "vec4i" ||
-                    override.type.name === "vec2u" || override.type.name === "vec3u" || override.type.name === "vec4u") {
+                    override.type.name === "vec2u" || override.type.name === "vec3u" || override.type.name === "vec4u" ||
+                    override.type.name === "vec2h" || override.type.name === "vec3h" || override.type.name === "vec4h") {
                     context.setVariable(k, new VectorData(v, override.type));
                 }
                 else {
@@ -8646,7 +8647,7 @@ class WgslExec extends ExecInterface {
     }
     _var(node, context) {
         let value = null;
-        if (node.value != null) {
+        if (node.value !== null) {
             value = this.evalExpression(node.value, context);
         }
         else {
@@ -8874,8 +8875,7 @@ class WgslExec extends ExecInterface {
             typeName === "vec2h" || typeName === "vec3h" || typeName === "vec4h" ||
             typeName === "vec2i" || typeName === "vec3i" || typeName === "vec4i" ||
             typeName === "vec2u" || typeName === "vec3u" || typeName === "vec4u") {
-            const data = new VectorData(node.vectorValue, typeInfo);
-            return data;
+            return this._callConstructorVec(node, context);
         }
         if (typeName === "mat2x2" || typeName === "mat2x3" || typeName === "mat2x4" ||
             typeName === "mat3x2" || typeName === "mat3x3" || typeName === "mat3x4" ||
@@ -8886,8 +8886,7 @@ class WgslExec extends ExecInterface {
             typeName === "mat2x2h" || typeName === "mat2x3h" || typeName === "mat2x4h" ||
             typeName === "mat3x2h" || typeName === "mat3x3h" || typeName === "mat3x4h" ||
             typeName === "mat4x2h" || typeName === "mat4x3h" || typeName === "mat4x4h") {
-            const data = new MatrixData(node.vectorValue, typeInfo);
-            return data;
+            return this._callConstructorMatrix(node, context);
         }
         console.error(`Unknown literal type`, typeName, `Line ${node.line}`);
         return null;
@@ -9730,299 +9729,127 @@ class WgslExec extends ExecInterface {
         v.typeInfo = this.getTypeInfo(node.type);
         return v;
     }
-    _callConstructorArray(node, context) {
-        console.error("TODO: implement array constructor");
-        return null;
-        /*const typeInfo = this.getTypeInfo(node.type);
-        if (node.args.length === 0) {
-            if (node.type instanceof AST.ArrayType) {
-                if (node.type.count) {
-                    const format = node.type.format.name;
-                    if (format === "bool" || format === "i32" || format === "u32" || format === "f32" || format === "f16") {
-                        return new Array(node.type.count).fill(0);
-                    } else if (format === "vec2" || format === "vec2u" || format === "vec2i" || format === "vec2f") {
-                        return new Array(node.type.count).fill([0, 0]);
-                    } else if (format === "vec3" || format === "vec3u" || format === "vec3i" || format === "vec3f") {
-                        return new Array(node.type.count).fill([0, 0, 0]);
-                    } else if (format === "vec4" || format === "vec4u" || format === "vec4i" || format === "vec4f") {
-                        return new Array(node.type.count).fill([0, 0, 0, 0]);
-                    } else if (format === "mat2x2") {
-                        return new Array(node.type.count).fill([0, 0, 0, 0]);
-                    } else if (format === "mat2x3") {
-                        return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0]);
-                    } else if (format === "mat2x4") {
-                        return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0]);
-                    } else if (format === "mat3x2") {
-                        return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0]);
-                    } else if (format === "mat3x3") {
-                        return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0, 0]);
-                    } else if (format === "mat3x4") {
-                        return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-                    } else if (format === "mat4x2") {
-                        return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0]);
-                    } else if (format === "mat4x3") {
-                        return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-                    } else if (format === "mat4x4") {
-                        return new Array(node.type.count).fill([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-                    } else {
-                        console.error(`TODO: support array format ${format}. Line ${node.line}`);
-                        return null;
-                    }
-                }
-            }
-            return [];
-        }
-        const values = [];
-        for (const arg of node.args) {
-            values.push(this.evalExpression(arg, context));
-        }
-        return values;*/
-    }
     _callConstructorVec(node, context) {
         const typeInfo = this.getTypeInfo(node.type);
         const typeName = this.getTypeName(node.type);
-        if (node.args.length === 0) {
-            if (typeName === "vec2" || typeName === "vec2f" || typeName === "vec2i" || typeName === "vec2u" || typeName === "vec2b") {
-                return new VectorData([0, 0], typeInfo);
-            }
-            else if (typeName === "vec3" || typeName === "vec3f" || typeName === "vec3i" || typeName === "vec3u" || typeName === "vec3b") {
-                return new VectorData([0, 0, 0], typeInfo);
-            }
-            else if (typeName === "vec4" || typeName === "vec4f" || typeName === "vec4i" || typeName === "vec4u" || typeName === "vec4b") {
-                return new VectorData([0, 0, 0, 0], typeInfo);
-            }
+        const elementCounts = {
+            "vec2": 2, "vec2f": 2, "vec2i": 2, "vec2u": 2, "vec2b": 2, "vec2h": 2,
+            "vec3": 3, "vec3f": 3, "vec3i": 3, "vec3u": 3, "vec3b": 3, "vec3h": 3,
+            "vec4": 4, "vec4f": 4, "vec4i": 4, "vec4u": 4, "vec4b": 4, "vec4h": 4
+        };
+        const count = elementCounts[typeName];
+        if (count === undefined) {
             console.error(`Invalid vec constructor ${typeName}. Line ${node.line}`);
             return null;
+        }
+        const isInt = typeName.endsWith("i") || typeName.endsWith("u");
+        const values = [];
+        if (node instanceof LiteralExpr) {
+            if (isArray(node.value)) {
+                const a = node.value;
+                for (const v of a) {
+                    values.push(v);
+                }
+            }
+            else {
+                values.push(node.value);
+            }
+        }
+        else {
+            for (const arg of node.args) {
+                const argValue = this.evalExpression(arg, context);
+                if (argValue instanceof VectorData) {
+                    const vd = argValue.value;
+                    for (let i = 0; i < vd.length; ++i) {
+                        let e = vd[i];
+                        if (isInt) {
+                            e = Math.floor(e);
+                        }
+                        values.push(e);
+                    }
+                }
+                else if (argValue instanceof ScalarData) {
+                    let v = argValue.value;
+                    if (isInt) {
+                        v = Math.floor(v);
+                    }
+                    values.push(v);
+                }
+            }
         }
         if (node.type instanceof TemplateType && node.type.format === null) {
             node.type.format = TemplateType.f32; // TODO: get the format from the type of the arg.
         }
-        const isInt = typeName.endsWith("i") || typeName.endsWith("u");
-        const values = [];
-        // TODO: make sure the number of args matches the vector length.
-        for (const arg of node.args) {
-            const argValue = this.evalExpression(arg, context);
-            if (argValue instanceof VectorData) {
-                const vd = argValue.value;
-                for (let i = 0; i < vd.length; ++i) {
-                    let e = vd[i];
-                    if (isInt) {
-                        e = Math.floor(e);
-                    }
-                    values.push(e);
-                }
-            }
-            else if (argValue instanceof ScalarData) {
-                let v = argValue.value;
-                if (isInt) {
-                    v = Math.floor(v);
-                }
-                values.push(v);
-            }
+        if (values.length === 0) {
+            const values = new Array(count).fill(0);
+            return new VectorData(values, typeInfo);
         }
-        if (typeName === "vec2" || typeName === "vec2f" || typeName === "vec2i" || typeName === "vec2u") {
-            if (values.length === 1) {
+        if (values.length === 1) {
+            while (values.length < count) {
                 values.push(values[0]);
             }
         }
-        else if (typeName === "vec3" || typeName === "vec3f" || typeName === "vec3i" || typeName === "vec3u") {
-            if (values.length === 1) {
-                values.push(values[0], values[0]);
-            }
-            else if (values.length === 2) {
-                console.error(`Invalid vec3 constructor. Line ${node.line}`);
-            }
-        }
-        else if (typeName === "vec4" || typeName === "vec4f" || typeName === "vec4i" || typeName === "vec4u") {
-            if (values.length === 1) {
-                values.push(values[0], values[0], values[0]);
-            }
-            else if (values.length < 4) {
-                console.error(`Invalid vec3 constructor. Line ${node.line}`);
-            }
+        if (values.length !== count) {
+            console.error(`Invalid vec constructor. Line ${node.line}`);
+            return null;
         }
         return new VectorData(values, typeInfo);
     }
     _callConstructorMatrix(node, context) {
         const typeInfo = this.getTypeInfo(node.type);
         const typeName = this.getTypeName(node.type);
-        if (node.args.length === 0) {
-            if (typeName === "mat2x2" || typeName === "mat2x2f" || typeName === "mat2x2i" || typeName === "mat2x2u") {
-                return new MatrixData([0, 0, 0, 0], typeInfo);
-            }
-            else if (typeName === "mat2x3" || typeName === "mat2x3f" || typeName === "mat2x3i" || typeName === "mat2x3u") {
-                return new MatrixData([0, 0, 0, 0, 0, 0], typeInfo);
-            }
-            else if (typeName === "mat2x4" || typeName === "mat2x4f" || typeName === "mat2x4i" || typeName === "mat2x4u") {
-                return new MatrixData([0, 0, 0, 0, 0, 0, 0, 0], typeInfo);
-            }
-            else if (typeName === "mat3x2" || typeName === "mat3x2f" || typeName === "mat3x2i" || typeName === "mat3x2u") {
-                return new MatrixData([0, 0, 0, 0, 0, 0], typeInfo);
-            }
-            else if (typeName === "mat3x3" || typeName === "mat3x3f" || typeName === "mat3x3i" || typeName === "mat3x3u") {
-                return new MatrixData([0, 0, 0, 0, 0, 0, 0, 0, 0], typeInfo);
-            }
-            else if (typeName === "mat3x4" || typeName === "mat3x4f" || typeName === "mat3x4i" || typeName === "mat3x4u") {
-                return new MatrixData([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], typeInfo);
-            }
-            else if (typeName === "mat4x2" || typeName === "mat4x2f" || typeName === "mat4x2i" || typeName === "mat4x2u") {
-                return new MatrixData([0, 0, 0, 0, 0, 0, 0, 0], typeInfo);
-            }
-            else if (typeName === "mat4x3" || typeName === "mat4x3f" || typeName === "mat4x3i" || typeName === "mat4x3u") {
-                return new MatrixData([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], typeInfo);
-            }
-            else if (typeName === "mat4x4" || typeName === "mat4x4f" || typeName === "mat4x4i" || typeName === "mat4x4u") {
-                return new MatrixData([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], typeInfo);
-            }
+        const elementCounts = {
+            "mat2x2": 4, "mat2x2f": 4, "mat2x2h": 4,
+            "mat2x3": 6, "mat2x3f": 6, "mat2x3h": 6,
+            "mat2x4": 8, "mat2x4f": 8, "mat2x4h": 8,
+            "mat3x2": 6, "mat3x2f": 6, "mat3x2h": 6,
+            "mat3x3": 9, "mat3x3f": 9, "mat3x3h": 9,
+            "mat3x4": 12, "mat3x4f": 12, "mat3x4h": 12,
+            "mat4x2": 8, "mat4x2f": 8, "mat4x2h": 8,
+            "mat4x3": 12, "mat4x3f": 12, "mat4x3h": 12,
+            "mat4x4": 16, "mat4x4f": 16, "mat4x4h": 16
+        };
+        const count = elementCounts[typeName];
+        if (count === undefined) {
             console.error(`Invalid matrix constructor ${typeName}. Line ${node.line}`);
             return null;
         }
-        typeName.endsWith("i") || typeName.endsWith("u");
         const values = [];
-        if (node.args.length === 1) {
-            const value = this.evalExpression(node.args[0], context);
-            if (!(value instanceof MatrixData) || this.getTypeName(value.typeInfo) !== typeName) {
-                console.error(`Invalid matrix constructor. Line ${node.line}`);
-                return null;
+        if (node instanceof LiteralExpr) {
+            if (isArray(node.value)) {
+                const a = node.value;
+                for (const v of a) {
+                    values.push(v);
+                }
             }
-            values.push(...value.value);
+            else {
+                values.push(node.value);
+            }
         }
         else {
-            if (typeName === "mat2x2" || typeName === "mat2x2f" || typeName === "mat2x2h" ||
-                typeName === "mat2x3" || typeName === "mat2x3f" || typeName === "mat2x3h" ||
-                typeName === "mat2x4" || typeName === "mat2x4f" || typeName === "mat2x4h") {
-                if (node.args.length === 2) {
-                    const v1 = this.evalExpression(node.args[0], context);
-                    const v2 = this.evalExpression(node.args[1], context);
-                    if (v1 instanceof VectorData && v2 instanceof VectorData) {
-                        values.push(...v1.value, ...v2.value);
-                    }
-                    else {
-                        console.error(`Invalid matrix constructor. Line ${node.line}`);
-                        return null;
+            for (const arg of node.args) {
+                const argValue = this.evalExpression(arg, context);
+                if (argValue instanceof VectorData) {
+                    const vd = argValue.value;
+                    for (let i = 0; i < vd.length; ++i) {
+                        values.push(vd[i]);
                     }
                 }
-                else {
-                    if (typeName === "mat2x2" || typeName === "mat2x2f" || typeName === "mat2x2h") {
-                        if (node.args.length === 4) {
-                            values.push(...node.args.map(a => this.evalExpression(a, context).value));
-                        }
-                        else {
-                            console.error(`Invalid matrix constructor. Line ${node.line}`);
-                            return null;
-                        }
-                    }
-                    else if (typeName === "mat2x3" || typeName === "mat2x3f" || typeName === "mat2x3h") {
-                        if (node.args.length === 6) {
-                            values.push(...node.args.map(a => this.evalExpression(a, context).value));
-                        }
-                        else {
-                            console.error(`Invalid matrix constructor. Line ${node.line}`);
-                            return null;
-                        }
-                    }
-                    else if (typeName === "mat2x4" || typeName === "mat2x4f" || typeName === "mat2x4h") {
-                        if (node.args.length === 8) {
-                            values.push(...node.args.map(a => this.evalExpression(a, context).value));
-                        }
-                        else {
-                            console.error(`Invalid matrix constructor. Line ${node.line}`);
-                            return null;
-                        }
-                    }
+                else if (argValue instanceof ScalarData) {
+                    values.push(argValue.value);
+                }
+                else if (argValue instanceof MatrixData) {
+                    values.push(...argValue.value);
                 }
             }
-            else if (typeName === "mat3x2" || typeName === "mat3x2f" || typeName === "mat3x2h" ||
-                typeName === "mat3x3" || typeName === "mat3x3f" || typeName === "mat3x3h" ||
-                typeName === "mat3x4" || typeName === "mat3x4f" || typeName === "mat3x4h") {
-                if (node.args.length === 3) {
-                    const v1 = this.evalExpression(node.args[0], context);
-                    const v2 = this.evalExpression(node.args[1], context);
-                    const v3 = this.evalExpression(node.args[2], context);
-                    if (v1 instanceof VectorData && v2 instanceof VectorData && v3 instanceof VectorData) {
-                        values.push(...v1.value, ...v2.value, ...v3.value);
-                    }
-                    else {
-                        console.error(`Invalid matrix constructor. Line ${node.line}`);
-                        return null;
-                    }
-                }
-                else {
-                    if (typeName === "mat3x2" || typeName === "mat3x2f" || typeName === "mat3x2h") {
-                        if (node.args.length === 6) {
-                            values.push(...node.args.map(a => this.evalExpression(a, context).value));
-                        }
-                        else {
-                            console.error(`Invalid matrix constructor. Line ${node.line}`);
-                            return null;
-                        }
-                    }
-                    else if (typeName === "mat3x3" || typeName === "mat3x3f" || typeName === "mat3x3h") {
-                        if (node.args.length === 9) {
-                            values.push(...node.args.map(a => this.evalExpression(a, context).value));
-                        }
-                        else {
-                            console.error(`Invalid matrix constructor. Line ${node.line}`);
-                            return null;
-                        }
-                    }
-                    else if (typeName === "mat3x4" || typeName === "mat3x4f" || typeName === "mat3x4h") {
-                        if (node.args.length === 12) {
-                            values.push(...node.args.map(a => this.evalExpression(a, context).value));
-                        }
-                        else {
-                            console.error(`Invalid matrix constructor. Line ${node.line}`);
-                            return null;
-                        }
-                    }
-                }
-            }
-            else if (typeName === "mat4x2" || typeName === "mat4x2f" || typeName === "mat4x2h" ||
-                typeName === "mat4x3" || typeName === "mat4x3f" || typeName === "mat4x3h" ||
-                typeName === "mat4x4" || typeName === "mat4x4f" || typeName === "mat4x4h") {
-                if (node.args.length === 4) {
-                    const v1 = this.evalExpression(node.args[0], context);
-                    const v2 = this.evalExpression(node.args[1], context);
-                    const v3 = this.evalExpression(node.args[2], context);
-                    const v4 = this.evalExpression(node.args[3], context);
-                    if (v1 instanceof VectorData && v2 instanceof VectorData && v3 instanceof VectorData && v4 instanceof VectorData) {
-                        values.push(...v1.value, ...v2.value, ...v3.value, ...v4.value);
-                    }
-                    else {
-                        console.error(`Invalid matrix constructor. Line ${node.line}`);
-                        return null;
-                    }
-                }
-                else {
-                    if (typeName === "mat4x2" || typeName === "mat4x2f" || typeName === "mat4x2h") {
-                        if (node.args.length === 8) {
-                            values.push(...node.args.map(a => this.evalExpression(a, context).value));
-                        }
-                        else {
-                            console.error(`Invalid matrix constructor. Line ${node.line}`);
-                            return null;
-                        }
-                    }
-                    else if (typeName === "mat4x3" || typeName === "mat4x3f" || typeName === "mat4x3h") {
-                        if (node.args.length === 12) {
-                            values.push(...node.args.map(a => this.evalExpression(a, context).value));
-                        }
-                        else {
-                            console.error(`Invalid matrix constructor. Line ${node.line}`);
-                            return null;
-                        }
-                    }
-                    else if (typeName === "mat4x4" || typeName === "mat4x4f" || typeName === "mat4x4h") {
-                        if (node.args.length === 16) {
-                            values.push(...node.args.map(a => this.evalExpression(a, context).value));
-                        }
-                        else {
-                            console.error(`Invalid matrix constructor. Line ${node.line}`);
-                            return null;
-                        }
-                    }
-                }
-            }
+        }
+        if (values.length === 0) {
+            const values = new Array(count).fill(0);
+            return new MatrixData(values, typeInfo);
+        }
+        if (values.length !== count) {
+            console.error(`Invalid matrix constructor. Line ${node.line}`);
+            return null;
         }
         return new MatrixData(values, typeInfo);
     }

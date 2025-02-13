@@ -49,7 +49,6 @@ export declare class WgslExec extends ExecInterface {
     _evalCall(node: AST.CallExpr, context: ExecContext): Data | null;
     _callBuiltinFunction(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null;
     _callConstructorValue(node: AST.CreateExpr, context: ExecContext): Data | null;
-    _callConstructorArray(node: AST.CreateExpr, context: ExecContext): Data | null;
-    _callConstructorVec(node: AST.CreateExpr, context: ExecContext): Data | null;
-    _callConstructorMatrix(node: AST.CreateExpr, context: ExecContext): Data | null;
+    _callConstructorVec(node: AST.CreateExpr | AST.LiteralExpr, context: ExecContext): Data | null;
+    _callConstructorMatrix(node: AST.CreateExpr | AST.LiteralExpr, context: ExecContext): Data | null;
 }
