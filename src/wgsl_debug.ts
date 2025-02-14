@@ -1,6 +1,6 @@
 import * as AST from "./wgsl_ast.js";
 import { WgslExec } from "./wgsl_exec.js";
-import { ExecContext, Function } from "./exec/exec_context.js";
+import { ExecContext, FunctionRef } from "./exec/exec_context.js";
 import { MatrixData, ScalarData, TypedData, VectorData } from "./exec/data.js";
 import { Command, StatementCommand, CallExprCommand, GotoCommand, BlockCommand,
         ContinueTargetCommand, ContinueCommand, BreakCommand, BreakTargetCommand } from "./exec/command.js";
@@ -649,7 +649,7 @@ export class WgslDebug {
         }
     }
 
-    _dispatchWorkgroup(f: Function, workgroup_id: number[], context: ExecContext): boolean {
+    _dispatchWorkgroup(f: FunctionRef, workgroup_id: number[], context: ExecContext): boolean {
         const workgroupSize = [1, 1, 1];
         for (const attr of f.node.attributes) {
             if (attr.name === "workgroup_size") {
@@ -724,7 +724,7 @@ export class WgslDebug {
         return found;
     }
 
-    _dispatchExec(f: Function, context: ExecContext) {
+    _dispatchExec(f: FunctionRef, context: ExecContext) {
         // Update any built-in input args.
         // TODO: handle input structs.
         for (const arg of f.node.args) {
@@ -780,7 +780,7 @@ export class WgslDebug {
             } else if (statement instanceof AST.Increment) {
                 state.commands.push(new StatementCommand(statement));
             } else if (statement instanceof AST.Function) {
-                const f = new Function(statement);
+                const f = new FunctionRef(statement);
                 state.context.functions.set(statement.name, f);
                 continue;
             } else if (statement instanceof AST.If) {

@@ -1,27 +1,27 @@
 import * as AST from "../wgsl_ast.js";
 import { Data } from "./data.js";
 type ASTVarNode = AST.Let | AST.Var | AST.Argument;
-export declare class Var {
+export declare class VarRef {
     name: string;
     value: Data;
     node: ASTVarNode | null;
     constructor(n: string, v: Data, node: ASTVarNode | null);
-    clone(): Var;
+    clone(): VarRef;
 }
-export declare class Function {
+export declare class FunctionRef {
     name: string;
     node: AST.Function;
     constructor(node: AST.Function);
-    clone(): Function;
+    clone(): FunctionRef;
 }
 export declare class ExecContext {
     parent: ExecContext | null;
-    variables: Map<string, Var>;
-    functions: Map<string, Function>;
+    variables: Map<string, VarRef>;
+    functions: Map<string, FunctionRef>;
     currentFunctionName: string;
     constructor(parent?: ExecContext);
-    getVariable(name: string): Var | null;
-    getFunction(name: string): Function | null;
+    getVariable(name: string): VarRef | null;
+    getFunction(name: string): FunctionRef | null;
     createVariable(name: string, value: Data, node?: ASTVarNode): void;
     setVariable(name: string, value: Data, node?: ASTVarNode): void;
     getVariableValue(name: string): Data | null;

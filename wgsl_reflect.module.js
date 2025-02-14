@@ -67,7 +67,7 @@ class Statement extends Node {
  * @extends Statement
  * @category AST
  */
-class Function$1 extends Statement {
+class Function extends Statement {
     constructor(name, args, returnType, body, startLine, endLine) {
         super();
         this.calls = new Set();
@@ -167,7 +167,7 @@ class For extends Statement {
  * @extends Statement
  * @category AST
  */
-class Var$1 extends Statement {
+class Var extends Statement {
     constructor(name, type, storage, access, value) {
         super();
         this.attributes = null;
@@ -3481,7 +3481,7 @@ class WgslParser {
         }
         const body = this._compound_statement();
         const endLine = this._currentLine;
-        return this._updateNode(new Function$1(name, args, _return, body, startLine, endLine), startLine);
+        return this._updateNode(new Function(name, args, _return, body, startLine, endLine), startLine);
     }
     _compound_statement() {
         // brace_left statement* brace_right
@@ -3683,7 +3683,7 @@ class WgslParser {
             if (this._match(TokenTypes.tokens.equal)) {
                 value = this._short_circuit_or_expression();
             }
-            return this._updateNode(new Var$1(_var.name, _var.type, _var.storage, _var.access, value));
+            return this._updateNode(new Var(_var.name, _var.type, _var.storage, _var.access, value));
         }
         if (this._match(TokenTypes.keywords.let)) {
             const name = this._consume(TokenTypes.tokens.ident, "Expected name for let.").toString();
@@ -4480,7 +4480,7 @@ class WgslParser {
                 type.attributes = attrs;
             }
         }
-        return this._updateNode(new Var$1(name.toString(), type, storage, access, null));
+        return this._updateNode(new Var(name.toString(), type, storage, access, null));
     }
     _override_decl() {
         // override (ident variable_ident_decl)
@@ -4965,7 +4965,7 @@ class WgslReflect {
     }
     updateAST(ast) {
         for (const node of ast) {
-            if (node instanceof Function$1) {
+            if (node instanceof Function) {
                 this._functions.set(node.name, new _FunctionResources(node));
             }
         }
@@ -5032,7 +5032,7 @@ class WgslReflect {
                 this.samplers.push(varInfo);
                 continue;
             }
-            if (node instanceof Function$1) {
+            if (node instanceof Function) {
                 const vertexStage = this._getAttribute(node, "vertex");
                 const fragmentStage = this._getAttribute(node, "fragment");
                 const computeStage = this._getAttribute(node, "compute");
@@ -5198,7 +5198,7 @@ class WgslReflect {
             else if (node instanceof _BlockEnd) {
                 varStack.pop();
             }
-            else if (node instanceof Var$1) {
+            else if (node instanceof Var) {
                 const v = node;
                 if (isEntry && v.type !== null) {
                     this._markStructsFromAST(v.type);
@@ -5592,18 +5592,18 @@ class WgslReflect {
         return null;
     }
     _isUniformVar(node) {
-        return node instanceof Var$1 && node.storage == "uniform";
+        return node instanceof Var && node.storage == "uniform";
     }
     _isStorageVar(node) {
-        return node instanceof Var$1 && node.storage == "storage";
+        return node instanceof Var && node.storage == "storage";
     }
     _isTextureVar(node) {
-        return (node instanceof Var$1 &&
+        return (node instanceof Var &&
             node.type !== null &&
             WgslReflect._textureTypes.indexOf(node.type.name) != -1);
     }
     _isSamplerVar(node) {
-        return (node instanceof Var$1 &&
+        return (node instanceof Var &&
             node.type !== null &&
             WgslReflect._samplerTypes.indexOf(node.type.name) != -1);
     }
@@ -5686,23 +5686,23 @@ WgslReflect._samplerTypes = TokenTypes.sampler_type.map((t) => {
     return t.name;
 });
 
-class Var {
+class VarRef {
     constructor(n, v, node) {
         this.name = n;
         this.value = v;
         this.node = node;
     }
     clone() {
-        return new Var(this.name, this.value, this.node);
+        return new VarRef(this.name, this.value, this.node);
     }
 }
-class Function {
+class FunctionRef {
     constructor(node) {
         this.name = node.name;
         this.node = node;
     }
     clone() {
-        return new Function(this.node);
+        return new FunctionRef(this.node);
     }
 }
 class ExecContext {
@@ -5737,7 +5737,7 @@ class ExecContext {
         return null;
     }
     createVariable(name, value, node) {
-        this.variables.set(name, new Var(name, value, node !== null && node !== void 0 ? node : null));
+        this.variables.set(name, new VarRef(name, value, node !== null && node !== void 0 ? node : null));
     }
     setVariable(name, value, node) {
         const v = this.getVariable(name);
@@ -8089,13 +8089,13 @@ class WgslExec extends ExecInterface {
         else if (stmt instanceof Let) {
             this._let(stmt, context);
         }
-        else if (stmt instanceof Var$1) {
+        else if (stmt instanceof Var) {
             this._var(stmt, context);
         }
         else if (stmt instanceof Const) {
             this._const(stmt, context);
         }
-        else if (stmt instanceof Function$1) {
+        else if (stmt instanceof Function) {
             this._function(stmt, context);
         }
         else if (stmt instanceof If) {
@@ -8688,7 +8688,7 @@ class WgslExec extends ExecInterface {
         return;
     }
     _function(node, context) {
-        const f = new Function(node);
+        const f = new FunctionRef(node);
         context.functions.set(node.name, f);
     }
     _const(node, context) {
@@ -10726,7 +10726,7 @@ class WgslDebug {
             // values with the call node so that when it is evaluated, it uses that
             // already computed value. This allows us to step into the function
             if (statement instanceof Let ||
-                statement instanceof Var$1 ||
+                statement instanceof Var ||
                 statement instanceof Assign) {
                 const functionCalls = [];
                 this._collectFunctionCalls(statement.value, functionCalls);
@@ -10756,8 +10756,8 @@ class WgslDebug {
             else if (statement instanceof Increment) {
                 state.commands.push(new StatementCommand(statement));
             }
-            else if (statement instanceof Function$1) {
-                const f = new Function(statement);
+            else if (statement instanceof Function) {
+                const f = new FunctionRef(statement);
                 state.context.functions.set(statement.name, f);
                 continue;
             }
@@ -10923,5 +10923,5 @@ class WgslDebug {
     }
 }
 
-export { Alias, AliasInfo, Argument, ArgumentInfo, ArrayIndex, ArrayInfo, ArrayType, Assign, AssignOperator, Attribute, BinaryOperator, BitcastExpr, Break, Call, CallExpr, Case, Const, ConstExpr, Continue, Continuing, CreateExpr, Default, Diagnostic, Discard, ElseIf, Enable, EntryFunctions, Expression, For, Function$1 as Function, FunctionInfo, GroupingExpr, If, Increment, IncrementOperator, InputInfo, Let, LiteralExpr, Loop, Member, MemberInfo, Node, Operator, OutputInfo, Override, OverrideInfo, ParseContext, PointerType, Requires, ResourceType, Return, SamplerType, StackFrame, Statement, StaticAssert, StringExpr, Struct, StructInfo, Switch, SwitchCase, TemplateInfo, TemplateType, Token, TokenClass, TokenType, TokenTypes, Type, TypeInfo, TypecastExpr, UnaryOperator, Var$1 as Var, VariableExpr, VariableInfo, WgslDebug, WgslExec, WgslParser, WgslReflect, WgslScanner, While, _BlockEnd, _BlockStart };
+export { Alias, AliasInfo, Argument, ArgumentInfo, ArrayIndex, ArrayInfo, ArrayType, Assign, AssignOperator, Attribute, BinaryOperator, BitcastExpr, Break, Call, CallExpr, Case, Const, ConstExpr, Continue, Continuing, CreateExpr, Default, Diagnostic, Discard, ElseIf, Enable, EntryFunctions, Expression, For, Function, FunctionInfo, GroupingExpr, If, Increment, IncrementOperator, InputInfo, Let, LiteralExpr, Loop, Member, MemberInfo, Node, Operator, OutputInfo, Override, OverrideInfo, ParseContext, PointerType, Requires, ResourceType, Return, SamplerType, StackFrame, Statement, StaticAssert, StringExpr, Struct, StructInfo, Switch, SwitchCase, TemplateInfo, TemplateType, Token, TokenClass, TokenType, TokenTypes, Type, TypeInfo, TypecastExpr, UnaryOperator, Var, VariableExpr, VariableInfo, WgslDebug, WgslExec, WgslParser, WgslReflect, WgslScanner, While, _BlockEnd, _BlockStart };
 //# sourceMappingURL=wgsl_reflect.module.js.map

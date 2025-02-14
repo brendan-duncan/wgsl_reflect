@@ -1,7 +1,7 @@
 import * as AST from "./wgsl_ast.js";
 import { WgslParser } from "./wgsl_parser.js";
 import { WgslReflect, TypeInfo, StructInfo, ArrayInfo, TemplateInfo } from "./wgsl_reflect.js";
-import { ExecContext, Function } from "./exec/exec_context.js";
+import { ExecContext, FunctionRef } from "./exec/exec_context.js";
 import { ExecInterface } from "./exec/exec_interface.js";
 import { BuiltinFunctions } from "./exec/builtin_functions.js";
 import { Data, ScalarData, VectorData, MatrixData, TypedData, VoidData } from "./exec/data.js";
@@ -328,7 +328,7 @@ export class WgslExec extends ExecInterface {
         }
     }
 
-    _dispatchWorkgroup(f: Function, workgroup_id: number[], context: ExecContext): void {
+    _dispatchWorkgroup(f: FunctionRef, workgroup_id: number[], context: ExecContext): void {
         const workgroupSize = [1, 1, 1];
         for (const attr of f.node.attributes) {
             if (attr.name === "workgroup_size") {
@@ -387,7 +387,7 @@ export class WgslExec extends ExecInterface {
         }
     }
 
-    _dispatchExec(f: Function, context: ExecContext): void {
+    _dispatchExec(f: FunctionRef, context: ExecContext): void {
         // Update any built-in input args.
         // TODO: handle input structs.
         for (const arg of f.node.args) {
@@ -728,7 +728,7 @@ export class WgslExec extends ExecInterface {
     }
 
     _function(node: AST.Function, context: ExecContext): void {
-        const f = new Function(node);
+        const f = new FunctionRef(node);
         context.functions.set(node.name, f);
     }
 

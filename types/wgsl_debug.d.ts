@@ -1,6 +1,6 @@
 import * as AST from "./wgsl_ast.js";
 import { WgslExec } from "./wgsl_exec.js";
-import { ExecContext, Function } from "./exec/exec_context.js";
+import { ExecContext, FunctionRef } from "./exec/exec_context.js";
 import { Command } from "./exec/command.js";
 export declare class StackFrame {
     parent: StackFrame | null;
@@ -46,8 +46,8 @@ export declare class WgslDebug {
     stepOver(): void;
     stepOut(): void;
     stepNext(stepInto?: boolean): boolean;
-    _dispatchWorkgroup(f: Function, workgroup_id: number[], context: ExecContext): boolean;
-    _dispatchExec(f: Function, context: ExecContext): void;
+    _dispatchWorkgroup(f: FunctionRef, workgroup_id: number[], context: ExecContext): boolean;
+    _dispatchExec(f: FunctionRef, context: ExecContext): void;
     _createState(ast: Array<AST.Node>, context: ExecContext, parent?: StackFrame): StackFrame;
     _collectFunctionCalls(node: AST.Expression, functionCalls: Array<AST.CallExpr>): void;
 }

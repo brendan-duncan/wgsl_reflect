@@ -1,6 +1,6 @@
 import * as AST from "./wgsl_ast.js";
 import { WgslReflect, TypeInfo } from "./wgsl_reflect.js";
-import { ExecContext, Function } from "./exec/exec_context.js";
+import { ExecContext, FunctionRef } from "./exec/exec_context.js";
 import { ExecInterface } from "./exec/exec_interface.js";
 import { BuiltinFunctions } from "./exec/builtin_functions.js";
 import { Data } from "./exec/data.js";
@@ -21,8 +21,8 @@ export declare class WgslExec extends ExecInterface {
     getTypeInfo(type: AST.Type | string): TypeInfo | null;
     getTypeName(type: TypeInfo | AST.Type): string;
     _setOverrides(constants: Object, context: ExecContext): void;
-    _dispatchWorkgroup(f: Function, workgroup_id: number[], context: ExecContext): void;
-    _dispatchExec(f: Function, context: ExecContext): void;
+    _dispatchWorkgroup(f: FunctionRef, workgroup_id: number[], context: ExecContext): void;
+    _dispatchExec(f: FunctionRef, context: ExecContext): void;
     _getVariableName(node: AST.Node, context: ExecContext): string | null;
     _execStatements(statements: Array<AST.Node>, context: ExecContext): Data | null;
     _call(node: AST.Call, context: ExecContext): void;

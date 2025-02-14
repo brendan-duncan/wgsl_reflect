@@ -3,7 +3,7 @@ import { Data } from "./data.js";
 
 type ASTVarNode = AST.Let | AST.Var | AST.Argument;
 
-export class Var {
+export class VarRef {
     name: string;
     value: Data;
     node: ASTVarNode | null;
@@ -14,12 +14,12 @@ export class Var {
         this.node = node;
     }
 
-    clone(): Var {
-        return new Var(this.name, this.value, this.node);
+    clone(): VarRef {
+        return new VarRef(this.name, this.value, this.node);
     }
 };
 
-export class Function {
+export class FunctionRef {
     name: string;
     node: AST.Function;
 
@@ -28,16 +28,16 @@ export class Function {
         this.node = node;
     }
 
-    clone(): Function {
-        return new Function(this.node);
+    clone(): FunctionRef {
+        return new FunctionRef(this.node);
     }
 };
 
 export class ExecContext {
     parent: ExecContext | null = null;
-    variables: Map<string, Var> = new Map<string, Var>();
-    functions: Map<string, Function> = new Map<string, Function>();
-    currentFunctionName: string = "";
+    variables = new Map<string, VarRef>();
+    functions = new Map<string, FunctionRef>();
+    currentFunctionName = "";
 
     constructor(parent?: ExecContext) {
         if (parent) {
@@ -46,7 +46,7 @@ export class ExecContext {
         }
     }
 
-    getVariable(name: string): Var | null {
+    getVariable(name: string): VarRef | null {
         if (this.variables.has(name)) {
             return this.variables.get(name) ?? null;
         }
@@ -56,7 +56,7 @@ export class ExecContext {
         return null;
     }
 
-    getFunction(name: string): Function | null {
+    getFunction(name: string): FunctionRef | null {
         if (this.functions.has(name)) {
             return this.functions.get(name) ?? null;
         }
@@ -67,7 +67,7 @@ export class ExecContext {
     }
 
     createVariable(name: string, value: Data, node?: ASTVarNode) {
-        this.variables.set(name, new Var(name, value, node ?? null));
+        this.variables.set(name, new VarRef(name, value, node ?? null));
     }
 
     setVariable(name: string, value: Data, node?: ASTVarNode) {
