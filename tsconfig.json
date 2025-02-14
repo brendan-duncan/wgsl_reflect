@@ -19,6 +19,7 @@
   },
   "exclude": ["node_modules"],
   "files": [
-    "./src/index.ts"
+    "./src/index.ts",
+    "./src/debugger_index.ts"
   ],
 }
