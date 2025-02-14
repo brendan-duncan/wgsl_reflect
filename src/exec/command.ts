@@ -76,22 +76,19 @@ export class BreakCommand extends Command {
 
 
 export class GotoCommand extends Command {
-    //static kContinueTarget = -1000;
-    //static kBreakTarget = -2000;
-    //static kContinue = -3000;
-    //static kBreak = -4000;
-
     condition: AST.Node | null;
     position: number;
+    lineNo: number = -1;
 
-    constructor(condition: AST.Node | null, position: number) {
+    constructor(condition: AST.Node | null, position: number, line: number) {
         super();
         this.condition = condition;
         this.position = position;
+        this.lineNo = line;
     }
 
     get line(): number {
-        return this.condition?.line ?? -1;
+        return this.condition?.line ?? this.lineNo;
     }
 }
 

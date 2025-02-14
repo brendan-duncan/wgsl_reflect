@@ -37,7 +37,8 @@ export declare class BreakCommand extends Command {
 export declare class GotoCommand extends Command {
     condition: AST.Node | null;
     position: number;
-    constructor(condition: AST.Node | null, position: number);
+    lineNo: number;
+    constructor(condition: AST.Node | null, position: number, line: number);
     get line(): number;
 }
 export declare class BlockCommand extends Command {

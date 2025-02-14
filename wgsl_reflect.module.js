@@ -10086,14 +10086,16 @@ class BreakCommand extends Command {
     get line() { return this.node.line; }
 }
 class GotoCommand extends Command {
-    constructor(condition, position) {
+    constructor(condition, position, line) {
         super();
+        this.lineNo = -1;
         this.condition = condition;
         this.position = position;
+        this.lineNo = line;
     }
     get line() {
         var _a, _b;
-        return (_b = (_a = this.condition) === null || _a === void 0 ? void 0 : _a.line) !== null && _b !== void 0 ? _b : -1;
+        return (_b = (_a = this.condition) === null || _a === void 0 ? void 0 : _a.line) !== null && _b !== void 0 ? _b : this.lineNo;
     }
 }
 class BlockCommand extends Command {
@@ -10834,12 +10836,12 @@ class WgslDebug {
                 for (const call of functionCalls) {
                     state.commands.push(new CallExprCommand(call, statement));
                 }
-                let conditionCmd = new GotoCommand(statement.condition, 0);
+                let conditionCmd = new GotoCommand(statement.condition, 0, statement.line);
                 state.commands.push(conditionCmd);
                 if (statement.body.length > 0) {
                     state.commands.push(new BlockCommand(statement.body));
                 }
-                const gotoEnd = new GotoCommand(null, 0);
+                const gotoEnd = new GotoCommand(null, 0, statement.line);
                 state.commands.push(gotoEnd);
                 for (const elseIf of statement.elseif) {
                     conditionCmd.position = state.commands.length;
@@ -10848,7 +10850,7 @@ class WgslDebug {
                     for (const call of functionCalls) {
                         state.commands.push(new CallExprCommand(call, statement));
                     }
-                    conditionCmd = new GotoCommand(elseIf.condition, 0);
+                    conditionCmd = new GotoCommand(elseIf.condition, 0, elseIf.line);
                     state.commands.push(conditionCmd);
                     if (elseIf.body.length > 0) {
                         state.commands.push(new BlockCommand(elseIf.body));
@@ -10868,12 +10870,14 @@ class WgslDebug {
                 for (const call of functionCalls) {
                     state.commands.push(new CallExprCommand(call, statement));
                 }
-                const conditionCmd = new GotoCommand(statement.condition, 0);
+                const conditionCmd = new GotoCommand(statement.condition, 0, statement.line);
                 state.commands.push(conditionCmd);
+                let lastLine = statement.line;
                 if (statement.body.length > 0) {
                     state.commands.push(new BlockCommand(statement.body));
+                    lastLine = statement.body[statement.body.length - 1].line;
                 }
-                state.commands.push(new GotoCommand(statement.condition, 0));
+                state.commands.push(new GotoCommand(statement.condition, 0, lastLine));
                 state.commands.push(new BreakTargetCommand(statement.id));
                 conditionCmd.position = state.commands.length;
             }
@@ -10892,17 +10896,19 @@ class WgslDebug {
                     for (const call of functionCalls) {
                         state.commands.push(new CallExprCommand(call, statement));
                     }
-                    conditionCmd = new GotoCommand(statement.condition, 0);
+                    conditionCmd = new GotoCommand(statement.condition, 0, statement.line);
                     state.commands.push(conditionCmd);
                 }
+                let lastLine = statement.line;
                 if (statement.body.length > 0) {
                     state.commands.push(new BlockCommand(statement.body));
+                    lastLine = statement.body[statement.body.length - 1].line;
                 }
                 if (statement.increment) {
                     state.commands.push(new ContinueTargetCommand(statement.id));
                     state.commands.push(new StatementCommand(statement.increment));
                 }
-                state.commands.push(new GotoCommand(null, conditionPos));
+                state.commands.push(new GotoCommand(null, conditionPos, lastLine));
                 state.commands.push(new BreakTargetCommand(statement.id));
                 conditionCmd.position = state.commands.length;
             }
@@ -10911,10 +10917,12 @@ class WgslDebug {
                 if (!statement.continuing) {
                     state.commands.push(new ContinueTargetCommand(statement.id));
                 }
+                let lastLine = statement.line;
                 if (statement.body.length > 0) {
                     state.commands.push(new BlockCommand(statement.body));
+                    lastLine = statement.body[statement.body.length - 1].line;
                 }
-                state.commands.push(new GotoCommand(null, loopStartPos));
+                state.commands.push(new GotoCommand(null, loopStartPos, lastLine));
                 state.commands.push(new BreakTargetCommand(statement.id));
             }
             else if (statement instanceof Continuing) {
@@ -10929,17 +10937,7 @@ class WgslDebug {
             }
             else if (statement instanceof StaticAssert) {
                 state.commands.push(new StatementCommand(statement));
-            } /* else if (statement instanceof AST.Override) {
-                continue;
-            } else if (statement instanceof AST.Alias) {
-                continue;
-            } else if (statement instanceof AST.Struct) {
-                continue;
-            } else if (statement instanceof AST.Diagnostic) {
-                continue;
-            } else if (statement instanceof AST.Requires) {
-                continue;
-            }*/
+            }
             else {
                 console.error(`TODO: statement type ${statement.constructor.name}`);
             }
