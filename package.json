@@ -19,6 +19,8 @@
   "files": [
     "wgsl_reflect.module.js",
     "wgsl_reflect.node.js",
+    "wgsl_debugger.module.js",
+    "wgsl_debugger.node.js",
     "LICENSE.md",
     "package.json",
     "README.md",
