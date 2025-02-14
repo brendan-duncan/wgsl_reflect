@@ -43,4 +43,5 @@ export declare class TypedData extends Data {
     setDataValue(exec: ExecInterface, value: Data, postfix: AST.Expression | null, context: ExecContext): void;
     setData(exec: ExecInterface, value: Data, typeInfo: TypeInfo, offset: number, context: ExecContext): void;
     getDataValue(exec: ExecInterface, postfix: AST.Expression | null, context: ExecContext): Data | null;
+    toString(): string;
 }

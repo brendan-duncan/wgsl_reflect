@@ -229,7 +229,11 @@ export class VectorData extends Data {
     }
 
     toString(): string {
-        return `${this.value}`;
+        let s = `${this.value[0]}`;
+        for (let i = 1; i < this.value.length; ++i) {
+            s += `, ${this.value[i]}`;
+        }
+        return s;
     }
 }
 
@@ -324,7 +328,11 @@ export class MatrixData extends Data {
     }
 
     toString(): string {
-        return `${this.value}`;
+        let s = `${this.value[0]}`;
+        for (let i = 1; i < this.value.length; ++i) {
+            s += `, ${this.value[i]}`;
+        }
+        return s;
     }
 }
 
@@ -749,5 +757,53 @@ export class TypedData extends Data {
         }
 
         return new TypedData(this.buffer, typeInfo, offset);
+    }
+
+    toString(): string {
+        let s = "";
+        if (this.typeInfo instanceof ArrayInfo) {
+            if (this.typeInfo.format.name === "f32") {
+                const fa = new Float32Array(this.buffer, this.offset);
+                s = `[${fa[0]}`;
+                for (let i = 1; i < fa.length; ++i) {
+                    s += `, ${fa[i]}`;
+                }
+            } else if (this.typeInfo.format.name === "i32") {
+                const fa = new Int32Array(this.buffer, this.offset);
+                s = `[${fa[0]}`;
+                for (let i = 1; i < fa.length; ++i) {
+                    s += `, ${fa[i]}`;
+                }
+            } else if (this.typeInfo.format.name === "u32") {
+                const fa = new Uint32Array(this.buffer, this.offset);
+                s = `[${fa[0]}`;
+                for (let i = 1; i < fa.length; ++i) {
+                    s += `, ${fa[i]}`;
+                }
+            } else if (this.typeInfo.format.name === "vec2f") {
+                const fa = new Float32Array(this.buffer, this.offset);
+                s = `[${fa[0]}, ${fa[1]}]`;
+                for (let i = 1; i < fa.length / 2; ++i) {
+                    s += `, [${fa[i * 2]}, ${fa[i * 2 + 1]}]`;
+                }
+            } else if (this.typeInfo.format.name === "vec3f") {
+                const fa = new Float32Array(this.buffer, this.offset);
+                s = `[${fa[0]}, ${fa[1]}, ${fa[2]}]`;
+                for (let i = 4; i < fa.length; i += 4) {
+                    s += `, [${fa[i]}, ${fa[i + 1]}, ${fa[i + 2]}]`;
+                }
+            } else if (this.typeInfo.format.name === "vec4f") {
+                const fa = new Float32Array(this.buffer, this.offset);
+                s = `[${fa[0]}, ${fa[1]}, ${fa[2]}, ${fa[3]}]`;
+                for (let i = 4; i < fa.length; i += 4) {
+                    s += `, [${fa[i]}, ${fa[i + 1]}, ${fa[i + 2]}, ${fa[i + 3]}]`;
+                }
+            } else {
+                s = `[...]`;
+            }
+        } else if (this.typeInfo instanceof StructInfo) {
+            s += `{...}`;
+        }
+        return s;
     }
 };
