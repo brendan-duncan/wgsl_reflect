@@ -1630,8 +1630,17 @@ export class WgslParser {
       TokenTypes.tokens.ident,
       "Expected diagnostic rule name."
     );
+    let ruleMessage = rule.toString();
+    if (this._match(TokenTypes.tokens.period)) {
+      const message = this._consume(
+        TokenTypes.tokens.ident,
+        "Expected diagnostic message."
+      );
+      ruleMessage += `.${message.toString()}`;
+    }
+
     this._consume(TokenTypes.tokens.paren_right, "Expected ')'");
-    return this._updateNode(new AST.Diagnostic(severity.toString(), rule.toString()));
+    return this._updateNode(new AST.Diagnostic(severity.toString(), ruleMessage));
   }
 
   _enable_directive(): AST.Enable {

@@ -3,6 +3,13 @@ import { WgslParser } from "../../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Parser", function () {
+    test("diagnostic", function (test) {
+      const shader = `diagnostic(off, chromium.unreachable_code);`;
+      const parser = new WgslParser();
+      const t = parser.parse(shader);
+      test.equals(t.length, 1);
+    });
+
     test("const", function (test) {
       const shader = `
       const a = 4; // i32 -- 4
