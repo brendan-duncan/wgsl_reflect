@@ -55,6 +55,10 @@
       "wgsl_reflect.module.js.map",
       "wgsl_reflect.node.js",
       "wgsl_reflect.node.js.map",
+      "wgsl_debugger.module.js",
+      "wgsl_debugger.module.js.map",
+      "wgsl_debugger.node.js",
+      "wgsl_debugger.node.js.map",
       "types"
     ]
   }
