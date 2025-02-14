@@ -11,18 +11,21 @@ class ParseContext {
  * Base class for AST nodes parsed from a WGSL shader.
  */
 class Node {
-    constructor() { }
+    constructor() {
+        this.id = Node._id++;
+        this.line = 0;
+    }
     get isAstNode() {
         return true;
     }
     get astNodeType() {
         return "";
     }
-    evaluate(context) {
+    constEvaluate(context, type) {
         throw new Error("Cannot evaluate node");
     }
-    evaluateString(context) {
-        return this.evaluate(context).toString();
+    constEvaluateString(context) {
+        return this.constEvaluate(context).toString();
     }
     search(callback) { }
     searchBlock(block, callback) {
@@ -40,6 +43,7 @@ class Node {
         }
     }
 }
+Node._id = 0;
 // For internal use only
 class _BlockStart extends Node {
 }
@@ -166,6 +170,7 @@ class For extends Statement {
 class Var extends Statement {
     constructor(name, type, storage, access, value) {
         super();
+        this.attributes = null;
         this.name = name;
         this.type = type;
         this.storage = storage;
@@ -189,6 +194,7 @@ class Var extends Statement {
 class Override extends Statement {
     constructor(name, type, value) {
         super();
+        this.attributes = null;
         this.name = name;
         this.type = type;
         this.value = value;
@@ -209,6 +215,7 @@ class Override extends Statement {
 class Let extends Statement {
     constructor(name, type, storage, access, value) {
         super();
+        this.attributes = null;
         this.name = name;
         this.type = type;
         this.storage = storage;
@@ -232,6 +239,7 @@ class Let extends Statement {
 class Const extends Statement {
     constructor(name, type, storage, access, value) {
         super();
+        this.attributes = null;
         this.name = name;
         this.type = type;
         this.storage = storage;
@@ -241,8 +249,8 @@ class Const extends Statement {
     get astNodeType() {
         return "const";
     }
-    evaluate(context) {
-        return this.value.evaluate(context);
+    constEvaluate(context, type) {
+        return this.value.constEvaluate(context, type);
     }
     search(callback) {
         var _a;
@@ -498,6 +506,8 @@ class Discard extends Statement {
 class Break extends Statement {
     constructor() {
         super();
+        this.condition = null;
+        this.loopId = -1;
     }
     get astNodeType() {
         return "break";
@@ -511,6 +521,7 @@ class Break extends Statement {
 class Continue extends Statement {
     constructor() {
         super();
+        this.loopId = -1;
     }
     get astNodeType() {
         return "continue";
@@ -524,6 +535,7 @@ class Continue extends Statement {
 class Type extends Statement {
     constructor(name) {
         super();
+        this.attributes = null;
         this.name = name;
     }
     get astNodeType() {
@@ -535,7 +547,31 @@ class Type extends Statement {
     get isArray() {
         return false;
     }
+    static maxFormatType(x) {
+        let t = x[0];
+        if (t.name === "f32") {
+            return t;
+        }
+        for (let i = 1; i < x.length; ++i) {
+            const tv = Type._priority.get(t.name);
+            const xv = Type._priority.get(x[i].name);
+            if (xv < tv) {
+                t = x[i];
+            }
+        }
+        if (t.name === "x32") {
+            return Type.i32;
+        }
+        return t;
+    }
 }
+Type.x32 = new Type("x32");
+Type.f32 = new Type("f32");
+Type.i32 = new Type("i32");
+Type.u32 = new Type("u32");
+Type.f16 = new Type("f16");
+Type.bool = new Type("bool");
+Type._priority = new Map([["f32", 0], ["f16", 1], ["u32", 2], ["i32", 3], ["x32", 3]]);
 /**
  * @class StructType
  * @extends Type
@@ -578,6 +614,39 @@ class TemplateType extends Type {
         return "template";
     }
 }
+TemplateType.vec2f = new TemplateType("vec2", Type.f32, null);
+TemplateType.vec3f = new TemplateType("vec3", Type.f32, null);
+TemplateType.vec4f = new TemplateType("vec4", Type.f32, null);
+TemplateType.vec2i = new TemplateType("vec2", Type.i32, null);
+TemplateType.vec3i = new TemplateType("vec3", Type.i32, null);
+TemplateType.vec4i = new TemplateType("vec4", Type.i32, null);
+TemplateType.vec2u = new TemplateType("vec2", Type.u32, null);
+TemplateType.vec3u = new TemplateType("vec3", Type.u32, null);
+TemplateType.vec4u = new TemplateType("vec4", Type.u32, null);
+TemplateType.vec2h = new TemplateType("vec2", Type.f16, null);
+TemplateType.vec3h = new TemplateType("vec3", Type.f16, null);
+TemplateType.vec4h = new TemplateType("vec4", Type.f16, null);
+TemplateType.vec2b = new TemplateType("vec2", Type.bool, null);
+TemplateType.vec3b = new TemplateType("vec3", Type.bool, null);
+TemplateType.vec4b = new TemplateType("vec4", Type.bool, null);
+TemplateType.mat2x2f = new TemplateType("mat2x2", Type.f32, null);
+TemplateType.mat2x3f = new TemplateType("mat2x3", Type.f32, null);
+TemplateType.mat2x4f = new TemplateType("mat2x4", Type.f32, null);
+TemplateType.mat3x2f = new TemplateType("mat3x2", Type.f32, null);
+TemplateType.mat3x3f = new TemplateType("mat3x3", Type.f32, null);
+TemplateType.mat3x4f = new TemplateType("mat3x4", Type.f32, null);
+TemplateType.mat4x2f = new TemplateType("mat4x2", Type.f32, null);
+TemplateType.mat4x3f = new TemplateType("mat4x3", Type.f32, null);
+TemplateType.mat4x4f = new TemplateType("mat4x4", Type.f32, null);
+TemplateType.mat2x2h = new TemplateType("mat2x2", Type.f16, null);
+TemplateType.mat2x3h = new TemplateType("mat2x3", Type.f16, null);
+TemplateType.mat2x4h = new TemplateType("mat2x4", Type.f16, null);
+TemplateType.mat3x2h = new TemplateType("mat3x2", Type.f16, null);
+TemplateType.mat3x3h = new TemplateType("mat3x3", Type.f16, null);
+TemplateType.mat3x4h = new TemplateType("mat3x4", Type.f16, null);
+TemplateType.mat4x2h = new TemplateType("mat4x2", Type.f16, null);
+TemplateType.mat4x3h = new TemplateType("mat4x3", Type.f16, null);
+TemplateType.mat4x4h = new TemplateType("mat4x4", Type.f16, null);
 /**
  * @class PointerType
  * @extends Type
@@ -636,6 +705,7 @@ class SamplerType extends Type {
 class Expression extends Node {
     constructor() {
         super();
+        this.postfix = null;
     }
 }
 /**
@@ -654,7 +724,7 @@ class StringExpr extends Expression {
     toString() {
         return this.value;
     }
-    evaluateString() {
+    constEvaluateString() {
         return this.value;
     }
 }
@@ -680,8 +750,785 @@ class CreateExpr extends Expression {
             }
         }
     }
-    evaluate(context) {
-        return this.args[0].evaluate(context);
+    constEvaluate(context, type) {
+        const t = this.type;
+        if (t.name === "f32" || t.name === "f16" || t.name === "i32" || t.name === "u32" || t.name === "bool") {
+            return this.args[0].constEvaluate(context, type);
+        }
+        if (t.name === "vec2" || t.name === "vec2f" || t.name === "vec2h" || t.name === "vec2i" || t.name === "vec2u") {
+            const tx = [Type.f32];
+            const ty = [Type.f32];
+            const v = [this.args[0].constEvaluate(context, tx),
+                this.args[1].constEvaluate(context, ty)];
+            if (type) {
+                type[0] = t;
+                if (t instanceof TemplateType && t.format === null) {
+                    t.format = Type.maxFormatType([tx[0], ty[0]]);
+                }
+            }
+            return v;
+        }
+        if (t.name === "vec3" || t.name === "vec3f" || t.name === "vec3h" || t.name === "vec3i" || t.name === "vec3u") {
+            const tx = [Type.f32];
+            const ty = [Type.f32];
+            const tz = [Type.f32];
+            const v = [this.args[0].constEvaluate(context, tx),
+                this.args[1].constEvaluate(context, ty),
+                this.args[2].constEvaluate(context, tz)];
+            if (type) {
+                type[0] = t;
+                if (t instanceof TemplateType && t.format === null) {
+                    t.format = Type.maxFormatType([tx[0], ty[0], tz[0]]);
+                }
+            }
+            return v;
+        }
+        if (t.name === "vec4" || t.name === "vec4f" || t.name === "vec4h" || t.name === "vec4i" || t.name === "vec4u") {
+            const tx = [Type.f32];
+            const ty = [Type.f32];
+            const tz = [Type.f32];
+            const tw = [Type.f32];
+            const v = [this.args[0].constEvaluate(context, tx),
+                this.args[1].constEvaluate(context, ty),
+                this.args[2].constEvaluate(context, tz),
+                this.args[3].constEvaluate(context, tw)];
+            if (type) {
+                type[0] = t;
+                if (t instanceof TemplateType && t.format === null) {
+                    t.format = Type.maxFormatType([tx[0], ty[0], tz[0], tw[0]]);
+                }
+            }
+            return v;
+        }
+        if (t.name === "mat2x2") {
+            if (this.args.length === 1) {
+                // mat2x2(other: mat2x2)
+                const e1 = [Type.f32];
+                const v = this.args[0].constEvaluate(context, e1);
+                if (e1[0].name !== "mat2x2" && e1[0].name !== "mat2x2f" && e1[0].name != "mat2x2h") {
+                    throw "Invalid argument for mat2x2";
+                }
+                if (type) {
+                    type[0] = e1[0];
+                }
+                return v;
+            }
+            else if (this.args.length === 2) {
+                // mat2x2(v1: vec2, v2: vec2)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const v1 = this.args[0].constEvaluate(context, e1);
+                const v2 = this.args[1].constEvaluate(context, e2);
+                if ((e1[0].name !== "vec2" && e1[0].name !== "vec2f" && e1[0].name !== "vec2h") ||
+                    (e2[0].name !== "vec2" && e2[0].name !== "vec2f" && e2[0].name !== "vec2h")) {
+                    throw "Invalid arguments for mat2x2";
+                }
+                const v1a = v1;
+                const v2a = v2;
+                const v = [v1a[0], v1a[1], v2a[0], v2a[1]];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        if (e1[0].name === "vec2f") {
+                            t.format = Type.f32;
+                        }
+                        else if (e1[0].name === "vec2h") {
+                            t.format = Type.f16;
+                        }
+                        else if (e1[0] instanceof TemplateType) {
+                            t.format = e1[0].format;
+                        }
+                    }
+                }
+                return v;
+            }
+            else if (this.args.length === 4) {
+                // mat2x2(e1, e2, e3, e4)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const e3 = [Type.f32];
+                const e4 = [Type.f32];
+                const v = [this.args[0].constEvaluate(context, e1),
+                    this.args[1].constEvaluate(context, e2),
+                    this.args[2].constEvaluate(context, e3),
+                    this.args[3].constEvaluate(context, e4)];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0]]);
+                    }
+                }
+                return v;
+            }
+            else {
+                throw "Invalid arguments for mat2x2";
+            }
+        }
+        if (t.name === "mat2x3") {
+            if (this.args.length === 1) {
+                // mat2x3(other: mat2x3)
+                const e1 = [Type.f32];
+                const v = this.args[0].constEvaluate(context, e1);
+                if (e1[0].name !== "mat232" && e1[0].name !== "mat2x3f" && e1[0].name != "mat2x3h") {
+                    throw "Invalid argument for mat2x3";
+                }
+                if (type) {
+                    type[0] = e1[0];
+                }
+                return v;
+            }
+            else if (this.args.length === 2) {
+                // mat2x3(v1: vec3, v2: vec3)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const v1 = this.args[0].constEvaluate(context, e1);
+                const v2 = this.args[1].constEvaluate(context, e2);
+                if ((e1[0].name !== "vec3" && e1[0].name !== "vec3f" && e1[0].name !== "vec3h") ||
+                    (e2[0].name !== "vec3" && e2[0].name !== "vec3f" && e2[0].name !== "vec3h")) {
+                    throw "Invalid arguments for mat2x3";
+                }
+                const v1a = v1;
+                const v2a = v2;
+                const v = [v1a[0], v1a[1], v1a[2], v2a[0], v2a[1], v2a[2]];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        if (e1[0].name === "vec3f") {
+                            t.format = Type.f32;
+                        }
+                        else if (e1[0].name === "vec3h") {
+                            t.format = Type.f16;
+                        }
+                        else if (e1[0] instanceof TemplateType) {
+                            t.format = e1[0].format;
+                        }
+                    }
+                }
+                return v;
+            }
+            else if (this.args.length === 6) {
+                // mat2x3(e1, e2, e3, e4, e5, e6)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const e3 = [Type.f32];
+                const e4 = [Type.f32];
+                const e5 = [Type.f32];
+                const e6 = [Type.f32];
+                const v = [this.args[0].constEvaluate(context, e1),
+                    this.args[1].constEvaluate(context, e2),
+                    this.args[2].constEvaluate(context, e3),
+                    this.args[3].constEvaluate(context, e4),
+                    this.args[4].constEvaluate(context, e5),
+                    this.args[5].constEvaluate(context, e6)];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0]]);
+                    }
+                }
+                return v;
+            }
+            else {
+                throw "Invalid arguments for mat2x3";
+            }
+        }
+        if (t.name === "mat2x4") {
+            if (this.args.length === 1) {
+                // mat2x4(other: mat2x4)
+                const e1 = [Type.f32];
+                const v = this.args[0].constEvaluate(context, e1);
+                if (e1[0].name !== "mat2x4" && e1[0].name !== "mat2x4f" && e1[0].name != "mat2x4h") {
+                    throw "Invalid argument for mat2x4";
+                }
+                if (type) {
+                    type[0] = e1[0];
+                }
+                return v;
+            }
+            else if (this.args.length === 2) {
+                // mat2x4(v1: vec4, v2: vec4)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const v1 = this.args[0].constEvaluate(context, e1);
+                const v2 = this.args[1].constEvaluate(context, e2);
+                if ((e1[0].name !== "vec4" && e1[0].name !== "vec4f" && e1[0].name !== "vec4h") ||
+                    (e2[0].name !== "vec4" && e2[0].name !== "vec4f" && e2[0].name !== "vec4h")) {
+                    throw "Invalid arguments for mat2x4";
+                }
+                const v1a = v1;
+                const v2a = v2;
+                const v = [v1a[0], v1a[1], v1a[2], v1a[3], v2a[0], v2a[1], v2a[2], v2a[3]];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        if (e1[0].name === "vec4f") {
+                            t.format = Type.f32;
+                        }
+                        else if (e1[0].name === "vec4h") {
+                            t.format = Type.f16;
+                        }
+                        else if (e1[0] instanceof TemplateType) {
+                            t.format = e1[0].format;
+                        }
+                    }
+                }
+                return v;
+            }
+            else if (this.args.length === 8) {
+                // mat2x4(e1, e2, e3, e4, e5, e6, e7, e8)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const e3 = [Type.f32];
+                const e4 = [Type.f32];
+                const e5 = [Type.f32];
+                const e6 = [Type.f32];
+                const e7 = [Type.f32];
+                const e8 = [Type.f32];
+                const v = [this.args[0].constEvaluate(context, e1),
+                    this.args[1].constEvaluate(context, e2),
+                    this.args[2].constEvaluate(context, e3),
+                    this.args[3].constEvaluate(context, e4),
+                    this.args[4].constEvaluate(context, e5),
+                    this.args[5].constEvaluate(context, e6),
+                    this.args[6].constEvaluate(context, e7),
+                    this.args[7].constEvaluate(context, e8)];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0]]);
+                    }
+                }
+                return v;
+            }
+            else {
+                throw "Invalid arguments for mat2x4";
+            }
+        }
+        if (t.name === "mat3x2") {
+            if (this.args.length === 1) {
+                // mat3x2(other: mat3x2)
+                const e1 = [Type.f32];
+                const v = this.args[0].constEvaluate(context, e1);
+                if (e1[0].name !== "mat3x2" && e1[0].name !== "mat3x2f" && e1[0].name != "mat3x2h") {
+                    throw "Invalid argument for mat3x2";
+                }
+                if (type) {
+                    type[0] = e1[0];
+                }
+                return v;
+            }
+            else if (this.args.length === 3) {
+                // mat3x2(v1: vec2, v2: vec2, v3: vec2)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const e3 = [Type.f32];
+                const v1 = this.args[0].constEvaluate(context, e1);
+                const v2 = this.args[1].constEvaluate(context, e2);
+                const v3 = this.args[1].constEvaluate(context, e3);
+                if ((e1[0].name !== "vec2" && e1[0].name !== "vec2f" && e1[0].name !== "vec2h") ||
+                    (e2[0].name !== "vec2" && e2[0].name !== "vec2f" && e2[0].name !== "vec2h") ||
+                    (e3[0].name !== "vec2" && e3[0].name !== "vec2f" && e3[0].name !== "vec2h")) {
+                    throw "Invalid arguments for mat3x2";
+                }
+                const v1a = v1;
+                const v2a = v2;
+                const v3a = v3;
+                const v = [v1a[0], v1a[1], v2a[0], v2a[1], v3a[0], v3a[1]];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        if (e1[0].name === "vec2f") {
+                            t.format = Type.f32;
+                        }
+                        else if (e1[0].name === "vec2h") {
+                            t.format = Type.f16;
+                        }
+                        else if (e1[0] instanceof TemplateType) {
+                            t.format = e1[0].format;
+                        }
+                    }
+                }
+                return v;
+            }
+            else if (this.args.length === 6) {
+                // mat3x2(e1, e2, e3, e4, e5, e6)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const e3 = [Type.f32];
+                const e4 = [Type.f32];
+                const e5 = [Type.f32];
+                const e6 = [Type.f32];
+                const v = [this.args[0].constEvaluate(context, e1),
+                    this.args[1].constEvaluate(context, e2),
+                    this.args[2].constEvaluate(context, e3),
+                    this.args[3].constEvaluate(context, e4),
+                    this.args[4].constEvaluate(context, e5),
+                    this.args[5].constEvaluate(context, e6)];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0]]);
+                    }
+                }
+                return v;
+            }
+            else {
+                throw "Invalid arguments for mat3x2";
+            }
+        }
+        if (t.name === "mat3x3") {
+            if (this.args.length === 1) {
+                // mat3x3(other: mat3x3)
+                const e1 = [Type.f32];
+                const v = this.args[0].constEvaluate(context, e1);
+                if (e1[0].name !== "mat3x3" && e1[0].name !== "mat3x3f" && e1[0].name != "mat3x3h") {
+                    throw "Invalid argument for mat3x3";
+                }
+                if (type) {
+                    type[0] = e1[0];
+                }
+                return v;
+            }
+            else if (this.args.length === 3) {
+                // mat3x3(v1: vec3, v2: vec3, v3: vec3)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const e3 = [Type.f32];
+                const v1 = this.args[0].constEvaluate(context, e1);
+                const v2 = this.args[1].constEvaluate(context, e2);
+                const v3 = this.args[1].constEvaluate(context, e3);
+                if ((e1[0].name !== "vec3" && e1[0].name !== "vec3f" && e1[0].name !== "vec3h") ||
+                    (e2[0].name !== "vec3" && e2[0].name !== "vec3f" && e2[0].name !== "vec3h") ||
+                    (e3[0].name !== "vec3" && e3[0].name !== "vec3f" && e3[0].name !== "vec3h")) {
+                    throw "Invalid arguments for mat3x3";
+                }
+                const v1a = v1;
+                const v2a = v2;
+                const v3a = v3;
+                const v = [v1a[0], v1a[1], v1a[2], v2a[0], v2a[1], v2a[2], v3a[0], v3a[1], v3a[2]];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        if (e1[0].name === "vec3f") {
+                            t.format = Type.f32;
+                        }
+                        else if (e1[0].name === "vec3h") {
+                            t.format = Type.f16;
+                        }
+                        else if (e1[0] instanceof TemplateType) {
+                            t.format = e1[0].format;
+                        }
+                    }
+                }
+                return v;
+            }
+            else if (this.args.length === 9) {
+                // mat2x4(e1, e2, e3, e4, e5, e6, e7, e8, e9)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const e3 = [Type.f32];
+                const e4 = [Type.f32];
+                const e5 = [Type.f32];
+                const e6 = [Type.f32];
+                const e7 = [Type.f32];
+                const e8 = [Type.f32];
+                const e9 = [Type.f32];
+                const v = [this.args[0].constEvaluate(context, e1),
+                    this.args[1].constEvaluate(context, e2),
+                    this.args[2].constEvaluate(context, e3),
+                    this.args[3].constEvaluate(context, e4),
+                    this.args[4].constEvaluate(context, e5),
+                    this.args[5].constEvaluate(context, e6),
+                    this.args[6].constEvaluate(context, e7),
+                    this.args[7].constEvaluate(context, e8),
+                    this.args[8].constEvaluate(context, e9)];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0], e9[0]]);
+                    }
+                }
+                return v;
+            }
+            else {
+                throw "Invalid arguments for mat3x3";
+            }
+        }
+        if (t.name === "mat3x4") {
+            if (this.args.length === 1) {
+                // mat3x4(other: mat3x4)
+                const e1 = [Type.f32];
+                const v = this.args[0].constEvaluate(context, e1);
+                if (e1[0].name !== "mat3x4" && e1[0].name !== "mat3x4f" && e1[0].name != "mat3x4h") {
+                    throw "Invalid argument for mat3x4";
+                }
+                if (type) {
+                    type[0] = e1[0];
+                }
+                return v;
+            }
+            else if (this.args.length === 3) {
+                // mat3x4(v1: vec4, v2: vec4, v3: vec4)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const e3 = [Type.f32];
+                const v1 = this.args[0].constEvaluate(context, e1);
+                const v2 = this.args[1].constEvaluate(context, e2);
+                const v3 = this.args[1].constEvaluate(context, e3);
+                if ((e1[0].name !== "vec4" && e1[0].name !== "vec4f" && e1[0].name !== "vec4h") ||
+                    (e2[0].name !== "vec4" && e2[0].name !== "vec4f" && e2[0].name !== "vec4h") ||
+                    (e3[0].name !== "vec4" && e3[0].name !== "vec4f" && e3[0].name !== "vec4h")) {
+                    throw "Invalid arguments for mat3x4";
+                }
+                const v1a = v1;
+                const v2a = v2;
+                const v3a = v3;
+                const v = [v1a[0], v1a[1], v1a[2], v1a[3], v2a[0], v2a[1], v2a[2], v2a[3], v3a[0], v3a[1], v3a[2], v3a[3]];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        if (e1[0].name === "vec4f") {
+                            t.format = Type.f32;
+                        }
+                        else if (e1[0].name === "vec4h") {
+                            t.format = Type.f16;
+                        }
+                        else if (e1[0] instanceof TemplateType) {
+                            t.format = e1[0].format;
+                        }
+                    }
+                }
+                return v;
+            }
+            else if (this.args.length === 9) {
+                // mat3x4(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const e3 = [Type.f32];
+                const e4 = [Type.f32];
+                const e5 = [Type.f32];
+                const e6 = [Type.f32];
+                const e7 = [Type.f32];
+                const e8 = [Type.f32];
+                const e9 = [Type.f32];
+                const e10 = [Type.f32];
+                const e11 = [Type.f32];
+                const e12 = [Type.f32];
+                const v = [this.args[0].constEvaluate(context, e1),
+                    this.args[1].constEvaluate(context, e2),
+                    this.args[2].constEvaluate(context, e3),
+                    this.args[3].constEvaluate(context, e4),
+                    this.args[4].constEvaluate(context, e5),
+                    this.args[5].constEvaluate(context, e6),
+                    this.args[6].constEvaluate(context, e7),
+                    this.args[7].constEvaluate(context, e8),
+                    this.args[8].constEvaluate(context, e9),
+                    this.args[9].constEvaluate(context, e10),
+                    this.args[10].constEvaluate(context, e11),
+                    this.args[11].constEvaluate(context, e12)];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0],
+                            e8[0], e9[0], e10[0], e11[0]]);
+                    }
+                }
+                return v;
+            }
+            else {
+                throw "Invalid arguments for mat3x4";
+            }
+        }
+        if (t.name === "mat4x2") {
+            if (this.args.length === 1) {
+                // mat4x2(other: mat4x2)
+                const e1 = [Type.f32];
+                const v = this.args[0].constEvaluate(context, e1);
+                if (e1[0].name !== "mat4x2" && e1[0].name !== "mat4x2f" && e1[0].name != "mat4x2h") {
+                    throw "Invalid argument for mat4x2";
+                }
+                if (type) {
+                    type[0] = e1[0];
+                }
+                return v;
+            }
+            else if (this.args.length === 4) {
+                // mat4x2(v1: vec2, v2: vec2, v3: vec2, v4: vec2)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const e3 = [Type.f32];
+                const e4 = [Type.f32];
+                const v1 = this.args[0].constEvaluate(context, e1);
+                const v2 = this.args[1].constEvaluate(context, e2);
+                const v3 = this.args[1].constEvaluate(context, e3);
+                const v4 = this.args[1].constEvaluate(context, e4);
+                if ((e1[0].name !== "vec2" && e1[0].name !== "vec2f" && e1[0].name !== "vec2h") ||
+                    (e2[0].name !== "vec2" && e2[0].name !== "vec2f" && e2[0].name !== "vec2h") ||
+                    (e3[0].name !== "vec2" && e3[0].name !== "vec2f" && e3[0].name !== "vec2h") ||
+                    (e4[0].name !== "vec2" && e4[0].name !== "vec2f" && e4[0].name !== "vec2h")) {
+                    throw "Invalid arguments for mat4x2";
+                }
+                const v1a = v1;
+                const v2a = v2;
+                const v3a = v3;
+                const v4a = v4;
+                const v = [v1a[0], v1a[1], v2a[0], v2a[1], v3a[0], v3a[1], v4a[0], v4a[1]];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        if (e1[0].name === "vec2f") {
+                            t.format = Type.f32;
+                        }
+                        else if (e1[0].name === "vec2h") {
+                            t.format = Type.f16;
+                        }
+                        else if (e1[0] instanceof TemplateType) {
+                            t.format = e1[0].format;
+                        }
+                    }
+                }
+                return v;
+            }
+            else if (this.args.length === 8) {
+                // mat4x2(e1, e2, e3, e4, e5, e6, e7, e8)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const e3 = [Type.f32];
+                const e4 = [Type.f32];
+                const e5 = [Type.f32];
+                const e6 = [Type.f32];
+                const e7 = [Type.f32];
+                const e8 = [Type.f32];
+                const v = [this.args[0].constEvaluate(context, e1),
+                    this.args[1].constEvaluate(context, e2),
+                    this.args[2].constEvaluate(context, e3),
+                    this.args[3].constEvaluate(context, e4),
+                    this.args[4].constEvaluate(context, e5),
+                    this.args[5].constEvaluate(context, e6),
+                    this.args[6].constEvaluate(context, e7),
+                    this.args[7].constEvaluate(context, e8)];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0]]);
+                    }
+                }
+                return v;
+            }
+            else {
+                throw "Invalid arguments for mat4x2";
+            }
+        }
+        if (t.name === "mat4x3") {
+            if (this.args.length === 1) {
+                // mat4x3(other: mat4x3)
+                const e1 = [Type.f32];
+                const v = this.args[0].constEvaluate(context, e1);
+                if (e1[0].name !== "mat4x3" && e1[0].name !== "mat4x3f" && e1[0].name != "mat4x3h") {
+                    throw "Invalid argument for mat4x3";
+                }
+                if (type) {
+                    type[0] = e1[0];
+                }
+                return v;
+            }
+            else if (this.args.length === 4) {
+                // mat4x3(v1: vec3, v2: vec3, v3: vec3, v4: vec3)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const e3 = [Type.f32];
+                const e4 = [Type.f32];
+                const v1 = this.args[0].constEvaluate(context, e1);
+                const v2 = this.args[1].constEvaluate(context, e2);
+                const v3 = this.args[1].constEvaluate(context, e3);
+                const v4 = this.args[1].constEvaluate(context, e4);
+                if ((e1[0].name !== "vec3" && e1[0].name !== "vec3f" && e1[0].name !== "vec3h") ||
+                    (e2[0].name !== "vec3" && e2[0].name !== "vec3f" && e2[0].name !== "vec3h") ||
+                    (e3[0].name !== "vec3" && e3[0].name !== "vec3f" && e3[0].name !== "vec3h") ||
+                    (e4[0].name !== "vec3" && e4[0].name !== "vec3f" && e4[0].name !== "vec3h")) {
+                    throw "Invalid arguments for mat4x3";
+                }
+                const v1a = v1;
+                const v2a = v2;
+                const v3a = v3;
+                const v4a = v4;
+                const v = [v1a[0], v1a[1], v1a[2], v2a[0], v2a[1], v2a[2], v3a[0], v3a[1], v3a[2], v4a[0], v4a[1], v4a[2]];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        if (e1[0].name === "vec3f") {
+                            t.format = Type.f32;
+                        }
+                        else if (e1[0].name === "vec3h") {
+                            t.format = Type.f16;
+                        }
+                        else if (e1[0] instanceof TemplateType) {
+                            t.format = e1[0].format;
+                        }
+                    }
+                }
+                return v;
+            }
+            else if (this.args.length === 9) {
+                // mat4x3(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const e3 = [Type.f32];
+                const e4 = [Type.f32];
+                const e5 = [Type.f32];
+                const e6 = [Type.f32];
+                const e7 = [Type.f32];
+                const e8 = [Type.f32];
+                const e9 = [Type.f32];
+                const e10 = [Type.f32];
+                const e11 = [Type.f32];
+                const e12 = [Type.f32];
+                const v = [this.args[0].constEvaluate(context, e1),
+                    this.args[1].constEvaluate(context, e2),
+                    this.args[2].constEvaluate(context, e3),
+                    this.args[3].constEvaluate(context, e4),
+                    this.args[4].constEvaluate(context, e5),
+                    this.args[5].constEvaluate(context, e6),
+                    this.args[6].constEvaluate(context, e7),
+                    this.args[7].constEvaluate(context, e8),
+                    this.args[8].constEvaluate(context, e9),
+                    this.args[9].constEvaluate(context, e10),
+                    this.args[10].constEvaluate(context, e11),
+                    this.args[11].constEvaluate(context, e12)];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0],
+                            e9[0], e10[0], e11[0], e12[0]]);
+                    }
+                }
+                return v;
+            }
+            else {
+                throw "Invalid arguments for mat4x3";
+            }
+        }
+        if (t.name === "mat4x4") {
+            if (this.args.length === 1) {
+                // mat4x4(other: mat4x4)
+                const e1 = [Type.f32];
+                const v = this.args[0].constEvaluate(context, e1);
+                if (e1[0].name !== "mat4x4" && e1[0].name !== "mat4x4f" && e1[0].name != "mat4x4h") {
+                    throw "Invalid argument for mat4x4";
+                }
+                if (type) {
+                    type[0] = e1[0];
+                }
+                return v;
+            }
+            else if (this.args.length === 4) {
+                // mat4x4(v1: vec4, v2: vec4, v3: vec4, v4: vec4)
+                // mat4x3(v1: vec3, v2: vec3, v3: vec3, v4: vec3)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const e3 = [Type.f32];
+                const e4 = [Type.f32];
+                const v1 = this.args[0].constEvaluate(context, e1);
+                const v2 = this.args[1].constEvaluate(context, e2);
+                const v3 = this.args[1].constEvaluate(context, e3);
+                const v4 = this.args[1].constEvaluate(context, e4);
+                if ((e1[0].name !== "vec4" && e1[0].name !== "vec4f" && e1[0].name !== "vec4h") ||
+                    (e2[0].name !== "vec4" && e2[0].name !== "vec4f" && e2[0].name !== "vec4h") ||
+                    (e3[0].name !== "vec4" && e3[0].name !== "vec4f" && e3[0].name !== "vec4h") ||
+                    (e4[0].name !== "vec4" && e4[0].name !== "vec4f" && e4[0].name !== "vec4h")) {
+                    throw "Invalid arguments for mat4x4";
+                }
+                const v1a = v1;
+                const v2a = v2;
+                const v3a = v3;
+                const v4a = v4;
+                const v = [v1a[0], v1a[1], v1a[2], v1a[3],
+                    v2a[0], v2a[1], v2a[2], v2a[3],
+                    v3a[0], v3a[1], v3a[2], v3a[3],
+                    v4a[0], v4a[1], v4a[2], v4a[3]];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        if (e1[0].name === "vec4f") {
+                            t.format = Type.f32;
+                        }
+                        else if (e1[0].name === "vec4h") {
+                            t.format = Type.f16;
+                        }
+                        else if (e1[0] instanceof TemplateType) {
+                            t.format = e1[0].format;
+                        }
+                    }
+                }
+                return v;
+            }
+            else if (this.args.length === 9) {
+                // mat4x4(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15, e16)
+                const e1 = [Type.f32];
+                const e2 = [Type.f32];
+                const e3 = [Type.f32];
+                const e4 = [Type.f32];
+                const e5 = [Type.f32];
+                const e6 = [Type.f32];
+                const e7 = [Type.f32];
+                const e8 = [Type.f32];
+                const e9 = [Type.f32];
+                const e10 = [Type.f32];
+                const e11 = [Type.f32];
+                const e12 = [Type.f32];
+                const e13 = [Type.f32];
+                const e14 = [Type.f32];
+                const e15 = [Type.f32];
+                const e16 = [Type.f32];
+                const v = [this.args[0].constEvaluate(context, e1),
+                    this.args[1].constEvaluate(context, e2),
+                    this.args[2].constEvaluate(context, e3),
+                    this.args[3].constEvaluate(context, e4),
+                    this.args[4].constEvaluate(context, e5),
+                    this.args[5].constEvaluate(context, e6),
+                    this.args[6].constEvaluate(context, e7),
+                    this.args[7].constEvaluate(context, e8),
+                    this.args[8].constEvaluate(context, e9),
+                    this.args[9].constEvaluate(context, e10),
+                    this.args[10].constEvaluate(context, e11),
+                    this.args[11].constEvaluate(context, e12),
+                    this.args[12].constEvaluate(context, e13),
+                    this.args[13].constEvaluate(context, e14),
+                    this.args[14].constEvaluate(context, e15),
+                    this.args[15].constEvaluate(context, e16)];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0],
+                            e9[0], e10[0], e11[0], e12[0], e13[0], e14[0], e15[0]]);
+                    }
+                }
+                return v;
+            }
+            else {
+                throw "Invalid arguments for mat4x4";
+            }
+        }
+        if (t.name === "array") {
+            const v = [];
+            const ta = t;
+            for (const arg of this.args) {
+                const te = [Type.f32];
+                const e = arg.constEvaluate(context, te);
+                v.push(e);
+                if (ta.format === null) {
+                    ta.format = te[0];
+                }
+                else {
+                    ta.format = Type.maxFormatType([ta.format, te[0]]);
+                }
+            }
+            if (type) {
+                type[0] = ta;
+            }
+            return v;
+        }
+        throw new Error(`Cannot evaluate node ${this.constructor.name}`);
     }
 }
 /**
@@ -692,113 +1539,354 @@ class CreateExpr extends Expression {
 class CallExpr extends Expression {
     constructor(name, args) {
         super();
+        this.cachedReturnValue = null;
         this.name = name;
         this.args = args;
     }
     get astNodeType() {
         return "callExpr";
     }
-    evaluate(context) {
+    setCachedReturnValue(value) {
+        this.cachedReturnValue = value;
+    }
+    get isBuiltin() {
+        return CallExpr.builtinFunctionNames.has(this.name);
+    }
+    constEvaluate(context, type) {
         switch (this.name) {
-            case "abs":
-                return Math.abs(this.args[0].evaluate(context));
-            case "acos":
-                return Math.acos(this.args[0].evaluate(context));
-            case "acosh":
-                return Math.acosh(this.args[0].evaluate(context));
-            case "asin":
-                return Math.asin(this.args[0].evaluate(context));
-            case "asinh":
-                return Math.asinh(this.args[0].evaluate(context));
-            case "atan":
-                return Math.atan(this.args[0].evaluate(context));
+            case "abs": {
+                const value = this.args[0].constEvaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.abs(v));
+                }
+                return Math.abs(value);
+            }
+            case "acos": {
+                const value = this.args[0].constEvaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.acos(v));
+                }
+                return Math.acos(value);
+            }
+            case "acosh": {
+                const value = this.args[0].constEvaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.acosh(v));
+                }
+                return Math.acosh(value);
+            }
+            case "asin": {
+                const value = this.args[0].constEvaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.asin(v));
+                }
+                return Math.asin(value);
+            }
+            case "asinh": {
+                const value = this.args[0].constEvaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.asinh(v));
+                }
+                return Math.asinh(value);
+            }
+            case "atan": {
+                const value = this.args[0].constEvaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.atan(v));
+                }
+                return Math.atan(value);
+            }
             case "atan2":
-                return Math.atan2(this.args[0].evaluate(context), this.args[1].evaluate(context));
-            case "atanh":
-                return Math.atanh(this.args[0].evaluate(context));
-            case "ceil":
-                return Math.ceil(this.args[0].evaluate(context));
-            case "clamp":
-                return Math.min(Math.max(this.args[0].evaluate(context), this.args[1].evaluate(context)), this.args[2].evaluate(context));
-            case "cos":
-                return Math.cos(this.args[0].evaluate(context));
-            //case "cross":
-            //TODO: (x[i] * y[j] - x[j] * y[i])
-            case "degrees":
-                return (this.args[0].evaluate(context) * 180) / Math.PI;
-            //case "determinant":
-            //TODO implement
-            case "distance":
-                return Math.sqrt(Math.pow(this.args[0].evaluate(context) - this.args[1].evaluate(context), 2));
-            case "dot":
-            //TODO: (x[i] * y[i])
-            case "exp":
-                return Math.exp(this.args[0].evaluate(context));
-            case "exp2":
-                return Math.pow(2, this.args[0].evaluate(context));
+                const value = this.args[0].constEvaluate(context, type);
+                const value2 = this.args[1].constEvaluate(context, type);
+                if (Array.isArray(value) && Array.isArray(value2)) {
+                    return value.map((v, i) => Math.atan2(v, value2[i]));
+                }
+                return Math.atan2(value, value2);
+            case "atanh": {
+                const value = this.args[0].constEvaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.atanh(v));
+                }
+                return Math.atanh(value);
+            }
+            case "ceil": {
+                const value = this.args[0].constEvaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.ceil(v));
+                }
+                return Math.ceil(value);
+            }
+            case "clamp": {
+                const value = this.args[0].constEvaluate(context, type);
+                const a = this.args[1].constEvaluate(context, type);
+                const b = this.args[2].constEvaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.min(Math.max(v, a), b));
+                }
+                return Math.min(Math.max(value, a), b);
+            }
+            case "cos": {
+                const value = this.args[0].constEvaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.cos(v));
+                }
+                return Math.cos(value);
+            }
+            case "cross": {
+                const x = this.args[0].constEvaluate(context, type);
+                const y = this.args[1].constEvaluate(context, type);
+                if (Array.isArray(x) && Array.isArray(y) && x.length === y.length && x.length === 3) {
+                    [
+                        x[1] * y[2] - x[2] * y[1],
+                        x[2] * y[0] - x[0] * y[2],
+                        x[0] * y[1] - x[1] * y[0]
+                    ];
+                }
+                throw new Error("Cross product is only supported for vec3");
+            }
+            case "degrees": {
+                const value = this.args[0].constEvaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => v * 180 / Math.PI);
+                }
+                return value * 180 / Math.PI;
+            }
+            case "determinant":
+                throw new Error("TODO Determinant is not implemented");
+            case "distance": {
+                const a = this.args[0].constEvaluate(context, type);
+                const b = this.args[1].constEvaluate(context, type);
+                if (Array.isArray(a) && Array.isArray(b)) {
+                    let d2 = 0;
+                    for (let i = 0; i < a.length; i++) {
+                        d2 += (a[i] - b[i]) * (a[i] - b[i]);
+                    }
+                    return Math.sqrt(d2);
+                }
+                const an = a;
+                const bn = b;
+                return Math.sqrt((bn - an) * (bn - an));
+            }
+            case "dot": {
+                const a = this.args[0].constEvaluate(context, type);
+                const b = this.args[1].constEvaluate(context, type);
+                if (Array.isArray(a) && Array.isArray(b) && a.length === b.length) {
+                    let d = 0;
+                    for (let i = 0; i < a.length; i++) {
+                        d += a[i] * b[i];
+                    }
+                    return d;
+                }
+                return a * b;
+            }
+            case "exp": {
+                const value = this.args[0].constEvaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.exp(v));
+                }
+                return Math.exp(value);
+            }
+            case "exp2": {
+                const value = this.args[0].constEvaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.pow(2, v));
+                }
+                return Math.pow(2, value);
+            }
             //case "extractBits":
             //TODO: implement
             //case "firstLeadingBit":
             //TODO: implement
-            case "floor":
-                return Math.floor(this.args[0].evaluate(context));
-            case "fma":
-                return (this.args[0].evaluate(context) * this.args[1].evaluate(context) +
-                    this.args[2].evaluate(context));
-            case "fract":
-                return (this.args[0].evaluate(context) -
-                    Math.floor(this.args[0].evaluate(context)));
+            case "floor": {
+                const value = this.args[0].constEvaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.floor(v));
+                }
+                return Math.floor(value);
+            }
+            case "fma": {
+                const a = this.args[0].constEvaluate(context, type);
+                const b = this.args[1].constEvaluate(context, type);
+                const c = this.args[2].constEvaluate(context, type);
+                if (Array.isArray(a) && Array.isArray(b) && Array.isArray(c)) {
+                    return a.map((v, i) => v * b[i] + c[i]);
+                }
+                return a * b + c;
+            }
+            case "fract": {
+                const value = this.args[0].constEvaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => v - Math.floor(v));
+                }
+                return value - Math.floor(value);
+            }
             //case "frexp":
             //TODO: implement
-            case "inverseSqrt":
-                return 1 / Math.sqrt(this.args[0].evaluate(context));
-            //case "length":
-            //TODO: implement
-            case "log":
-                return Math.log(this.args[0].evaluate(context));
-            case "log2":
-                return Math.log2(this.args[0].evaluate(context));
-            case "max":
-                return Math.max(this.args[0].evaluate(context), this.args[1].evaluate(context));
-            case "min":
-                return Math.min(this.args[0].evaluate(context), this.args[1].evaluate(context));
-            case "mix":
-                return (this.args[0].evaluate(context) *
-                    (1 - this.args[2].evaluate(context)) +
-                    this.args[1].evaluate(context) * this.args[2].evaluate(context));
+            case "inverseSqrt": {
+                const value = this.args[0].constEvaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => 1 / Math.sqrt(v));
+                }
+                return 1 / Math.sqrt(value);
+            }
+            case "length": {
+                const value = this.args[0].constEvaluate(context, type);
+                if (Array.isArray(value)) {
+                    let d2 = 0;
+                    for (let i = 0; i < value.length; i++) {
+                        d2 += value[i] * value[i];
+                    }
+                    return Math.sqrt(d2);
+                }
+                return Math.abs(value);
+            }
+            case "log": {
+                const value = this.args[0].constEvaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.log(v));
+                }
+                return Math.log(value);
+            }
+            case "log2": {
+                const value = this.args[0].constEvaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.log2(v));
+                }
+                return Math.log2(value);
+            }
+            case "max": {
+                const a = this.args[0].constEvaluate(context, type);
+                const b = this.args[0].constEvaluate(context, type);
+                if (Array.isArray(value) && Array.isArray(b)) {
+                    return value.map((v, i) => Math.max(v, b[i]));
+                }
+                return Math.max(a, b);
+            }
+            case "min": {
+                const a = this.args[0].constEvaluate(context, type);
+                const b = this.args[0].constEvaluate(context, type);
+                if (Array.isArray(value) && Array.isArray(b)) {
+                    return value.map((v, i) => Math.min(v, b[i]));
+                }
+                return Math.min(a, b);
+            }
+            case "mix": {
+                const a = this.args[0].constEvaluate(context, type);
+                const b = this.args[1].constEvaluate(context, type);
+                const c = this.args[2].constEvaluate(context, type);
+                if (Array.isArray(a) && Array.isArray(b) && Array.isArray(c)) {
+                    return a.map((v, i) => v * (1 - c[i]) + b[i] * c[i]);
+                }
+                return a * (1 - c) + b * c;
+            }
             case "modf":
-                return (this.args[0].evaluate(context) -
-                    Math.floor(this.args[0].evaluate(context)));
-            case "pow":
-                return Math.pow(this.args[0].evaluate(context), this.args[1].evaluate(context));
-            case "radians":
-                return (this.args[0].evaluate(context) * Math.PI) / 180;
-            case "round":
-                return Math.round(this.args[0].evaluate(context));
-            case "sign":
-                return Math.sign(this.args[0].evaluate(context));
-            case "sin":
-                return Math.sin(this.args[0].evaluate(context));
-            case "sinh":
-                return Math.sinh(this.args[0].evaluate(context));
-            case "saturate":
-                return Math.min(Math.max(this.args[0].evaluate(context), 0), 1);
-            case "smoothstep":
-                return (this.args[0].evaluate(context) *
-                    this.args[0].evaluate(context) *
-                    (3 - 2 * this.args[0].evaluate(context)));
-            case "sqrt":
-                return Math.sqrt(this.args[0].evaluate(context));
-            case "step":
-                return this.args[0].evaluate(context) < this.args[1].evaluate(context)
-                    ? 0
-                    : 1;
-            case "tan":
-                return Math.tan(this.args[0].evaluate(context));
-            case "tanh":
-                return Math.tanh(this.args[0].evaluate(context));
-            case "trunc":
-                return Math.trunc(this.args[0].evaluate(context));
+                throw new Error("TODO Modf is not implemented");
+            case "pow": {
+                const a = this.args[0].constEvaluate(context, type);
+                const b = this.args[1].constEvaluate(context, type);
+                if (Array.isArray(a) && Array.isArray(b)) {
+                    return a.map((v, i) => Math.pow(v, b[i]));
+                }
+                return Math.pow(a, b);
+            }
+            case "radians": {
+                const value = this.args[0].constEvaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => (v * Math.PI) / 180);
+                }
+                return (value * Math.PI) / 180;
+            }
+            case "round": {
+                const value = this.args[0].constEvaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.round(v));
+                }
+                return Math.round(value);
+            }
+            case "sign": {
+                const value = this.args[0].constEvaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.sign(v));
+                }
+                return Math.sign(value);
+            }
+            case "sin": {
+                const value = this.args[0].constEvaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.sin(v));
+                }
+                return Math.sin(value);
+            }
+            case "sinh": {
+                const value = this.args[0].constEvaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.sinh(v));
+                }
+                return Math.sinh(value);
+            }
+            case "saturate": {
+                const value = this.args[0].constEvaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.min(Math.max(v, 0), 1));
+                }
+                return Math.min(Math.max(value, 0), 1);
+            }
+            case "smoothstep": {
+                const edge0 = this.args[0].constEvaluate(context, type);
+                const edge1 = this.args[1].constEvaluate(context, type);
+                const x = this.args[2].constEvaluate(context, type);
+                if (Array.isArray(edge0) && Array.isArray(edge1) && Array.isArray(x)) {
+                    return x.map((v, i) => {
+                        const t = Math.min(Math.max((v - edge0[i]) / (edge1[i] - edge0[i]), 0), 1);
+                        return t * t * (3 - 2 * t);
+                    });
+                }
+                const _x = x;
+                const _edge0 = edge0;
+                const _edge1 = edge1;
+                const t = Math.min(Math.max((_x - _edge0) / (_edge1 - _edge0), 0), 1);
+                return t * t * (3 - 2 * t);
+            }
+            case "sqrt": {
+                const value = this.args[0].constEvaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.sqrt(v));
+                }
+                return Math.sqrt(value);
+            }
+            case "step": {
+                if (type !== undefined) {
+                    type[0] = Type.bool;
+                }
+                const edge = this.args[0].constEvaluate(context, type);
+                const x = this.args[1].constEvaluate(context, type);
+                if (Array.isArray(edge) && Array.isArray(x)) {
+                    return edge.map((v, i) => x[i] < v ? 0 : 1);
+                }
+                return x < edge ? 0 : 1;
+            }
+            case "tan": {
+                const value = this.args[0].constEvaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.tan(v));
+                }
+                return Math.tan(value);
+            }
+            case "tanh": {
+                const value = this.args[0].constEvaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.tanh(v));
+                }
+                return Math.tanh(value);
+            }
+            case "trunc": {
+                const value = this.args[0].constEvaluate(context, type);
+                if (Array.isArray(value)) {
+                    return value.map((v) => Math.trunc(v));
+                }
+                return Math.trunc(value);
+            }
             default:
                 throw new Error("Non const function: " + this.name);
         }
@@ -810,6 +1898,154 @@ class CallExpr extends Expression {
         callback(this);
     }
 }
+CallExpr.builtinFunctionNames = new Set([
+    "all",
+    "all",
+    "any",
+    "select",
+    "arrayLength",
+    "abs",
+    "acos",
+    "acosh",
+    "asin",
+    "asinh",
+    "atan",
+    "atanh",
+    "atan2",
+    "ceil",
+    "clamp",
+    "cos",
+    "cosh",
+    "countLeadingZeros",
+    "countOneBits",
+    "countTrailingZeros",
+    "cross",
+    "degrees",
+    "determinant",
+    "distance",
+    "dot",
+    "dot4U8Packed",
+    "dot4I8Packed",
+    "exp",
+    "exp2",
+    "extractBits",
+    "faceForward",
+    "firstLeadingBit",
+    "firstTrailingBit",
+    "floor",
+    "fma",
+    "fract",
+    "frexp",
+    "insertBits",
+    "inverseSqrt",
+    "ldexp",
+    "length",
+    "log",
+    "log2",
+    "max",
+    "min",
+    "mix",
+    "modf",
+    "normalize",
+    "pow",
+    "quantizeToF16",
+    "radians",
+    "reflect",
+    "refract",
+    "reverseBits",
+    "round",
+    "saturate",
+    "sign",
+    "sin",
+    "sinh",
+    "smoothStep",
+    "sqrt",
+    "step",
+    "tan",
+    "tanh",
+    "transpose",
+    "trunc",
+    "dpdx",
+    "dpdxCoarse",
+    "dpdxFine",
+    "dpdy",
+    "dpdyCoarse",
+    "dpdyFine",
+    "fwidth",
+    "fwidthCoarse",
+    "fwidthFine",
+    "textureDimensions",
+    "textureGather",
+    "textureGatherCompare",
+    "textureLoad",
+    "textureNumLayers",
+    "textureNumLevels",
+    "textureNumSamples",
+    "textureSample",
+    "textureSampleBias",
+    "textureSampleCompare",
+    "textureSampleCompareLevel",
+    "textureSampleGrad",
+    "textureSampleLevel",
+    "textureSampleBaseClampToEdge",
+    "textureStore",
+    "atomicLoad",
+    "atomicStore",
+    "atomicAdd",
+    "atomicSub",
+    "atomicMax",
+    "atomicMin",
+    "atomicAnd",
+    "atomicOr",
+    "atomicXor",
+    "atomicExchange",
+    "atomicCompareExchangeWeak",
+    "pack4x8snorm",
+    "pack4x8unorm",
+    "pack4xI8",
+    "pack4xU8",
+    "pack4x8Clamp",
+    "pack4xU8Clamp",
+    "pack2x16snorm",
+    "pack2x16unorm",
+    "pack2x16float",
+    "unpack4x8snorm",
+    "unpack4x8unorm",
+    "unpack4xI8",
+    "unpack4xU8",
+    "unpack2x16snorm",
+    "unpack2x16unorm",
+    "unpack2x16float",
+    "storageBarrier",
+    "textureBarrier",
+    "workgroupBarrier",
+    "workgroupUniformLoad",
+    "subgroupAdd",
+    "subgroupExclusiveAdd",
+    "subgroupInclusiveAdd",
+    "subgroupAll",
+    "subgroupAnd",
+    "subgroupAny",
+    "subgroupBallot",
+    "subgroupBroadcast",
+    "subgroupBroadcastFirst",
+    "subgroupElect",
+    "subgroupMax",
+    "subgroupMin",
+    "subgroupMul",
+    "subgroupExclusiveMul",
+    "subgroupInclusiveMul",
+    "subgroupOr",
+    "subgroupShuffle",
+    "subgroupShuffleDown",
+    "subgroupShuffleUp",
+    "subgroupShuffleXor",
+    "subgroupXor",
+    "quadBroadcast",
+    "quadSwapDiagonal",
+    "quadSwapX",
+    "quadSwapY",
+]);
 /**
  * @class VariableExpr
  * @extends Expression
@@ -829,12 +2065,12 @@ class VariableExpr extends Expression {
             this.postfix.search(callback);
         }
     }
-    evaluate(context) {
+    constEvaluate(context, type) {
         const constant = context.constants.get(this.name);
         if (!constant) {
             throw new Error("Cannot evaluate node");
         }
-        return constant.evaluate(context);
+        return constant.constEvaluate(context, type);
     }
 }
 /**
@@ -851,23 +2087,23 @@ class ConstExpr extends Expression {
     get astNodeType() {
         return "constExpr";
     }
-    evaluate(context) {
+    constEvaluate(context, type) {
         var _a, _b;
         if (this.initializer instanceof CreateExpr) {
             // This is a struct constant
-            const property = (_a = this.postfix) === null || _a === void 0 ? void 0 : _a.evaluateString(context);
-            const type = (_b = this.initializer.type) === null || _b === void 0 ? void 0 : _b.name;
-            const struct = context.structs.get(type);
+            const property = (_a = this.postfix) === null || _a === void 0 ? void 0 : _a.constEvaluateString(context);
+            const t = (_b = this.initializer.type) === null || _b === void 0 ? void 0 : _b.name;
+            const struct = context.structs.get(t);
             const memberIndex = struct === null || struct === void 0 ? void 0 : struct.getMemberIndex(property);
             if (memberIndex !== undefined && memberIndex != -1) {
-                const value = this.initializer.args[memberIndex].evaluate(context);
+                const value = this.initializer.args[memberIndex].constEvaluate(context, type);
                 return value;
             }
             else {
-                return this.initializer.evaluate(context);
+                return this.initializer.constEvaluate(context, type);
             }
         }
-        return this.initializer.evaluate(context);
+        return this.initializer.constEvaluate(context, type);
     }
     search(callback) {
         this.initializer.search(callback);
@@ -879,16 +2115,22 @@ class ConstExpr extends Expression {
  * @category AST
  */
 class LiteralExpr extends Expression {
-    constructor(value) {
+    constructor(value, type) {
         super();
         this.value = value;
+        this.type = type;
     }
     get astNodeType() {
         return "literalExpr";
     }
-    evaluate() {
+    constEvaluate(context, type) {
+        if (type !== undefined) {
+            type[0] = this.type;
+        }
         return this.value;
     }
+    get scalarValue() { return this.value; }
+    get vectorValue() { return this.value; }
 }
 /**
  * @class BitcastExpr
@@ -922,8 +2164,11 @@ class TypecastExpr extends Expression {
     get astNodeType() {
         return "typecastExpr";
     }
-    evaluate(context) {
-        return this.args[0].evaluate(context);
+    constEvaluate(context, type) {
+        if (type !== undefined) {
+            type[0] = this.type;
+        }
+        return this.args[0].constEvaluate(context);
     }
     search(callback) {
         this.searchBlock(this.args, callback);
@@ -942,8 +2187,8 @@ class GroupingExpr extends Expression {
     get astNodeType() {
         return "groupExpr";
     }
-    evaluate(context) {
-        return this.contents[0].evaluate(context);
+    constEvaluate(context, type) {
+        return this.contents[0].constEvaluate(context, type);
     }
     search(callback) {
         this.searchBlock(this.contents, callback);
@@ -988,16 +2233,19 @@ class UnaryOperator extends Operator {
     get astNodeType() {
         return "unaryOp";
     }
-    evaluate(context) {
+    constEvaluate(context, type) {
         switch (this.operator) {
             case "+":
-                return this.right.evaluate(context);
+                return this.right.constEvaluate(context, type);
             case "-":
-                return -this.right.evaluate(context);
+                return -this.right.constEvaluate(context, type);
             case "!":
-                return this.right.evaluate(context) ? 0 : 1;
+                if (type !== undefined) {
+                    type[0] = Type.bool;
+                }
+                return this.right.constEvaluate(context) ? 0 : 1;
             case "~":
-                return ~this.right.evaluate(context);
+                return ~this.right.constEvaluate(context, type);
             default:
                 throw new Error("Unknown unary operator: " + this.operator);
         }
@@ -1022,48 +2270,151 @@ class BinaryOperator extends Operator {
     get astNodeType() {
         return "binaryOp";
     }
-    evaluate(context) {
+    _getPromotedType(t1, t2) {
+        if (t1.name === t2.name) {
+            return t1;
+        }
+        if (t1.name === "f32" || t2.name === "f32") {
+            return Type.f32;
+        }
+        if (t1.name === "u32" || t2.name === "u32") {
+            return Type.u32;
+        }
+        return Type.i32;
+    }
+    constEvaluate(context, type) {
+        const t1 = [Type.i32];
+        const t2 = [Type.i32];
         switch (this.operator) {
-            case "+":
-                return this.left.evaluate(context) + this.right.evaluate(context);
-            case "-":
-                return this.left.evaluate(context) - this.right.evaluate(context);
-            case "*":
-                return this.left.evaluate(context) * this.right.evaluate(context);
-            case "/":
-                return this.left.evaluate(context) / this.right.evaluate(context);
-            case "%":
-                return this.left.evaluate(context) % this.right.evaluate(context);
-            case "==":
-                return this.left.evaluate(context) == this.right.evaluate(context)
-                    ? 1
-                    : 0;
-            case "!=":
-                return this.left.evaluate(context) != this.right.evaluate(context)
-                    ? 1
-                    : 0;
+            case "+": {
+                const v1 = this.left.constEvaluate(context, t1);
+                const v2 = this.right.constEvaluate(context, t2);
+                if (Array.isArray(v1) && Array.isArray(v2)) {
+                    return v1.map((v, i) => v + v2[i]);
+                }
+                const value = v1 + v2;
+                if (type !== undefined) {
+                    type[0] = this._getPromotedType(t1[0], t2[0]);
+                    if (type[0] === Type.i32 || type[0] === Type.u32) {
+                        return Math.floor(value);
+                    }
+                }
+                return value;
+            }
+            case "-": {
+                const v1 = this.left.constEvaluate(context, t1);
+                const v2 = this.right.constEvaluate(context, t2);
+                if (Array.isArray(v1) && Array.isArray(v2)) {
+                    return v1.map((v, i) => v - v2[i]);
+                }
+                const value = v1 - v2;
+                if (type !== undefined) {
+                    type[0] = this._getPromotedType(t1[0], t2[0]);
+                    if (type[0] === Type.i32 || type[0] === Type.u32) {
+                        return Math.floor(value);
+                    }
+                }
+                return value;
+            }
+            case "*": {
+                const v1 = this.left.constEvaluate(context, t1);
+                const v2 = this.right.constEvaluate(context, t2);
+                if (Array.isArray(v1) && Array.isArray(v2)) {
+                    return v1.map((v, i) => v * v2[i]);
+                }
+                const value = v1 * v2;
+                if (type !== undefined) {
+                    type[0] = this._getPromotedType(t1[0], t2[0]);
+                    if (type[0] === Type.i32 || type[0] === Type.u32) {
+                        return Math.floor(value);
+                    }
+                }
+                return value;
+            }
+            case "/": {
+                const v1 = this.left.constEvaluate(context, t1);
+                const v2 = this.right.constEvaluate(context, t2);
+                if (Array.isArray(v1) && Array.isArray(v2)) {
+                    return v1.map((v, i) => v / v2[i]);
+                }
+                const value = v1 / v2;
+                if (type !== undefined) {
+                    type[0] = this._getPromotedType(t1[0], t2[0]);
+                    if (type[0] === Type.i32 || type[0] === Type.u32) {
+                        return Math.floor(value);
+                    }
+                }
+                return value;
+            }
+            case "%": {
+                const v1 = this.left.constEvaluate(context, t1);
+                const v2 = this.right.constEvaluate(context, t2);
+                if (Array.isArray(v1) && Array.isArray(v2)) {
+                    return v1.map((v, i) => v % v2[i]);
+                }
+                const value = v1 % v2;
+                if (type !== undefined) {
+                    type[0] = this._getPromotedType(t1[0], t2[0]);
+                    if (type[0] === Type.i32 || type[0] === Type.u32) {
+                        return Math.floor(value);
+                    }
+                }
+                return value;
+            }
             case "<":
-                return this.left.evaluate(context) < this.right.evaluate(context)
+                if (type !== undefined) {
+                    type[0] = Type.bool;
+                }
+                return this.left.constEvaluate(context) < this.right.constEvaluate(context)
                     ? 1
                     : 0;
             case ">":
-                return this.left.evaluate(context) > this.right.evaluate(context)
+                if (type !== undefined) {
+                    type[0] = Type.bool;
+                }
+                return this.left.constEvaluate(context) > this.right.constEvaluate(context)
+                    ? 1
+                    : 0;
+            case "==":
+                if (type !== undefined) {
+                    type[0] = Type.bool;
+                }
+                return this.left.constEvaluate(context) == this.right.constEvaluate(context)
+                    ? 1
+                    : 0;
+            case "!=":
+                if (type !== undefined) {
+                    type[0] = Type.bool;
+                }
+                return this.left.constEvaluate(context) != this.right.constEvaluate(context)
                     ? 1
                     : 0;
             case "<=":
-                return this.left.evaluate(context) <= this.right.evaluate(context)
+                if (type !== undefined) {
+                    type[0] = Type.bool;
+                }
+                return this.left.constEvaluate(context) <= this.right.constEvaluate(context)
                     ? 1
                     : 0;
             case ">=":
-                return this.left.evaluate(context) >= this.right.evaluate(context)
+                if (type !== undefined) {
+                    type[0] = Type.bool;
+                }
+                return this.left.constEvaluate(context) >= this.right.constEvaluate(context)
                     ? 1
                     : 0;
             case "&&":
-                return this.left.evaluate(context) && this.right.evaluate(context)
+                if (type !== undefined) {
+                    type[0] = Type.bool;
+                }
+                return this.left.constEvaluate(context) && this.right.constEvaluate(context)
                     ? 1
                     : 0;
             case "||":
-                return this.left.evaluate(context) || this.right.evaluate(context)
+                if (type !== undefined) {
+                    type[0] = Type.bool;
+                }
+                return this.left.constEvaluate(context) || this.right.constEvaluate(context)
                     ? 1
                     : 0;
             default:
@@ -1353,8 +2704,8 @@ TokenTypes.keywords = {
         pointer: new TokenType("ptr", TokenClass.keyword, "ptr"),*/
 };
 TokenTypes.tokens = {
-    decimal_float_literal: new TokenType("decimal_float_literal", TokenClass.token, /((-?[0-9]*\.[0-9]+|-?[0-9]+\.[0-9]*)((e|E)(\+|-)?[0-9]+)?f?)|(-?[0-9]+(e|E)(\+|-)?[0-9]+f?)|(-?[0-9]+f)/),
-    hex_float_literal: new TokenType("hex_float_literal", TokenClass.token, /-?0x((([0-9a-fA-F]*\.[0-9a-fA-F]+|[0-9a-fA-F]+\.[0-9a-fA-F]*)((p|P)(\+|-)?[0-9]+f?)?)|([0-9a-fA-F]+(p|P)(\+|-)?[0-9]+f?))/),
+    decimal_float_literal: new TokenType("decimal_float_literal", TokenClass.token, /((-?[0-9]*\.[0-9]+|-?[0-9]+\.[0-9]*)((e|E)(\+|-)?[0-9]+)?[fh]?)|(-?[0-9]+(e|E)(\+|-)?[0-9]+[fh]?)|(-?[0-9]+[fh])/),
+    hex_float_literal: new TokenType("hex_float_literal", TokenClass.token, /-?0x((([0-9a-fA-F]*\.[0-9a-fA-F]+|[0-9a-fA-F]+\.[0-9a-fA-F]*)((p|P)(\+|-)?[0-9]+[fh]?)?)|([0-9a-fA-F]+(p|P)(\+|-)?[0-9]+[fh]?))/),
     int_literal: new TokenType("int_literal", TokenClass.token, /-?0x[0-9a-fA-F]+|0i?|-?[1-9][0-9]*i?/),
     uint_literal: new TokenType("uint_literal", TokenClass.token, /0x[0-9a-fA-F]+u|0u|[1-9][0-9]*u/),
     ident: new TokenType("ident", TokenClass.token, /[_a-zA-Z][0-9a-zA-Z_]*/),
@@ -1893,6 +3244,7 @@ class WgslParser {
         this._currentLine = 0;
         this._context = new ParseContext();
         this._deferArrayCountEval = [];
+        this._currentLoop = [];
     }
     parse(tokensOrCode) {
         this._initialize(tokensOrCode);
@@ -1918,7 +3270,7 @@ class WgslParser {
                     const constant = this._context.constants.get(name);
                     if (constant) {
                         try {
-                            const count = constant.evaluate(this._context);
+                            const count = constant.constEvaluate(this._context);
                             arrayType.count = count;
                         }
                         catch (e) {
@@ -1944,6 +3296,10 @@ class WgslParser {
             this._tokens = [];
         }
         this._current = 0;
+    }
+    _updateNode(n, l) {
+        n.line = l !== null && l !== void 0 ? l : this._currentLine;
+        return n;
     }
     _error(token, message) {
         return {
@@ -1979,7 +3335,7 @@ class WgslParser {
         if (this._check(types)) {
             return this._advance();
         }
-        throw this._error(this._peek(), message);
+        throw this._error(this._peek(), `${message}. Line:${this._currentLine}`);
     }
     _check(types) {
         if (this._isAtEnd()) {
@@ -2110,7 +3466,7 @@ class WgslParser {
                 const type = this._type_decl();
                 if (type != null) {
                     type.attributes = typeAttrs;
-                    args.push(new Argument(name, type, argAttrs));
+                    args.push(this._updateNode(new Argument(name, type, argAttrs)));
                 }
             } while (this._match(TokenTypes.tokens.comma));
         }
@@ -2125,7 +3481,7 @@ class WgslParser {
         }
         const body = this._compound_statement();
         const endLine = this._currentLine;
-        return new Function(name, args, _return, body, startLine, endLine);
+        return this._updateNode(new Function(name, args, _return, body, startLine, endLine), startLine);
     }
     _compound_statement() {
         // brace_left statement* brace_right
@@ -2200,13 +3556,39 @@ class WgslParser {
             result = this._variable_statement();
         }
         else if (this._match(TokenTypes.keywords.discard)) {
-            result = new Discard();
+            result = this._updateNode(new Discard());
         }
         else if (this._match(TokenTypes.keywords.break)) {
-            result = new Break();
+            const breakStmt = this._updateNode(new Break());
+            if (this._currentLoop.length > 0) {
+                const loop = this._currentLoop[this._currentLoop.length - 1];
+                breakStmt.loopId = loop.id;
+            }
+            else {
+                // This break statement is not inside a loop. 
+                throw this._error(this._peek(), "Break statement must be inside a loop.");
+            }
+            result = breakStmt;
+            if (this._check(TokenTypes.keywords.if)) {
+                // break-if
+                this._advance();
+                breakStmt.condition = this._optional_paren_expression();
+                if (breakStmt.condition instanceof GroupingExpr && breakStmt.condition.contents.length === 1) {
+                    breakStmt.condition = breakStmt.condition.contents[0];
+                }
+            }
         }
         else if (this._match(TokenTypes.keywords.continue)) {
-            result = new Continue();
+            const continueStmt = this._updateNode(new Continue());
+            if (this._currentLoop.length > 0) {
+                const loop = this._currentLoop[this._currentLoop.length - 1];
+                continueStmt.loopId = loop.id;
+            }
+            else {
+                // This continue statement is not inside a loop. 
+                throw this._error(this._peek(), "Continue statement must be inside a loop.");
+            }
+            result = continueStmt;
         }
         else {
             result =
@@ -2224,25 +3606,28 @@ class WgslParser {
             return null;
         }
         const expression = this._optional_paren_expression();
-        return new StaticAssert(expression);
+        return this._updateNode(new StaticAssert(expression));
     }
     _while_statement() {
         if (!this._match(TokenTypes.keywords.while)) {
             return null;
         }
-        const condition = this._optional_paren_expression();
+        const whileLoop = this._updateNode(new While(null, null));
+        this._currentLoop.push(whileLoop);
+        whileLoop.condition = this._optional_paren_expression();
         if (this._check(TokenTypes.tokens.attr)) {
             this._attribute();
         }
-        const block = this._compound_statement();
-        return new While(condition, block);
+        whileLoop.body = this._compound_statement();
+        this._currentLoop.pop();
+        return whileLoop;
     }
     _continuing_statement() {
         if (!this._match(TokenTypes.keywords.continuing)) {
             return null;
         }
         const block = this._compound_statement();
-        return new Continuing(block);
+        return this._updateNode(new Continuing(block));
     }
     _for_statement() {
         // for paren_left for_header paren_right compound_statement
@@ -2250,24 +3635,27 @@ class WgslParser {
             return null;
         }
         this._consume(TokenTypes.tokens.paren_left, "Expected '('.");
+        const forLoop = this._updateNode(new For(null, null, null, null));
+        this._currentLoop.push(forLoop);
         // for_header: (variable_statement assignment_statement func_call_statement)? semicolon short_circuit_or_expression? semicolon (assignment_statement func_call_statement)?
-        const init = !this._check(TokenTypes.tokens.semicolon)
+        forLoop.init = !this._check(TokenTypes.tokens.semicolon)
             ? this._for_init()
             : null;
         this._consume(TokenTypes.tokens.semicolon, "Expected ';'.");
-        const condition = !this._check(TokenTypes.tokens.semicolon)
+        forLoop.condition = !this._check(TokenTypes.tokens.semicolon)
             ? this._short_circuit_or_expression()
             : null;
         this._consume(TokenTypes.tokens.semicolon, "Expected ';'.");
-        const increment = !this._check(TokenTypes.tokens.paren_right)
+        forLoop.increment = !this._check(TokenTypes.tokens.paren_right)
             ? this._for_increment()
             : null;
         this._consume(TokenTypes.tokens.paren_right, "Expected ')'.");
         if (this._check(TokenTypes.tokens.attr)) {
             this._attribute();
         }
-        const body = this._compound_statement();
-        return new For(init, condition, increment, body);
+        forLoop.body = this._compound_statement();
+        this._currentLoop.pop();
+        return forLoop;
     }
     _for_init() {
         // (variable_statement assignment_statement func_call_statement)?
@@ -2295,7 +3683,7 @@ class WgslParser {
             if (this._match(TokenTypes.tokens.equal)) {
                 value = this._short_circuit_or_expression();
             }
-            return new Var(_var.name, _var.type, _var.storage, _var.access, value);
+            return this._updateNode(new Var(_var.name, _var.type, _var.storage, _var.access, value));
         }
         if (this._match(TokenTypes.keywords.let)) {
             const name = this._consume(TokenTypes.tokens.ident, "Expected name for let.").toString();
@@ -2309,7 +3697,7 @@ class WgslParser {
             }
             this._consume(TokenTypes.tokens.equal, "Expected '=' for let.");
             const value = this._short_circuit_or_expression();
-            return new Let(name, type, null, null, value);
+            return this._updateNode(new Let(name, type, null, null, value));
         }
         if (this._match(TokenTypes.keywords.const)) {
             const name = this._consume(TokenTypes.tokens.ident, "Expected name for const.").toString();
@@ -2323,7 +3711,10 @@ class WgslParser {
             }
             this._consume(TokenTypes.tokens.equal, "Expected '=' for const.");
             const value = this._short_circuit_or_expression();
-            return new Const(name, type, null, null, value);
+            if (type === null && value instanceof LiteralExpr) {
+                type = value.type;
+            }
+            return this._updateNode(new Const(name, type, null, null, value));
         }
         return null;
     }
@@ -2338,9 +3729,9 @@ class WgslParser {
             return null;
         }
         const token = this._consume(TokenTypes.increment_operators, "Expected increment operator");
-        return new Increment(token.type === TokenTypes.tokens.plus_plus
+        return this._updateNode(new Increment(token.type === TokenTypes.tokens.plus_plus
             ? IncrementOperator.increment
-            : IncrementOperator.decrement, _var);
+            : IncrementOperator.decrement, _var));
     }
     _assignment_statement() {
         // (unary_expression underscore) equal short_circuit_or_expression
@@ -2357,7 +3748,7 @@ class WgslParser {
         }
         const type = this._consume(TokenTypes.assignment_operators, "Expected assignment operator.");
         const value = this._short_circuit_or_expression();
-        return new Assign(AssignOperator.parse(type.lexeme), _var, value);
+        return this._updateNode(new Assign(AssignOperator.parse(type.lexeme), _var, value));
     }
     _func_call_statement() {
         // ident argument_expression_list
@@ -2371,7 +3762,7 @@ class WgslParser {
             this._current = savedPos;
             return null;
         }
-        return new Call(name.lexeme, args);
+        return this._updateNode(new Call(name.lexeme, args));
     }
     _loop_statement() {
         // loop brace_left statement* continuing_statement? brace_right
@@ -2382,27 +3773,31 @@ class WgslParser {
             this._attribute();
         }
         this._consume(TokenTypes.tokens.brace_left, "Expected '{' for loop.");
+        const loop = this._updateNode(new Loop([], null));
+        this._currentLoop.push(loop);
         // statement*
-        const statements = [];
         let statement = this._statement();
         while (statement !== null) {
             if (Array.isArray(statement)) {
                 for (let s of statement) {
-                    statements.push(s);
+                    loop.body.push(s);
                 }
             }
             else {
-                statements.push(statement);
+                loop.body.push(statement);
+            }
+            // Keep continuing in the loop body statements so it can be
+            // executed in the stackframe of the body statements.
+            if (statement instanceof Continuing) {
+                loop.continuing = statement;
+                // Continuing should be the last statement in the loop.
+                break;
             }
             statement = this._statement();
         }
-        // continuing_statement: continuing compound_statement
-        let continuing = null;
-        if (this._match(TokenTypes.keywords.continuing)) {
-            continuing = this._compound_statement();
-        }
+        this._currentLoop.pop();
         this._consume(TokenTypes.tokens.brace_right, "Expected '}' for loop.");
-        return new Loop(statements, continuing);
+        return loop;
     }
     _switch_statement() {
         // switch optional_paren_expression brace_left switch_body+ brace_right
@@ -2419,7 +3814,7 @@ class WgslParser {
             throw this._error(this._previous(), "Expected 'case' or 'default'.");
         }
         this._consume(TokenTypes.tokens.brace_right, "Expected '}' for switch.");
-        return new Switch(condition, body);
+        return this._updateNode(new Switch(condition, body));
     }
     _switch_body() {
         // case case_selectors colon brace_left case_body? brace_right
@@ -2434,7 +3829,7 @@ class WgslParser {
             this._consume(TokenTypes.tokens.brace_left, "Exected '{' for switch case.");
             const body = this._case_body();
             this._consume(TokenTypes.tokens.brace_right, "Exected '}' for switch case.");
-            cases.push(new Case(selector, body));
+            cases.push(this._updateNode(new Case(selector, body)));
         }
         if (this._match(TokenTypes.keywords.default)) {
             this._match(TokenTypes.tokens.colon); // colon is optional
@@ -2444,7 +3839,7 @@ class WgslParser {
             this._consume(TokenTypes.tokens.brace_left, "Exected '{' for switch default.");
             const body = this._case_body();
             this._consume(TokenTypes.tokens.brace_right, "Exected '}' for switch default.");
-            cases.push(new Default(body));
+            cases.push(this._updateNode(new Default(body)));
         }
         if (this._check([TokenTypes.keywords.default, TokenTypes.keywords.case])) {
             const _cases = this._switch_body();
@@ -2455,7 +3850,7 @@ class WgslParser {
     _case_selectors() {
         // const_literal (comma const_literal)* comma?
         const selectors = [
-            this._shift_expression(), //?.evaluate(this._context).toString() ?? "",
+            this._shift_expression(), //?.constEvaluate(this._context).toString() ?? "",
         ];
         while (this._match(TokenTypes.tokens.comma)) {
             selectors.push(this._shift_expression());
@@ -2487,6 +3882,7 @@ class WgslParser {
         if (!this._match(TokenTypes.keywords.if)) {
             return null;
         }
+        const line = this._currentLine;
         const condition = this._optional_paren_expression();
         if (this._check(TokenTypes.tokens.attr)) {
             this._attribute();
@@ -2506,7 +3902,7 @@ class WgslParser {
             }
             _else = this._compound_statement();
         }
-        return new If(condition, block, elseif, _else);
+        return this._updateNode(new If(condition, block, elseif, _else), line);
     }
     _match_elseif() {
         if (this._tokens[this._current].type === TokenTypes.keywords.else &&
@@ -2521,7 +3917,7 @@ class WgslParser {
         // else_if optional_paren_expression compound_statement elseif_statement?
         const condition = this._optional_paren_expression();
         const block = this._compound_statement();
-        elseif.push(new ElseIf(condition, block));
+        elseif.push(this._updateNode(new ElseIf(condition, block)));
         if (this._match_elseif()) {
             if (this._check(TokenTypes.tokens.attr)) {
                 this._attribute();
@@ -2536,14 +3932,14 @@ class WgslParser {
             return null;
         }
         const value = this._short_circuit_or_expression();
-        return new Return(value);
+        return this._updateNode(new Return(value));
     }
     _short_circuit_or_expression() {
         // short_circuit_and_expression
         // short_circuit_or_expression or_or short_circuit_and_expression
         let expr = this._short_circuit_and_expr();
         while (this._match(TokenTypes.tokens.or_or)) {
-            expr = new BinaryOperator(this._previous().toString(), expr, this._short_circuit_and_expr());
+            expr = this._updateNode(new BinaryOperator(this._previous().toString(), expr, this._short_circuit_and_expr()));
         }
         return expr;
     }
@@ -2552,7 +3948,7 @@ class WgslParser {
         // short_circuit_and_expression and_and inclusive_or_expression
         let expr = this._inclusive_or_expression();
         while (this._match(TokenTypes.tokens.and_and)) {
-            expr = new BinaryOperator(this._previous().toString(), expr, this._inclusive_or_expression());
+            expr = this._updateNode(new BinaryOperator(this._previous().toString(), expr, this._inclusive_or_expression()));
         }
         return expr;
     }
@@ -2561,7 +3957,7 @@ class WgslParser {
         // inclusive_or_expression or exclusive_or_expression
         let expr = this._exclusive_or_expression();
         while (this._match(TokenTypes.tokens.or)) {
-            expr = new BinaryOperator(this._previous().toString(), expr, this._exclusive_or_expression());
+            expr = this._updateNode(new BinaryOperator(this._previous().toString(), expr, this._exclusive_or_expression()));
         }
         return expr;
     }
@@ -2570,7 +3966,7 @@ class WgslParser {
         // exclusive_or_expression xor and_expression
         let expr = this._and_expression();
         while (this._match(TokenTypes.tokens.xor)) {
-            expr = new BinaryOperator(this._previous().toString(), expr, this._and_expression());
+            expr = this._updateNode(new BinaryOperator(this._previous().toString(), expr, this._and_expression()));
         }
         return expr;
     }
@@ -2579,7 +3975,7 @@ class WgslParser {
         // and_expression and equality_expression
         let expr = this._equality_expression();
         while (this._match(TokenTypes.tokens.and)) {
-            expr = new BinaryOperator(this._previous().toString(), expr, this._equality_expression());
+            expr = this._updateNode(new BinaryOperator(this._previous().toString(), expr, this._equality_expression()));
         }
         return expr;
     }
@@ -2589,7 +3985,7 @@ class WgslParser {
         // relational_expression not_equal relational_expression
         const expr = this._relational_expression();
         if (this._match([TokenTypes.tokens.equal_equal, TokenTypes.tokens.not_equal])) {
-            return new BinaryOperator(this._previous().toString(), expr, this._relational_expression());
+            return this._updateNode(new BinaryOperator(this._previous().toString(), expr, this._relational_expression()));
         }
         return expr;
     }
@@ -2606,7 +4002,7 @@ class WgslParser {
             TokenTypes.tokens.less_than_equal,
             TokenTypes.tokens.greater_than_equal,
         ])) {
-            expr = new BinaryOperator(this._previous().toString(), expr, this._shift_expression());
+            expr = this._updateNode(new BinaryOperator(this._previous().toString(), expr, this._shift_expression()));
         }
         return expr;
     }
@@ -2616,7 +4012,7 @@ class WgslParser {
         // shift_expression shift_right additive_expression
         let expr = this._additive_expression();
         while (this._match([TokenTypes.tokens.shift_left, TokenTypes.tokens.shift_right])) {
-            expr = new BinaryOperator(this._previous().toString(), expr, this._additive_expression());
+            expr = this._updateNode(new BinaryOperator(this._previous().toString(), expr, this._additive_expression()));
         }
         return expr;
     }
@@ -2626,7 +4022,7 @@ class WgslParser {
         // additive_expression minus multiplicative_expression
         let expr = this._multiplicative_expression();
         while (this._match([TokenTypes.tokens.plus, TokenTypes.tokens.minus])) {
-            expr = new BinaryOperator(this._previous().toString(), expr, this._multiplicative_expression());
+            expr = this._updateNode(new BinaryOperator(this._previous().toString(), expr, this._multiplicative_expression()));
         }
         return expr;
     }
@@ -2641,7 +4037,7 @@ class WgslParser {
             TokenTypes.tokens.forward_slash,
             TokenTypes.tokens.modulo,
         ])) {
-            expr = new BinaryOperator(this._previous().toString(), expr, this._unary_expression());
+            expr = this._updateNode(new BinaryOperator(this._previous().toString(), expr, this._unary_expression()));
         }
         return expr;
     }
@@ -2659,7 +4055,7 @@ class WgslParser {
             TokenTypes.tokens.star,
             TokenTypes.tokens.and,
         ])) {
-            return new UnaryOperator(this._previous().toString(), this._unary_expression());
+            return this._updateNode(new UnaryOperator(this._previous().toString(), this._unary_expression()));
         }
         return this._singular_expression();
     }
@@ -2677,7 +4073,7 @@ class WgslParser {
         if (this._match(TokenTypes.tokens.bracket_left)) {
             const expr = this._short_circuit_or_expression();
             this._consume(TokenTypes.tokens.bracket_right, "Expected ']'.");
-            const arrayIndex = new ArrayIndex(expr);
+            const arrayIndex = this._updateNode(new ArrayIndex(expr));
             const p = this._postfix_expression();
             if (p) {
                 arrayIndex.postfix = p;
@@ -2688,7 +4084,7 @@ class WgslParser {
         if (this._match(TokenTypes.tokens.period)) {
             const name = this._consume(TokenTypes.tokens.ident, "Expected member name.");
             const p = this._postfix_expression();
-            const expr = new StringExpr(name.lexeme);
+            const expr = this._updateNode(new StringExpr(name.lexeme));
             if (p) {
                 expr.postfix = p;
             }
@@ -2707,27 +4103,142 @@ class WgslParser {
         }
         return null;
     }
+    _getType(name) {
+        const struct = this._getStruct(name);
+        if (struct !== null) {
+            return struct;
+        }
+        switch (name) {
+            case "bool":
+                return Type.bool;
+            case "i32":
+                return Type.i32;
+            case "u32":
+                return Type.u32;
+            case "f32":
+                return Type.f32;
+            case "f16":
+                return Type.f16;
+            case "vec2f":
+                return TemplateType.vec2f;
+            case "vec3f":
+                return TemplateType.vec3f;
+            case "vec4f":
+                return TemplateType.vec4f;
+            case "vec2i":
+                return TemplateType.vec2i;
+            case "vec3i":
+                return TemplateType.vec3i;
+            case "vec4i":
+                return TemplateType.vec4i;
+            case "vec2u":
+                return TemplateType.vec2u;
+            case "vec3u":
+                return TemplateType.vec3u;
+            case "vec4u":
+                return TemplateType.vec4u;
+            case "vec2h":
+                return TemplateType.vec2h;
+            case "vec3h":
+                return TemplateType.vec3h;
+            case "vec4h":
+                return TemplateType.vec4h;
+            case "mat2x2f":
+                return TemplateType.mat2x2f;
+            case "mat2x3f":
+                return TemplateType.mat2x3f;
+            case "mat2x4f":
+                return TemplateType.mat2x4f;
+            case "mat3x2f":
+                return TemplateType.mat3x2f;
+            case "mat3x3f":
+                return TemplateType.mat3x3f;
+            case "mat3x4f":
+                return TemplateType.mat3x4f;
+            case "mat4x2f":
+                return TemplateType.mat4x2f;
+            case "mat4x3f":
+                return TemplateType.mat4x3f;
+            case "mat4x4f":
+                return TemplateType.mat4x4f;
+            case "mat2x2h":
+                return TemplateType.mat2x2h;
+            case "mat2x3h":
+                return TemplateType.mat2x3h;
+            case "mat2x4h":
+                return TemplateType.mat2x4h;
+            case "mat3x2h":
+                return TemplateType.mat3x2h;
+            case "mat3x3h":
+                return TemplateType.mat3x3h;
+            case "mat3x4h":
+                return TemplateType.mat3x4h;
+            case "mat4x2h":
+                return TemplateType.mat4x2h;
+            case "mat4x3h":
+                return TemplateType.mat4x3h;
+            case "mat4x4h":
+                return TemplateType.mat4x4h;
+        }
+        return null;
+    }
+    _validateTypeRange(value, type) {
+        if (type.name === "i32") {
+            if (value < -2147483648 || value > 2147483647) {
+                throw this._error(this._previous(), `Value out of range for i32: ${value}. Line: ${this._currentLine}.`);
+            }
+        }
+        else if (type.name === "u32") {
+            if (value < 0 || value > 4294967295) {
+                throw this._error(this._previous(), `Value out of range for u32: ${value}. Line: ${this._currentLine}.`);
+            }
+        }
+    }
     _primary_expression() {
         // ident argument_expression_list?
         if (this._match(TokenTypes.tokens.ident)) {
             const name = this._previous().toString();
             if (this._check(TokenTypes.tokens.paren_left)) {
                 const args = this._argument_expression_list();
-                const struct = this._getStruct(name);
-                if (struct != null) {
-                    return new CreateExpr(struct, args);
+                const type = this._getType(name);
+                if (type !== null) {
+                    return this._updateNode(new CreateExpr(type, args));
                 }
-                return new CallExpr(name, args);
+                return this._updateNode(new CallExpr(name, args));
             }
             if (this._context.constants.has(name)) {
                 const c = this._context.constants.get(name);
-                return new ConstExpr(name, c.value);
+                return this._updateNode(new ConstExpr(name, c.value));
             }
-            return new VariableExpr(name);
+            return this._updateNode(new VariableExpr(name));
         }
         // const_literal
-        if (this._match(TokenTypes.const_literal)) {
-            return new LiteralExpr(parseFloat(this._previous().toString()));
+        if (this._match(TokenTypes.tokens.int_literal)) {
+            const s = this._previous().toString();
+            let type = s.endsWith("i") || s.endsWith("i") ? Type.i32 :
+                s.endsWith("u") || s.endsWith("U") ? Type.u32 : Type.x32;
+            const i = parseInt(s);
+            this._validateTypeRange(i, type);
+            return this._updateNode(new LiteralExpr(i, type));
+        }
+        else if (this._match(TokenTypes.tokens.uint_literal)) {
+            const u = parseInt(this._previous().toString());
+            this._validateTypeRange(u, Type.u32);
+            return this._updateNode(new LiteralExpr(u, Type.u32));
+        }
+        else if (this._match([TokenTypes.tokens.decimal_float_literal, TokenTypes.tokens.hex_float_literal])) {
+            let fs = this._previous().toString();
+            let isF16 = fs.endsWith("h");
+            if (isF16) {
+                fs = fs.substring(0, fs.length - 1);
+            }
+            const f = parseFloat(fs);
+            this._validateTypeRange(f, isF16 ? Type.f16 : Type.f32);
+            return this._updateNode(new LiteralExpr(f, isF16 ? Type.f16 : Type.f32));
+        }
+        else if (this._match([TokenTypes.keywords.true, TokenTypes.keywords.false])) {
+            let b = this._previous().toString() === TokenTypes.keywords.true.rule;
+            return this._updateNode(new LiteralExpr(b ? 1 : 0, Type.bool));
         }
         // paren_expression
         if (this._check(TokenTypes.tokens.paren_left)) {
@@ -2739,12 +4250,12 @@ class WgslParser {
             const type = this._type_decl();
             this._consume(TokenTypes.tokens.greater_than, "Expected '>'.");
             const value = this._paren_expression();
-            return new BitcastExpr(type, value);
+            return this._updateNode(new BitcastExpr(type, value));
         }
         // type_decl argument_expression_list
         const type = this._type_decl();
         const args = this._argument_expression_list();
-        return new CreateExpr(type, args);
+        return this._updateNode(new CreateExpr(type, args));
     }
     _argument_expression_list() {
         // paren_left ((short_circuit_or_expression comma)* short_circuit_or_expression comma?)? paren_right
@@ -2767,14 +4278,14 @@ class WgslParser {
         this._match(TokenTypes.tokens.paren_left);
         const expr = this._short_circuit_or_expression();
         this._match(TokenTypes.tokens.paren_right);
-        return new GroupingExpr([expr]);
+        return this._updateNode(new GroupingExpr([expr]));
     }
     _paren_expression() {
         // paren_left short_circuit_or_expression paren_right
         this._consume(TokenTypes.tokens.paren_left, "Expected '('.");
         const expr = this._short_circuit_or_expression();
         this._consume(TokenTypes.tokens.paren_right, "Expected ')'.");
-        return new GroupingExpr([expr]);
+        return this._updateNode(new GroupingExpr([expr]));
     }
     _struct_decl() {
         // attribute* struct ident struct_body_decl
@@ -2796,15 +4307,17 @@ class WgslParser {
             if (memberType != null) {
                 memberType.attributes = typeAttrs;
             }
-            if (!this._check(TokenTypes.tokens.brace_right))
+            if (!this._check(TokenTypes.tokens.brace_right)) {
                 this._consume(TokenTypes.tokens.comma, "Expected ',' for struct member.");
-            else
+            }
+            else {
                 this._match(TokenTypes.tokens.comma); // trailing comma optional.
-            members.push(new Member(memberName, memberType, memberAttrs));
+            }
+            members.push(this._updateNode(new Member(memberName, memberType, memberAttrs)));
         }
         this._consume(TokenTypes.tokens.brace_right, "Expected '}' after struct body.");
         const endLine = this._currentLine;
-        const structNode = new Struct(name, members, startLine, endLine);
+        const structNode = this._updateNode(new Struct(name, members, startLine, endLine), startLine);
         this._context.structs.set(name, structNode);
         return structNode;
     }
@@ -2812,7 +4325,28 @@ class WgslParser {
         // attribute* variable_decl (equal const_expression)?
         const _var = this._variable_decl();
         if (_var && this._match(TokenTypes.tokens.equal)) {
-            _var.value = this._const_expression();
+            const expr = this._const_expression();
+            const type = [Type.f32];
+            try {
+                const value = expr.constEvaluate(this._context, type);
+                _var.value = new LiteralExpr(value, type[0]);
+            }
+            catch (_) {
+                _var.value = expr;
+            }
+        }
+        if (_var.type !== null && _var.value instanceof LiteralExpr) {
+            if (_var.value.type.name !== "x32") {
+                if (_var.type.name !== _var.value.type.name) {
+                    throw this._error(this._peek(), `Invalid cast from ${_var.value.type.name} to ${_var.type.name}. Line:${this._currentLine}`);
+                }
+            }
+            this._validateTypeRange(_var.value.scalarValue, _var.type);
+            _var.value.type = _var.type;
+        }
+        else if (_var.type === null && _var.value instanceof LiteralExpr) {
+            _var.type = _var.value.type.name === "x32" ? Type.i32 : _var.value.type;
+            this._validateTypeRange(_var.value.scalarValue, _var.type);
         }
         return _var;
     }
@@ -2825,6 +4359,7 @@ class WgslParser {
         return _override;
     }
     _global_const_decl() {
+        var _a;
         // attribute* const (ident variable_ident_decl) global_const_initializer?
         if (!this._match(TokenTypes.keywords.const)) {
             return null;
@@ -2839,26 +4374,40 @@ class WgslParser {
             }
         }
         let value = null;
-        if (this._match(TokenTypes.tokens.equal)) {
-            const valueExpr = this._short_circuit_or_expression();
-            if (valueExpr instanceof CreateExpr) {
+        this._consume(TokenTypes.tokens.equal, "const declarations require an assignment");
+        const valueExpr = this._short_circuit_or_expression();
+        /*if (valueExpr instanceof AST.CreateExpr) {
+          value = valueExpr;
+        } else if (valueExpr instanceof AST.ConstExpr &&
+                   valueExpr.initializer instanceof AST.CreateExpr) {
+          value = valueExpr.initializer;
+        } else*/ {
+            try {
+                let type = [Type.f32];
+                const constValue = valueExpr.constEvaluate(this._context, type);
+                this._validateTypeRange(constValue, type[0]);
+                value = this._updateNode(new LiteralExpr(constValue, type[0]));
+            }
+            catch (_b) {
                 value = valueExpr;
             }
-            else if (valueExpr instanceof ConstExpr &&
-                valueExpr.initializer instanceof CreateExpr) {
-                value = valueExpr.initializer;
+        }
+        if (type !== null && value instanceof LiteralExpr) {
+            if (value.type.name !== "x32") {
+                if (type.name !== value.type.name) {
+                    throw this._error(this._peek(), `Invalid cast from ${value.type.name} to ${type.name}. Line:${this._currentLine}`);
+                }
             }
-            else {
-                try {
-                    const constValue = valueExpr.evaluate(this._context);
-                    value = new LiteralExpr(constValue);
-                }
-                catch (_a) {
-                    value = valueExpr;
-                }
+            value.type = type;
+            this._validateTypeRange(value.scalarValue, value.type);
+        }
+        else if (type === null && value instanceof LiteralExpr) {
+            type = (_a = value === null || value === void 0 ? void 0 : value.type) !== null && _a !== void 0 ? _a : Type.f32;
+            if (type === Type.x32) {
+                type = Type.i32;
             }
         }
-        const c = new Const(name.toString(), type, "", "", value);
+        const c = this._updateNode(new Const(name.toString(), type, "", "", value));
         this._context.constants.set(c.name, c);
         return c;
     }
@@ -2879,8 +4428,29 @@ class WgslParser {
         let value = null;
         if (this._match(TokenTypes.tokens.equal)) {
             value = this._const_expression();
+            const type = [Type.f32];
+            try {
+                const v = value.constEvaluate(this._context, type);
+                value = new LiteralExpr(v, type[0]);
+            }
+            catch (_) {
+            }
         }
-        return new Let(name.toString(), type, "", "", value);
+        if (type !== null && value instanceof LiteralExpr) {
+            if (value.type.name !== "x32") {
+                if (type.name !== value.type.name) {
+                    throw this._error(this._peek(), `Invalid cast from ${value.type.name} to ${type.name}. Line:${this._currentLine}`);
+                }
+            }
+            value.type = type;
+        }
+        else if (type === null && value instanceof LiteralExpr) {
+            type = value.type.name === "x32" ? Type.i32 : value.type;
+        }
+        if (value instanceof LiteralExpr) {
+            this._validateTypeRange(value.scalarValue, type);
+        }
+        return this._updateNode(new Let(name.toString(), type, "", "", value));
     }
     _const_expression() {
         // type_decl paren_left ((const_expression comma)* const_expression comma?)? paren_right
@@ -2910,7 +4480,7 @@ class WgslParser {
                 type.attributes = attrs;
             }
         }
-        return new Var(name.toString(), type, storage, access, null);
+        return this._updateNode(new Var(name.toString(), type, storage, access, null));
     }
     _override_decl() {
         // override (ident variable_ident_decl)
@@ -2926,7 +4496,7 @@ class WgslParser {
                 type.attributes = attrs;
             }
         }
-        return new Override(name.toString(), type, null);
+        return this._updateNode(new Override(name.toString(), type, null));
     }
     _diagnostic() {
         // diagnostic(severity_control_name, diagnostic_rule_name)
@@ -2934,13 +4504,18 @@ class WgslParser {
         const severity = this._consume(TokenTypes.tokens.ident, "Expected severity control name.");
         this._consume(TokenTypes.tokens.comma, "Expected ','");
         const rule = this._consume(TokenTypes.tokens.ident, "Expected diagnostic rule name.");
+        let ruleMessage = rule.toString();
+        if (this._match(TokenTypes.tokens.period)) {
+            const message = this._consume(TokenTypes.tokens.ident, "Expected diagnostic message.");
+            ruleMessage += `.${message.toString()}`;
+        }
         this._consume(TokenTypes.tokens.paren_right, "Expected ')'");
-        return new Diagnostic(severity.toString(), rule.toString());
+        return this._updateNode(new Diagnostic(severity.toString(), ruleMessage));
     }
     _enable_directive() {
         // enable ident semicolon
         const name = this._consume(TokenTypes.tokens.ident, "identity expected.");
-        return new Enable(name.toString());
+        return this._updateNode(new Enable(name.toString()));
     }
     _requires_directive() {
         // requires extension [, extension]* semicolon
@@ -2949,7 +4524,7 @@ class WgslParser {
             const name = this._consume(TokenTypes.tokens.ident, "identity expected.");
             extensions.push(name.toString());
         }
-        return new Requires(extensions);
+        return this._updateNode(new Requires(extensions));
     }
     _type_alias() {
         // type ident equal type_decl
@@ -2962,7 +4537,7 @@ class WgslParser {
         if (this._context.aliases.has(aliasType.name)) {
             aliasType = this._context.aliases.get(aliasType.name).type;
         }
-        const aliasNode = new Alias(name.toString(), aliasType);
+        const aliasNode = this._updateNode(new Alias(name.toString(), aliasType));
         this._context.aliases.set(aliasNode.name, aliasNode);
         return aliasNode;
     }
@@ -3004,7 +4579,7 @@ class WgslParser {
             if (this._context.aliases.has(typeName)) {
                 return this._context.aliases.get(typeName).type;
             }
-            return new Type(type.toString());
+            return this._updateNode(new Type(type.toString()));
         }
         // texture_sampler_types
         let type = this._texture_sampler_types();
@@ -3023,7 +4598,7 @@ class WgslParser {
                 }
                 this._consume(TokenTypes.tokens.greater_than, "Expected '>' for type.");
             }
-            return new TemplateType(type, format, access);
+            return this._updateNode(new TemplateType(type, format, access));
         }
         // pointer less_than storage_class comma type_decl (comma access_mode)? greater_than
         if (this._match(TokenTypes.keywords.ptr)) {
@@ -3037,7 +4612,7 @@ class WgslParser {
                 access = this._consume(TokenTypes.access_mode, "Expected access_mode for pointer").toString();
             }
             this._consume(TokenTypes.tokens.greater_than, "Expected '>' for pointer.");
-            return new PointerType(pointer, storage.toString(), decl, access);
+            return this._updateNode(new PointerType(pointer, storage.toString(), decl, access));
         }
         // The following type_decl's have an optional attribyte_list*
         const attrs = this._attribute();
@@ -3060,7 +4635,7 @@ class WgslParser {
                     // finished being parsed, because const statements can be declared **after** they
                     // are used.
                     try {
-                        count = countNode.evaluate(this._context).toString();
+                        count = countNode.constEvaluate(this._context).toString();
                         countNode = null;
                     }
                     catch (e) {
@@ -3070,7 +4645,7 @@ class WgslParser {
                 this._consume(TokenTypes.tokens.greater_than, "Expected '>' for array.");
                 countInt = count ? parseInt(count) : 0;
             }
-            const arrayType = new ArrayType(array.toString(), attrs, format, countInt);
+            const arrayType = this._updateNode(new ArrayType(array.toString(), attrs, format, countInt));
             if (countNode) {
                 this._deferArrayCountEval.push({ arrayType, countNode });
             }
@@ -3081,11 +4656,11 @@ class WgslParser {
     _texture_sampler_types() {
         // sampler_type
         if (this._match(TokenTypes.sampler_type)) {
-            return new SamplerType(this._previous().toString(), null, null);
+            return this._updateNode(new SamplerType(this._previous().toString(), null, null));
         }
         // depth_texture_type
         if (this._match(TokenTypes.depth_texture_type)) {
-            return new SamplerType(this._previous().toString(), null, null);
+            return this._updateNode(new SamplerType(this._previous().toString(), null, null));
         }
         // sampled_texture_type less_than type_decl greater_than
         // multisampled_texture_type less_than type_decl greater_than
@@ -3095,7 +4670,7 @@ class WgslParser {
             this._consume(TokenTypes.tokens.less_than, "Expected '<' for sampler type.");
             const format = this._type_decl();
             this._consume(TokenTypes.tokens.greater_than, "Expected '>' for sampler type.");
-            return new SamplerType(sampler.toString(), format, null);
+            return this._updateNode(new SamplerType(sampler.toString(), format, null));
         }
         // storage_texture_type less_than texel_format comma access_mode greater_than
         if (this._match(TokenTypes.storage_texture_type)) {
@@ -3105,7 +4680,7 @@ class WgslParser {
             this._consume(TokenTypes.tokens.comma, "Expected ',' after texel format.");
             const access = this._consume(TokenTypes.access_mode, "Expected access mode for storage texture type.").toString();
             this._consume(TokenTypes.tokens.greater_than, "Expected '>' for sampler type.");
-            return new SamplerType(sampler.toString(), format, access);
+            return this._updateNode(new SamplerType(sampler.toString(), format, access));
         }
         return null;
     }
@@ -3115,7 +4690,7 @@ class WgslParser {
         let attributes = [];
         while (this._match(TokenTypes.tokens.attr)) {
             const name = this._consume(TokenTypes.attribute_name, "Expected attribute name");
-            const attr = new Attribute(name.toString(), null);
+            const attr = this._updateNode(new Attribute(name.toString(), null));
             if (this._match(TokenTypes.tokens.paren_left)) {
                 // literal_or_ident
                 attr.value = this._consume(TokenTypes.literal_or_ident, "Expected attribute value").toString();
@@ -3317,13 +4892,14 @@ class OverrideInfo {
     }
 }
 class ArgumentInfo {
-    constructor(name, type) {
+    constructor(name, type, attributes) {
         this.name = name;
         this.type = type;
+        this.attributes = attributes;
     }
 }
 class FunctionInfo {
-    constructor(name, stage = null) {
+    constructor(name, stage = null, attributes) {
         this.stage = null;
         this.inputs = [];
         this.outputs = [];
@@ -3337,6 +4913,7 @@ class FunctionInfo {
         this.calls = new Set();
         this.name = name;
         this.stage = stage;
+        this.attributes = attributes;
     }
 }
 class EntryFunctions {
@@ -3389,6 +4966,9 @@ class WgslReflect {
     update(code) {
         const parser = new WgslParser();
         const ast = parser.parse(code);
+        this.updateAST(ast);
+    }
+    updateAST(ast) {
         for (const node of ast) {
             if (node instanceof Function) {
                 this._functions.set(node.name, new _FunctionResources(node));
@@ -3396,7 +4976,7 @@ class WgslReflect {
         }
         for (const node of ast) {
             if (node instanceof Struct) {
-                const info = this._getTypeInfo(node, null);
+                const info = this.getTypeInfo(node, null);
                 if (info instanceof StructInfo) {
                     this.structs.push(info);
                 }
@@ -3410,7 +4990,7 @@ class WgslReflect {
             if (node instanceof Override) {
                 const v = node;
                 const id = this._getAttributeNum(v.attributes, "id", 0);
-                const type = v.type != null ? this._getTypeInfo(v.type, v.attributes) : null;
+                const type = v.type != null ? this.getTypeInfo(v.type, v.attributes) : null;
                 this.overrides.push(new OverrideInfo(v.name, type, v.attributes, id));
                 continue;
             }
@@ -3418,7 +4998,7 @@ class WgslReflect {
                 const v = node;
                 const g = this._getAttributeNum(v.attributes, "group", 0);
                 const b = this._getAttributeNum(v.attributes, "binding", 0);
-                const type = this._getTypeInfo(v.type, v.attributes);
+                const type = this.getTypeInfo(v.type, v.attributes);
                 const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, ResourceType.Uniform, v.access);
                 this.uniforms.push(varInfo);
                 continue;
@@ -3427,7 +5007,7 @@ class WgslReflect {
                 const v = node;
                 const g = this._getAttributeNum(v.attributes, "group", 0);
                 const b = this._getAttributeNum(v.attributes, "binding", 0);
-                const type = this._getTypeInfo(v.type, v.attributes);
+                const type = this.getTypeInfo(v.type, v.attributes);
                 const isStorageTexture = this._isStorageTexture(type);
                 const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, isStorageTexture ? ResourceType.StorageTexture : ResourceType.Storage, v.access);
                 this.storage.push(varInfo);
@@ -3437,7 +5017,7 @@ class WgslReflect {
                 const v = node;
                 const g = this._getAttributeNum(v.attributes, "group", 0);
                 const b = this._getAttributeNum(v.attributes, "binding", 0);
-                const type = this._getTypeInfo(v.type, v.attributes);
+                const type = this.getTypeInfo(v.type, v.attributes);
                 const isStorageTexture = this._isStorageTexture(type);
                 const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, isStorageTexture ? ResourceType.StorageTexture : ResourceType.Texture, v.access);
                 if (isStorageTexture) {
@@ -3452,7 +5032,7 @@ class WgslReflect {
                 const v = node;
                 const g = this._getAttributeNum(v.attributes, "group", 0);
                 const b = this._getAttributeNum(v.attributes, "binding", 0);
-                const type = this._getTypeInfo(v.type, v.attributes);
+                const type = this.getTypeInfo(v.type, v.attributes);
                 const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, ResourceType.Sampler, v.access);
                 this.samplers.push(varInfo);
                 continue;
@@ -3462,7 +5042,8 @@ class WgslReflect {
                 const fragmentStage = this._getAttribute(node, "fragment");
                 const computeStage = this._getAttribute(node, "compute");
                 const stage = vertexStage || fragmentStage || computeStage;
-                const fn = new FunctionInfo(node.name, stage === null || stage === void 0 ? void 0 : stage.name);
+                const fn = new FunctionInfo(node.name, stage === null || stage === void 0 ? void 0 : stage.name, node.attributes);
+                fn.attributes = node.attributes;
                 fn.startLine = node.startLine;
                 fn.endLine = node.endLine;
                 this.functions.push(fn);
@@ -3475,9 +5056,9 @@ class WgslReflect {
                     fn.outputs = this._getOutputs(node.returnType);
                     this.entry[stage.name].push(fn);
                 }
-                fn.arguments = node.args.map((arg) => new ArgumentInfo(arg.name, this._getTypeInfo(arg.type, arg.attributes)));
+                fn.arguments = node.args.map((arg) => new ArgumentInfo(arg.name, this.getTypeInfo(arg.type, arg.attributes), arg.attributes));
                 fn.returnType = node.returnType
-                    ? this._getTypeInfo(node.returnType, node.attributes)
+                    ? this.getTypeInfo(node.returnType, node.attributes)
                     : null;
                 continue;
             }
@@ -3507,6 +5088,22 @@ class WgslReflect {
         for (const s of this.storage) {
             this._markStructsInUse(s.type);
         }
+    }
+    getStructInfo(name) {
+        for (const s of this.structs) {
+            if (s.name == name) {
+                return s;
+            }
+        }
+        return null;
+    }
+    getOverrideInfo(name) {
+        for (const o of this.overrides) {
+            if (o.name == name) {
+                return o;
+            }
+        }
+        return null;
     }
     _markStructsInUse(type) {
         if (!type) {
@@ -3592,7 +5189,7 @@ class WgslReflect {
         return null;
     }
     _markStructsFromAST(type) {
-        const info = this._getTypeInfo(type, null);
+        const info = this.getTypeInfo(type, null);
         this._markStructsInUse(info);
     }
     _findResources(fn, isEntry) {
@@ -3734,7 +5331,7 @@ class WgslReflect {
             else {
                 const location = this._getAttribute(m, "location") || this._getAttribute(m, "builtin");
                 if (location !== null) {
-                    const typeInfo = this._getTypeInfo(m.type, m.type.attributes);
+                    const typeInfo = this.getTypeInfo(m.type, m.type.attributes);
                     const locationValue = this._parseInt(location.value);
                     const info = new OutputInfo(m.name, typeInfo, location.name, locationValue);
                     outputs.push(info);
@@ -3746,7 +5343,7 @@ class WgslReflect {
         const location = this._getAttribute(type, "location") ||
             this._getAttribute(type, "builtin");
         if (location !== null) {
-            const typeInfo = this._getTypeInfo(type, type.attributes);
+            const typeInfo = this.getTypeInfo(type, type.attributes);
             const locationValue = this._parseInt(location.value);
             const info = new OutputInfo("", typeInfo, location.name, locationValue);
             return info;
@@ -3788,7 +5385,7 @@ class WgslReflect {
             this._getAttribute(node, "builtin");
         if (location !== null) {
             const interpolation = this._getAttribute(node, "interpolation");
-            const type = this._getTypeInfo(node.type, node.attributes);
+            const type = this.getTypeInfo(node.type, node.attributes);
             const locationValue = this._parseInt(location.value);
             const info = new InputInfo(node.name, type, location.name, locationValue);
             if (interpolation !== null) {
@@ -3820,15 +5417,15 @@ class WgslReflect {
         return null;
     }
     _getAliasInfo(node) {
-        return new AliasInfo(node.name, this._getTypeInfo(node.type, null));
+        return new AliasInfo(node.name, this.getTypeInfo(node.type, null));
     }
-    _getTypeInfo(type, attributes) {
+    getTypeInfo(type, attributes = null) {
         if (this._types.has(type)) {
             return this._types.get(type);
         }
         if (type instanceof ArrayType) {
             const a = type;
-            const t = a.format ? this._getTypeInfo(a.format, a.attributes) : null;
+            const t = a.format ? this.getTypeInfo(a.format, a.attributes) : null;
             const info = new ArrayInfo(a.name, attributes);
             info.format = t;
             info.count = a.count;
@@ -3842,7 +5439,7 @@ class WgslReflect {
             info.startLine = s.startLine;
             info.endLine = s.endLine;
             for (const m of s.members) {
-                const t = this._getTypeInfo(m.type, m.attributes);
+                const t = this.getTypeInfo(m.type, m.attributes);
                 info.members.push(new MemberInfo(m.name, t, m.attributes));
             }
             this._types.set(type, info);
@@ -3854,7 +5451,7 @@ class WgslReflect {
             const formatIsType = s.format instanceof Type;
             const format = s.format
                 ? formatIsType
-                    ? this._getTypeInfo(s.format, null)
+                    ? this.getTypeInfo(s.format, null)
                     : new TypeInfo(s.format, null)
                 : null;
             const info = new TemplateInfo(s.name, format, attributes, s.access);
@@ -3864,7 +5461,7 @@ class WgslReflect {
         }
         if (type instanceof TemplateType) {
             const t = type;
-            const format = t.format ? this._getTypeInfo(t.format, null) : null;
+            const format = t.format ? this.getTypeInfo(t.format, null) : null;
             const info = new TemplateInfo(t.name, format, attributes, t.access);
             this._types.set(type, info);
             this._updateTypeInfo(info);
@@ -3876,13 +5473,16 @@ class WgslReflect {
         return info;
     }
     _updateTypeInfo(type) {
-        var _a, _b;
+        var _a, _b, _c;
         const typeSize = this._getTypeSize(type);
         type.size = (_a = typeSize === null || typeSize === void 0 ? void 0 : typeSize.size) !== null && _a !== void 0 ? _a : 0;
         if (type instanceof ArrayInfo) {
             if (type["format"]) {
                 const formatInfo = this._getTypeSize(type["format"]);
-                type.stride = (_b = formatInfo === null || formatInfo === void 0 ? void 0 : formatInfo.size) !== null && _b !== void 0 ? _b : 0;
+                // Array stride is the maximum of the format size and alignment.
+                // In the case of a vec3f, the size is 12 bytes, but the alignment is 16 bytes.
+                // Buffer alignment is therefore 16 bytes.
+                type.stride = Math.max((_b = formatInfo === null || formatInfo === void 0 ? void 0 : formatInfo.size) !== null && _b !== void 0 ? _b : 0, (_c = formatInfo === null || formatInfo === void 0 ? void 0 : formatInfo.align) !== null && _c !== void 0 ? _c : 0);
                 this._updateTypeInfo(type["format"]);
             }
         }

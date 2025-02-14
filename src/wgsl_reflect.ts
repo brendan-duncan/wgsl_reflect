@@ -294,13 +294,16 @@ export class OverrideInfo {
 export class ArgumentInfo {
   name: string;
   type: TypeInfo;
+  attributes: Array<AST.Attribute> | null;
 
   constructor(
     name: string,
     type: TypeInfo,
+    attributes: Array<AST.Attribute> | null
   ) {
     this.name = name;
     this.type = type;
+    this.attributes = attributes;
   }
 }
 
@@ -313,14 +316,16 @@ export class FunctionInfo {
   returnType: TypeInfo | null = null;
   resources: Array<VariableInfo> = [];
   overrides: Array<OverrideInfo> = [];
+  attributes: Array<AST.Attribute> | null;
   startLine: number = -1;
   endLine: number = -1;
   inUse: boolean = false;
   calls: Set<FunctionInfo> = new Set();
 
-  constructor(name: string, stage: string | null = null) {
+  constructor(name: string, stage: string | null = null, attributes: Array<AST.Attribute> | null) {
     this.name = name;
     this.stage = stage;
+    this.attributes = attributes;
   }
 }
 
@@ -363,7 +368,7 @@ export class WgslReflect {
   _types: Map<AST.Type, TypeInfo> = new Map();
   _functions: Map<string, _FunctionResources> = new Map();
 
-  constructor(code: string | undefined) {
+  constructor(code?: string) {
     if (code) {
       this.update(code);
     }
@@ -378,10 +383,13 @@ export class WgslReflect {
     );
   }
 
-  update(code: string) {
+  update(code: string): void {
     const parser = new WgslParser();
     const ast = parser.parse(code);
+    this.updateAST(ast);
+  }
 
+  updateAST(ast: Array<AST.Node>): void {
     for (const node of ast) {
       if (node instanceof AST.Function) {
         this._functions.set(node.name, new _FunctionResources(node as AST.Function));
@@ -390,7 +398,7 @@ export class WgslReflect {
 
     for (const node of ast) {
       if (node instanceof AST.Struct) {
-        const info = this._getTypeInfo(node as AST.Struct, null);
+        const info = this.getTypeInfo(node as AST.Struct, null);
         if (info instanceof StructInfo) {
           this.structs.push(info as StructInfo);
         }
@@ -407,7 +415,7 @@ export class WgslReflect {
         const v = node as AST.Override;
         const id = this._getAttributeNum(v.attributes, "id", 0);
         const type =
-          v.type != null ? this._getTypeInfo(v.type, v.attributes) : null;
+          v.type != null ? this.getTypeInfo(v.type, v.attributes) : null;
         this.overrides.push(new OverrideInfo(v.name, type, v.attributes, id));
         continue;
       }
@@ -416,7 +424,7 @@ export class WgslReflect {
         const v = node as AST.Var;
         const g = this._getAttributeNum(v.attributes, "group", 0);
         const b = this._getAttributeNum(v.attributes, "binding", 0);
-        const type = this._getTypeInfo(v.type!, v.attributes);
+        const type = this.getTypeInfo(v.type!, v.attributes);
         const varInfo = new VariableInfo(
           v.name,
           type,
@@ -434,7 +442,7 @@ export class WgslReflect {
         const v = node as AST.Var;
         const g = this._getAttributeNum(v.attributes, "group", 0);
         const b = this._getAttributeNum(v.attributes, "binding", 0);
-        const type = this._getTypeInfo(v.type!, v.attributes);
+        const type = this.getTypeInfo(v.type!, v.attributes);
         const isStorageTexture = this._isStorageTexture(type);
         const varInfo = new VariableInfo(
           v.name,
@@ -453,7 +461,7 @@ export class WgslReflect {
         const v = node as AST.Var;
         const g = this._getAttributeNum(v.attributes, "group", 0);
         const b = this._getAttributeNum(v.attributes, "binding", 0);
-        const type = this._getTypeInfo(v.type!, v.attributes);
+        const type = this.getTypeInfo(v.type!, v.attributes);
         const isStorageTexture = this._isStorageTexture(type);
         const varInfo = new VariableInfo(
           v.name,
@@ -476,7 +484,7 @@ export class WgslReflect {
         const v = node as AST.Var;
         const g = this._getAttributeNum(v.attributes, "group", 0);
         const b = this._getAttributeNum(v.attributes, "binding", 0);
-        const type = this._getTypeInfo(v.type!, v.attributes);
+        const type = this.getTypeInfo(v.type!, v.attributes);
         const varInfo = new VariableInfo(
           v.name,
           type,
@@ -496,7 +504,8 @@ export class WgslReflect {
         const computeStage = this._getAttribute(node, "compute");
         const stage = vertexStage || fragmentStage || computeStage;
 
-        const fn = new FunctionInfo(node.name, stage?.name);
+        const fn = new FunctionInfo(node.name, stage?.name, node.attributes);
+        fn.attributes = node.attributes;
         fn.startLine = node.startLine;
         fn.endLine = node.endLine;
         this.functions.push(fn);
@@ -515,12 +524,13 @@ export class WgslReflect {
           (arg) =>
             new ArgumentInfo(
               arg.name,
-              this._getTypeInfo(arg.type, arg.attributes)
+              this.getTypeInfo(arg.type, arg.attributes),
+              arg.attributes
             )
         );
         
         fn.returnType = node.returnType
-          ? this._getTypeInfo(node.returnType, node.attributes)
+          ? this.getTypeInfo(node.returnType, node.attributes)
           : null;
 
         continue;
@@ -553,6 +563,24 @@ export class WgslReflect {
     for (const s of this.storage) {
       this._markStructsInUse(s.type);
     }
+  }
+
+  getStructInfo(name: string): StructInfo | null {
+    for (const s of this.structs) {
+      if (s.name == name) {
+        return s;
+      }
+    }
+    return null;
+  }
+
+  getOverrideInfo(name: string): OverrideInfo | null {
+    for (const o of this.overrides) {
+      if (o.name == name) {
+        return o;
+      }
+    }
+    return null;
   }
 
   _markStructsInUse(type: TypeInfo) {
@@ -639,14 +667,14 @@ export class WgslReflect {
   }
   
   _markStructsFromAST(type: AST.Type) {
-    const info = this._getTypeInfo(type, null);
+    const info = this.getTypeInfo(type, null);
     this._markStructsInUse(info);
   }
 
   _findResources(fn: AST.Node, isEntry: boolean): Array<VariableInfo> {
-    const resources = [];
+    const resources: any[] = [];
     const self = this;
-    const varStack = [];
+    const varStack: any[] = [];
     fn.search((node) => {
       if (node instanceof AST._BlockStart) {
         varStack.push({});
@@ -790,7 +818,7 @@ export class WgslReflect {
         const location =
           this._getAttribute(m, "location") || this._getAttribute(m, "builtin");
         if (location !== null) {
-          const typeInfo = this._getTypeInfo(m.type, m.type.attributes);
+          const typeInfo = this.getTypeInfo(m.type, m.type.attributes);
           const locationValue = this._parseInt(location.value);
           const info = new OutputInfo(
             m.name,
@@ -809,7 +837,7 @@ export class WgslReflect {
       this._getAttribute(type, "location") ||
       this._getAttribute(type, "builtin");
     if (location !== null) {
-      const typeInfo = this._getTypeInfo(type, type.attributes);
+      const typeInfo = this.getTypeInfo(type, type.attributes);
       const locationValue = this._parseInt(location.value);
       const info = new OutputInfo("", typeInfo, location.name, locationValue);
       return info;
@@ -858,7 +886,7 @@ export class WgslReflect {
       this._getAttribute(node, "builtin");
     if (location !== null) {
       const interpolation = this._getAttribute(node, "interpolation");
-      const type = this._getTypeInfo(node.type, node.attributes);
+      const type = this.getTypeInfo(node.type, node.attributes);
       const locationValue = this._parseInt(location.value);
       const info = new InputInfo(node.name, type, location.name, locationValue);
       if (interpolation !== null) {
@@ -894,12 +922,12 @@ export class WgslReflect {
   }
 
   _getAliasInfo(node: AST.Alias): AliasInfo {
-    return new AliasInfo(node.name, this._getTypeInfo(node.type!, null));
+    return new AliasInfo(node.name, this.getTypeInfo(node.type!, null));
   }
 
-  _getTypeInfo(
+  getTypeInfo(
     type: AST.Type,
-    attributes: Array<AST.Attribute> | null
+    attributes: Array<AST.Attribute> | null = null
   ): TypeInfo {
     if (this._types.has(type)) {
       return this._types.get(type)!;
@@ -907,7 +935,7 @@ export class WgslReflect {
 
     if (type instanceof AST.ArrayType) {
       const a = type as AST.ArrayType;
-      const t = a.format ? this._getTypeInfo(a.format!, a.attributes) : null;
+      const t = a.format ? this.getTypeInfo(a.format!, a.attributes) : null;
       const info = new ArrayInfo(a.name, attributes);
       info.format = t;
       info.count = a.count;
@@ -922,7 +950,7 @@ export class WgslReflect {
       info.startLine = s.startLine;
       info.endLine = s.endLine;
       for (const m of s.members) {
-        const t = this._getTypeInfo(m.type!, m.attributes);
+        const t = this.getTypeInfo(m.type!, m.attributes);
         info.members.push(new MemberInfo(m.name, t, m.attributes));
       }
       this._types.set(type, info);
@@ -935,7 +963,7 @@ export class WgslReflect {
       const formatIsType = s.format instanceof AST.Type;
       const format = s.format
         ? formatIsType
-          ? this._getTypeInfo(s.format! as AST.Type, null)
+          ? this.getTypeInfo(s.format! as AST.Type, null)
           : new TypeInfo(s.format! as string, null)
         : null;
       const info = new TemplateInfo(s.name, format, attributes, s.access);
@@ -946,7 +974,7 @@ export class WgslReflect {
 
     if (type instanceof AST.TemplateType) {
       const t = type as AST.TemplateType;
-      const format = t.format ? this._getTypeInfo(t.format!, null) : null;
+      const format = t.format ? this.getTypeInfo(t.format!, null) : null;
       const info = new TemplateInfo(t.name, format, attributes, t.access);
       this._types.set(type, info);
       this._updateTypeInfo(info);
@@ -966,7 +994,10 @@ export class WgslReflect {
     if (type instanceof ArrayInfo) {
       if (type["format"]) {
         const formatInfo = this._getTypeSize(type["format"]);
-        type.stride = formatInfo?.size ?? 0;
+        // Array stride is the maximum of the format size and alignment.
+        // In the case of a vec3f, the size is 12 bytes, but the alignment is 16 bytes.
+        // Buffer alignment is therefore 16 bytes.
+        type.stride = Math.max(formatInfo?.size ?? 0, formatInfo?.align ?? 0);
         this._updateTypeInfo(type["format"]);
       }
     }
@@ -1226,6 +1257,7 @@ export class WgslReflect {
   static readonly _textureTypes = TokenTypes.any_texture_type.map((t) => {
     return t.name;
   });
+
   static readonly _samplerTypes = TokenTypes.sampler_type.map((t) => {
     return t.name;
   });

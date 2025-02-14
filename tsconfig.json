@@ -5,23 +5,21 @@
     "noEmitHelpers": false,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    
     "pretty": true,
     "allowUnreachableCode": true,
     "allowUnusedLabels": true,
     "noImplicitAny": false,
-    "noImplicitReturns": false,
-    "noImplicitUseStrict": false,
+    "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": false,
     "allowSyntheticDefaultImports": true,
-    "outDir": "js",
+    "sourceMap": true,
+    "moduleResolution": "node",
     "declaration": true,
-    "declarationDir": "types"
+    "declarationDir": "./types"
   },
-  "files": [
-    "src/index.ts"
-  ],
   "exclude": ["node_modules"],
-  "compileOnSave": true,
-  "buildOnSave": true
+  "files": [
+    "./src/index.ts",
+    "./src/debugger_index.ts"
+  ],
 }

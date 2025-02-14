@@ -40,11 +40,11 @@
     "javascript",
     "html5"
   ],
+
   "devDependencies": {
     "@rollup/plugin-typescript": "^11.1.2",
     "rollup": "^2.60.0",
-    "tslib": "^2.6.1",
-    "typescript": "^5.3.3"
+    "tslib": "^2.6.1"
   },
   "jspm": {
     "files": [

@@ -9,8 +9,10 @@ export declare class WgslParser {
     _currentLine: number;
     _context: AST.ParseContext;
     _deferArrayCountEval: Array<Object>;
+    _currentLoop: Array<AST.Statement>;
     parse(tokensOrCode: Array<Token> | string): Array<AST.Statement>;
     _initialize(tokensOrCode: Array<Token> | string): void;
+    _updateNode<T extends AST.Node>(n: T, l?: number): T;
     _error(token: Token, message: string | null): Object;
     _isAtEnd(): boolean;
     _match(types: TokenType | Array<TokenType>): boolean;
@@ -29,7 +31,7 @@ export declare class WgslParser {
     _for_statement(): AST.For | null;
     _for_init(): AST.Statement | null;
     _for_increment(): AST.Statement | null;
-    _variable_statement(): AST.Var | null;
+    _variable_statement(): AST.Var | AST.Let | AST.Const | null;
     _increment_decrement_statement(): AST.Statement | null;
     _assignment_statement(): AST.Assign | null;
     _func_call_statement(): AST.Call | null;
@@ -56,6 +58,8 @@ export declare class WgslParser {
     _singular_expression(): AST.Expression;
     _postfix_expression(): AST.Expression | null;
     _getStruct(name: string): AST.Type | null;
+    _getType(name: string): AST.Type;
+    _validateTypeRange(value: number, type: AST.Type): void;
     _primary_expression(): AST.Expression;
     _argument_expression_list(): Array<AST.Expression> | null;
     _optional_paren_expression(): AST.GroupingExpr;
@@ -63,7 +67,7 @@ export declare class WgslParser {
     _struct_decl(): AST.Struct | null;
     _global_variable_decl(): AST.Var | null;
     _override_variable_decl(): AST.Override | null;
-    _global_const_decl(): AST.Let | null;
+    _global_const_decl(): AST.Const | null;
     _global_let_decl(): AST.Let | null;
     _const_expression(): AST.Expression;
     _variable_decl(): AST.Var | null;

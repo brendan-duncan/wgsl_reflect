@@ -107,7 +107,8 @@ export declare class OverrideInfo {
 export declare class ArgumentInfo {
     name: string;
     type: TypeInfo;
-    constructor(name: string, type: TypeInfo);
+    attributes: Array<AST.Attribute> | null;
+    constructor(name: string, type: TypeInfo, attributes: Array<AST.Attribute> | null);
 }
 export declare class FunctionInfo {
     name: string;
@@ -118,11 +119,12 @@ export declare class FunctionInfo {
     returnType: TypeInfo | null;
     resources: Array<VariableInfo>;
     overrides: Array<OverrideInfo>;
+    attributes: Array<AST.Attribute> | null;
     startLine: number;
     endLine: number;
     inUse: boolean;
     calls: Set<FunctionInfo>;
-    constructor(name: string, stage?: string | null);
+    constructor(name: string, stage: string | null, attributes: Array<AST.Attribute> | null);
 }
 export declare class EntryFunctions {
     vertex: Array<FunctionInfo>;
@@ -148,9 +150,12 @@ export declare class WgslReflect {
     functions: Array<FunctionInfo>;
     _types: Map<AST.Type, TypeInfo>;
     _functions: Map<string, _FunctionResources>;
-    constructor(code: string | undefined);
+    constructor(code?: string);
     _isStorageTexture(type: TypeInfo): boolean;
     update(code: string): void;
+    updateAST(ast: Array<AST.Node>): void;
+    getStructInfo(name: string): StructInfo | null;
+    getOverrideInfo(name: string): OverrideInfo | null;
     _markStructsInUse(type: TypeInfo): void;
     _addCalls(fn: AST.Function, calls: Set<FunctionInfo>): void;
     findResource(group: number, binding: number): VariableInfo;
@@ -168,7 +173,7 @@ export declare class WgslReflect {
     _parseInt(s: string | string[]): number | string;
     _getAlias(name: string): TypeInfo | null;
     _getAliasInfo(node: AST.Alias): AliasInfo;
-    _getTypeInfo(type: AST.Type, attributes: Array<AST.Attribute> | null): TypeInfo;
+    getTypeInfo(type: AST.Type, attributes?: Array<AST.Attribute> | null): TypeInfo;
     _updateTypeInfo(type: TypeInfo): void;
     _updateStructInfo(struct: StructInfo): void;
     _getTypeSize(type: TypeInfo | MemberInfo | null | undefined): _TypeSize | null;

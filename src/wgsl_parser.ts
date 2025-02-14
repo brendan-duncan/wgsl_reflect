@@ -11,6 +11,7 @@ export class WgslParser {
   _currentLine: number = 0;
   _context: AST.ParseContext = new AST.ParseContext();
   _deferArrayCountEval: Array<Object> = [];
+  _currentLoop: Array<AST.Statement> = [];
 
   parse(tokensOrCode: Array<Token> | string): Array<AST.Statement> {
     this._initialize(tokensOrCode);
@@ -40,7 +41,7 @@ export class WgslParser {
           const constant = this._context.constants.get(name);
           if (constant) {
             try {
-              const count = constant.evaluate(this._context);
+              const count = constant.constEvaluate(this._context);
               arrayType.count = count;
             } catch (e) {
             }
@@ -65,6 +66,11 @@ export class WgslParser {
       this._tokens = [];
     }
     this._current = 0;
+  }
+
+  _updateNode<T extends AST.Node>(n: T, l?: number): T {
+    n.line = l ?? this._currentLine;
+    return n;
   }
 
   _error(token: Token, message: string | null): Object {
@@ -108,7 +114,7 @@ export class WgslParser {
     if (this._check(types)) {
       return this._advance();
     }
-    throw this._error(this._peek(), message);
+    throw this._error(this._peek(), `${message}. Line:${this._currentLine}`);
   }
 
   _check(types: TokenType | Array<TokenType>): boolean {
@@ -276,7 +282,7 @@ export class WgslParser {
         if (type != null) {
           type.attributes = typeAttrs;
 
-          args.push(new AST.Argument(name, type, argAttrs));
+          args.push(this._updateNode(new AST.Argument(name, type, argAttrs)));
         }
       } while (this._match(TokenTypes.tokens.comma));
     }
@@ -299,7 +305,7 @@ export class WgslParser {
 
     const endLine = this._currentLine;
 
-    return new AST.Function(name, args, _return, body, startLine, endLine);
+    return this._updateNode(new AST.Function(name, args, _return, body, startLine, endLine), startLine);
   }
 
   _compound_statement(): Array<AST.Statement> {
@@ -389,11 +395,35 @@ export class WgslParser {
     ) {
       result = this._variable_statement();
     } else if (this._match(TokenTypes.keywords.discard)) {
-      result = new AST.Discard();
+      result = this._updateNode(new AST.Discard());
     } else if (this._match(TokenTypes.keywords.break)) {
-      result = new AST.Break();
+      const breakStmt = this._updateNode(new AST.Break());
+      if (this._currentLoop.length > 0) {
+        const loop = this._currentLoop[this._currentLoop.length - 1];
+        breakStmt.loopId = loop.id;
+      } else {
+        // This break statement is not inside a loop. 
+        throw this._error(this._peek(), "Break statement must be inside a loop.");
+      }
+      result = breakStmt;
+      if (this._check(TokenTypes.keywords.if)) {
+        // break-if
+        this._advance();
+        breakStmt.condition = this._optional_paren_expression();
+        if (breakStmt.condition instanceof AST.GroupingExpr && breakStmt.condition.contents.length === 1) {
+          breakStmt.condition = breakStmt.condition.contents[0];
+        }
+      }
     } else if (this._match(TokenTypes.keywords.continue)) {
-      result = new AST.Continue();
+      const continueStmt = this._updateNode(new AST.Continue());
+      if (this._currentLoop.length > 0) {
+        const loop = this._currentLoop[this._currentLoop.length - 1];
+        continueStmt.loopId = loop.id;
+      } else {
+        // This continue statement is not inside a loop. 
+        throw this._error(this._peek(), "Continue statement must be inside a loop.");
+      }
+      result = continueStmt;
     } else {
       result =
         this._increment_decrement_statement() ||
@@ -416,22 +446,29 @@ export class WgslParser {
       return null;
     }
     const expression = this._optional_paren_expression();
-    return new AST.StaticAssert(expression);
+    return this._updateNode(new AST.StaticAssert(expression));
   }
 
   _while_statement(): AST.While | null {
     if (!this._match(TokenTypes.keywords.while)) {
       return null;
     }
-    const condition = this._optional_paren_expression();
+
+    const whileLoop = this._updateNode(new AST.While(null, null));
+    this._currentLoop.push(whileLoop);
+
+    whileLoop.condition = this._optional_paren_expression();
 
     let attributes = null;
     if (this._check(TokenTypes.tokens.attr)) {
       attributes = this._attribute();
     }
 
-    const block = this._compound_statement();
-    return new AST.While(condition, block);
+    whileLoop.body = this._compound_statement();
+
+    this._currentLoop.pop();
+
+    return whileLoop;
   }
 
   _continuing_statement(): AST.Continuing | null {
@@ -439,7 +476,7 @@ export class WgslParser {
       return null;
     }
     const block = this._compound_statement();
-    return new AST.Continuing(block);
+    return this._updateNode(new AST.Continuing(block));
   }
 
   _for_statement(): AST.For | null {
@@ -450,16 +487,20 @@ export class WgslParser {
 
     this._consume(TokenTypes.tokens.paren_left, "Expected '('.");
 
+    const forLoop = this._updateNode(new AST.For(null, null, null, null));
+
+    this._currentLoop.push(forLoop);
+
     // for_header: (variable_statement assignment_statement func_call_statement)? semicolon short_circuit_or_expression? semicolon (assignment_statement func_call_statement)?
-    const init = !this._check(TokenTypes.tokens.semicolon)
+    forLoop.init = !this._check(TokenTypes.tokens.semicolon)
       ? this._for_init()
       : null;
     this._consume(TokenTypes.tokens.semicolon, "Expected ';'.");
-    const condition = !this._check(TokenTypes.tokens.semicolon)
+    forLoop.condition = !this._check(TokenTypes.tokens.semicolon)
       ? this._short_circuit_or_expression()
       : null;
     this._consume(TokenTypes.tokens.semicolon, "Expected ';'.");
-    const increment = !this._check(TokenTypes.tokens.paren_right)
+    forLoop.increment = !this._check(TokenTypes.tokens.paren_right)
       ? this._for_increment()
       : null;
 
@@ -470,9 +511,11 @@ export class WgslParser {
       attributes = this._attribute();
     }
 
-    const body = this._compound_statement();
+    forLoop.body = this._compound_statement();
 
-    return new AST.For(init, condition, increment, body);
+    this._currentLoop.pop();
+
+    return forLoop;
   }
 
   _for_init(): AST.Statement | null {
@@ -493,7 +536,7 @@ export class WgslParser {
     );
   }
 
-  _variable_statement(): AST.Var | null {
+  _variable_statement(): AST.Var | AST.Let | AST.Const | null {
     // variable_decl
     // variable_decl equal short_circuit_or_expression
     // let (ident variable_ident_decl) equal short_circuit_or_expression
@@ -508,13 +551,13 @@ export class WgslParser {
         value = this._short_circuit_or_expression();
       }
 
-      return new AST.Var(
+      return this._updateNode(new AST.Var(
         _var.name,
         _var.type,
         _var.storage,
         _var.access,
         value
-      );
+      ));
     }
 
     if (this._match(TokenTypes.keywords.let)) {
@@ -532,7 +575,7 @@ export class WgslParser {
       }
       this._consume(TokenTypes.tokens.equal, "Expected '=' for let.");
       const value = this._short_circuit_or_expression();
-      return new AST.Let(name, type, null, null, value);
+      return this._updateNode(new AST.Let(name, type, null, null, value));
     }
 
     if (this._match(TokenTypes.keywords.const)) {
@@ -550,7 +593,10 @@ export class WgslParser {
       }
       this._consume(TokenTypes.tokens.equal, "Expected '=' for const.");
       const value = this._short_circuit_or_expression();
-      return new AST.Const(name, type, null, null, value);
+      if (type === null && value instanceof AST.LiteralExpr) {
+        type = value.type;
+      }
+      return this._updateNode(new AST.Const(name, type, null, null, value));
     }
 
     return null;
@@ -574,12 +620,12 @@ export class WgslParser {
       "Expected increment operator"
     );
 
-    return new AST.Increment(
+    return this._updateNode(new AST.Increment(
       token.type === TokenTypes.tokens.plus_plus
         ? AST.IncrementOperator.increment
         : AST.IncrementOperator.decrement,
       _var
-    );
+    ));
   }
 
   _assignment_statement(): AST.Assign | null {
@@ -606,11 +652,11 @@ export class WgslParser {
 
     const value = this._short_circuit_or_expression();
 
-    return new AST.Assign(
+    return this._updateNode(new AST.Assign(
       AST.AssignOperator.parse(type.lexeme),
       _var as AST.Expression,
       value
-    );
+    ));
   }
 
   _func_call_statement(): AST.Call | null {
@@ -631,7 +677,7 @@ export class WgslParser {
       return null;
     }
 
-    return new AST.Call(name.lexeme, args);
+    return this._updateNode(new AST.Call(name.lexeme, args));
   }
 
   _loop_statement(): AST.Loop | null {
@@ -647,29 +693,34 @@ export class WgslParser {
 
     this._consume(TokenTypes.tokens.brace_left, "Expected '{' for loop.");
 
+    const loop = this._updateNode(new AST.Loop([], null));
+    this._currentLoop.push(loop);
+
     // statement*
-    const statements: Array<AST.Statement> = [];
     let statement = this._statement();
     while (statement !== null) {
       if (Array.isArray(statement)) {
         for (let s of statement) {
-          statements.push(s);
+          loop.body.push(s);
         }
       } else {
-        statements.push(statement);
+        loop.body.push(statement);
+      }
+      // Keep continuing in the loop body statements so it can be
+      // executed in the stackframe of the body statements.
+      if (statement instanceof AST.Continuing) {
+        loop.continuing = statement;
+        // Continuing should be the last statement in the loop.
+        break;
       }
       statement = this._statement();
     }
 
-    // continuing_statement: continuing compound_statement
-    let continuing: Array<AST.Statement> | null = null;
-    if (this._match(TokenTypes.keywords.continuing)) {
-      continuing = this._compound_statement();
-    }
+    this._currentLoop.pop();
 
     this._consume(TokenTypes.tokens.brace_right, "Expected '}' for loop.");
 
-    return new AST.Loop(statements, continuing);
+    return loop;
   }
 
   _switch_statement(): AST.Switch | null {
@@ -691,7 +742,7 @@ export class WgslParser {
       throw this._error(this._previous(), "Expected 'case' or 'default'.");
     }
     this._consume(TokenTypes.tokens.brace_right, "Expected '}' for switch.");
-    return new AST.Switch(condition, body);
+    return this._updateNode(new AST.Switch(condition, body));
   }
 
   _switch_body(): Array<AST.Statement> {
@@ -716,7 +767,7 @@ export class WgslParser {
         TokenTypes.tokens.brace_right,
         "Exected '}' for switch case."
       );
-      cases.push(new AST.Case(selector, body));
+      cases.push(this._updateNode(new AST.Case(selector, body)));
     }
 
     if (this._match(TokenTypes.keywords.default)) {
@@ -736,7 +787,7 @@ export class WgslParser {
         TokenTypes.tokens.brace_right,
         "Exected '}' for switch default."
       );
-      cases.push(new AST.Default(body));
+      cases.push(this._updateNode(new AST.Default(body)));
     }
 
     if (this._check([TokenTypes.keywords.default, TokenTypes.keywords.case])) {
@@ -750,11 +801,11 @@ export class WgslParser {
   _case_selectors(): Array<AST.Expression> {
     // const_literal (comma const_literal)* comma?
     const selectors = [
-      this._shift_expression(),//?.evaluate(this._context).toString() ?? "",
+      this._shift_expression(),//?.constEvaluate(this._context).toString() ?? "",
     ];
     while (this._match(TokenTypes.tokens.comma)) {
       selectors.push(
-        this._shift_expression(),//?.evaluate(this._context).toString() ?? ""
+        this._shift_expression(),//?.constEvaluate(this._context).toString() ?? ""
       );
     }
     return selectors;
@@ -791,6 +842,8 @@ export class WgslParser {
       return null;
     }
 
+    const line = this._currentLine;
+
     const condition = this._optional_paren_expression();
 
     let attributes = null;
@@ -818,7 +871,7 @@ export class WgslParser {
       _else = this._compound_statement();
     }
 
-    return new AST.If(condition, block, elseif, _else);
+    return this._updateNode(new AST.If(condition, block, elseif, _else), line);
   }
 
   _match_elseif(): boolean {
@@ -839,7 +892,7 @@ export class WgslParser {
     // else_if optional_paren_expression compound_statement elseif_statement?
     const condition = this._optional_paren_expression();
     const block = this._compound_statement();
-    elseif.push(new AST.ElseIf(condition, block));
+    elseif.push(this._updateNode(new AST.ElseIf(condition, block)));
     if (this._match_elseif()) {
       let attributes = null;
       if (this._check(TokenTypes.tokens.attr)) {
@@ -856,7 +909,7 @@ export class WgslParser {
       return null;
     }
     const value = this._short_circuit_or_expression();
-    return new AST.Return(value);
+    return this._updateNode(new AST.Return(value));
   }
 
   _short_circuit_or_expression(): AST.Expression {
@@ -864,11 +917,11 @@ export class WgslParser {
     // short_circuit_or_expression or_or short_circuit_and_expression
     let expr = this._short_circuit_and_expr();
     while (this._match(TokenTypes.tokens.or_or)) {
-      expr = new AST.BinaryOperator(
+      expr = this._updateNode(new AST.BinaryOperator(
         this._previous().toString(),
         expr,
         this._short_circuit_and_expr()
-      );
+      ));
     }
     return expr;
   }
@@ -878,11 +931,11 @@ export class WgslParser {
     // short_circuit_and_expression and_and inclusive_or_expression
     let expr = this._inclusive_or_expression();
     while (this._match(TokenTypes.tokens.and_and)) {
-      expr = new AST.BinaryOperator(
+      expr = this._updateNode(new AST.BinaryOperator(
         this._previous().toString(),
         expr,
         this._inclusive_or_expression()
-      );
+      ));
     }
     return expr;
   }
@@ -892,11 +945,11 @@ export class WgslParser {
     // inclusive_or_expression or exclusive_or_expression
     let expr = this._exclusive_or_expression();
     while (this._match(TokenTypes.tokens.or)) {
-      expr = new AST.BinaryOperator(
+      expr = this._updateNode(new AST.BinaryOperator(
         this._previous().toString(),
         expr,
         this._exclusive_or_expression()
-      );
+      ));
     }
     return expr;
   }
@@ -906,11 +959,11 @@ export class WgslParser {
     // exclusive_or_expression xor and_expression
     let expr = this._and_expression();
     while (this._match(TokenTypes.tokens.xor)) {
-      expr = new AST.BinaryOperator(
+      expr = this._updateNode(new AST.BinaryOperator(
         this._previous().toString(),
         expr,
         this._and_expression()
-      );
+      ));
     }
     return expr;
   }
@@ -920,11 +973,11 @@ export class WgslParser {
     // and_expression and equality_expression
     let expr = this._equality_expression();
     while (this._match(TokenTypes.tokens.and)) {
-      expr = new AST.BinaryOperator(
+      expr = this._updateNode(new AST.BinaryOperator(
         this._previous().toString(),
         expr,
         this._equality_expression()
-      );
+      ));
     }
     return expr;
   }
@@ -937,11 +990,11 @@ export class WgslParser {
     if (
       this._match([TokenTypes.tokens.equal_equal, TokenTypes.tokens.not_equal])
     ) {
-      return new AST.BinaryOperator(
+      return this._updateNode(new AST.BinaryOperator(
         this._previous().toString(),
         expr,
         this._relational_expression()
-      );
+      ));
     }
     return expr;
   }
@@ -961,11 +1014,11 @@ export class WgslParser {
         TokenTypes.tokens.greater_than_equal,
       ])
     ) {
-      expr = new AST.BinaryOperator(
+      expr = this._updateNode(new AST.BinaryOperator(
         this._previous().toString(),
         expr,
         this._shift_expression()
-      );
+      ));
     }
     return expr;
   }
@@ -978,11 +1031,11 @@ export class WgslParser {
     while (
       this._match([TokenTypes.tokens.shift_left, TokenTypes.tokens.shift_right])
     ) {
-      expr = new AST.BinaryOperator(
+      expr = this._updateNode(new AST.BinaryOperator(
         this._previous().toString(),
         expr,
         this._additive_expression()
-      );
+      ));
     }
     return expr;
   }
@@ -993,11 +1046,11 @@ export class WgslParser {
     // additive_expression minus multiplicative_expression
     let expr = this._multiplicative_expression();
     while (this._match([TokenTypes.tokens.plus, TokenTypes.tokens.minus])) {
-      expr = new AST.BinaryOperator(
+      expr = this._updateNode(new AST.BinaryOperator(
         this._previous().toString(),
         expr,
         this._multiplicative_expression()
-      );
+      ));
     }
     return expr;
   }
@@ -1015,11 +1068,11 @@ export class WgslParser {
         TokenTypes.tokens.modulo,
       ])
     ) {
-      expr = new AST.BinaryOperator(
+      expr = this._updateNode(new AST.BinaryOperator(
         this._previous().toString(),
         expr,
         this._unary_expression()
-      );
+      ));
     }
     return expr;
   }
@@ -1040,10 +1093,10 @@ export class WgslParser {
         TokenTypes.tokens.and,
       ])
     ) {
-      return new AST.UnaryOperator(
+      return this._updateNode(new AST.UnaryOperator(
         this._previous().toString(),
         this._unary_expression()
-      );
+      ));
     }
     return this._singular_expression();
   }
@@ -1063,7 +1116,7 @@ export class WgslParser {
     if (this._match(TokenTypes.tokens.bracket_left)) {
       const expr = this._short_circuit_or_expression();
       this._consume(TokenTypes.tokens.bracket_right, "Expected ']'.");
-      const arrayIndex = new AST.ArrayIndex(expr);
+      const arrayIndex = this._updateNode(new AST.ArrayIndex(expr));
       const p = this._postfix_expression();
       if (p) {
         arrayIndex.postfix = p;
@@ -1078,7 +1131,7 @@ export class WgslParser {
         "Expected member name."
       );
       const p = this._postfix_expression();
-      const expr = new AST.StringExpr(name.lexeme);
+      const expr = this._updateNode(new AST.StringExpr(name.lexeme));
       if (p) {
         expr.postfix = p;
       }
@@ -1100,28 +1153,141 @@ export class WgslParser {
     return null;
   }
 
+  _getType(name: string): AST.Type {
+    const struct = this._getStruct(name);
+    if (struct !== null) {
+      return struct;
+    }
+    switch (name) {
+      case "bool":
+        return AST.Type.bool;
+      case "i32":
+        return AST.Type.i32;
+      case "u32":
+        return AST.Type.u32;
+      case "f32":
+        return AST.Type.f32;
+      case "f16":
+        return AST.Type.f16;
+      case "vec2f":
+        return AST.TemplateType.vec2f;
+      case "vec3f":
+        return AST.TemplateType.vec3f;
+      case "vec4f":
+        return AST.TemplateType.vec4f;
+      case "vec2i":
+        return AST.TemplateType.vec2i;
+      case "vec3i":
+        return AST.TemplateType.vec3i;
+      case "vec4i":
+        return AST.TemplateType.vec4i;
+      case "vec2u":
+        return AST.TemplateType.vec2u;
+      case "vec3u":
+        return AST.TemplateType.vec3u;
+      case "vec4u":
+        return AST.TemplateType.vec4u;
+      case "vec2h":
+        return AST.TemplateType.vec2h;
+      case "vec3h":
+        return AST.TemplateType.vec3h;
+      case "vec4h":
+        return AST.TemplateType.vec4h;
+      case "mat2x2f":
+        return AST.TemplateType.mat2x2f;
+      case "mat2x3f":
+        return AST.TemplateType.mat2x3f;
+      case "mat2x4f":
+        return AST.TemplateType.mat2x4f;
+      case "mat3x2f":
+        return AST.TemplateType.mat3x2f;
+      case "mat3x3f":
+        return AST.TemplateType.mat3x3f;
+      case "mat3x4f":
+        return AST.TemplateType.mat3x4f;
+      case "mat4x2f":
+        return AST.TemplateType.mat4x2f;
+      case "mat4x3f":
+        return AST.TemplateType.mat4x3f;
+      case "mat4x4f":
+        return AST.TemplateType.mat4x4f;
+      case "mat2x2h":
+        return AST.TemplateType.mat2x2h;
+      case "mat2x3h":
+        return AST.TemplateType.mat2x3h;
+      case "mat2x4h":
+        return AST.TemplateType.mat2x4h;
+      case "mat3x2h":
+        return AST.TemplateType.mat3x2h;
+      case "mat3x3h":
+        return AST.TemplateType.mat3x3h;
+      case "mat3x4h":
+        return AST.TemplateType.mat3x4h;
+      case "mat4x2h":
+        return AST.TemplateType.mat4x2h;
+      case "mat4x3h":
+        return AST.TemplateType.mat4x3h;
+      case "mat4x4h":
+        return AST.TemplateType.mat4x4h;
+    }
+    return null;
+  }
+
+  _validateTypeRange(value: number, type: AST.Type) {
+    if (type.name === "i32") {
+      if (value < -2147483648 || value > 2147483647) {
+        throw this._error(this._previous(), `Value out of range for i32: ${value}. Line: ${this._currentLine}.`);
+      }
+    } else if (type.name === "u32") {
+      if (value < 0 || value > 4294967295) {
+        throw this._error(this._previous(), `Value out of range for u32: ${value}. Line: ${this._currentLine}.`);
+      }
+    }
+  }
+
   _primary_expression(): AST.Expression {
     // ident argument_expression_list?
     if (this._match(TokenTypes.tokens.ident)) {
       const name = this._previous().toString();
       if (this._check(TokenTypes.tokens.paren_left)) {
         const args = this._argument_expression_list();
-        const struct = this._getStruct(name);
-        if (struct != null) {
-          return new AST.CreateExpr(struct, args);
+        const type = this._getType(name);
+        if (type !== null) {
+          return this._updateNode(new AST.CreateExpr(type, args));
         }
-        return new AST.CallExpr(name, args);
+        return this._updateNode(new AST.CallExpr(name, args));
       }
       if (this._context.constants.has(name)) {
         const c = this._context.constants.get(name);
-        return new AST.ConstExpr(name, c.value);
+        return this._updateNode(new AST.ConstExpr(name, c.value));
       }
-      return new AST.VariableExpr(name);
+      return this._updateNode(new AST.VariableExpr(name));
     }
 
     // const_literal
-    if (this._match(TokenTypes.const_literal)) {
-      return new AST.LiteralExpr(parseFloat(this._previous().toString()));
+    if (this._match(TokenTypes.tokens.int_literal)) {
+      const s = this._previous().toString();
+      let type = s.endsWith("i") || s.endsWith("i") ? AST.Type.i32 : 
+          s.endsWith("u") || s.endsWith("U") ? AST.Type.u32 : AST.Type.x32;
+      const i = parseInt(s);
+      this._validateTypeRange(i, type);
+      return this._updateNode(new AST.LiteralExpr(i, type));
+    } else if (this._match(TokenTypes.tokens.uint_literal)) {
+      const u = parseInt(this._previous().toString());
+      this._validateTypeRange(u, AST.Type.u32);
+      return this._updateNode(new AST.LiteralExpr(u, AST.Type.u32));
+    } else if (this._match([TokenTypes.tokens.decimal_float_literal, TokenTypes.tokens.hex_float_literal])) {
+      let fs = this._previous().toString();
+      let isF16 = fs.endsWith("h");
+      if (isF16) {
+        fs = fs.substring(0, fs.length - 1);
+      }
+      const f = parseFloat(fs);
+      this._validateTypeRange(f, isF16 ? AST.Type.f16 : AST.Type.f32);
+      return this._updateNode(new AST.LiteralExpr(f, isF16 ? AST.Type.f16 : AST.Type.f32));
+    } else if (this._match([TokenTypes.keywords.true, TokenTypes.keywords.false])) {
+      let b = this._previous().toString() === TokenTypes.keywords.true.rule;
+      return this._updateNode(new AST.LiteralExpr(b ? 1 : 0, AST.Type.bool));
     }
 
     // paren_expression
@@ -1135,13 +1301,13 @@ export class WgslParser {
       const type = this._type_decl();
       this._consume(TokenTypes.tokens.greater_than, "Expected '>'.");
       const value = this._paren_expression();
-      return new AST.BitcastExpr(type, value);
+      return this._updateNode(new AST.BitcastExpr(type, value));
     }
 
     // type_decl argument_expression_list
     const type = this._type_decl();
     const args = this._argument_expression_list();
-    return new AST.CreateExpr(type, args);
+    return this._updateNode(new AST.CreateExpr(type, args));
   }
 
   _argument_expression_list(): Array<AST.Expression> | null {
@@ -1171,7 +1337,7 @@ export class WgslParser {
     this._match(TokenTypes.tokens.paren_left);
     const expr = this._short_circuit_or_expression();
     this._match(TokenTypes.tokens.paren_right);
-    return new AST.GroupingExpr([expr]);
+    return this._updateNode(new AST.GroupingExpr([expr]));
   }
 
   _paren_expression(): AST.GroupingExpr {
@@ -1179,7 +1345,7 @@ export class WgslParser {
     this._consume(TokenTypes.tokens.paren_left, "Expected '('.");
     const expr = this._short_circuit_or_expression();
     this._consume(TokenTypes.tokens.paren_right, "Expected ')'.");
-    return new AST.GroupingExpr([expr]);
+    return this._updateNode(new AST.GroupingExpr([expr]));
   }
 
   _struct_decl(): AST.Struct | null {
@@ -1221,14 +1387,16 @@ export class WgslParser {
         memberType.attributes = typeAttrs;
       }
 
-      if (!this._check(TokenTypes.tokens.brace_right))
+      if (!this._check(TokenTypes.tokens.brace_right)) {
         this._consume(
           TokenTypes.tokens.comma,
           "Expected ',' for struct member."
         );
-      else this._match(TokenTypes.tokens.comma); // trailing comma optional.
+      } else {
+        this._match(TokenTypes.tokens.comma); // trailing comma optional.
+      }
 
-      members.push(new AST.Member(memberName, memberType, memberAttrs));
+      members.push(this._updateNode(new AST.Member(memberName, memberType, memberAttrs)));
     }
 
     this._consume(
@@ -1238,7 +1406,7 @@ export class WgslParser {
 
     const endLine = this._currentLine;
 
-    const structNode = new AST.Struct(name, members, startLine, endLine);
+    const structNode = this._updateNode(new AST.Struct(name, members, startLine, endLine), startLine);
     this._context.structs.set(name, structNode);
     return structNode;
   }
@@ -1247,7 +1415,26 @@ export class WgslParser {
     // attribute* variable_decl (equal const_expression)?
     const _var = this._variable_decl();
     if (_var && this._match(TokenTypes.tokens.equal)) {
-      _var.value = this._const_expression();
+      const expr = this._const_expression();
+      const type = [AST.Type.f32];
+      try {
+        const value = expr.constEvaluate(this._context, type) as number;
+        _var.value = new AST.LiteralExpr(value, type[0]);
+      } catch (_) {
+        _var.value = expr;
+      }
+    }
+    if (_var.type !== null && _var.value instanceof AST.LiteralExpr) {
+      if (_var.value.type.name !== "x32") {
+        if (_var.type.name !== _var.value.type.name) {
+          throw this._error(this._peek(), `Invalid cast from ${_var.value.type.name} to ${_var.type.name}. Line:${this._currentLine}`);
+        }
+      }
+      this._validateTypeRange(_var.value.scalarValue, _var.type);
+      _var.value.type = _var.type;
+    } else if (_var.type === null && _var.value instanceof AST.LiteralExpr) {
+      _var.type = _var.value.type.name === "x32" ? AST.Type.i32 : _var.value.type;
+      this._validateTypeRange(_var.value.scalarValue, _var.type);
     }
     return _var;
   }
@@ -1262,7 +1449,7 @@ export class WgslParser {
     return _override;
   }
 
-  _global_const_decl(): AST.Let | null {
+  _global_const_decl(): AST.Const | null {
     // attribute* const (ident variable_ident_decl) global_const_initializer?
     if (!this._match(TokenTypes.keywords.const)) {
       return null;
@@ -1281,25 +1468,42 @@ export class WgslParser {
       }
     }
     let value: AST.Expression | null = null;
-    if (this._match(TokenTypes.tokens.equal)) {
-      const valueExpr = this._short_circuit_or_expression();
-      if (valueExpr instanceof AST.CreateExpr) {
+
+    this._consume(TokenTypes.tokens.equal, "const declarations require an assignment")
+
+    const valueExpr = this._short_circuit_or_expression();
+    /*if (valueExpr instanceof AST.CreateExpr) {
+      value = valueExpr;
+    } else if (valueExpr instanceof AST.ConstExpr &&
+               valueExpr.initializer instanceof AST.CreateExpr) {
+      value = valueExpr.initializer;
+    } else*/ {
+      try {
+        let type = [AST.Type.f32];
+        const constValue = valueExpr.constEvaluate(this._context, type) as number;
+        this._validateTypeRange(constValue, type[0]);
+        value = this._updateNode(new AST.LiteralExpr(constValue, type[0]));
+      } catch {
         value = valueExpr;
-      } else if (
-        valueExpr instanceof AST.ConstExpr &&
-        valueExpr.initializer instanceof AST.CreateExpr
-      ) {
-        value = valueExpr.initializer;
-      } else {
-        try {
-          const constValue = valueExpr.evaluate(this._context);
-          value = new AST.LiteralExpr(constValue);
-        } catch {
-          value = valueExpr;
-        }
       }
     }
-    const c = new AST.Const(name.toString(), type, "", "", value);
+
+    if (type !== null && value instanceof AST.LiteralExpr) {
+      if (value.type.name !== "x32") {
+        if (type.name !== value.type.name) {
+          throw this._error(this._peek(), `Invalid cast from ${value.type.name} to ${type.name}. Line:${this._currentLine}`);
+        }
+      }
+      value.type = type;
+      this._validateTypeRange(value.scalarValue, value.type);
+    } else if (type === null && value instanceof AST.LiteralExpr) {
+      type = value?.type ?? AST.Type.f32;
+      if (type === AST.Type.x32) {
+        type = AST.Type.i32;
+      }
+    }
+
+    const c = this._updateNode(new AST.Const(name.toString(), type, "", "", value));
     this._context.constants.set(c.name, c);
     return c;
   }
@@ -1325,8 +1529,27 @@ export class WgslParser {
     let value: AST.Expression | null = null;
     if (this._match(TokenTypes.tokens.equal)) {
       value = this._const_expression();
+      const type = [AST.Type.f32];
+      try {
+        const v = value!.constEvaluate(this._context, type) as number;
+        value = new AST.LiteralExpr(v, type[0]);
+      } catch (_) {
+      }
     }
-    return new AST.Let(name.toString(), type, "", "", value);
+    if (type !== null && value instanceof AST.LiteralExpr) {
+      if (value.type.name !== "x32") {
+        if (type.name !== value.type.name) {
+          throw this._error(this._peek(), `Invalid cast from ${value.type.name} to ${type.name}. Line:${this._currentLine}`);
+        }
+      }
+      value.type = type;
+    } else if (type === null && value instanceof AST.LiteralExpr) {
+      type = value.type.name === "x32" ? AST.Type.i32 : value.type;
+    }
+    if (value instanceof AST.LiteralExpr) {
+      this._validateTypeRange(value.scalarValue, type);
+    }
+    return this._updateNode(new AST.Let(name.toString(), type, "", "", value));
   }
 
   _const_expression(): AST.Expression {
@@ -1370,7 +1593,7 @@ export class WgslParser {
       }
     }
 
-    return new AST.Var(name.toString(), type, storage, access, null);
+    return this._updateNode(new AST.Var(name.toString(), type, storage, access, null));
   }
 
   _override_decl(): AST.Override | null {
@@ -1392,7 +1615,7 @@ export class WgslParser {
       }
     }
 
-    return new AST.Override(name.toString(), type, null);
+    return this._updateNode(new AST.Override(name.toString(), type, null));
   }
 
   _diagnostic(): AST.Diagnostic | null {
@@ -1407,14 +1630,23 @@ export class WgslParser {
       TokenTypes.tokens.ident,
       "Expected diagnostic rule name."
     );
+    let ruleMessage = rule.toString();
+    if (this._match(TokenTypes.tokens.period)) {
+      const message = this._consume(
+        TokenTypes.tokens.ident,
+        "Expected diagnostic message."
+      );
+      ruleMessage += `.${message.toString()}`;
+    }
+
     this._consume(TokenTypes.tokens.paren_right, "Expected ')'");
-    return new AST.Diagnostic(severity.toString(), rule.toString());
+    return this._updateNode(new AST.Diagnostic(severity.toString(), ruleMessage));
   }
 
   _enable_directive(): AST.Enable {
     // enable ident semicolon
     const name = this._consume(TokenTypes.tokens.ident, "identity expected.");
-    return new AST.Enable(name.toString());
+    return this._updateNode(new AST.Enable(name.toString()));
   }
 
   _requires_directive(): AST.Requires {
@@ -1424,7 +1656,7 @@ export class WgslParser {
       const name = this._consume(TokenTypes.tokens.ident, "identity expected.");
       extensions.push(name.toString());
     }
-    return new AST.Requires(extensions);
+    return this._updateNode(new AST.Requires(extensions));
   }
 
   _type_alias(): AST.Alias {
@@ -1440,7 +1672,7 @@ export class WgslParser {
       aliasType = this._context.aliases.get(aliasType.name).type;
     }
 
-    const aliasNode = new AST.Alias(name.toString(), aliasType);
+    const aliasNode = this._updateNode(new AST.Alias(name.toString(), aliasType));
     this._context.aliases.set(aliasNode.name, aliasNode);
 
     return aliasNode;
@@ -1487,7 +1719,7 @@ export class WgslParser {
       if (this._context.aliases.has(typeName)) {
         return this._context.aliases.get(typeName).type;
       }
-      return new AST.Type(type.toString());
+      return this._updateNode(new AST.Type(type.toString()));
     }
 
     // texture_sampler_types
@@ -1511,7 +1743,7 @@ export class WgslParser {
         }
         this._consume(TokenTypes.tokens.greater_than, "Expected '>' for type.");
       }
-      return new AST.TemplateType(type, format, access);
+      return this._updateNode(new AST.TemplateType(type, format, access));
     }
 
     // pointer less_than storage_class comma type_decl (comma access_mode)? greater_than
@@ -1535,7 +1767,7 @@ export class WgslParser {
         TokenTypes.tokens.greater_than,
         "Expected '>' for pointer."
       );
-      return new AST.PointerType(pointer, storage.toString(), decl, access);
+      return this._updateNode(new AST.PointerType(pointer, storage.toString(), decl, access));
     }
 
     // The following type_decl's have an optional attribyte_list*
@@ -1560,7 +1792,7 @@ export class WgslParser {
           // finished being parsed, because const statements can be declared **after** they
           // are used.
           try {
-            count = countNode.evaluate(this._context).toString();
+            count = countNode.constEvaluate(this._context).toString();
             countNode = null;
           } catch (e) {
             count = "1";
@@ -1572,7 +1804,7 @@ export class WgslParser {
         );
         countInt = count ? parseInt(count) : 0;
       }
-      const arrayType = new AST.ArrayType(array.toString(), attrs, format, countInt);
+      const arrayType = this._updateNode(new AST.ArrayType(array.toString(), attrs, format, countInt));
       if (countNode) {
         this._deferArrayCountEval.push({ arrayType, countNode });
       }
@@ -1585,12 +1817,12 @@ export class WgslParser {
   _texture_sampler_types(): AST.SamplerType | null {
     // sampler_type
     if (this._match(TokenTypes.sampler_type)) {
-      return new AST.SamplerType(this._previous().toString(), null, null);
+      return this._updateNode(new AST.SamplerType(this._previous().toString(), null, null));
     }
 
     // depth_texture_type
     if (this._match(TokenTypes.depth_texture_type)) {
-      return new AST.SamplerType(this._previous().toString(), null, null);
+      return this._updateNode(new AST.SamplerType(this._previous().toString(), null, null));
     }
 
     // sampled_texture_type less_than type_decl greater_than
@@ -1609,7 +1841,7 @@ export class WgslParser {
         TokenTypes.tokens.greater_than,
         "Expected '>' for sampler type."
       );
-      return new AST.SamplerType(sampler.toString(), format, null);
+      return this._updateNode(new AST.SamplerType(sampler.toString(), format, null));
     }
 
     // storage_texture_type less_than texel_format comma access_mode greater_than
@@ -1635,7 +1867,7 @@ export class WgslParser {
         TokenTypes.tokens.greater_than,
         "Expected '>' for sampler type."
       );
-      return new AST.SamplerType(sampler.toString(), format, access);
+      return this._updateNode(new AST.SamplerType(sampler.toString(), format, access));
     }
 
     return null;
@@ -1652,7 +1884,7 @@ export class WgslParser {
         TokenTypes.attribute_name,
         "Expected attribute name"
       );
-      const attr = new AST.Attribute(name.toString(), null);
+      const attr = this._updateNode(new AST.Attribute(name.toString(), null));
       if (this._match(TokenTypes.tokens.paren_left)) {
         // literal_or_ident
         attr.value = this._consume(
