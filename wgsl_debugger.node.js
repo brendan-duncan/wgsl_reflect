@@ -8667,7 +8667,121 @@ class WgslExec extends ExecInterface {
                     }
                 }
                 else if (v.value instanceof MatrixData) {
-                    console.error("TODO Matrix array index assignment. Line", node.line);
+                    const idx = this.evalExpression(node.variable.postfix.index, context).value;
+                    if (idx < 0) {
+                        console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
+                        return;
+                    }
+                    if (value instanceof VectorData) {
+                        const typeName = this.getTypeName(v.value.typeInfo);
+                        if (typeName === "mat2x2" || typeName === "mat2x2f" || typeName === "mat2x2h") {
+                            if (idx < 2 && value.value.length === 2) {
+                                v.value.value[idx * 2] = value.value[0];
+                                v.value.value[idx * 2 + 1] = value.value[1];
+                            }
+                            else {
+                                console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
+                                return;
+                            }
+                        }
+                        else if (typeName === "mat2x3" || typeName === "mat2x3f" || typeName === "mat2x3h") {
+                            if (idx < 2 && value.value.length === 3) {
+                                v.value.value[idx * 3] = value.value[0];
+                                v.value.value[idx * 3 + 1] = value.value[1];
+                                v.value.value[idx * 3 + 2] = value.value[2];
+                            }
+                            else {
+                                console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
+                                return;
+                            }
+                        }
+                        else if (typeName === "mat2x4" || typeName === "mat2x4f" || typeName === "mat2x4h") {
+                            if (idx < 2 && value.value.length === 4) {
+                                v.value.value[idx * 4] = value.value[0];
+                                v.value.value[idx * 4 + 1] = value.value[1];
+                                v.value.value[idx * 4 + 2] = value.value[2];
+                                v.value.value[idx * 4 + 3] = value.value[3];
+                            }
+                            else {
+                                console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
+                                return;
+                            }
+                        }
+                        else if (typeName === "mat3x2" || typeName === "mat3x2f" || typeName === "mat3x2h") {
+                            if (idx < 3 && value.value.length === 2) {
+                                v.value.value[idx * 2] = value.value[0];
+                                v.value.value[idx * 2 + 1] = value.value[1];
+                            }
+                            else {
+                                console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
+                                return;
+                            }
+                        }
+                        else if (typeName === "mat3x3" || typeName === "mat3x3f" || typeName === "mat3x3h") {
+                            if (idx < 3 && value.value.length === 3) {
+                                v.value.value[idx * 3] = value.value[0];
+                                v.value.value[idx * 3 + 1] = value.value[1];
+                                v.value.value[idx * 3 + 2] = value.value[2];
+                            }
+                            else {
+                                console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
+                                return;
+                            }
+                        }
+                        else if (typeName === "mat3x4" || typeName === "mat3x4f" || typeName === "mat3x4h") {
+                            if (idx < 3 && value.value.length === 4) {
+                                v.value.value[idx * 4] = value.value[0];
+                                v.value.value[idx * 4 + 1] = value.value[1];
+                                v.value.value[idx * 4 + 2] = value.value[2];
+                                v.value.value[idx * 4 + 3] = value.value[3];
+                            }
+                            else {
+                                console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
+                                return;
+                            }
+                        }
+                        else if (typeName === "mat4x2" || typeName === "mat4x2f" || typeName === "mat4x2h") {
+                            if (idx < 4 && value.value.length === 2) {
+                                v.value.value[idx * 2] = value.value[0];
+                                v.value.value[idx * 2 + 1] = value.value[1];
+                            }
+                            else {
+                                console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
+                                return;
+                            }
+                        }
+                        else if (typeName === "mat4x3" || typeName === "mat4x3f" || typeName === "mat4x3h") {
+                            if (idx < 4 && value.value.length === 3) {
+                                v.value.value[idx * 3] = value.value[0];
+                                v.value.value[idx * 3 + 1] = value.value[1];
+                                v.value.value[idx * 3 + 2] = value.value[2];
+                            }
+                            else {
+                                console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
+                                return;
+                            }
+                        }
+                        else if (typeName === "mat4x4" || typeName === "mat4x4f" || typeName === "mat4x4h") {
+                            if (idx < 4 && value.value.length === 4) {
+                                v.value.value[idx * 4] = value.value[0];
+                                v.value.value[idx * 4 + 1] = value.value[1];
+                                v.value.value[idx * 4 + 2] = value.value[2];
+                                v.value.value[idx * 4 + 3] = value.value[3];
+                            }
+                            else {
+                                console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
+                                return;
+                            }
+                        }
+                        else {
+                            console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
+                            return;
+                        }
+                    }
+                    else {
+                        console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
+                        return;
+                    }
                 }
                 else {
                     console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);

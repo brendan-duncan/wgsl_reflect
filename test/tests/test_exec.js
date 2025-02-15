@@ -1,5 +1,5 @@
 import { test, group, webgpuDispatch } from "../test.js";
-import { WgslExec } from "../../../wgsl_reflect.module.js";
+import { WgslExec } from "../../../wgsl_debugger.module.js";
 
 export async function run() {
     await group("WgslExec", async function () {
