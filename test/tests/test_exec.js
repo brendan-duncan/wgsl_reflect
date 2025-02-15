@@ -440,7 +440,8 @@ export async function run() {
         await test("textureLoad", async function (test) {
             const shader = `
                 @group(0) @binding(0) var<storage, read_write> bins: array<u32>;
-                @group(0) @binding(1) var ourTexture: texture_2d<f32>;
+                @group(0) @binding(1) var inTexture: texture_2d<f32>;
+                @group(0) @binding(2) var outTexture : texture_storage_2d<rgba8unorm, write>;
 
                 // from: https://www.w3.org/WAI/GL/wiki/Relative_luminance
                 const kSRGBLuminanceFactors = vec3f(0.2126, 0.7152, 0.0722);
@@ -448,16 +449,17 @@ export async function run() {
                     return saturate(dot(color, kSRGBLuminanceFactors));
                 }
                 @compute @workgroup_size(1) fn main() {
-                    let size = textureDimensions(ourTexture, 0);
+                    let size = textureDimensions(inTexture, 0);
                     let numBins = f32(arrayLength(&bins));
                     let lastBinIndex = u32(numBins - 1);
                     for (var y = 0u; y < size.y; y++) {
                         for (var x = 0u; x < size.x; x++) {
                             let position = vec2u(x, y);
-                            let color = textureLoad(ourTexture, position, 0);
+                            let color = textureLoad(inTexture, position, 0);
                             let v = srgbLuminance(color.rgb);
                             let bin = min(u32(v * numBins), lastBinIndex);
                             bins[bin] += 1;
+                            textureStore(outTexture, position, vec4<f32>(v, v, v, 1.0));
                         }
                     }
                 }`;
@@ -466,17 +468,27 @@ export async function run() {
                 const histogramBuffer = new Uint32Array(numBins);
 
                 const size = [16, 16];
-                const texture = new Uint8Array(size[0] * size[1] * 4);
+                const inTexture = new Uint8Array(size[0] * size[1] * 4);
                 for (let y = 0, idx = 0; y < size[1]; ++y) {
                     for (let x = 0; x < size[0]; ++x, idx += 4) {
-                        texture[idx + 0] = x * (255 / size[0]);
-                        texture[idx + 1] = y * (255 / size[1]);
-                        texture[idx + 2] = 0;
-                        texture[idx + 3] = 255;
+                        inTexture[idx + 0] = x * (255 / size[0]);
+                        inTexture[idx + 1] = y * (255 / size[1]);
+                        inTexture[idx + 2] = 0;
+                        inTexture[idx + 3] = 255;
                     }
                 }
 
-                const bg = {0: {0: histogramBuffer, 1: {texture, size}}};
+                const outTexture = new Uint8Array(size[0] * size[1] * 4);
+                for (let y = 0, idx = 0; y < size[1]; ++y) {
+                    for (let x = 0; x < size[0]; ++x, idx += 4) {
+                        outTexture[idx + 0] = x * (255 / size[0]);
+                        outTexture[idx + 1] = y * (255 / size[1]);
+                        outTexture[idx + 2] = 0;
+                        outTexture[idx + 3] = 255;
+                    }
+                }
+
+                const bg = {0: {0: histogramBuffer, 1: {texture: inTexture, size}, 2: {texture: outTexture, size, storage:1}}};
 
                 const _data = await webgpuDispatch(shader, "main", 1, bg);
                 const webgpuData = new Uint32Array(_data);

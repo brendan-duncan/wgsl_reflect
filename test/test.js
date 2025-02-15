@@ -363,13 +363,17 @@ export async function webgpuDispatch(shader, module, dispatchCount, bindgroupDat
                 }
                 bindGroups[group].push({ binding, resource: { buffer: uniformBuffer } });
             } else if (data.texture !== undefined && data.size !== undefined) {
+                let flags = GPUTextureUsage.TEXTURE_BINDING;
+                if (data.storage) {
+                    flags |= GPUTextureUsage.STORAGE_BINDING;
+                }
                 const texture = device.createTexture({
                     dimension: "2d",
                     format: "rgba8unorm",
                     mipLevelCount: 1,
                     sampleCount: 1,
                     size: data.size,
-                    usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+                    usage: GPUTextureUsage.COPY_DST | flags
                 });
 
                 device.queue.writeTexture({ texture }, data.texture, {bytesPerRow: data.size[0] * 4},

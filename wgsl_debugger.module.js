@@ -7551,7 +7551,45 @@ class BuiltinFunctions {
         return null;
     }
     TextureStore(node, context) {
-        console.error("TODO: textureStore");
+        const textureArg = node.args[0];
+        const uv = this.exec.evalExpression(node.args[1], context);
+        const value = this.exec.evalExpression(node.args[2], context).value;
+        if (value.length !== 4) {
+            console.error(`Invalid value argument for textureStore. Line ${node.line}`);
+            return null;
+        }
+        // TODO: non-vec2 UVs, for non-2D textures
+        if (!(uv instanceof VectorData) || uv.value.length !== 2) {
+            console.error(`Invalid UV argument for textureStore. Line ${node.line}`);
+            return null;
+        }
+        if (textureArg instanceof VariableExpr) {
+            const textureName = textureArg.name;
+            const texture = context.getVariableValue(textureName);
+            if (texture instanceof TypedData) {
+                const textureSize = texture.textureSize;
+                const x = Math.floor(uv.value[0]);
+                const y = Math.floor(uv.value[1]);
+                if (x < 0 || x >= textureSize[0] || y < 0 || y >= textureSize[1]) {
+                    console.error(`Texture ${textureName} out of bounds. Line ${node.line}`);
+                    return null;
+                }
+                // TODO non RGBA8 textures
+                const offset = (y * textureSize[0] + x) * 4;
+                const texel = new Uint8Array(texture.buffer, offset, 4);
+                // TODO: non-f32 textures
+                texel[0] = value[0] * 255;
+                texel[1] = value[1] * 255;
+                texel[2] = value[2] * 255;
+                texel[3] = value[3] * 255;
+                return null;
+            }
+            else {
+                console.error(`Texture ${textureName} not found. Line ${node.line}`);
+                return null;
+            }
+        }
+        console.error(`Invalid texture argument for textureStore. Line ${node.line}`);
         return null;
     }
     // Atomic Built-in Functions
