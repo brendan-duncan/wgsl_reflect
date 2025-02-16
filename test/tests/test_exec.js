@@ -503,7 +503,7 @@ export async function run() {
 
         await test("atomic", async function (test) {
             const shader = `
-                @group(0) @binding(0) var<storage, read_write> bins: array<atomic<u32>>;
+                @group(0) @binding(0) var<storage, read_write> bins: array<array<atomic<u32>, 3>>;
                 @group(0) @binding(1) var ourTexture: texture_2d<f32>;
 
                 const kSRGBLuminanceFactors = vec3f(0.2126, 0.7152, 0.0722);
@@ -519,11 +519,13 @@ export async function run() {
                     let color = textureLoad(ourTexture, position, 0);
                     let v = srgbLuminance(color.rgb);
                     let bin = min(u32(v * numBins), lastBinIndex);
-                    atomicAdd(&bins[bin], 1u);
+                    let b = atomicLoad(&bins[bin][0]);
+                    atomicStore(&bins[bin][0], b + 1u);
+                    //atomicAdd(&bins[bin][0], 1u);
                 }`;
 
             const numBins = 256;
-            const histogramBuffer = new Uint32Array(numBins);
+            const histogramBuffer = new Uint32Array(numBins*3);
 
             const size = [16, 16];
             const texture = new Uint8Array(size[0] * size[1] * 4);
