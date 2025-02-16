@@ -2011,7 +2011,7 @@ export class WgslExec extends ExecInterface {
 
         const isInt = typeName.endsWith("i") || typeName.endsWith("u");
 
-        const values = [];
+        const values: number[] = [];
         if (node instanceof AST.LiteralExpr) {
             if (isArray(node.value)) {
                 const a = node.value as number[];
@@ -2019,7 +2019,7 @@ export class WgslExec extends ExecInterface {
                     values.push(v);
                 }
             } else {
-                values.push(node.value);
+                values.push(node.value as number);
             }
         } else {
             for (const arg of node.args) {
@@ -2058,12 +2058,12 @@ export class WgslExec extends ExecInterface {
             }
         }
 
-        if (values.length !== count) {
+        if (values.length < count) {
             console.error(`Invalid vec constructor. Line ${node.line}`);
             return null;
         }
 
-        return new VectorData(values, typeInfo);
+        return new VectorData(values.length > count ? values.slice(0, count) : values, typeInfo);
     }
 
     _callConstructorMatrix(node: AST.CreateExpr | AST.LiteralExpr, context: ExecContext): Data | null {

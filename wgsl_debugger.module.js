@@ -10121,11 +10121,11 @@ class WgslExec extends ExecInterface {
                 values.push(values[0]);
             }
         }
-        if (values.length !== count) {
+        if (values.length < count) {
             console.error(`Invalid vec constructor. Line ${node.line}`);
             return null;
         }
-        return new VectorData(values, typeInfo);
+        return new VectorData(values.length > count ? values.slice(0, count) : values, typeInfo);
     }
     _callConstructorMatrix(node, context) {
         const typeInfo = this.getTypeInfo(node.type);
