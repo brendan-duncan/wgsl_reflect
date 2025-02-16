@@ -9,7 +9,7 @@ import { FunctionInfo, VariableInfo, AliasInfo, OverrideInfo,
  
 class _FunctionResources {
   node: AST.Function;
-  resources: Array<VariableInfo> | null = null;
+  resources: VariableInfo[] | null = null;
   inUse: boolean = false;
   info: FunctionInfo | null = null;
   constructor(node: AST.Function) {
@@ -29,23 +29,23 @@ class _TypeSize {
 
 export class Reflect {
   /// All top-level uniform vars in the shader.
-  uniforms: Array<VariableInfo> = [];
+  uniforms: VariableInfo[] = [];
   /// All top-level storage vars in the shader.
-  storage: Array<VariableInfo> = [];
+  storage: VariableInfo[] = [];
   /// All top-level texture vars in the shader;
-  textures: Array<VariableInfo> = [];
+  textures: VariableInfo[] = [];
   // All top-level sampler vars in the shader.
-  samplers: Array<VariableInfo> = [];
+  samplers: VariableInfo[] = [];
   /// All top-level type aliases in the shader.
-  aliases: Array<AliasInfo> = [];
+  aliases: AliasInfo[] = [];
   /// All top-level overrides in the shader.
-  overrides: Array<OverrideInfo> = [];
+  overrides: OverrideInfo[] = [];
   /// All top-level structs in the shader.
-  structs: Array<StructInfo> = [];
+  structs: StructInfo[] = [];
   /// All entry functions in the shader: vertex, fragment, and/or compute.
   entry: EntryFunctions = new EntryFunctions();
   /// All functions in the shader, including entry functions.
-  functions: Array<FunctionInfo> = [];
+  functions: FunctionInfo[] = [];
 
   _types: Map<AST.Type, TypeInfo> = new Map();
   _functions: Map<string, _FunctionResources> = new Map();
@@ -59,7 +59,7 @@ export class Reflect {
     );
   }
 
-  updateAST(ast: Array<AST.Node>): void {
+  updateAST(ast: AST.Node[]): void {
     for (const node of ast) {
       if (node instanceof AST.Function) {
         this._functions.set(node.name, new _FunctionResources(node as AST.Function));
@@ -341,7 +341,7 @@ export class Reflect {
     this._markStructsInUse(info);
   }
 
-  _findResources(fn: AST.Node, isEntry: boolean): Array<VariableInfo> {
+  _findResources(fn: AST.Node, isEntry: boolean): VariableInfo[] {
     const resources: any[] = [];
     const self = this;
     const varStack: any[] = [];
@@ -416,8 +416,8 @@ export class Reflect {
     return [...new Map(resources.map(r => [r.name, r])).values()];
   }
 
-  getBindGroups(): Array<Array<VariableInfo>> {
-    const groups: Array<Array<VariableInfo>> = [];
+  getBindGroups(): Array<VariableInfo[]> {
+    const groups: Array<VariableInfo[]> = [];
 
     function _makeRoom(group: number, binding: number) {
       if (group >= groups.length) {
@@ -462,8 +462,8 @@ export class Reflect {
 
   _getOutputs(
     type: AST.Type,
-    outputs: Array<OutputInfo> | undefined = undefined
-  ): Array<OutputInfo> {
+    outputs: OutputInfo[] | undefined = undefined
+  ): OutputInfo[] {
     if (outputs === undefined) {
       outputs = [];
     }
@@ -480,7 +480,7 @@ export class Reflect {
     return outputs;
   }
 
-  _getStructOutputs(struct: AST.Struct, outputs: Array<OutputInfo>) {
+  _getStructOutputs(struct: AST.Struct, outputs: OutputInfo[]) {
     for (const m of struct.members) {
       if (m.type instanceof AST.Struct) {
         this._getStructOutputs(m.type, outputs);
@@ -516,9 +516,9 @@ export class Reflect {
   }
 
   _getInputs(
-    args: Array<AST.Argument>,
-    inputs: Array<InputInfo> | undefined = undefined
-  ): Array<InputInfo> {
+    args: AST.Argument[],
+    inputs: InputInfo[] | undefined = undefined
+  ): InputInfo[] {
     if (inputs === undefined) {
       inputs = [];
     }
@@ -537,7 +537,7 @@ export class Reflect {
     return inputs;
   }
 
-  _getStructInputs(struct: AST.Struct, inputs: Array<InputInfo>) {
+  _getStructInputs(struct: AST.Struct, inputs: InputInfo[]) {
     for (const m of struct.members) {
       if (m.type instanceof AST.Struct) {
         this._getStructInputs(m.type, inputs);
@@ -597,7 +597,7 @@ export class Reflect {
 
   getTypeInfo(
     type: AST.Type,
-    attributes: Array<AST.Attribute> | null = null
+    attributes: AST.Attribute[] | null = null
   ): TypeInfo {
     if (this._types.has(type)) {
       return this._types.get(type)!;
@@ -860,7 +860,7 @@ export class Reflect {
   }
 
   _getAttributeNum(
-    attributes: Array<AST.Attribute> | null,
+    attributes: AST.Attribute[] | null,
     name: string,
     defaultValue: number
   ): number {

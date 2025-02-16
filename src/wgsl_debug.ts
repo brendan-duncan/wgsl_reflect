@@ -9,7 +9,7 @@ import { Command, StatementCommand, CallExprCommand, GotoCommand, BlockCommand,
 export class StackFrame {
     parent: StackFrame | null = null;
     context: ExecContext;
-    commands: Array<Command> = [];
+    commands: Command[] = [];
     current: number = 0;
     parentCallExpr: AST.CallExpr | null = null;
 
@@ -38,7 +38,7 @@ export class StackFrame {
 }
 
 class ExecStack {
-    states: Array<StackFrame> = [];
+    states: StackFrame[] = [];
 
     get isEmpty(): boolean { return this.states.length == 0; }
 
@@ -676,7 +676,7 @@ export class WgslDebug {
         this._execStack.states.push(state);
     }
 
-    _createState(ast: Array<AST.Node>, context: ExecContext, parent?: StackFrame): StackFrame {
+    _createState(ast: AST.Node[], context: ExecContext, parent?: StackFrame): StackFrame {
         const state = new StackFrame(context, parent ?? null);
 
         for (const statement of ast) {
@@ -834,7 +834,7 @@ export class WgslDebug {
         return state;
     }
 
-    _collectFunctionCalls(node: AST.Expression, functionCalls: Array<AST.CallExpr>) {
+    _collectFunctionCalls(node: AST.Expression, functionCalls: AST.CallExpr[]) {
         if (node instanceof AST.CallExpr) {
             if (node.args) {
                 for (const arg of node.args) {

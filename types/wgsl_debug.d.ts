@@ -5,7 +5,7 @@ import { Command } from "./exec/command.js";
 export declare class StackFrame {
     parent: StackFrame | null;
     context: ExecContext;
-    commands: Array<Command>;
+    commands: Command[];
     current: number;
     parentCallExpr: AST.CallExpr | null;
     constructor(context: ExecContext, parent?: StackFrame);
@@ -14,7 +14,7 @@ export declare class StackFrame {
     getCurrentCommand(): Command | null;
 }
 declare class ExecStack {
-    states: Array<StackFrame>;
+    states: StackFrame[];
     get isEmpty(): boolean;
     get last(): StackFrame | null;
     pop(): void;
@@ -48,7 +48,7 @@ export declare class WgslDebug {
     stepNext(stepInto?: boolean): boolean;
     _dispatchWorkgroup(f: FunctionRef, workgroup_id: number[], context: ExecContext): boolean;
     _dispatchExec(f: FunctionRef, context: ExecContext): void;
-    _createState(ast: Array<AST.Node>, context: ExecContext, parent?: StackFrame): StackFrame;
-    _collectFunctionCalls(node: AST.Expression, functionCalls: Array<AST.CallExpr>): void;
+    _createState(ast: AST.Node[], context: ExecContext, parent?: StackFrame): StackFrame;
+    _collectFunctionCalls(node: AST.Expression, functionCalls: AST.CallExpr[]): void;
 }
 export {};

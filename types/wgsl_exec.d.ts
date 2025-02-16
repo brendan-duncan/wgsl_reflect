@@ -6,12 +6,12 @@ import { ExecInterface } from "./exec/exec_interface.js";
 import { BuiltinFunctions } from "./exec/builtin_functions.js";
 import { Data } from "./exec/data.js";
 export declare class WgslExec extends ExecInterface {
-    ast: Array<AST.Node>;
+    ast: AST.Node[];
     context: ExecContext;
     reflection: Reflect;
     builtins: BuiltinFunctions;
     typeInfo: Object;
-    constructor(ast?: Array<AST.Node>, context?: ExecContext);
+    constructor(ast?: AST.Node[], context?: ExecContext);
     getVariableValue(name: string): number | number[] | null;
     execute(config?: Object): void;
     dispatchWorkgroups(kernel: string, dispatchCount: number | number[], bindGroups: Object, config?: Object): void;
@@ -25,7 +25,7 @@ export declare class WgslExec extends ExecInterface {
     _dispatchWorkgroup(f: FunctionRef, workgroup_id: number[], context: ExecContext): void;
     _dispatchExec(f: FunctionRef, context: ExecContext): void;
     _getVariableName(node: AST.Node, context: ExecContext): string | null;
-    _execStatements(statements: Array<AST.Node>, context: ExecContext): Data | null;
+    _execStatements(statements: AST.Node[], context: ExecContext): Data | null;
     _call(node: AST.Call, context: ExecContext): void;
     _increment(node: AST.Increment, context: ExecContext): void;
     _assign(node: AST.Assign, context: ExecContext): void;

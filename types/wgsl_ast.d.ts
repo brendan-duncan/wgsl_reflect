@@ -15,10 +15,10 @@ export declare class Node {
     constructor();
     get isAstNode(): boolean;
     get astNodeType(): string;
-    constEvaluate(context: ParseContext, type?: Array<Type>): number | number[];
+    constEvaluate(context: ParseContext, type?: Type[]): number | number[];
     constEvaluateString(context: ParseContext): string;
     search(callback: (node: Node) => void): void;
-    searchBlock(block: Array<Node> | null, callback: (node: Node) => void): void;
+    searchBlock(block: Node[] | null, callback: (node: Node) => void): void;
 }
 export declare class _BlockStart extends Node {
     static instance: _BlockStart;
@@ -41,14 +41,14 @@ export declare class Statement extends Node {
  */
 export declare class Function extends Statement {
     name: string;
-    args: Array<Argument>;
+    args: Argument[];
     returnType: Type | null;
-    body: Array<Statement>;
-    attributes: Array<Attribute> | null;
+    body: Statement[];
+    attributes: Attribute[] | null;
     startLine: number;
     endLine: number;
     calls: Set<Function>;
-    constructor(name: string, args: Array<Argument>, returnType: Type | null, body: Array<Statement>, startLine: number, endLine: number);
+    constructor(name: string, args: Argument[], returnType: Type | null, body: Statement[], startLine: number, endLine: number);
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;
 }
@@ -70,8 +70,8 @@ export declare class StaticAssert extends Statement {
  */
 export declare class While extends Statement {
     condition: Expression;
-    body: Array<Statement>;
-    constructor(condition: Expression, body: Array<Statement>);
+    body: Statement[];
+    constructor(condition: Expression, body: Statement[]);
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;
 }
@@ -81,8 +81,8 @@ export declare class While extends Statement {
  * @category AST
  */
 export declare class Continuing extends Statement {
-    body: Array<Statement>;
-    constructor(body: Array<Statement>);
+    body: Statement[];
+    constructor(body: Statement[]);
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;
 }
@@ -95,8 +95,8 @@ export declare class For extends Statement {
     init: Statement | null;
     condition: Expression | null;
     increment: Statement | null;
-    body: Array<Statement>;
-    constructor(init: Statement | null, condition: Expression | null, increment: Statement | null, body: Array<Statement>);
+    body: Statement[];
+    constructor(init: Statement | null, condition: Expression | null, increment: Statement | null, body: Statement[]);
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;
 }
@@ -111,7 +111,7 @@ export declare class Var extends Statement {
     storage: string | null;
     access: string | null;
     value: Expression | null;
-    attributes: Array<Attribute> | null;
+    attributes: Attribute[] | null;
     constructor(name: string, type: Type | null, storage: string | null, access: string | null, value: Expression | null);
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;
@@ -125,7 +125,7 @@ export declare class Override extends Statement {
     name: string;
     type: Type | null;
     value: Expression | null;
-    attributes: Array<Attribute> | null;
+    attributes: Attribute[] | null;
     constructor(name: string, type: Type | null, value: Expression | null);
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;
@@ -141,7 +141,7 @@ export declare class Let extends Statement {
     storage: string | null;
     access: string | null;
     value: Expression | null;
-    attributes: Array<Attribute> | null;
+    attributes: Attribute[] | null;
     constructor(name: string, type: Type | null, storage: string | null, access: string | null, value: Expression | null);
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;
@@ -157,10 +157,10 @@ export declare class Const extends Statement {
     storage: string | null;
     access: string | null;
     value: Expression;
-    attributes: Array<Attribute> | null;
+    attributes: Attribute[] | null;
     constructor(name: string, type: Type | null, storage: string | null, access: string | null, value: Expression);
     get astNodeType(): string;
-    constEvaluate(context: ParseContext, type?: Array<Type>): number | number[];
+    constEvaluate(context: ParseContext, type?: Type[]): number | number[];
     search(callback: (node: Node) => void): void;
 }
 export declare enum IncrementOperator {
@@ -218,8 +218,8 @@ export declare class Assign extends Statement {
  */
 export declare class Call extends Statement {
     name: string;
-    args: Array<Expression>;
-    constructor(name: string, args: Array<Expression>);
+    args: Expression[];
+    constructor(name: string, args: Expression[]);
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;
 }
@@ -229,9 +229,9 @@ export declare class Call extends Statement {
  * @category AST
  */
 export declare class Loop extends Statement {
-    body: Array<Statement>;
+    body: Statement[];
     continuing: Continuing | null;
-    constructor(body: Array<Statement>, continuing: Continuing | null);
+    constructor(body: Statement[], continuing: Continuing | null);
     get astNodeType(): string;
 }
 /**
@@ -241,8 +241,8 @@ export declare class Loop extends Statement {
  */
 export declare class Switch extends Statement {
     condition: Expression;
-    body: Array<Statement>;
-    constructor(condition: Expression, body: Array<Statement>);
+    body: Statement[];
+    constructor(condition: Expression, body: Statement[]);
     get astNodeType(): string;
 }
 /**
@@ -252,10 +252,10 @@ export declare class Switch extends Statement {
  */
 export declare class If extends Statement {
     condition: Expression;
-    body: Array<Statement>;
-    elseif: Array<ElseIf> | null;
-    else: Array<Statement> | null;
-    constructor(condition: Expression, body: Array<Statement>, elseif: Array<ElseIf> | null, _else: Array<Statement> | null);
+    body: Statement[];
+    elseif: ElseIf[] | null;
+    else: Statement[] | null;
+    constructor(condition: Expression, body: Statement[], elseif: ElseIf[] | null, _else: Statement[] | null);
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;
 }
@@ -349,7 +349,7 @@ export declare class Continue extends Statement {
  */
 export declare class Type extends Statement {
     name: string;
-    attributes: Array<Attribute> | null;
+    attributes: Attribute[] | null;
     constructor(name: string);
     get astNodeType(): string;
     get isStruct(): boolean;
@@ -369,10 +369,10 @@ export declare class Type extends Statement {
  * @category AST
  */
 export declare class Struct extends Type {
-    members: Array<Member>;
+    members: Member[];
     startLine: number;
     endLine: number;
-    constructor(name: string, members: Array<Member>, startLine: number, endLine: number);
+    constructor(name: string, members: Member[], startLine: number, endLine: number);
     get astNodeType(): string;
     get isStruct(): boolean;
     getMemberIndex(name: string): number;
@@ -439,10 +439,10 @@ export declare class PointerType extends Type {
  * @category AST
  */
 export declare class ArrayType extends Type {
-    attributes: Array<Attribute> | null;
+    attributes: Attribute[] | null;
     format: Type | null;
     count: number;
-    constructor(name: string, attributes: Array<Attribute> | null, format: Type | null, count: number);
+    constructor(name: string, attributes: Attribute[] | null, format: Type | null, count: number);
     get astNodeType(): string;
     get isArray(): boolean;
 }
@@ -485,11 +485,11 @@ export declare class StringExpr extends Expression {
  */
 export declare class CreateExpr extends Expression {
     type: Type | null;
-    args: Array<Expression> | null;
-    constructor(type: Type | null, args: Array<Expression> | null);
+    args: Expression[] | null;
+    constructor(type: Type | null, args: Expression[] | null);
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;
-    constEvaluate(context: ParseContext, type?: Array<Type>): number | number[];
+    constEvaluate(context: ParseContext, type?: Type[]): number | number[];
 }
 /**
  * @class CallExpr
@@ -498,14 +498,14 @@ export declare class CreateExpr extends Expression {
  */
 export declare class CallExpr extends Expression {
     name: string;
-    args: Array<Expression> | null;
+    args: Expression[] | null;
     cachedReturnValue: any;
-    constructor(name: string, args: Array<Expression> | null);
+    constructor(name: string, args: Expression[] | null);
     get astNodeType(): string;
     setCachedReturnValue(value: any): void;
     static builtinFunctionNames: Set<string>;
     get isBuiltin(): boolean;
-    constEvaluate(context: ParseContext, type?: Array<Type>): number | number[];
+    constEvaluate(context: ParseContext, type?: Type[]): number | number[];
     search(callback: (node: Node) => void): void;
 }
 /**
@@ -518,7 +518,7 @@ export declare class VariableExpr extends Expression {
     constructor(name: string);
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;
-    constEvaluate(context: ParseContext, type?: Array<Type>): number | number[];
+    constEvaluate(context: ParseContext, type?: Type[]): number | number[];
 }
 /**
  * @class ConstExpr
@@ -530,7 +530,7 @@ export declare class ConstExpr extends Expression {
     initializer: Expression;
     constructor(name: string, initializer: Expression);
     get astNodeType(): string;
-    constEvaluate(context: ParseContext, type?: Array<Type>): number | number[];
+    constEvaluate(context: ParseContext, type?: Type[]): number | number[];
     search(callback: (node: Node) => void): void;
 }
 /**
@@ -543,7 +543,7 @@ export declare class LiteralExpr extends Expression {
     type: Type;
     constructor(value: number | number[], type: Type);
     get astNodeType(): string;
-    constEvaluate(context: ParseContext, type?: Array<Type>): number | number[];
+    constEvaluate(context: ParseContext, type?: Type[]): number | number[];
     get scalarValue(): number;
     get vectorValue(): number[];
 }
@@ -566,10 +566,10 @@ export declare class BitcastExpr extends Expression {
  */
 export declare class TypecastExpr extends Expression {
     type: Type | null;
-    args: Array<Expression> | null;
-    constructor(type: Type | null, args: Array<Expression> | null);
+    args: Expression[] | null;
+    constructor(type: Type | null, args: Expression[] | null);
     get astNodeType(): string;
-    constEvaluate(context: ParseContext, type?: Array<Type>): number | number[];
+    constEvaluate(context: ParseContext, type?: Type[]): number | number[];
     search(callback: (node: Node) => void): void;
 }
 /**
@@ -578,10 +578,10 @@ export declare class TypecastExpr extends Expression {
  * @category AST
  */
 export declare class GroupingExpr extends Expression {
-    contents: Array<Expression>;
-    constructor(contents: Array<Expression>);
+    contents: Expression[];
+    constructor(contents: Expression[]);
     get astNodeType(): string;
-    constEvaluate(context: ParseContext, type?: Array<Type>): number | number[];
+    constEvaluate(context: ParseContext, type?: Type[]): number | number[];
     search(callback: (node: Node) => void): void;
 }
 /**
@@ -613,7 +613,7 @@ export declare class UnaryOperator extends Operator {
     right: Expression;
     constructor(operator: string, right: Expression);
     get astNodeType(): string;
-    constEvaluate(context: ParseContext, type?: Array<Type>): number | number[];
+    constEvaluate(context: ParseContext, type?: Type[]): number | number[];
     search(callback: (node: Node) => void): void;
 }
 /**
@@ -629,7 +629,7 @@ export declare class BinaryOperator extends Operator {
     constructor(operator: string, left: Expression, right: Expression);
     get astNodeType(): string;
     _getPromotedType(t1: Type, t2: Type): Type;
-    constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
+    constEvaluate(context: ParseContext, type?: Type[]): number | number[];
     search(callback: (node: Node) => void): void;
 }
 /**
@@ -646,9 +646,9 @@ export declare class SwitchCase extends Node {
  * @category AST
  */
 export declare class Case extends SwitchCase {
-    selector: Array<Expression>;
-    body: Array<Statement>;
-    constructor(selector: Array<Expression>, body: Array<Statement>);
+    selector: Expression[];
+    body: Statement[];
+    constructor(selector: Expression[], body: Statement[]);
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;
 }
@@ -658,8 +658,8 @@ export declare class Case extends SwitchCase {
  * @category AST
  */
 export declare class Default extends SwitchCase {
-    body: Array<Statement>;
-    constructor(body: Array<Statement>);
+    body: Statement[];
+    constructor(body: Statement[]);
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;
 }
@@ -671,8 +671,8 @@ export declare class Default extends SwitchCase {
 export declare class Argument extends Node {
     name: string;
     type: Type;
-    attributes: Array<Attribute> | null;
-    constructor(name: string, type: Type, attributes: Array<Attribute> | null);
+    attributes: Attribute[] | null;
+    constructor(name: string, type: Type, attributes: Attribute[] | null);
     get astNodeType(): string;
 }
 /**
@@ -682,8 +682,8 @@ export declare class Argument extends Node {
  */
 export declare class ElseIf extends Node {
     condition: Expression;
-    body: Array<Statement>;
-    constructor(condition: Expression, body: Array<Statement>);
+    body: Statement[];
+    constructor(condition: Expression, body: Statement[]);
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;
 }
@@ -695,8 +695,8 @@ export declare class ElseIf extends Node {
 export declare class Member extends Node {
     name: string;
     type: Type | null;
-    attributes: Array<Attribute> | null;
-    constructor(name: string, type: Type | null, attributes: Array<Attribute> | null);
+    attributes: Attribute[] | null;
+    constructor(name: string, type: Type | null, attributes: Attribute[] | null);
     get astNodeType(): string;
 }
 /**
@@ -706,7 +706,7 @@ export declare class Member extends Node {
  */
 export declare class Attribute extends Node {
     name: string;
-    value: string | Array<string> | null;
-    constructor(name: string, value: string | Array<string> | null);
+    value: string | string[] | null;
+    constructor(name: string, value: string | string[] | null);
     get astNodeType(): string;
 }

@@ -2,7 +2,7 @@ import * as AST from "../wgsl_ast.js";
 import { FunctionInfo, VariableInfo, AliasInfo, OverrideInfo, StructInfo, TypeInfo, MemberInfo, OutputInfo, InputInfo, EntryFunctions } from "./info.js";
 declare class _FunctionResources {
     node: AST.Function;
-    resources: Array<VariableInfo> | null;
+    resources: VariableInfo[] | null;
     inUse: boolean;
     info: FunctionInfo | null;
     constructor(node: AST.Function);
@@ -13,19 +13,19 @@ declare class _TypeSize {
     constructor(align: number, size: number);
 }
 export declare class Reflect {
-    uniforms: Array<VariableInfo>;
-    storage: Array<VariableInfo>;
-    textures: Array<VariableInfo>;
-    samplers: Array<VariableInfo>;
-    aliases: Array<AliasInfo>;
-    overrides: Array<OverrideInfo>;
-    structs: Array<StructInfo>;
+    uniforms: VariableInfo[];
+    storage: VariableInfo[];
+    textures: VariableInfo[];
+    samplers: VariableInfo[];
+    aliases: AliasInfo[];
+    overrides: OverrideInfo[];
+    structs: StructInfo[];
     entry: EntryFunctions;
-    functions: Array<FunctionInfo>;
+    functions: FunctionInfo[];
     _types: Map<AST.Type, TypeInfo>;
     _functions: Map<string, _FunctionResources>;
     _isStorageTexture(type: TypeInfo): boolean;
-    updateAST(ast: Array<AST.Node>): void;
+    updateAST(ast: AST.Node[]): void;
     getStructInfo(name: string): StructInfo | null;
     getOverrideInfo(name: string): OverrideInfo | null;
     _markStructsInUse(type: TypeInfo): void;
@@ -33,19 +33,19 @@ export declare class Reflect {
     findResource(group: number, binding: number): VariableInfo;
     _findResource(name: string): VariableInfo | null;
     _markStructsFromAST(type: AST.Type): void;
-    _findResources(fn: AST.Node, isEntry: boolean): Array<VariableInfo>;
-    getBindGroups(): Array<Array<VariableInfo>>;
-    _getOutputs(type: AST.Type, outputs?: Array<OutputInfo> | undefined): Array<OutputInfo>;
-    _getStructOutputs(struct: AST.Struct, outputs: Array<OutputInfo>): void;
+    _findResources(fn: AST.Node, isEntry: boolean): VariableInfo[];
+    getBindGroups(): Array<VariableInfo[]>;
+    _getOutputs(type: AST.Type, outputs?: OutputInfo[] | undefined): OutputInfo[];
+    _getStructOutputs(struct: AST.Struct, outputs: OutputInfo[]): void;
     _getOutputInfo(type: AST.Type): OutputInfo | null;
-    _getInputs(args: Array<AST.Argument>, inputs?: Array<InputInfo> | undefined): Array<InputInfo>;
-    _getStructInputs(struct: AST.Struct, inputs: Array<InputInfo>): void;
+    _getInputs(args: AST.Argument[], inputs?: InputInfo[] | undefined): InputInfo[];
+    _getStructInputs(struct: AST.Struct, inputs: InputInfo[]): void;
     _getInputInfo(node: AST.Member | AST.Argument): InputInfo | null;
     _parseString(s: string | string[]): string;
     _parseInt(s: string | string[]): number | string;
     _getAlias(name: string): TypeInfo | null;
     _getAliasInfo(node: AST.Alias): AliasInfo;
-    getTypeInfo(type: AST.Type, attributes?: Array<AST.Attribute> | null): TypeInfo;
+    getTypeInfo(type: AST.Type, attributes?: AST.Attribute[] | null): TypeInfo;
     _updateTypeInfo(type: TypeInfo): void;
     _updateStructInfo(struct: StructInfo): void;
     _getTypeSize(type: TypeInfo | MemberInfo | null | undefined): _TypeSize | null;
@@ -54,7 +54,7 @@ export declare class Reflect {
     _isTextureVar(node: AST.Node): boolean;
     _isSamplerVar(node: AST.Node): boolean;
     _getAttribute(node: AST.Node, name: string): AST.Attribute | null;
-    _getAttributeNum(attributes: Array<AST.Attribute> | null, name: string, defaultValue: number): number;
+    _getAttributeNum(attributes: AST.Attribute[] | null, name: string, defaultValue: number): number;
     _roundUp(k: number, n: number): number;
     static readonly _typeInfo: {
         f16: {

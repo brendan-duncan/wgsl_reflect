@@ -597,7 +597,7 @@ export class Token {
 /// of Token objects, which can then be fed into the WgslParser to generate an AST.
 export class WgslScanner {
   private _source: string;
-  private _tokens: Array<Token> = [];
+  private _tokens: Token[] = [];
   private _start = 0;
   private _current = 0;
   private _line = 1;
@@ -607,7 +607,7 @@ export class WgslScanner {
   }
 
   /// Scan all tokens from the source.
-  scanTokens(): Array<Token> {
+  scanTokens(): Token[] {
     while (!this._isAtEnd()) {
       this._start = this._current;
       if (!this.scanToken()) {

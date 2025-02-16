@@ -294,7 +294,7 @@ export declare class WgslScanner {
     private _current;
     private _line;
     constructor(source?: string);
-    scanTokens(): Array<Token>;
+    scanTokens(): Token[];
     scanToken(): boolean;
     _findType(lexeme: string): TokenType;
     _match(lexeme: string, rule: RegExp): boolean;

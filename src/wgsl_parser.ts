@@ -7,20 +7,20 @@ import { WgslExec } from "./wgsl_exec.js";
 
 /// Parse a sequence of tokens from the WgslScanner into an Abstract Syntax Tree (AST).
 export class WgslParser {
-  _tokens: Array<Token> = [];
+  _tokens: Token[] = [];
   _current: number = 0;
   _currentLine: number = 0;
   _context: AST.ParseContext = new AST.ParseContext();
-  _deferArrayCountEval: Array<Object> = [];
-  _currentLoop: Array<AST.Statement> = [];
+  _deferArrayCountEval: Object[] = [];
+  _currentLoop: AST.Statement[] = [];
   _exec: WgslExec = new WgslExec();
 
-  parse(tokensOrCode: Array<Token> | string): Array<AST.Statement> {
+  parse(tokensOrCode: Token[] | string): AST.Statement[] {
     this._initialize(tokensOrCode);
 
     this._deferArrayCountEval.length = 0;
 
-    const statements: Array<AST.Statement> = [];
+    const statements: AST.Statement[] = [];
     while (!this._isAtEnd()) {
       const statement = this._global_decl_or_directive();
       if (!statement) {
@@ -56,7 +56,7 @@ export class WgslParser {
     return statements;
   }
 
-  _initialize(tokensOrCode: Array<Token> | string) {
+  _initialize(tokensOrCode: Token[] | string) {
     if (tokensOrCode) {
       if (typeof tokensOrCode == "string") {
         const scanner = new WgslScanner(tokensOrCode);
@@ -92,7 +92,7 @@ export class WgslParser {
     );
   }
 
-  _match(types: TokenType | Array<TokenType>): boolean {
+  _match(types: TokenType | TokenType[]): boolean {
     if (types instanceof TokenType) {
       if (this._check(types)) {
         this._advance();
@@ -112,14 +112,14 @@ export class WgslParser {
     return false;
   }
 
-  _consume(types: TokenType | Array<TokenType>, message: string | null): Token {
+  _consume(types: TokenType | TokenType[], message: string | null): Token {
     if (this._check(types)) {
       return this._advance();
     }
     throw this._error(this._peek(), `${message}. Line:${this._currentLine}`);
   }
 
-  _check(types: TokenType | Array<TokenType>): boolean {
+  _check(types: TokenType | TokenType[]): boolean {
     if (this._isAtEnd()) {
       return false;
     }
@@ -271,7 +271,7 @@ export class WgslParser {
       "Expected '(' for function arguments."
     );
 
-    const args: Array<AST.Argument> = [];
+    const args: AST.Argument[] = [];
     if (!this._check(TokenTypes.tokens.paren_right)) {
       do {
         if (this._check(TokenTypes.tokens.paren_right)) {
@@ -320,9 +320,9 @@ export class WgslParser {
     return this._updateNode(new AST.Function(name, args, _return, body, startLine, endLine), startLine);
   }
 
-  _compound_statement(): Array<AST.Statement> {
+  _compound_statement(): AST.Statement[] {
     // brace_left statement* brace_right
-    const statements: Array<AST.Statement> = [];
+    const statements: AST.Statement[] = [];
 
     this._consume(TokenTypes.tokens.brace_left, "Expected '{' for block.");
     while (!this._check(TokenTypes.tokens.brace_right)) {
@@ -336,7 +336,7 @@ export class WgslParser {
     return statements;
   }
 
-  _statement(): AST.Statement | Array<AST.Statement> | null {
+  _statement(): AST.Statement | AST.Statement[] | null {
     // semicolon
     // return_statement semicolon
     // if_statement
@@ -757,10 +757,10 @@ export class WgslParser {
     return this._updateNode(new AST.Switch(condition, body));
   }
 
-  _switch_body(): Array<AST.Statement> {
+  _switch_body(): AST.Statement[] {
     // case case_selectors colon brace_left case_body? brace_right
     // default colon brace_left case_body? brace_right
-    const cases: Array<AST.Statement> = [];
+    const cases: AST.Statement[] = [];
     if (this._match(TokenTypes.keywords.case)) {
       const selector = this._case_selectors();
       this._match(TokenTypes.tokens.colon); // colon is optional
@@ -810,7 +810,7 @@ export class WgslParser {
     return cases;
   }
 
-  _case_selectors(): Array<AST.Expression> {
+  _case_selectors(): AST.Expression[] {
     // const_literal (comma const_literal)* comma?
     const selectors = [
       this._shift_expression(),//?.constEvaluate(this._context).toString() ?? "",
@@ -823,7 +823,7 @@ export class WgslParser {
     return selectors;
   }
 
-  _case_body(): Array<AST.Statement> {
+  _case_body(): AST.Statement[] {
     // statement case_body?
     // fallthrough semicolon
     if (this._match(TokenTypes.keywords.fallthrough)) {
@@ -865,7 +865,7 @@ export class WgslParser {
 
     const block = this._compound_statement();
 
-    let elseif: Array<AST.ElseIf> | null = [];
+    let elseif: AST.ElseIf[] | null = [];
     if (this._match_elseif()) {
       let attributes = null;
       if (this._check(TokenTypes.tokens.attr)) {
@@ -874,7 +874,7 @@ export class WgslParser {
       elseif = this._elseif_statement(elseif);
     }
 
-    let _else: Array<AST.Statement> | null = null;
+    let _else: AST.Statement[] | null = null;
     if (this._match(TokenTypes.keywords.else)) {
       let attributes = null;
       if (this._check(TokenTypes.tokens.attr)) {
@@ -900,7 +900,7 @@ export class WgslParser {
     return false;
   }
 
-  _elseif_statement(elseif: Array<AST.ElseIf> = []): Array<AST.ElseIf> {
+  _elseif_statement(elseif: AST.ElseIf[] = []): AST.ElseIf[] {
     // else_if optional_paren_expression compound_statement elseif_statement?
     const condition = this._optional_paren_expression();
     const block = this._compound_statement();
@@ -1322,13 +1322,13 @@ export class WgslParser {
     return this._updateNode(new AST.CreateExpr(type, args));
   }
 
-  _argument_expression_list(): Array<AST.Expression> | null {
+  _argument_expression_list(): AST.Expression[] | null {
     // paren_left ((short_circuit_or_expression comma)* short_circuit_or_expression comma?)? paren_right
     if (!this._match(TokenTypes.tokens.paren_left)) {
       return null;
     }
 
-    const args: Array<AST.Expression> = [];
+    const args: AST.Expression[] = [];
     do {
       if (this._check(TokenTypes.tokens.paren_right)) {
         break;
@@ -1378,7 +1378,7 @@ export class WgslParser {
       TokenTypes.tokens.brace_left,
       "Expected '{' for struct body."
     );
-    const members: Array<AST.Member> = [];
+    const members: AST.Member[] = [];
     while (!this._check(TokenTypes.tokens.brace_right)) {
       // struct_member: attribute* variable_ident_decl
       const memberAttrs = this._attribute();
@@ -1886,11 +1886,11 @@ export class WgslParser {
     return null;
   }
 
-  _attribute(): Array<AST.Attribute> | null {
+  _attribute(): AST.Attribute[] | null {
     // attr ident paren_left (literal_or_ident comma)* literal_or_ident paren_right
     // attr ident
 
-    let attributes: Array<AST.Attribute> = [];
+    let attributes: AST.Attribute[] = [];
 
     while (this._match(TokenTypes.tokens.attr)) {
       const name = this._consume(

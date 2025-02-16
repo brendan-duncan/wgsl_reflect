@@ -8,13 +8,13 @@ import { Data, ScalarData, VectorData, MatrixData, TypedData, VoidData } from ".
 import { isArray, castScalar, castVector } from "./exec/util.js";
 
 export class WgslExec extends ExecInterface {
-    ast: Array<AST.Node>;
+    ast: AST.Node[];
     context: ExecContext;
     reflection: Reflect;
     builtins: BuiltinFunctions;
     typeInfo: Object;
 
-    constructor(ast?: Array<AST.Node>, context?: ExecContext) {
+    constructor(ast?: AST.Node[], context?: ExecContext) {
         super();
         this.ast = ast ?? [];
         this.reflection = new Reflect();
@@ -413,7 +413,7 @@ export class WgslExec extends ExecInterface {
         return null;
     }
 
-    _execStatements(statements: Array<AST.Node>, context: ExecContext): Data | null {
+    _execStatements(statements: AST.Node[], context: ExecContext): Data | null {
         for (const stmt of statements) {
             // Block statements are declared as arrays of statements.
             if (stmt instanceof Array) {

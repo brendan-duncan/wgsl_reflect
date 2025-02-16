@@ -28,7 +28,7 @@ export class Node {
     return "";
   }
 
-  constEvaluate(context: ParseContext, type?: Array<Type>): number | number[] {
+  constEvaluate(context: ParseContext, type?: Type[]): number | number[] {
     throw new Error("Cannot evaluate node");
   }
 
@@ -38,12 +38,12 @@ export class Node {
 
   search(callback: (node: Node) => void): void {}
 
-  searchBlock(block: Array<Node> | null, callback: (node: Node) => void): void {
+  searchBlock(block: Node[] | null, callback: (node: Node) => void): void {
     if (block) {
       callback(_BlockStart.instance);
       for (const node of block) {
         if (node instanceof Array) {
-          this.searchBlock(node as Array<Node>, callback);
+          this.searchBlock(node as Node[], callback);
         } else {
           node.search(callback);
         }
@@ -81,19 +81,19 @@ export class Statement extends Node {
  */
 export class Function extends Statement {
   name: string;
-  args: Array<Argument>;
+  args: Argument[];
   returnType: Type | null;
-  body: Array<Statement>;
-  attributes: Array<Attribute> | null;
+  body: Statement[];
+  attributes: Attribute[] | null;
   startLine: number;
   endLine: number;
   calls: Set<Function> = new Set();
 
   constructor(
     name: string,
-    args: Array<Argument>,
+    args: Argument[],
     returnType: Type | null,
-    body: Array<Statement>,
+    body: Statement[],
     startLine: number,
     endLine: number
   ) {
@@ -144,9 +144,9 @@ export class StaticAssert extends Statement {
  */
 export class While extends Statement {
   condition: Expression;
-  body: Array<Statement>;
+  body: Statement[];
 
-  constructor(condition: Expression, body: Array<Statement>) {
+  constructor(condition: Expression, body: Statement[]) {
     super();
     this.condition = condition;
     this.body = body;
@@ -168,9 +168,9 @@ export class While extends Statement {
  * @category AST
  */
 export class Continuing extends Statement {
-  body: Array<Statement>;
+  body: Statement[];
 
-  constructor(body: Array<Statement>) {
+  constructor(body: Statement[]) {
     super();
     this.body = body;
   }
@@ -193,13 +193,13 @@ export class For extends Statement {
   init: Statement | null;
   condition: Expression | null;
   increment: Statement | null;
-  body: Array<Statement>;
+  body: Statement[];
 
   constructor(
     init: Statement | null,
     condition: Expression | null,
     increment: Statement | null,
-    body: Array<Statement>
+    body: Statement[]
   ) {
     super();
     this.init = init;
@@ -231,7 +231,7 @@ export class Var extends Statement {
   storage: string | null;
   access: string | null;
   value: Expression | null;
-  attributes: Array<Attribute> | null = null;
+  attributes: Attribute[] | null = null;
 
   constructor(
     name: string,
@@ -267,7 +267,7 @@ export class Override extends Statement {
   name: string;
   type: Type | null;
   value: Expression | null;
-  attributes: Array<Attribute> | null = null;
+  attributes: Attribute[] | null = null;
 
   constructor(name: string, type: Type | null, value: Expression | null) {
     super();
@@ -296,7 +296,7 @@ export class Let extends Statement {
   storage: string | null;
   access: string | null;
   value: Expression | null;
-  attributes: Array<Attribute> | null = null;
+  attributes: Attribute[] | null = null;
 
   constructor(
     name: string,
@@ -334,7 +334,7 @@ export class Const extends Statement {
   storage: string | null;
   access: string | null;
   value: Expression;
-  attributes: Array<Attribute> | null = null;
+  attributes: Attribute[] | null = null;
 
   constructor(
     name: string,
@@ -355,7 +355,7 @@ export class Const extends Statement {
     return "const";
   }
 
-  constEvaluate(context: ParseContext, type?: Array<Type>): number | number[] {
+  constEvaluate(context: ParseContext, type?: Type[]): number | number[] {
     return this.value.constEvaluate(context, type);
   }
 
@@ -465,9 +465,9 @@ export class Assign extends Statement {
  */
 export class Call extends Statement {
   name: string;
-  args: Array<Expression>;
+  args: Expression[];
 
-  constructor(name: string, args: Array<Expression>) {
+  constructor(name: string, args: Expression[]) {
     super();
     this.name = name;
     this.args = args;
@@ -491,10 +491,10 @@ export class Call extends Statement {
  * @category AST
  */
 export class Loop extends Statement {
-  body: Array<Statement>;
+  body: Statement[];
   continuing: Continuing | null;
 
-  constructor(body: Array<Statement>, continuing: Continuing | null) {
+  constructor(body: Statement[], continuing: Continuing | null) {
     super();
     this.body = body;
     this.continuing = continuing;
@@ -512,9 +512,9 @@ export class Loop extends Statement {
  */
 export class Switch extends Statement {
   condition: Expression;
-  body: Array<Statement>;
+  body: Statement[];
 
-  constructor(condition: Expression, body: Array<Statement>) {
+  constructor(condition: Expression, body: Statement[]) {
     super();
     this.condition = condition;
     this.body = body;
@@ -532,15 +532,15 @@ export class Switch extends Statement {
  */
 export class If extends Statement {
   condition: Expression;
-  body: Array<Statement>;
-  elseif: Array<ElseIf> | null;
-  else: Array<Statement> | null;
+  body: Statement[];
+  elseif: ElseIf[] | null;
+  else: Statement[] | null;
 
   constructor(
     condition: Expression,
-    body: Array<Statement>,
-    elseif: Array<ElseIf> | null,
-    _else: Array<Statement> | null
+    body: Statement[],
+    elseif: ElseIf[] | null,
+    _else: Statement[] | null
   ) {
     super();
     this.condition = condition;
@@ -716,7 +716,7 @@ export class Continue extends Statement {
  */
 export class Type extends Statement {
   name: string;
-  attributes: Array<Attribute> | null = null;
+  attributes: Attribute[] | null = null;
 
   constructor(name: string) {
     super();
@@ -771,11 +771,11 @@ export class Type extends Statement {
  * @category AST
  */
 export class Struct extends Type {
-  members: Array<Member>;
+  members: Member[];
   startLine: number;
   endLine: number;
 
-  constructor(name: string, members: Array<Member>, startLine: number, endLine: number) {
+  constructor(name: string, members: Member[], startLine: number, endLine: number) {
     super(name);
     this.members = members;
     this.startLine = startLine;
@@ -888,13 +888,13 @@ export class PointerType extends Type {
  * @category AST
  */
 export class ArrayType extends Type {
-  attributes: Array<Attribute> | null;
+  attributes: Attribute[] | null;
   format: Type | null;
   count: number;
 
   constructor(
     name: string,
-    attributes: Array<Attribute> | null,
+    attributes: Attribute[] | null,
     format: Type | null,
     count: number
   ) {
@@ -983,9 +983,9 @@ export class StringExpr extends Expression {
  */
 export class CreateExpr extends Expression {
   type: Type | null;
-  args: Array<Expression> | null;
+  args: Expression[] | null;
 
-  constructor(type: Type | null, args: Array<Expression> | null) {
+  constructor(type: Type | null, args: Expression[] | null) {
     super();
     this.type = type;
     this.args = args;
@@ -1004,7 +1004,7 @@ export class CreateExpr extends Expression {
     }
   }
 
-  constEvaluate(context: ParseContext, type?: Array<Type>): number | number[] {
+  constEvaluate(context: ParseContext, type?: Type[]): number | number[] {
     const t = this.type;
     if (t.name === "f32" || t.name === "f16" || t.name === "i32" || t.name === "u32" || t.name === "bool") {
       return this.args[0].constEvaluate(context, type);
@@ -1816,10 +1816,10 @@ export class CreateExpr extends Expression {
  */
 export class CallExpr extends Expression {
   name: string;
-  args: Array<Expression> | null;
+  args: Expression[] | null;
   cachedReturnValue: any = null;
 
-  constructor(name: string, args: Array<Expression> | null) {
+  constructor(name: string, args: Expression[] | null) {
     super();
     this.name = name;
     this.args = args;
@@ -1986,7 +1986,7 @@ export class CallExpr extends Expression {
     return CallExpr.builtinFunctionNames.has(this.name);
   }
 
-  constEvaluate(context: ParseContext, type?: Array<Type>): number | number[] {
+  constEvaluate(context: ParseContext, type?: Type[]): number | number[] {
     switch (this.name) {
       case "abs": {
         const value = this.args[0].constEvaluate(context, type);
@@ -2358,7 +2358,7 @@ export class VariableExpr extends Expression {
     }
   }
 
-  constEvaluate(context: ParseContext, type?: Array<Type>): number | number[] {
+  constEvaluate(context: ParseContext, type?: Type[]): number | number[] {
     const constant = context.constants.get(this.name);
     if (!constant) {
       throw new Error("Cannot evaluate node");
@@ -2386,7 +2386,7 @@ export class ConstExpr extends Expression {
     return "constExpr";
   }
 
-  constEvaluate(context: ParseContext, type?: Array<Type>): number | number[] {
+  constEvaluate(context: ParseContext, type?: Type[]): number | number[] {
     if (this.initializer instanceof CreateExpr) {
       // This is a struct constant
       const property = this.postfix?.constEvaluateString(context);
@@ -2429,7 +2429,7 @@ export class LiteralExpr extends Expression {
     return "literalExpr";
   }
 
-  constEvaluate(context: ParseContext, type?: Array<Type>): number | number[] {
+  constEvaluate(context: ParseContext, type?: Type[]): number | number[] {
     if (type !== undefined) {
       type[0] = this.type;
     }
@@ -2472,9 +2472,9 @@ export class BitcastExpr extends Expression {
  */
 export class TypecastExpr extends Expression {
   type: Type | null;
-  args: Array<Expression> | null;
+  args: Expression[] | null;
 
-  constructor(type: Type | null, args: Array<Expression> | null) {
+  constructor(type: Type | null, args: Expression[] | null) {
     super();
     this.type = type;
     this.args = args;
@@ -2484,7 +2484,7 @@ export class TypecastExpr extends Expression {
     return "typecastExpr";
   }
 
-  constEvaluate(context: ParseContext, type?: Array<Type>): number | number[] {
+  constEvaluate(context: ParseContext, type?: Type[]): number | number[] {
     if (type !== undefined) {
       type[0] = this.type;
     }
@@ -2502,9 +2502,9 @@ export class TypecastExpr extends Expression {
  * @category AST
  */
 export class GroupingExpr extends Expression {
-  contents: Array<Expression>;
+  contents: Expression[];
 
-  constructor(contents: Array<Expression>) {
+  constructor(contents: Expression[]) {
     super();
     this.contents = contents;
   }
@@ -2513,7 +2513,7 @@ export class GroupingExpr extends Expression {
     return "groupExpr";
   }
 
-  constEvaluate(context: ParseContext, type?: Array<Type>): number | number[] {
+  constEvaluate(context: ParseContext, type?: Type[]): number | number[] {
     return this.contents[0].constEvaluate(context, type);
   }
 
@@ -2570,7 +2570,7 @@ export class UnaryOperator extends Operator {
     return "unaryOp";
   }
 
-  constEvaluate(context: ParseContext, type?: Array<Type>): number | number[] {
+  constEvaluate(context: ParseContext, type?: Type[]): number | number[] {
     switch (this.operator) {
       case "+":
         return this.right.constEvaluate(context, type);
@@ -2628,7 +2628,7 @@ export class BinaryOperator extends Operator {
     return Type.i32;
   }
 
-  constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
+  constEvaluate(context: ParseContext, type?: Type[]): number | number[] {
     const t1 = [Type.i32];
     const t2 = [Type.i32];
     switch (this.operator) {
@@ -2796,10 +2796,10 @@ export class SwitchCase extends Node {
  * @category AST
  */
 export class Case extends SwitchCase {
-  selector: Array<Expression>;
-  body: Array<Statement>;
+  selector: Expression[];
+  body: Statement[];
 
-  constructor(selector: Array<Expression>, body: Array<Statement>) {
+  constructor(selector: Expression[], body: Statement[]) {
     super();
     this.selector = selector;
     this.body = body;
@@ -2820,9 +2820,9 @@ export class Case extends SwitchCase {
  * @category AST
  */
 export class Default extends SwitchCase {
-  body: Array<Statement>;
+  body: Statement[];
 
-  constructor(body: Array<Statement>) {
+  constructor(body: Statement[]) {
     super();
     this.body = body;
   }
@@ -2844,9 +2844,9 @@ export class Default extends SwitchCase {
 export class Argument extends Node {
   name: string;
   type: Type;
-  attributes: Array<Attribute> | null;
+  attributes: Attribute[] | null;
 
-  constructor(name: string, type: Type, attributes: Array<Attribute> | null) {
+  constructor(name: string, type: Type, attributes: Attribute[] | null) {
     super();
     this.name = name;
     this.type = type;
@@ -2865,9 +2865,9 @@ export class Argument extends Node {
  */
 export class ElseIf extends Node {
   condition: Expression;
-  body: Array<Statement>;
+  body: Statement[];
 
-  constructor(condition: Expression, body: Array<Statement>) {
+  constructor(condition: Expression, body: Statement[]) {
     super();
     this.condition = condition;
     this.body = body;
@@ -2891,12 +2891,12 @@ export class ElseIf extends Node {
 export class Member extends Node {
   name: string;
   type: Type | null;
-  attributes: Array<Attribute> | null;
+  attributes: Attribute[] | null;
 
   constructor(
     name: string,
     type: Type | null,
-    attributes: Array<Attribute> | null
+    attributes: Attribute[] | null
   ) {
     super();
     this.name = name;
@@ -2916,9 +2916,9 @@ export class Member extends Node {
  */
 export class Attribute extends Node {
   name: string;
-  value: string | Array<string> | null;
+  value: string | string[] | null;
 
-  constructor(name: string, value: string | Array<string> | null) {
+  constructor(name: string, value: string | string[] | null) {
     super();
     this.name = name;
     this.value = value;
