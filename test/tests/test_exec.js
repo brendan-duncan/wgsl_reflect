@@ -380,6 +380,8 @@ export async function run() {
                     if any(globalInvocationId.xy > uniforms.viewportSize) {
                         return;
                     }
+                    let wave = vec3<f32>(1.0, 0.0, 0.5);
+                    let phase = wave.z * f32(uniforms.viewportSize.x);
                     let w = uniforms.viewportSize.x;
                     let h = uniforms.viewportSize.y;
                     let pos = globalInvocationId.xy;
