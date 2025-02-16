@@ -6088,7 +6088,10 @@ class MatrixData extends Data {
                 console.error(`GetDataValue: Unknown type ${typeName}`);
                 return null;
             }
-            return _getVectorData(exec, values, format.name);
+            const vecData = _getVectorData(exec, values, format.name);
+            if (postfix.postfix) {
+                return vecData.getDataValue(exec, postfix.postfix, context);
+            }
         }
         return this;
     }
