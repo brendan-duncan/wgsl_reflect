@@ -6629,6 +6629,9 @@ class TypedData extends Data {
         else if (this.typeInfo instanceof StructInfo) {
             s += `{...}`;
         }
+        else {
+            s = `[...]`;
+        }
         return s;
     }
 }
