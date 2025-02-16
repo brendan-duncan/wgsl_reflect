@@ -1,4 +1,8 @@
-import * as AST from "./wgsl_ast.js";
+import { Node, Type, TemplateType, Return, Break, Continue, Let, Var, Const,
+    If, For, While, Loop, Continuing, Assign, Increment, Struct, Override,
+    Call, Diagnostic, Alias, GroupingExpr, BinaryOperator, LiteralExpr,
+    VariableExpr, CallExpr, CreateExpr, ConstExpr, BitcastExpr, UnaryOperator,
+    ArrayIndex, StringExpr, Function } from "./wgsl_ast.js";
 import { Reflect } from "./reflect/reflect.js";
 import { TypeInfo, StructInfo, ArrayInfo, TemplateInfo } from "./reflect/info.js";
 import { ExecContext, FunctionRef } from "./exec/exec_context.js";
@@ -8,13 +12,13 @@ import { Data, ScalarData, VectorData, MatrixData, TypedData, VoidData } from ".
 import { isArray, castScalar, castVector } from "./exec/util.js";
 
 export class WgslExec extends ExecInterface {
-    ast: AST.Node[];
+    ast: Node[];
     context: ExecContext;
     reflection: Reflect;
     builtins: BuiltinFunctions;
     typeInfo: Object;
 
-    constructor(ast?: AST.Node[], context?: ExecContext) {
+    constructor(ast?: Node[], context?: ExecContext) {
         super();
         this.ast = ast ?? [];
         this.reflection = new Reflect();
@@ -24,32 +28,32 @@ export class WgslExec extends ExecInterface {
         this.builtins = new BuiltinFunctions(this);
 
         this.typeInfo = {
-            "bool": this.getTypeInfo(AST.Type.bool),
-            "i32": this.getTypeInfo(AST.Type.i32),
-            "u32": this.getTypeInfo(AST.Type.u32),
-            "f32": this.getTypeInfo(AST.Type.f32),
-            "f16": this.getTypeInfo(AST.Type.f16),
-            "vec2f": this.getTypeInfo(AST.TemplateType.vec2f),
-            "vec2u": this.getTypeInfo(AST.TemplateType.vec2u),
-            "vec2i": this.getTypeInfo(AST.TemplateType.vec2i),
-            "vec2h": this.getTypeInfo(AST.TemplateType.vec2h),
-            "vec3f": this.getTypeInfo(AST.TemplateType.vec3f),
-            "vec3u": this.getTypeInfo(AST.TemplateType.vec3u),
-            "vec3i": this.getTypeInfo(AST.TemplateType.vec3i),
-            "vec3h": this.getTypeInfo(AST.TemplateType.vec3h),
-            "vec4f": this.getTypeInfo(AST.TemplateType.vec4f),
-            "vec4u": this.getTypeInfo(AST.TemplateType.vec4u),
-            "vec4i": this.getTypeInfo(AST.TemplateType.vec4i),
-            "vec4h": this.getTypeInfo(AST.TemplateType.vec4h),
-            "mat2x2f": this.getTypeInfo(AST.TemplateType.mat2x2f),
-            "mat2x3f": this.getTypeInfo(AST.TemplateType.mat2x3f),
-            "mat2x4f": this.getTypeInfo(AST.TemplateType.mat2x4f),
-            "mat3x2f": this.getTypeInfo(AST.TemplateType.mat3x2f),
-            "mat3x3f": this.getTypeInfo(AST.TemplateType.mat3x3f),
-            "mat3x4f": this.getTypeInfo(AST.TemplateType.mat3x4f),
-            "mat4x2f": this.getTypeInfo(AST.TemplateType.mat4x2f),
-            "mat4x3f": this.getTypeInfo(AST.TemplateType.mat4x3f),
-            "mat4x4f": this.getTypeInfo(AST.TemplateType.mat4x4f),
+            "bool": this.getTypeInfo(Type.bool),
+            "i32": this.getTypeInfo(Type.i32),
+            "u32": this.getTypeInfo(Type.u32),
+            "f32": this.getTypeInfo(Type.f32),
+            "f16": this.getTypeInfo(Type.f16),
+            "vec2f": this.getTypeInfo(TemplateType.vec2f),
+            "vec2u": this.getTypeInfo(TemplateType.vec2u),
+            "vec2i": this.getTypeInfo(TemplateType.vec2i),
+            "vec2h": this.getTypeInfo(TemplateType.vec2h),
+            "vec3f": this.getTypeInfo(TemplateType.vec3f),
+            "vec3u": this.getTypeInfo(TemplateType.vec3u),
+            "vec3i": this.getTypeInfo(TemplateType.vec3i),
+            "vec3h": this.getTypeInfo(TemplateType.vec3h),
+            "vec4f": this.getTypeInfo(TemplateType.vec4f),
+            "vec4u": this.getTypeInfo(TemplateType.vec4u),
+            "vec4i": this.getTypeInfo(TemplateType.vec4i),
+            "vec4h": this.getTypeInfo(TemplateType.vec4h),
+            "mat2x2f": this.getTypeInfo(TemplateType.mat2x2f),
+            "mat2x3f": this.getTypeInfo(TemplateType.mat2x3f),
+            "mat2x4f": this.getTypeInfo(TemplateType.mat2x4f),
+            "mat3x2f": this.getTypeInfo(TemplateType.mat3x2f),
+            "mat3x3f": this.getTypeInfo(TemplateType.mat3x3f),
+            "mat3x4f": this.getTypeInfo(TemplateType.mat3x4f),
+            "mat4x2f": this.getTypeInfo(TemplateType.mat4x2f),
+            "mat4x3f": this.getTypeInfo(TemplateType.mat4x3f),
+            "mat4x4f": this.getTypeInfo(TemplateType.mat4x4f),
         };
     }
 
@@ -162,10 +166,10 @@ export class WgslExec extends ExecInterface {
     static _breakObj = new Data(new TypeInfo("BREAK", null));
     static _continueObj = new Data(new TypeInfo("CONTINUE", null));
 
-    execStatement(stmt: AST.Node, context: ExecContext): Data | null {
-        if (stmt instanceof AST.Return) {
+    execStatement(stmt: Node, context: ExecContext): Data | null {
+        if (stmt instanceof Return) {
             return this.evalExpression(stmt.value, context);
-        } else if (stmt instanceof AST.Break) {
+        } else if (stmt instanceof Break) {
             if (stmt.condition) {
                 const c = this.evalExpression(stmt.condition, context);
                 if (!(c instanceof ScalarData)) {
@@ -176,44 +180,44 @@ export class WgslExec extends ExecInterface {
                 }
             }
             return WgslExec._breakObj;
-        } else if (stmt instanceof AST.Continue) {
+        } else if (stmt instanceof Continue) {
             return WgslExec._continueObj;
-        } else if (stmt instanceof AST.Let) {
+        } else if (stmt instanceof Let) {
             this._let(stmt, context);
-        } else if (stmt instanceof AST.Var) {
+        } else if (stmt instanceof Var) {
             this._var(stmt, context);
-        } else if (stmt instanceof AST.Const) {
+        } else if (stmt instanceof Const) {
             this._const(stmt, context);
-        } else if (stmt instanceof AST.Function) {
+        } else if (stmt instanceof Function) {
             this._function(stmt, context);
-        } else if (stmt instanceof AST.If) {
+        } else if (stmt instanceof If) {
             return this._if(stmt, context);
-        } else if (stmt instanceof AST.For) {
+        } else if (stmt instanceof For) {
             return this._for(stmt, context);
-        } else if (stmt instanceof AST.While) {
+        } else if (stmt instanceof While) {
             return this._while(stmt, context);
-        } else if (stmt instanceof AST.Loop) {
+        } else if (stmt instanceof Loop) {
             return this._loop(stmt, context);
-        } else if (stmt instanceof AST.Continuing) {
+        } else if (stmt instanceof Continuing) {
             const subContext = context.clone();
             subContext.currentFunctionName = context.currentFunctionName;
             return this._execStatements(stmt.body, subContext);
-        } else if (stmt instanceof AST.Assign) {
+        } else if (stmt instanceof Assign) {
             this._assign(stmt, context);
-        } else if (stmt instanceof AST.Increment) {
+        } else if (stmt instanceof Increment) {
             this._increment(stmt, context);
-        } else if (stmt instanceof AST.Struct) {
+        } else if (stmt instanceof Struct) {
             return null;
-        } else if (stmt instanceof AST.Override) {
+        } else if (stmt instanceof Override) {
             const name = stmt.name;
             if (context.getVariable(name) === null) {
                 console.error(`Override constant ${name} not found. Line ${stmt.line}`);
             }
-        } else if (stmt instanceof AST.Call) {
+        } else if (stmt instanceof Call) {
             this._call(stmt, context);
-        } else if (stmt instanceof AST.Diagnostic) {
+        } else if (stmt instanceof Diagnostic) {
             return null; // Nothing to do here.
-        } else if (stmt instanceof AST.Alias) {
+        } else if (stmt instanceof Alias) {
             return null; // Nothing to do here.
         } else {
             console.error(`Invalid statement type.`, stmt, `Line ${stmt.line}`);
@@ -221,35 +225,35 @@ export class WgslExec extends ExecInterface {
         return null;
     }
 
-    evalExpression(node: AST.Node, context: ExecContext): Data | null {
-        while (node instanceof AST.GroupingExpr) {
+    evalExpression(node: Node, context: ExecContext): Data | null {
+        while (node instanceof GroupingExpr) {
             node = node.contents[0];
         }
 
-        if (node instanceof AST.BinaryOperator) {
+        if (node instanceof BinaryOperator) {
             return this._evalBinaryOp(node, context);
-        } else if (node instanceof AST.LiteralExpr) {
+        } else if (node instanceof LiteralExpr) {
             return this._evalLiteral(node, context);
-        } else if (node instanceof AST.VariableExpr) {
+        } else if (node instanceof VariableExpr) {
             return this._evalVariable(node, context);
-        } else if (node instanceof AST.CallExpr) {
+        } else if (node instanceof CallExpr) {
             return this._evalCall(node, context);
-        } else if (node instanceof AST.CreateExpr) {
+        } else if (node instanceof CreateExpr) {
             return this._evalCreate(node, context);
-        } else if (node instanceof AST.ConstExpr) {
+        } else if (node instanceof ConstExpr) {
             return this._evalConst(node, context);
-        } else if (node instanceof AST.BitcastExpr) {
+        } else if (node instanceof BitcastExpr) {
             return this._evalBitcast(node, context);
-        } else if (node instanceof AST.UnaryOperator) {
+        } else if (node instanceof UnaryOperator) {
             return this._evalUnaryOp(node, context);
         }
         console.error(`Invalid expression type`, node, `Line ${node.line}`);
         return null;
     }
 
-    getTypeInfo(type: AST.Type | string): TypeInfo | null {
-        if (type instanceof AST.Type) {
-            const t = this.reflection.getTypeInfo(type as AST.Type);
+    getTypeInfo(type: Type | string): TypeInfo | null {
+        if (type instanceof Type) {
+            const t = this.reflection.getTypeInfo(type as Type);
             if (t !== null) {
                 return t;
             }
@@ -263,8 +267,8 @@ export class WgslExec extends ExecInterface {
         return null;
     }
 
-    getTypeName(type: TypeInfo | AST.Type): string {
-        /*if (type instanceof AST.Type) {
+    getTypeName(type: TypeInfo | Type): string {
+        /*if (type instanceof Type) {
             type = this.getTypeInfo(type);
         }*/
         if (type === null) {
@@ -272,7 +276,7 @@ export class WgslExec extends ExecInterface {
             return "unknown";
         }
         let name = type.name;
-        if (type instanceof TemplateInfo || type instanceof AST.TemplateType) {
+        if (type instanceof TemplateInfo || type instanceof TemplateType) {
             if (type.format !== null) {
                 if (name === "vec2" || name === "vec3" || name === "vec4" ||
                     name === "mat2x2" || name === "mat2x3" || name === "mat2x4" ||
@@ -404,16 +408,16 @@ export class WgslExec extends ExecInterface {
         this._execStatements(f.node.body, context);
     }
 
-    _getVariableName(node: AST.Node, context: ExecContext): string | null {
-        if (node instanceof AST.VariableExpr) {
-            return (node as AST.VariableExpr).name;
+    getVariableName(node: Node, context: ExecContext): string | null {
+        if (node instanceof VariableExpr) {
+            return (node as VariableExpr).name;
         } else {
             console.error(`Unknown variable type`, node, 'Line', node.line);
         }
         return null;
     }
 
-    _execStatements(statements: AST.Node[], context: ExecContext): Data | null {
+    _execStatements(statements: Node[], context: ExecContext): Data | null {
         for (const stmt of statements) {
             // Block statements are declared as arrays of statements.
             if (stmt instanceof Array) {
@@ -433,7 +437,7 @@ export class WgslExec extends ExecInterface {
         return null;
     }
 
-    _call(node: AST.Call, context: ExecContext): void {
+    _call(node: Call, context: ExecContext): void {
         const subContext = context.clone();
         subContext.currentFunctionName = node.name;
 
@@ -452,8 +456,8 @@ export class WgslExec extends ExecInterface {
         this._execStatements(f.node.body, subContext);
     }
 
-    _increment(node: AST.Increment, context: ExecContext): void {
-        const name = this._getVariableName(node.variable, context);
+    _increment(node: Increment, context: ExecContext): void {
+        const name = this.getVariableName(node.variable, context);
         const v = context.getVariable(name);
         if (!v) {
             console.error(`Variable ${name} not found. Line ${node.line}`);
@@ -476,8 +480,8 @@ export class WgslExec extends ExecInterface {
         }
     }
 
-    _assign(node: AST.Assign, context: ExecContext): void {
-        const name = this._getVariableName(node.variable, context);
+    _assign(node: Assign, context: ExecContext): void {
+        const name = this.getVariableName(node.variable, context);
         const v = context.getVariable(name);
 
         if (v === null) {
@@ -635,7 +639,7 @@ export class WgslExec extends ExecInterface {
                 return;
             }
 
-            if (node.variable.postfix instanceof AST.ArrayIndex) {
+            if (node.variable.postfix instanceof ArrayIndex) {
                 const idx = (this.evalExpression(node.variable.postfix.index, context) as ScalarData).value;
 
                 if (v.value instanceof VectorData) {
@@ -746,7 +750,7 @@ export class WgslExec extends ExecInterface {
                     console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
                     return;
                 }
-            } else if (node.variable.postfix instanceof AST.StringExpr) {
+            } else if (node.variable.postfix instanceof StringExpr) {
                 const member = node.variable.postfix.value;
                 if (!(v.value instanceof VectorData)) {
                     console.error(`Invalid assignment to ${member}. Variable ${v.name} is not a vector. Line ${node.line}`);
@@ -821,12 +825,12 @@ export class WgslExec extends ExecInterface {
         return;
     }
 
-    _function(node: AST.Function, context: ExecContext): void {
+    _function(node: Function, context: ExecContext): void {
         const f = new FunctionRef(node);
         context.functions.set(node.name, f);
     }
 
-    _const(node: AST.Const, context: ExecContext): void {
+    _const(node: Const, context: ExecContext): void {
         let value = null;
         if (node.value != null) {
             value = this.evalExpression(node.value, context);
@@ -834,7 +838,7 @@ export class WgslExec extends ExecInterface {
         context.createVariable(node.name, value, node);
     }
 
-    _let(node: AST.Let, context: ExecContext): void {
+    _let(node: Let, context: ExecContext): void {
         let value = null;
         if (node.value != null) {
             value = this.evalExpression(node.value, context);
@@ -842,7 +846,7 @@ export class WgslExec extends ExecInterface {
         context.createVariable(node.name, value, node);
     }
 
-    _var(node: AST.Var, context: ExecContext): void {
+    _var(node: Var, context: ExecContext): void {
         let value = null;
         if (node.value !== null) {
             value = this.evalExpression(node.value, context);
@@ -868,12 +872,12 @@ export class WgslExec extends ExecInterface {
                 node.type.name === "mat2x2h" || node.type.name === "mat2x3h" || node.type.name === "mat2x4h" ||
                 node.type.name === "mat3x2h" || node.type.name === "mat3x3h" || node.type.name === "mat3x4h" ||
                 node.type.name === "mat4x2h" || node.type.name === "mat4x3h" || node.type.name === "mat4x4h") {
-                const defType = new AST.CreateExpr(node.type, []);
+                const defType = new CreateExpr(node.type, []);
                 value = this._evalCreate(defType, context);
             }
 
             if (node.type.name === "array") {
-                const defType = new AST.CreateExpr(node.type, []);
+                const defType = new CreateExpr(node.type, []);
                 value = this._evalCreate(defType, context);
             }
         }
@@ -881,7 +885,7 @@ export class WgslExec extends ExecInterface {
         context.createVariable(node.name, value, node);
     }
 
-    _if(node: AST.If, context: ExecContext): Data | null {
+    _if(node: If, context: ExecContext): Data | null {
         context = context.clone();
         const condition = this.evalExpression(node.condition, context);
         if (!(condition instanceof ScalarData)) {
@@ -919,7 +923,7 @@ export class WgslExec extends ExecInterface {
         return 0;
     }
 
-    _for(node: AST.For, context: ExecContext): Data | null {
+    _for(node: For, context: ExecContext): Data | null {
         context = context.clone();
         this.execStatement(node.init, context);
         while (this._getScalarValue(this.evalExpression(node.condition, context))) {
@@ -936,7 +940,7 @@ export class WgslExec extends ExecInterface {
         return null;
     }
 
-    _loop(node: AST.Loop, context: ExecContext): Data | null {
+    _loop(node: Loop, context: ExecContext): Data | null {
         context = context.clone();
 
         while (true) {
@@ -958,7 +962,7 @@ export class WgslExec extends ExecInterface {
         return null;
     }
 
-    _while(node: AST.While, context: ExecContext): Data | null {
+    _while(node: While, context: ExecContext): Data | null {
         context = context.clone();
         while (this._getScalarValue(this.evalExpression(node.condition, context))) {
             const res = this._execStatements(node.body, context);
@@ -973,7 +977,7 @@ export class WgslExec extends ExecInterface {
         return null;
     }
 
-    _evalBitcast(node: AST.BitcastExpr, context: ExecContext): Data | null {
+    _evalBitcast(node: BitcastExpr, context: ExecContext): Data | null {
         const value = this.evalExpression(node.value, context);
         const type = node.type;
 
@@ -1025,11 +1029,11 @@ export class WgslExec extends ExecInterface {
         return null;
     }
 
-    _evalConst(node: AST.ConstExpr, context: ExecContext): Data | null {
+    _evalConst(node: ConstExpr, context: ExecContext): Data | null {
         return context.getVariableValue(node.name);
     }
 
-    _evalCreate(node: AST.CreateExpr, context: ExecContext): Data | null {
+    _evalCreate(node: CreateExpr, context: ExecContext): Data | null {
         if (node.type === null) {
             return VoidData.void;
         }
@@ -1122,7 +1126,7 @@ export class WgslExec extends ExecInterface {
         return data;
     }
 
-    _evalLiteral(node: AST.LiteralExpr, context: ExecContext): Data | null {
+    _evalLiteral(node: LiteralExpr, context: ExecContext): Data | null {
         const typeInfo = this.getTypeInfo(node.type);
         const typeName = typeInfo.name;
         if (typeName === "x32" || typeName === "u32" || typeName === "f32" || typeName === "f16" ||
@@ -1152,7 +1156,7 @@ export class WgslExec extends ExecInterface {
         return null;
     }
 
-    _evalVariable(node: AST.VariableExpr, context: ExecContext): Data | null {
+    _evalVariable(node: VariableExpr, context: ExecContext): Data | null {
         const value = context.getVariableValue(node.name);
         if (value === null) {
             return value;
@@ -1184,7 +1188,7 @@ export class WgslExec extends ExecInterface {
         return t;
     }
 
-    _evalUnaryOp(node: AST.UnaryOperator, context: ExecContext): Data | null {
+    _evalUnaryOp(node: UnaryOperator, context: ExecContext): Data | null {
         const _r = this.evalExpression(node.right, context);
         const r = _r instanceof ScalarData ? _r.value : 
             _r instanceof VectorData ? _r.value : null;
@@ -1235,7 +1239,7 @@ export class WgslExec extends ExecInterface {
         return null;
     }
 
-    _evalBinaryOp(node: AST.BinaryOperator, context: ExecContext): Data | null {
+    _evalBinaryOp(node: BinaryOperator, context: ExecContext): Data | null {
         const _l = this.evalExpression(node.left, context);
         const _r = this.evalExpression(node.right, context);
 
@@ -1709,7 +1713,7 @@ export class WgslExec extends ExecInterface {
         return null;
     }
 
-    _evalCall(node: AST.CallExpr, context: ExecContext): Data | null {
+    _evalCall(node: CallExpr, context: ExecContext): Data | null {
         if (node.cachedReturnValue !== null) {
             return node.cachedReturnValue;
         }
@@ -1731,7 +1735,7 @@ export class WgslExec extends ExecInterface {
         return this._execStatements(f.node.body, subContext);
     }
 
-    _callBuiltinFunction(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
+    _callBuiltinFunction(node: CallExpr | Call, context: ExecContext): Data | null {
         switch (node.name) {
             // Logical Built-in Functions
             case "all":
@@ -2061,7 +2065,7 @@ export class WgslExec extends ExecInterface {
         return null;
     }
 
-    _callConstructorValue(node: AST.CreateExpr, context: ExecContext): Data | null {
+    _callConstructorValue(node: CreateExpr, context: ExecContext): Data | null {
         if (node.args.length === 0) {
             return new ScalarData(0, this.getTypeInfo(node.type));
         }
@@ -2070,7 +2074,7 @@ export class WgslExec extends ExecInterface {
         return v;
     }
 
-    _callConstructorVec(node: AST.CreateExpr | AST.LiteralExpr, context: ExecContext): Data | null {
+    _callConstructorVec(node: CreateExpr | LiteralExpr, context: ExecContext): Data | null {
         const typeInfo = this.getTypeInfo(node.type);
         const typeName = this.getTypeName(node.type);
 
@@ -2089,7 +2093,7 @@ export class WgslExec extends ExecInterface {
         const isInt = typeName.endsWith("i") || typeName.endsWith("u");
 
         const values: number[] = [];
-        if (node instanceof AST.LiteralExpr) {
+        if (node instanceof LiteralExpr) {
             if (isArray(node.value)) {
                 const a = node.value as number[];
                 for (const v of a) {
@@ -2120,8 +2124,8 @@ export class WgslExec extends ExecInterface {
             }
         }
 
-        if (node.type instanceof AST.TemplateType && node.type.format === null) {
-            node.type.format = AST.TemplateType.f32; // TODO: get the format from the type of the arg.
+        if (node.type instanceof TemplateType && node.type.format === null) {
+            node.type.format = TemplateType.f32; // TODO: get the format from the type of the arg.
         }
 
         if (values.length === 0) {
@@ -2143,7 +2147,7 @@ export class WgslExec extends ExecInterface {
         return new VectorData(values.length > count ? values.slice(0, count) : values, typeInfo);
     }
 
-    _callConstructorMatrix(node: AST.CreateExpr | AST.LiteralExpr, context: ExecContext): Data | null {
+    _callConstructorMatrix(node: CreateExpr | LiteralExpr, context: ExecContext): Data | null {
         const typeInfo = this.getTypeInfo(node.type);
         const typeName = this.getTypeName(node.type);
 
@@ -2166,7 +2170,7 @@ export class WgslExec extends ExecInterface {
         }
 
         const values = [];
-        if (node instanceof AST.LiteralExpr) {
+        if (node instanceof LiteralExpr) {
             if (isArray(node.value)) {
                 const a = node.value as number[];
                 for (const v of a) {

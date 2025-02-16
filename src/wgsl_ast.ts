@@ -1,5 +1,4 @@
 import { Data } from "./exec/data.js";
-import { ExecContext } from "./exec/exec_context.js";
 
 export class ParseContext {
   constants: Map<string, Const> = new Map();

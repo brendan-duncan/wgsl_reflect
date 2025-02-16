@@ -7142,7 +7142,7 @@ class WgslExec extends ExecInterface {
         return null;
     }
     getTypeName(type) {
-        /*if (type instanceof AST.Type) {
+        /*if (type instanceof Type) {
             type = this.getTypeInfo(type);
         }*/
         if (type === null) {
@@ -7284,7 +7284,7 @@ class WgslExec extends ExecInterface {
         }
         this._execStatements(f.node.body, context);
     }
-    _getVariableName(node, context) {
+    getVariableName(node, context) {
         if (node instanceof VariableExpr) {
             return node.name;
         }
@@ -7327,7 +7327,7 @@ class WgslExec extends ExecInterface {
         this._execStatements(f.node.body, subContext);
     }
     _increment(node, context) {
-        const name = this._getVariableName(node.variable, context);
+        const name = this.getVariableName(node.variable, context);
         const v = context.getVariable(name);
         if (!v) {
             console.error(`Variable ${name} not found. Line ${node.line}`);
@@ -7354,7 +7354,7 @@ class WgslExec extends ExecInterface {
         }
     }
     _assign(node, context) {
-        const name = this._getVariableName(node.variable, context);
+        const name = this.getVariableName(node.variable, context);
         const v = context.getVariable(name);
         if (v === null) {
             console.error(`Variable ${name} not found. Line ${node.line}`);
