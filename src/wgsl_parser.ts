@@ -3,6 +3,8 @@
  */
 import { WgslScanner, Token, TokenType, TokenTypes } from "./wgsl_scanner.js";
 import * as AST from "./wgsl_ast.js";
+import { ExecContext } from "./exec/exec_context.js";
+import { WgslExec } from "./wgsl_exec.js";
 
 /// Parse a sequence of tokens from the WgslScanner into an Abstract Syntax Tree (AST).
 export class WgslParser {
@@ -12,6 +14,7 @@ export class WgslParser {
   _context: AST.ParseContext = new AST.ParseContext();
   _deferArrayCountEval: Array<Object> = [];
   _currentLoop: Array<AST.Statement> = [];
+  _exec: WgslExec = new WgslExec();
 
   parse(tokensOrCode: Array<Token> | string): Array<AST.Statement> {
     this._initialize(tokensOrCode);
@@ -161,24 +164,28 @@ export class WgslParser {
     if (this._match(TokenTypes.keywords.alias)) {
       const type = this._type_alias();
       this._consume(TokenTypes.tokens.semicolon, "Expected ';'");
+      this._exec.reflection.updateAST([type]);
       return type;
     }
 
     if (this._match(TokenTypes.keywords.diagnostic)) {
       const directive = this._diagnostic();
       this._consume(TokenTypes.tokens.semicolon, "Expected ';'");
+      this._exec.reflection.updateAST([directive]);
       return directive;
     }
 
     if (this._match(TokenTypes.keywords.requires)) {
       const requires = this._requires_directive();
       this._consume(TokenTypes.tokens.semicolon, "Expected ';'");
+      this._exec.reflection.updateAST([requires]);
       return requires;
     }
 
     if (this._match(TokenTypes.keywords.enable)) {
       const enable = this._enable_directive();
       this._consume(TokenTypes.tokens.semicolon, "Expected ';'");
+      this._exec.reflection.updateAST([enable]);
       return enable;
     }
 
@@ -191,6 +198,7 @@ export class WgslParser {
         _var.attributes = attrs;
       }
       this._consume(TokenTypes.tokens.semicolon, "Expected ';'.");
+      this._exec.reflection.updateAST([_var]);
       return _var;
     }
 
@@ -200,6 +208,7 @@ export class WgslParser {
         _override.attributes = attrs;
       }
       this._consume(TokenTypes.tokens.semicolon, "Expected ';'.");
+      this._exec.reflection.updateAST([_override]);
       return _override;
     }
 
@@ -209,6 +218,7 @@ export class WgslParser {
         _let.attributes = attrs;
       }
       this._consume(TokenTypes.tokens.semicolon, "Expected ';'.");
+      this._exec.reflection.updateAST([_let]);
       return _let;
     }
 
@@ -218,6 +228,7 @@ export class WgslParser {
         _const.attributes = attrs;
       }
       this._consume(TokenTypes.tokens.semicolon, "Expected ';'.");
+      this._exec.reflection.updateAST([_const]);
       return _const;
     }
 
@@ -226,6 +237,7 @@ export class WgslParser {
       if (_struct != null) {
         _struct.attributes = attrs;
       }
+      this._exec.reflection.updateAST([_struct]);
       return _struct;
     }
 
@@ -234,6 +246,7 @@ export class WgslParser {
       if (_fn != null) {
         _fn.attributes = attrs;
       }
+      this._exec.reflection.updateAST([_fn]);
       return _fn;
     }
 
@@ -1472,6 +1485,10 @@ export class WgslParser {
     this._consume(TokenTypes.tokens.equal, "const declarations require an assignment")
 
     const valueExpr = this._short_circuit_or_expression();
+
+    const v = this._exec.evalExpression(valueExpr, this._exec.context);
+    console.log(v);
+
     /*if (valueExpr instanceof AST.CreateExpr) {
       value = valueExpr;
     } else if (valueExpr instanceof AST.ConstExpr &&

@@ -3,6 +3,7 @@
  */
 import { Token, TokenType } from "./wgsl_scanner.js";
 import * as AST from "./wgsl_ast.js";
+import { WgslExec } from "./wgsl_exec.js";
 export declare class WgslParser {
     _tokens: Array<Token>;
     _current: number;
@@ -10,6 +11,7 @@ export declare class WgslParser {
     _context: AST.ParseContext;
     _deferArrayCountEval: Array<Object>;
     _currentLoop: Array<AST.Statement>;
+    _exec: WgslExec;
     parse(tokensOrCode: Array<Token> | string): Array<AST.Statement>;
     _initialize(tokensOrCode: Array<Token> | string): void;
     _updateNode<T extends AST.Node>(n: T, l?: number): T;

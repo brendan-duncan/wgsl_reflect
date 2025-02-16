@@ -1,5 +1,6 @@
 import * as AST from "./wgsl_ast.js";
 import { WgslExec } from "./wgsl_exec.js";
+import { WgslParser } from "./wgsl_parser.js";
 import { ExecContext, FunctionRef } from "./exec/exec_context.js";
 import { MatrixData, ScalarData, TypedData, VectorData } from "./exec/data.js";
 import { Command, StatementCommand, CallExprCommand, GotoCommand, BlockCommand,
@@ -61,7 +62,9 @@ export class WgslDebug {
 
     constructor(code: string, runStateCallback?: RuntimeStateCallbackType) {
         this._code = code;
-        this._exec = new WgslExec(code);
+        const parser = new WgslParser();
+        const ast = parser.parse(code);
+        this._exec = new WgslExec(ast);
         this.runStateCallback = runStateCallback ?? null
     }
 
@@ -84,7 +87,7 @@ export class WgslDebug {
     }
 
     reset(): void {
-        this._exec = new WgslExec(this._code);
+        this._exec = new WgslExec(this._exec.ast);
         this._execStack = new ExecStack();
         const state = this._createState(this._exec.ast, this._exec.context);
         this._execStack.states.push(state);

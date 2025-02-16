@@ -10,7 +10,7 @@ export declare class WgslExec extends ExecInterface {
     reflection: WgslReflect;
     builtins: BuiltinFunctions;
     typeInfo: Object;
-    constructor(code: string, context?: ExecContext);
+    constructor(ast?: Array<AST.Node>, context?: ExecContext);
     getVariableValue(name: string): number | number[] | null;
     execute(config?: Object): void;
     dispatchWorkgroups(kernel: string, dispatchCount: number | number[], bindGroups: Object, config?: Object): void;

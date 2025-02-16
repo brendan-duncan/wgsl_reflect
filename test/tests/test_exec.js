@@ -1,5 +1,9 @@
 import { test, group, webgpuDispatch } from "../test.js";
-import { WgslExec } from "../../../wgsl_debugger.module.js";
+import { WgslExec, WgslParser } from "../../../wgsl_debugger.module.js";
+
+function _newWgslExec(code) {
+    return new WgslExec(new WgslParser().parse(code));
+}
 
 export async function run() {
     await group("WgslExec", async function () {
@@ -12,7 +16,7 @@ export async function run() {
             struct Foo { a: mat4x4f }
             const foo = Foo(a);
             const v4b = vec4f(foo.a[1].xyz * vec3f(0.5), 0.5);`;
-            const wgsl = new WgslExec(shader);
+            const wgsl = _newWgslExec(shader);
             wgsl.execute();
             // Ensure the top-level instructions were executed and the global variable has the correct value.
             test.equals(wgsl.getVariableValue("v4"), [0, 0.5, 0, 0.5]);
@@ -22,7 +26,7 @@ export async function run() {
         await test("array construction", function (test) {
             const shader = `var<private> a: array<vec4f, 3u>;
             var<private> v4 = vec4f(vec2f().xy, a[0].zw);`;
-            const wgsl = new WgslExec(shader);
+            const wgsl = _newWgslExec(shader);
             wgsl.execute();
             // Ensure the top-level instructions were executed and the global variable has the correct value.
             test.equals(wgsl.getVariableValue("v4"), [0, 0, 0, 0]);
@@ -32,7 +36,7 @@ export async function run() {
             const shader = `var<private> v2 = vec2f(-1.0, -2.0);
             var<private> v3a = bitcast<vec2u>(v2);
             var<private> v3b = bitcast<vec2<i32>>(v2);`;
-            const wgsl = new WgslExec(shader);
+            const wgsl = _newWgslExec(shader);
             wgsl.execute();
             // Ensure the top-level instructions were executed and the global variable has the correct value.
             test.equals(wgsl.getVariableValue("v3a"), [3212836864, 3221225472]);
@@ -52,7 +56,7 @@ export async function run() {
             var<private> v4f = vec4f(v3a, 4);
             var<private> v4g = vec4f(1, v3b);
             var<private> v4h = vec4f(v4g);`;
-            const wgsl = new WgslExec(shader);
+            const wgsl = _newWgslExec(shader);
             wgsl.execute();
             // Ensure the top-level instructions were executed and the global variable has the correct value.
             test.equals(wgsl.getVariableValue("v4h"), [1, -1, -2, 4]);
@@ -60,7 +64,7 @@ export async function run() {
 
         await test("vec bool", function (test) {
             const shader = `var<private> foo: vec3<bool>;`;
-            const wgsl = new WgslExec(shader);
+            const wgsl = _newWgslExec(shader);
             wgsl.execute();
             // Ensure the top-level instructions were executed and the global variable has the correct value.
             test.equals(wgsl.getVariableValue("foo"), [0, 0, 0]);
@@ -68,7 +72,7 @@ export async function run() {
 
         await test("set variable", function (test) {
             const shader = `let foo = 1 + 2;`;
-            const wgsl = new WgslExec(shader);
+            const wgsl = _newWgslExec(shader);
             wgsl.execute();
             // Ensure the top-level instructions were executed and the global variable has the correct value.
             test.equals(wgsl.getVariableValue("foo"), 3);
@@ -78,7 +82,7 @@ export async function run() {
             const shader = `let foo = 1.0 + 2;
             let bar = foo * 4;`;
 
-            const wgsl = new WgslExec(shader);
+            const wgsl = _newWgslExec(shader);
             wgsl.execute();
             // Ensure as the top-level instructions are executed, variables are correctly evaluated.
             test.equals(wgsl.getVariableValue("foo"), 3);
@@ -87,7 +91,7 @@ export async function run() {
 
         await test("bitcast", function (test) {
             const shader = `let foo = bitcast<u32>(1.5);`;
-            const wgsl = new WgslExec(shader);
+            const wgsl = _newWgslExec(shader);
             wgsl.execute();
             // Ensure the top-level instructions were executed and the global variable has the correct value.
             test.equals(wgsl.getVariableValue("foo"), 1069547520);
@@ -97,7 +101,7 @@ export async function run() {
             const shader = `var<private> foo: vec3f; var<private> bar: vec3f;
             fn main()-> f32 { bar.y = 5.0; foo.x = bar.y; return foo.x; }
             let bar2 = main();`;
-            const wgsl = new WgslExec(shader);
+            const wgsl = _newWgslExec(shader);
             wgsl.execute();
             // Ensure the top-level instructions were executed and the global variable has the correct value.
             test.equals(wgsl.getVariableValue("bar2"), 5);
@@ -116,7 +120,7 @@ export async function run() {
                 }
             }
             let bar = foo(3, 4);`;
-            const wgsl = new WgslExec(shader);
+            const wgsl = _newWgslExec(shader);
             wgsl.execute();
             // Ensure calling a function works as expected.
             test.equals(wgsl.getVariableValue("bar"), 0);
@@ -139,7 +143,7 @@ export async function run() {
             const _data = await webgpuDispatch(shader, "main", 4, bg);
             const webgpuData = new Float32Array(_data);
 
-            const wgsl = new WgslExec(shader);
+            const wgsl = _newWgslExec(shader);
             wgsl.dispatchWorkgroups("main", 4, bg);
             test.equals(buffer, webgpuData);
         });
@@ -163,7 +167,7 @@ export async function run() {
             const _data = await webgpuDispatch(shader, "main", 1, bindGroups);
             const webgpuData = new Uint32Array(_data);
 
-            const wgsl = new WgslExec(shader);
+            const wgsl = _newWgslExec(shader);
             wgsl.dispatchWorkgroups("main", 1, bindGroups);
             test.equals(buffer, webgpuData);
         });
@@ -198,7 +202,7 @@ export async function run() {
             const _data = await webgpuDispatch(shader, "main", 4, bg);
             const webgpuData = new Float32Array(_data);
 
-            const wgsl = new WgslExec(shader);
+            const wgsl = _newWgslExec(shader);
             wgsl.dispatchWorkgroups("main", 4, bg);
             test.equals(buffer, webgpuData);
         });
@@ -218,7 +222,7 @@ export async function run() {
             const _data = await webgpuDispatch(shader, "main", 3, bg);
             const webgpuData = new Float32Array(_data);
 
-            const wgsl = new WgslExec(shader);
+            const wgsl = _newWgslExec(shader);
             wgsl.dispatchWorkgroups("main", 3, bg);
             test.equals(buffer, webgpuData);
         });
@@ -247,7 +251,7 @@ export async function run() {
             const webgpuData = new Float32Array(_data);
 
             // Ensure we can dispatch a compute shader and get the expected results from the output buffer.
-            const wgsl = new WgslExec(shader);
+            const wgsl = _newWgslExec(shader);
             wgsl.dispatchWorkgroups("main", 3, bg);
             test.equals(buffer, webgpuData);
         });
@@ -278,7 +282,7 @@ export async function run() {
             const _data = await webgpuDispatch(shader, "main", 3, bg);
             const webgpuData = new Float32Array(_data);
             // Ensure we can dispatch a compute shader and get the expected results from the output buffer.
-            const wgsl = new WgslExec(shader);
+            const wgsl = _newWgslExec(shader);
             wgsl.dispatchWorkgroups("main", 2, bg);
             test.equals(dataBuffer, webgpuData);
         });
@@ -308,7 +312,7 @@ export async function run() {
             const _data = await webgpuDispatch(shader, "main", 2, bg);
             const webgpuData = new Float32Array(_data);
 
-            const wgsl = new WgslExec(shader);
+            const wgsl = _newWgslExec(shader);
             wgsl.dispatchWorkgroups("main", 2, bg);
             test.equals(dataBuffer, webgpuData);
         });
@@ -368,7 +372,7 @@ export async function run() {
 
             const _data = await webgpuDispatch(shader, "main", dispatchCount, bg);
 
-            const wgsl = new WgslExec(shader);
+            const wgsl = _newWgslExec(shader);
             wgsl.dispatchWorkgroups("main", dispatchCount, bg);
             const execData = [workgroupBuffer, localBuffer, globalBuffer];
             for (let i = 0; i < 3; i++) {
@@ -449,7 +453,7 @@ export async function run() {
             const _webgpuData = await webgpuDispatch(shader, "main", [width, height], bindGroups, { constants });
             const webgpuData = new Float32Array(_webgpuData[1]);
 
-            const wgsl = new WgslExec(shader);
+            const wgsl = _newWgslExec(shader);
             wgsl.dispatchWorkgroups("main", [width, height, 1], bindGroups, { constants });
 
             test.closeTo(imageBuffer, webgpuData);
@@ -511,7 +515,7 @@ export async function run() {
                 const _data = await webgpuDispatch(shader, "main", 1, bg);
                 const webgpuData = new Uint32Array(_data);
 
-                const wgsl = new WgslExec(shader);
+                const wgsl = _newWgslExec(shader);
                 wgsl.dispatchWorkgroups("main", 1, bg);
 
                 test.equals(histogramBuffer, webgpuData);
@@ -559,7 +563,7 @@ export async function run() {
             const _data = await webgpuDispatch(shader, "main", 1, bg);
             const webgpuData = new Uint32Array(_data);
 
-            const wgsl = new WgslExec(shader);
+            const wgsl = _newWgslExec(shader);
             wgsl.dispatchWorkgroups("main", 1, bg);
 
             test.equals(histogramBuffer, webgpuData);
@@ -670,7 +674,7 @@ export async function run() {
                 particlesB[i + 2] = i / 1499;
             }
             const bg = {0: {0: {uniform:params}, 1: particlesA, 2: particlesB }};
-            const wgsl = new WgslExec(shader);
+            const wgsl = _newWgslExec(shader);
             const t1 = performance.now();
             wgsl.dispatchWorkgroups("main", 24, bg);
             const t2 = performance.now();

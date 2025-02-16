@@ -2,7 +2,7 @@ import * as AST from "../wgsl_ast.js";
 import { Data, TypedData, ScalarData, VectorData, MatrixData } from "./data.js";
 import { ExecContext } from "./exec_context.js";
 import { ExecInterface } from "./exec_interface.js";
-import { ArrayInfo, TemplateInfo, TypeInfo } from "../wgsl_reflect.js";
+import { ArrayInfo, TemplateInfo, TypeInfo } from "../reflect/info.js";
 
 export class BuiltinFunctions {
     exec: ExecInterface;

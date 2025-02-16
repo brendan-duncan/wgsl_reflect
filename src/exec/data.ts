@@ -1,7 +1,7 @@
 import * as AST from "../wgsl_ast.js";
 import { ExecContext } from "./exec_context.js";
 import { ExecInterface } from "./exec_interface.js";
-import { TypeInfo, ArrayInfo, StructInfo, TemplateInfo } from "../wgsl_reflect.js";
+import { TypeInfo, ArrayInfo, StructInfo, TemplateInfo } from "../reflect/info.js";
 
 export class Data {
     typeInfo: TypeInfo;
