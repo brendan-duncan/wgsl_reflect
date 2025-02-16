@@ -1,9 +1,9 @@
-import * as AST from "../wgsl_ast.js";
+import { Attribute } from "../wgsl_ast.js";
 export declare class TypeInfo {
     name: string;
-    attributes: AST.Attribute[] | null;
+    attributes: Attribute[] | null;
     size: number;
-    constructor(name: string, attributes: AST.Attribute[] | null);
+    constructor(name: string, attributes: Attribute[] | null);
     get isArray(): boolean;
     get isStruct(): boolean;
     get isTemplate(): boolean;
@@ -11,10 +11,10 @@ export declare class TypeInfo {
 export declare class MemberInfo {
     name: string;
     type: TypeInfo;
-    attributes: AST.Attribute[] | null;
+    attributes: Attribute[] | null;
     offset: number;
     size: number;
-    constructor(name: string, type: TypeInfo, attributes: AST.Attribute[] | null);
+    constructor(name: string, type: TypeInfo, attributes: Attribute[] | null);
     get isArray(): boolean;
     get isStruct(): boolean;
     get isTemplate(): boolean;
@@ -30,20 +30,20 @@ export declare class StructInfo extends TypeInfo {
     startLine: number;
     endLine: number;
     inUse: boolean;
-    constructor(name: string, attributes: AST.Attribute[] | null);
+    constructor(name: string, attributes: Attribute[] | null);
     get isStruct(): boolean;
 }
 export declare class ArrayInfo extends TypeInfo {
     format: TypeInfo;
     count: number;
     stride: number;
-    constructor(name: string, attributes: AST.Attribute[] | null);
+    constructor(name: string, attributes: Attribute[] | null);
     get isArray(): boolean;
 }
 export declare class TemplateInfo extends TypeInfo {
     format: TypeInfo | null;
     access: string;
-    constructor(name: string, format: TypeInfo | null, attributes: AST.Attribute[] | null, access: string);
+    constructor(name: string, format: TypeInfo | null, attributes: Attribute[] | null, access: string);
     get isTemplate(): boolean;
 }
 export declare enum ResourceType {
@@ -54,14 +54,14 @@ export declare enum ResourceType {
     StorageTexture = 4
 }
 export declare class VariableInfo {
-    attributes: AST.Attribute[] | null;
+    attributes: Attribute[] | null;
     name: string;
     type: TypeInfo;
     group: number;
     binding: number;
     resourceType: ResourceType;
     access: string;
-    constructor(name: string, type: TypeInfo, group: number, binding: number, attributes: AST.Attribute[] | null, resourceType: ResourceType, access: string);
+    constructor(name: string, type: TypeInfo, group: number, binding: number, attributes: Attribute[] | null, resourceType: ResourceType, access: string);
     get isArray(): boolean;
     get isStruct(): boolean;
     get isTemplate(): boolean;
@@ -95,15 +95,15 @@ export declare class OutputInfo {
 export declare class OverrideInfo {
     name: string;
     type: TypeInfo | null;
-    attributes: AST.Attribute[] | null;
+    attributes: Attribute[] | null;
     id: number;
-    constructor(name: string, type: TypeInfo | null, attributes: AST.Attribute[] | null, id: number);
+    constructor(name: string, type: TypeInfo | null, attributes: Attribute[] | null, id: number);
 }
 export declare class ArgumentInfo {
     name: string;
     type: TypeInfo;
-    attributes: AST.Attribute[] | null;
-    constructor(name: string, type: TypeInfo, attributes: AST.Attribute[] | null);
+    attributes: Attribute[] | null;
+    constructor(name: string, type: TypeInfo, attributes: Attribute[] | null);
 }
 export declare class FunctionInfo {
     name: string;
@@ -114,12 +114,12 @@ export declare class FunctionInfo {
     returnType: TypeInfo | null;
     resources: VariableInfo[];
     overrides: OverrideInfo[];
-    attributes: AST.Attribute[] | null;
+    attributes: Attribute[] | null;
     startLine: number;
     endLine: number;
     inUse: boolean;
     calls: Set<FunctionInfo>;
-    constructor(name: string, stage: string | null, attributes: AST.Attribute[] | null);
+    constructor(name: string, stage: string | null, attributes: Attribute[] | null);
 }
 export declare class EntryFunctions {
     vertex: FunctionInfo[];

@@ -1,4 +1,4 @@
-import * as AST from "../wgsl_ast.js";
+import { Expression, StringExpr, ArrayIndex, LiteralExpr } from "../wgsl_ast.js";
 import { ExecContext } from "./exec_context.js";
 import { ExecInterface } from "./exec_interface.js";
 import { TypeInfo, ArrayInfo, StructInfo, TemplateInfo } from "../reflect/info.js";
@@ -10,11 +10,11 @@ export class Data {
         this.typeInfo = typeInfo;
     }
 
-    setDataValue(exec: ExecInterface, value: Data, postfix: AST.Expression | null, context: ExecContext): void {
+    setDataValue(exec: ExecInterface, value: Data, postfix: Expression | null, context: ExecContext): void {
         console.error(`SetDataValue: Not implemented`, value, postfix);
     }
 
-    getDataValue(exec: ExecInterface, postfix: AST.Expression | null, context: ExecContext): Data | null {
+    getDataValue(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null {
         console.error(`GetDataValue: Not implemented`, postfix);
         return null;
     }
@@ -50,7 +50,7 @@ export class ScalarData extends Data {
         this.value = value;
     }
 
-    setDataValue(exec: ExecInterface, value: Data, postfix: AST.Expression | null, context: ExecContext): void {
+    setDataValue(exec: ExecInterface, value: Data, postfix: Expression | null, context: ExecContext): void {
         if (postfix) {
             console.error(`SetDataValue: Scalar data does not support postfix`, postfix);
             return;
@@ -72,7 +72,7 @@ export class ScalarData extends Data {
         this.value = value.value;
     }
 
-    getDataValue(exec: ExecInterface, postfix: AST.Expression | null, context: ExecContext): Data | null {
+    getDataValue(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null {
         if (postfix) {
             console.error(`GetDataValue: Scalar data does not support postfix`, postfix);
             return null;
@@ -148,8 +148,8 @@ export class VectorData extends Data {
         }
     }
 
-    setDataValue(exec: ExecInterface, value: Data, postfix: AST.Expression | null, context: ExecContext): void {
-        if (postfix instanceof AST.StringExpr) {
+    setDataValue(exec: ExecInterface, value: Data, postfix: Expression | null, context: ExecContext): void {
+        if (postfix instanceof StringExpr) {
             console.error("TODO: Set vector postfix");
             return;
         }
@@ -162,7 +162,7 @@ export class VectorData extends Data {
         this.value = value.value;
     }
 
-    getDataValue(exec: ExecInterface, postfix: AST.Expression | null, context: ExecContext): Data | null {
+    getDataValue(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null {
         let format = exec.getTypeInfo("f32");
         if (this.typeInfo instanceof TemplateInfo) {
             format = this.typeInfo.format;
@@ -181,10 +181,10 @@ export class VectorData extends Data {
             }
         }
 
-        if (postfix instanceof AST.ArrayIndex) {
+        if (postfix instanceof ArrayIndex) {
             const idx = postfix.index;
             let i = -1;
-            if (idx instanceof AST.LiteralExpr) {
+            if (idx instanceof LiteralExpr) {
                 i = idx.value as number;
             } else {
                 const d = exec.evalExpression(idx, context);
@@ -202,7 +202,7 @@ export class VectorData extends Data {
             return new ScalarData(this.value[i], format);
         }
 
-        if (postfix instanceof AST.StringExpr) {
+        if (postfix instanceof StringExpr) {
             const member = postfix.value;
             const values = [];
             for (const m of member) {
@@ -246,8 +246,8 @@ export class MatrixData extends Data {
         this.value = value;
     }
 
-    setDataValue(exec: ExecInterface, value: Data, postfix: AST.Expression | null, context: ExecContext): void {
-        if (postfix instanceof AST.StringExpr) {
+    setDataValue(exec: ExecInterface, value: Data, postfix: Expression | null, context: ExecContext): void {
+        if (postfix instanceof StringExpr) {
             console.error("TODO: Set matrix postfix");
             return;
         }
@@ -260,7 +260,7 @@ export class MatrixData extends Data {
         this.value = value.value;
     }
 
-    getDataValue(exec: ExecInterface, postfix: AST.Expression | null, context: ExecContext): Data | null {
+    getDataValue(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null {
         const typeName = this.typeInfo.name;
         let format = exec.getTypeInfo("f32");
         if (this.typeInfo instanceof TemplateInfo) {
@@ -279,10 +279,10 @@ export class MatrixData extends Data {
             }
         }
 
-        if (postfix instanceof AST.ArrayIndex) {
+        if (postfix instanceof ArrayIndex) {
             const idx = postfix.index;
             let i = -1;
-            if (idx instanceof AST.LiteralExpr) {
+            if (idx instanceof LiteralExpr) {
                 i = idx.value as number;
             } else {
                 const d = exec.evalExpression(idx, context);
@@ -356,7 +356,7 @@ export class TypedData extends Data {
         }
     }
 
-    setDataValue(exec: ExecInterface, value: Data, postfix: AST.Expression | null, context: ExecContext): void {
+    setDataValue(exec: ExecInterface, value: Data, postfix: Expression | null, context: ExecContext): void {
         if (value === null) {
             console.log(`setDataValue: NULL data.`);
             return;
@@ -365,10 +365,10 @@ export class TypedData extends Data {
         let offset = this.offset;
         let typeInfo = this.typeInfo;
         while (postfix) {
-            if (postfix instanceof AST.ArrayIndex) {
+            if (postfix instanceof ArrayIndex) {
                 if (typeInfo instanceof ArrayInfo) {
                     const idx = postfix.index;
-                    if (idx instanceof AST.LiteralExpr) {
+                    if (idx instanceof LiteralExpr) {
                         offset += (idx.value as number) * typeInfo.stride;
                     } else {
                         const i = exec.evalExpression(idx, context);
@@ -383,7 +383,7 @@ export class TypedData extends Data {
                 } else {
                     console.error(`SetDataValue: Type ${exec.getTypeName(typeInfo)} is not an array`);
                 }
-            } else if (postfix instanceof AST.StringExpr) {
+            } else if (postfix instanceof StringExpr) {
                 const member = postfix.value;
                 if (typeInfo instanceof StructInfo) {
                     let found = false;
@@ -859,14 +859,14 @@ export class TypedData extends Data {
         console.error(`SetData: Unknown type ${typeName}`);
     }
 
-    getDataValue(exec: ExecInterface, postfix: AST.Expression | null, context: ExecContext): Data | null {
+    getDataValue(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null {
         let offset = this.offset;
         let typeInfo = this.typeInfo;
         while (postfix) {
-            if (postfix instanceof AST.ArrayIndex) {
+            if (postfix instanceof ArrayIndex) {
                 if (typeInfo instanceof ArrayInfo) {
                     const idx = postfix.index;
-                    if (idx instanceof AST.LiteralExpr) {
+                    if (idx instanceof LiteralExpr) {
                         offset += (idx.value as number) * typeInfo.stride;
                     } else {
                         const i = exec.evalExpression(idx, context);
@@ -881,7 +881,7 @@ export class TypedData extends Data {
                 } else {
                     console.error(`Type ${exec.getTypeName(typeInfo)} is not an array`);
                 }
-            } else if (postfix instanceof AST.StringExpr) {
+            } else if (postfix instanceof StringExpr) {
                 const member = postfix.value;
                 if (typeInfo instanceof StructInfo) {
                     let found = false;

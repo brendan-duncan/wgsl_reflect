@@ -1,13 +1,13 @@
-import * as AST from "../wgsl_ast.js";
+import { Node, CallExpr, Continue, Expression, Break } from "../wgsl_ast.js";
 
 export class Command {
     get line(): number { return -1; }
 }
 
 export class StatementCommand extends Command {
-    node: AST.Node;
+    node: Node;
 
-    constructor(node: AST.Node) {
+    constructor(node: Node) {
         super();
         this.node = node;
     }
@@ -16,10 +16,10 @@ export class StatementCommand extends Command {
 }
 
 export class CallExprCommand extends Command {
-    node: AST.CallExpr;
-    statement: AST.Node;
+    node: CallExpr;
+    statement: Node;
 
-    constructor(node: AST.CallExpr, statement: AST.Node) {
+    constructor(node: CallExpr, statement: Node) {
         super();
         this.node = node;
         this.statement = statement;
@@ -48,9 +48,9 @@ export class BreakTargetCommand extends Command {
 
 export class ContinueCommand extends Command {
     id: number;
-    node: AST.Continue;
+    node: Continue;
 
-    constructor(id: number, node: AST.Continue) {
+    constructor(id: number, node: Continue) {
         super();
         this.id = id;
         this.node = node;
@@ -61,10 +61,10 @@ export class ContinueCommand extends Command {
 
 export class BreakCommand extends Command {
     id: number;
-    condition: AST.Expression | null;
-    node: AST.Break;
+    condition: Expression | null;
+    node: Break;
 
-    constructor(id: number, condition: AST.Expression | null, node: AST.Break) {
+    constructor(id: number, condition: Expression | null, node: Break) {
         super();
         this.id = id;
         this.condition = condition;
@@ -76,11 +76,11 @@ export class BreakCommand extends Command {
 
 
 export class GotoCommand extends Command {
-    condition: AST.Node | null;
+    condition: Node | null;
     position: number;
     lineNo: number = -1;
 
-    constructor(condition: AST.Node | null, position: number, line: number) {
+    constructor(condition: Node | null, position: number, line: number) {
         super();
         this.condition = condition;
         this.position = position;
@@ -93,9 +93,9 @@ export class GotoCommand extends Command {
 }
 
 export class BlockCommand extends Command {
-    statements: Array<AST.Node> = [];
+    statements: Array<Node> = [];
 
-    constructor(statements: Array<AST.Node>) {
+    constructor(statements: Array<Node>) {
       super();
       this.statements = statements;
     }

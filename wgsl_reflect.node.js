@@ -4336,7 +4336,7 @@ class ExecInterface {
     getTypeInfo(type) {
         return null;
     }
-    _getVariableName(node, context) {
+    getVariableName(node, context) {
         return "";
     }
 }
@@ -6451,7 +6451,7 @@ class BuiltinFunctions {
             // TODO: handle & operator
             l = l.right;
         }
-        const name = this.exec._getVariableName(l, context);
+        const name = this.exec.getVariableName(l, context);
         const v = context.getVariable(name);
         const currentValue = v.value.getDataValue(this.exec, l.postfix, context);
         return currentValue;
@@ -6462,7 +6462,7 @@ class BuiltinFunctions {
             // TODO: handle & operator
             l = l.right;
         }
-        const name = this.exec._getVariableName(l, context);
+        const name = this.exec.getVariableName(l, context);
         const v = context.getVariable(name);
         let r = node.args[1];
         const value = this.exec.evalExpression(r, context);
@@ -6481,7 +6481,7 @@ class BuiltinFunctions {
             // TODO: handle & operator
             l = l.right;
         }
-        const name = this.exec._getVariableName(l, context);
+        const name = this.exec.getVariableName(l, context);
         const v = context.getVariable(name);
         let r = node.args[1];
         const value = this.exec.evalExpression(r, context);
@@ -6500,7 +6500,7 @@ class BuiltinFunctions {
             // TODO: handle & operator
             l = l.right;
         }
-        const name = this.exec._getVariableName(l, context);
+        const name = this.exec.getVariableName(l, context);
         const v = context.getVariable(name);
         let r = node.args[1];
         const value = this.exec.evalExpression(r, context);
@@ -6519,7 +6519,7 @@ class BuiltinFunctions {
             // TODO: handle & operator
             l = l.right;
         }
-        const name = this.exec._getVariableName(l, context);
+        const name = this.exec.getVariableName(l, context);
         const v = context.getVariable(name);
         let r = node.args[1];
         const value = this.exec.evalExpression(r, context);
@@ -6539,7 +6539,7 @@ class BuiltinFunctions {
             // TODO: handle & operator
             l = l.right;
         }
-        const name = this.exec._getVariableName(l, context);
+        const name = this.exec.getVariableName(l, context);
         const v = context.getVariable(name);
         let r = node.args[1];
         const value = this.exec.evalExpression(r, context);
@@ -6559,7 +6559,7 @@ class BuiltinFunctions {
             // TODO: handle & operator
             l = l.right;
         }
-        const name = this.exec._getVariableName(l, context);
+        const name = this.exec.getVariableName(l, context);
         const v = context.getVariable(name);
         let r = node.args[1];
         const value = this.exec.evalExpression(r, context);
@@ -6579,7 +6579,7 @@ class BuiltinFunctions {
             // TODO: handle & operator
             l = l.right;
         }
-        const name = this.exec._getVariableName(l, context);
+        const name = this.exec.getVariableName(l, context);
         const v = context.getVariable(name);
         let r = node.args[1];
         const value = this.exec.evalExpression(r, context);
@@ -6599,7 +6599,7 @@ class BuiltinFunctions {
             // TODO: handle & operator
             l = l.right;
         }
-        const name = this.exec._getVariableName(l, context);
+        const name = this.exec.getVariableName(l, context);
         const v = context.getVariable(name);
         let r = node.args[1];
         const value = this.exec.evalExpression(r, context);
@@ -6619,7 +6619,7 @@ class BuiltinFunctions {
             // TODO: handle & operator
             l = l.right;
         }
-        const name = this.exec._getVariableName(l, context);
+        const name = this.exec.getVariableName(l, context);
         const v = context.getVariable(name);
         let r = node.args[1];
         const value = this.exec.evalExpression(r, context);

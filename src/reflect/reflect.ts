@@ -2,17 +2,19 @@
  * @author Brendan Duncan / https://github.com/brendan-duncan
  */
 import { TokenTypes } from "../wgsl_scanner.js";
-import * as AST from "../wgsl_ast.js";
+import { Type, Struct, Alias, Override, Var, Node, Function, VariableExpr, CreateExpr,
+    Let, CallExpr, Call, Argument, Member, Attribute, ArrayType, SamplerType, TemplateType,
+    _BlockStart, _BlockEnd } from "../wgsl_ast.js";
 import { FunctionInfo, VariableInfo, AliasInfo, OverrideInfo,
   StructInfo, TypeInfo, MemberInfo, ArrayInfo, TemplateInfo, OutputInfo,
   InputInfo, ArgumentInfo, ResourceType, EntryFunctions } from "./info.js";
  
 class _FunctionResources {
-  node: AST.Function;
+  node: Function;
   resources: VariableInfo[] | null = null;
   inUse: boolean = false;
   info: FunctionInfo | null = null;
-  constructor(node: AST.Function) {
+  constructor(node: Function) {
     this.node = node;
   }
 }
@@ -47,7 +49,7 @@ export class Reflect {
   /// All functions in the shader, including entry functions.
   functions: FunctionInfo[] = [];
 
-  _types: Map<AST.Type, TypeInfo> = new Map();
+  _types: Map<Type, TypeInfo> = new Map();
   _functions: Map<string, _FunctionResources> = new Map();
 
   _isStorageTexture(type: TypeInfo): boolean {
@@ -59,16 +61,16 @@ export class Reflect {
     );
   }
 
-  updateAST(ast: AST.Node[]): void {
+  updateAST(ast: Node[]): void {
     for (const node of ast) {
-      if (node instanceof AST.Function) {
-        this._functions.set(node.name, new _FunctionResources(node as AST.Function));
+      if (node instanceof Function) {
+        this._functions.set(node.name, new _FunctionResources(node as Function));
       }
     }
 
     for (const node of ast) {
-      if (node instanceof AST.Struct) {
-        const info = this.getTypeInfo(node as AST.Struct, null);
+      if (node instanceof Struct) {
+        const info = this.getTypeInfo(node as Struct, null);
         if (info instanceof StructInfo) {
           this.structs.push(info as StructInfo);
         }
@@ -76,13 +78,13 @@ export class Reflect {
     }
 
     for (const node of ast) {
-      if (node instanceof AST.Alias) {
-        this.aliases.push(this._getAliasInfo(node as AST.Alias));
+      if (node instanceof Alias) {
+        this.aliases.push(this._getAliasInfo(node as Alias));
         continue;
       }
 
-      if (node instanceof AST.Override) {
-        const v = node as AST.Override;
+      if (node instanceof Override) {
+        const v = node as Override;
         const id = this._getAttributeNum(v.attributes, "id", 0);
         const type =
           v.type != null ? this.getTypeInfo(v.type, v.attributes) : null;
@@ -91,7 +93,7 @@ export class Reflect {
       }
 
       if (this._isUniformVar(node)) {
-        const v = node as AST.Var;
+        const v = node as Var;
         const g = this._getAttributeNum(v.attributes, "group", 0);
         const b = this._getAttributeNum(v.attributes, "binding", 0);
         const type = this.getTypeInfo(v.type!, v.attributes);
@@ -109,7 +111,7 @@ export class Reflect {
       }
 
       if (this._isStorageVar(node)) {
-        const v = node as AST.Var;
+        const v = node as Var;
         const g = this._getAttributeNum(v.attributes, "group", 0);
         const b = this._getAttributeNum(v.attributes, "binding", 0);
         const type = this.getTypeInfo(v.type!, v.attributes);
@@ -128,7 +130,7 @@ export class Reflect {
       }
 
       if (this._isTextureVar(node)) {
-        const v = node as AST.Var;
+        const v = node as Var;
         const g = this._getAttributeNum(v.attributes, "group", 0);
         const b = this._getAttributeNum(v.attributes, "binding", 0);
         const type = this.getTypeInfo(v.type!, v.attributes);
@@ -151,7 +153,7 @@ export class Reflect {
       }
 
       if (this._isSamplerVar(node)) {
-        const v = node as AST.Var;
+        const v = node as Var;
         const g = this._getAttributeNum(v.attributes, "group", 0);
         const b = this._getAttributeNum(v.attributes, "binding", 0);
         const type = this.getTypeInfo(v.type!, v.attributes);
@@ -168,7 +170,7 @@ export class Reflect {
         continue;
       }
 
-      if (node instanceof AST.Function) {
+      if (node instanceof Function) {
         const vertexStage = this._getAttribute(node, "vertex");
         const fragmentStage = this._getAttribute(node, "fragment");
         const computeStage = this._getAttribute(node, "compute");
@@ -217,7 +219,7 @@ export class Reflect {
     for (const fn of this._functions.values()) {
       fn.node.search((node) => {
         if (node.astNodeType === "varExpr") {
-          const v = node as AST.VariableExpr;
+          const v = node as VariableExpr;
           for (const override of this.overrides) {
             if (v.name == override.name) {
               fn.info?.overrides.push(override);
@@ -278,7 +280,7 @@ export class Reflect {
     }
   }
 
-  _addCalls(fn: AST.Function, calls: Set<FunctionInfo>, ) {
+  _addCalls(fn: Function, calls: Set<FunctionInfo>, ) {
     for (const call of fn.calls) {
       const info = this._functions.get(call.name)?.info;
       if (info) {
@@ -336,43 +338,43 @@ export class Reflect {
     return null;
   }
   
-  _markStructsFromAST(type: AST.Type) {
+  _markStructsFromAST(type: Type) {
     const info = this.getTypeInfo(type, null);
     this._markStructsInUse(info);
   }
 
-  _findResources(fn: AST.Node, isEntry: boolean): VariableInfo[] {
+  _findResources(fn: Node, isEntry: boolean): VariableInfo[] {
     const resources: any[] = [];
     const self = this;
     const varStack: any[] = [];
     fn.search((node) => {
-      if (node instanceof AST._BlockStart) {
+      if (node instanceof _BlockStart) {
         varStack.push({});
-      } else if (node instanceof AST._BlockEnd) {
+      } else if (node instanceof _BlockEnd) {
         varStack.pop();
-      } else if (node instanceof AST.Var) {
-        const v = node as AST.Var;
+      } else if (node instanceof Var) {
+        const v = node as Var;
         if (isEntry && v.type !== null) {
           this._markStructsFromAST(v.type);
         }
         if (varStack.length > 0) {
           varStack[varStack.length - 1][v.name] = v;
         }
-      } else if (node instanceof AST.CreateExpr) {
-        const c = node as AST.CreateExpr;
+      } else if (node instanceof CreateExpr) {
+        const c = node as CreateExpr;
         if (isEntry && c.type !== null) {
           this._markStructsFromAST(c.type);
         }
-      } else if (node instanceof AST.Let) {
-        const v = node as AST.Let;
+      } else if (node instanceof Let) {
+        const v = node as Let;
         if (isEntry && v.type !== null) {
           this._markStructsFromAST(v.type);
         }
         if (varStack.length > 0) {
           varStack[varStack.length - 1][v.name] = v;
         }
-      } else if (node instanceof AST.VariableExpr) {
-        const v = node as AST.VariableExpr;
+      } else if (node instanceof VariableExpr) {
+        const v = node as VariableExpr;
         // Check to see if the variable is a local variable before checking to see if it's
         // a resource.
         if (varStack.length > 0) {
@@ -385,27 +387,27 @@ export class Reflect {
         if (varInfo) {
           resources.push(varInfo);
         }
-      } else if (node instanceof AST.CallExpr) {
-        const c = node as AST.CallExpr;
+      } else if (node instanceof CallExpr) {
+        const c = node as CallExpr;
         const callFn = self._functions.get(c.name);
         if (callFn) {
           if (isEntry) {
             callFn.inUse = true;
           }
-          (fn as AST.Function).calls.add(callFn.node);
+          (fn as Function).calls.add(callFn.node);
           if (callFn.resources === null) {
             callFn.resources = self._findResources(callFn.node, isEntry);
           }
           resources.push(...callFn.resources);
         }
-      } else if (node instanceof AST.Call) {
-        const c = node as AST.Call;
+      } else if (node instanceof Call) {
+        const c = node as Call;
         const callFn = self._functions.get(c.name);
         if (callFn) {
           if (isEntry) {
             callFn.inUse = true;
           }
-          (fn as AST.Function).calls.add(callFn.node);
+          (fn as Function).calls.add(callFn.node);
           if (callFn.resources === null) {
             callFn.resources = self._findResources(callFn.node, isEntry);
           }
@@ -461,14 +463,14 @@ export class Reflect {
   }
 
   _getOutputs(
-    type: AST.Type,
+    type: Type,
     outputs: OutputInfo[] | undefined = undefined
   ): OutputInfo[] {
     if (outputs === undefined) {
       outputs = [];
     }
 
-    if (type instanceof AST.Struct) {
+    if (type instanceof Struct) {
       this._getStructOutputs(type, outputs);
     } else {
       const output = this._getOutputInfo(type);
@@ -480,9 +482,9 @@ export class Reflect {
     return outputs;
   }
 
-  _getStructOutputs(struct: AST.Struct, outputs: OutputInfo[]) {
+  _getStructOutputs(struct: Struct, outputs: OutputInfo[]) {
     for (const m of struct.members) {
-      if (m.type instanceof AST.Struct) {
+      if (m.type instanceof Struct) {
         this._getStructOutputs(m.type, outputs);
       } else {
         const location =
@@ -502,7 +504,7 @@ export class Reflect {
     }
   }
 
-  _getOutputInfo(type: AST.Type): OutputInfo | null {
+  _getOutputInfo(type: Type): OutputInfo | null {
     const location =
       this._getAttribute(type, "location") ||
       this._getAttribute(type, "builtin");
@@ -516,7 +518,7 @@ export class Reflect {
   }
 
   _getInputs(
-    args: AST.Argument[],
+    args: Argument[],
     inputs: InputInfo[] | undefined = undefined
   ): InputInfo[] {
     if (inputs === undefined) {
@@ -524,7 +526,7 @@ export class Reflect {
     }
 
     for (const arg of args) {
-      if (arg.type instanceof AST.Struct) {
+      if (arg.type instanceof Struct) {
         this._getStructInputs(arg.type, inputs);
       } else {
         const input = this._getInputInfo(arg);
@@ -537,9 +539,9 @@ export class Reflect {
     return inputs;
   }
 
-  _getStructInputs(struct: AST.Struct, inputs: InputInfo[]) {
+  _getStructInputs(struct: Struct, inputs: InputInfo[]) {
     for (const m of struct.members) {
-      if (m.type instanceof AST.Struct) {
+      if (m.type instanceof Struct) {
         this._getStructInputs(m.type, inputs);
       } else {
         const input = this._getInputInfo(m);
@@ -550,7 +552,7 @@ export class Reflect {
     }
   }
 
-  _getInputInfo(node: AST.Member | AST.Argument): InputInfo | null {
+  _getInputInfo(node: Member | Argument): InputInfo | null {
     const location =
       this._getAttribute(node, "location") ||
       this._getAttribute(node, "builtin");
@@ -591,20 +593,20 @@ export class Reflect {
     return null;
   }
 
-  _getAliasInfo(node: AST.Alias): AliasInfo {
+  _getAliasInfo(node: Alias): AliasInfo {
     return new AliasInfo(node.name, this.getTypeInfo(node.type!, null));
   }
 
   getTypeInfo(
-    type: AST.Type,
-    attributes: AST.Attribute[] | null = null
+    type: Type,
+    attributes: Attribute[] | null = null
   ): TypeInfo {
     if (this._types.has(type)) {
       return this._types.get(type)!;
     }
 
-    if (type instanceof AST.ArrayType) {
-      const a = type as AST.ArrayType;
+    if (type instanceof ArrayType) {
+      const a = type as ArrayType;
       const t = a.format ? this.getTypeInfo(a.format!, a.attributes) : null;
       const info = new ArrayInfo(a.name, attributes);
       info.format = t;
@@ -614,8 +616,8 @@ export class Reflect {
       return info;
     }
 
-    if (type instanceof AST.Struct) {
-      const s = type as AST.Struct;
+    if (type instanceof Struct) {
+      const s = type as Struct;
       const info = new StructInfo(s.name, attributes);
       info.startLine = s.startLine;
       info.endLine = s.endLine;
@@ -628,12 +630,12 @@ export class Reflect {
       return info;
     }
 
-    if (type instanceof AST.SamplerType) {
-      const s = type as AST.SamplerType;
-      const formatIsType = s.format instanceof AST.Type;
+    if (type instanceof SamplerType) {
+      const s = type as SamplerType;
+      const formatIsType = s.format instanceof Type;
       const format = s.format
         ? formatIsType
-          ? this.getTypeInfo(s.format! as AST.Type, null)
+          ? this.getTypeInfo(s.format! as Type, null)
           : new TypeInfo(s.format! as string, null)
         : null;
       const info = new TemplateInfo(s.name, format, attributes, s.access);
@@ -642,8 +644,8 @@ export class Reflect {
       return info;
     }
 
-    if (type instanceof AST.TemplateType) {
-      const t = type as AST.TemplateType;
+    if (type instanceof TemplateType) {
+      const t = type as TemplateType;
       const format = t.format ? this.getTypeInfo(t.format!, null) : null;
       const info = new TemplateInfo(t.name, format, attributes, t.access);
       this._types.set(type, info);
@@ -821,31 +823,31 @@ export class Reflect {
     return null;
   }
 
-  _isUniformVar(node: AST.Node): boolean {
-    return node instanceof AST.Var && node.storage == "uniform";
+  _isUniformVar(node: Node): boolean {
+    return node instanceof Var && node.storage == "uniform";
   }
 
-  _isStorageVar(node: AST.Node): boolean {
-    return node instanceof AST.Var && node.storage == "storage";
+  _isStorageVar(node: Node): boolean {
+    return node instanceof Var && node.storage == "storage";
   }
 
-  _isTextureVar(node: AST.Node): boolean {
+  _isTextureVar(node: Node): boolean {
     return (
-      node instanceof AST.Var &&
+      node instanceof Var &&
       node.type !== null &&
       Reflect._textureTypes.indexOf(node.type.name) != -1
     );
   }
 
-  _isSamplerVar(node: AST.Node): boolean {
+  _isSamplerVar(node: Node): boolean {
     return (
-      node instanceof AST.Var &&
+      node instanceof Var &&
       node.type !== null &&
       Reflect._samplerTypes.indexOf(node.type.name) != -1
     );
   }
 
-  _getAttribute(node: AST.Node, name: string): AST.Attribute | null {
+  _getAttribute(node: Node, name: string): Attribute | null {
     const obj = node as Object;
     if (!obj || !obj["attributes"]) {
       return null;
@@ -860,7 +862,7 @@ export class Reflect {
   }
 
   _getAttributeNum(
-    attributes: AST.Attribute[] | null,
+    attributes: Attribute[] | null,
     name: string,
     defaultValue: number
   ): number {

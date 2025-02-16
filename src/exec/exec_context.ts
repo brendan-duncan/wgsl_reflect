@@ -1,7 +1,7 @@
-import * as AST from "../wgsl_ast.js";
+import { Let, Var, Argument, Function } from "../wgsl_ast.js";
 import { Data } from "./data.js";
 
-type ASTVarNode = AST.Let | AST.Var | AST.Argument;
+type ASTVarNode = Let | Var | Argument;
 
 export class VarRef {
     name: string;
@@ -21,9 +21,9 @@ export class VarRef {
 
 export class FunctionRef {
     name: string;
-    node: AST.Function;
+    node: Function;
 
-    constructor(node: AST.Function) {
+    constructor(node: Function) {
         this.name = node.name;
         this.node = node;
     }

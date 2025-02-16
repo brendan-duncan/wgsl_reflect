@@ -1,11 +1,11 @@
-import * as AST from "../wgsl_ast.js";
+import { Attribute } from "../wgsl_ast.js";
 
 export class TypeInfo {
   name: string;
-  attributes: AST.Attribute[] | null;
+  attributes: Attribute[] | null;
   size: number;
 
-  constructor(name: string, attributes: AST.Attribute[] | null) {
+  constructor(name: string, attributes: Attribute[] | null) {
     this.name = name;
     this.attributes = attributes;
     this.size = 0;
@@ -27,14 +27,14 @@ export class TypeInfo {
 export class MemberInfo {
   name: string;
   type: TypeInfo;
-  attributes: AST.Attribute[] | null;
+  attributes: Attribute[] | null;
   offset: number;
   size: number;
 
   constructor(
     name: string,
     type: TypeInfo,
-    attributes: AST.Attribute[] | null
+    attributes: Attribute[] | null
   ) {
     this.name = name;
     this.type = type;
@@ -87,7 +87,7 @@ export class StructInfo extends TypeInfo {
   endLine: number = -1;
   inUse: boolean = false;
 
-  constructor(name: string, attributes: AST.Attribute[] | null) {
+  constructor(name: string, attributes: Attribute[] | null) {
     super(name, attributes);
   }
 
@@ -101,7 +101,7 @@ export class ArrayInfo extends TypeInfo {
   count: number;
   stride: number;
 
-  constructor(name: string, attributes: AST.Attribute[] | null) {
+  constructor(name: string, attributes: Attribute[] | null) {
     super(name, attributes);
     this.count = 0;
     this.stride = 0;
@@ -118,7 +118,7 @@ export class TemplateInfo extends TypeInfo {
   constructor(
     name: string,
     format: TypeInfo | null,
-    attributes: AST.Attribute[] | null,
+    attributes: Attribute[] | null,
     access: string
   ) {
     super(name, attributes);
@@ -140,7 +140,7 @@ export enum ResourceType {
 }
 
 export class VariableInfo {
-  attributes: AST.Attribute[] | null;
+  attributes: Attribute[] | null;
   name: string;
   type: TypeInfo;
   group: number;
@@ -153,7 +153,7 @@ export class VariableInfo {
     type: TypeInfo,
     group: number,
     binding: number,
-    attributes: AST.Attribute[] | null,
+    attributes: Attribute[] | null,
     resourceType: ResourceType,
     access: string
   ) {
@@ -260,13 +260,13 @@ export class OutputInfo {
 export class OverrideInfo {
   name: string;
   type: TypeInfo | null;
-  attributes: AST.Attribute[] | null;
+  attributes: Attribute[] | null;
   id: number;
 
   constructor(
     name: string,
     type: TypeInfo | null,
-    attributes: AST.Attribute[] | null,
+    attributes: Attribute[] | null,
     id: number
   ) {
     this.name = name;
@@ -279,12 +279,12 @@ export class OverrideInfo {
 export class ArgumentInfo {
   name: string;
   type: TypeInfo;
-  attributes: AST.Attribute[] | null;
+  attributes: Attribute[] | null;
 
   constructor(
     name: string,
     type: TypeInfo,
-    attributes: AST.Attribute[] | null
+    attributes: Attribute[] | null
   ) {
     this.name = name;
     this.type = type;
@@ -301,13 +301,13 @@ export class FunctionInfo {
   returnType: TypeInfo | null = null;
   resources: VariableInfo[] = [];
   overrides: OverrideInfo[] = [];
-  attributes: AST.Attribute[] | null;
+  attributes: Attribute[] | null;
   startLine: number = -1;
   endLine: number = -1;
   inUse: boolean = false;
   calls: Set<FunctionInfo> = new Set();
 
-  constructor(name: string, stage: string | null = null, attributes: AST.Attribute[] | null) {
+  constructor(name: string, stage: string | null = null, attributes: Attribute[] | null) {
     this.name = name;
     this.stage = stage;
     this.attributes = attributes;
