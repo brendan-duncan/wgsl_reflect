@@ -28,7 +28,7 @@ export class Node {
     return "";
   }
 
-  constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
+  constEvaluate(context: ParseContext, type?: Array<Type>): number | number[] {
     throw new Error("Cannot evaluate node");
   }
 
@@ -355,7 +355,7 @@ export class Const extends Statement {
     return "const";
   }
 
-  constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
+  constEvaluate(context: ParseContext, type?: Array<Type>): number | number[] {
     return this.value.constEvaluate(context, type);
   }
 
@@ -1004,7 +1004,7 @@ export class CreateExpr extends Expression {
     }
   }
 
-  constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
+  constEvaluate(context: ParseContext, type?: Array<Type>): number | number[] {
     const t = this.type;
     if (t.name === "f32" || t.name === "f16" || t.name === "i32" || t.name === "u32" || t.name === "bool") {
       return this.args[0].constEvaluate(context, type);
@@ -1986,49 +1986,49 @@ export class CallExpr extends Expression {
     return CallExpr.builtinFunctionNames.has(this.name);
   }
 
-  constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
+  constEvaluate(context: ParseContext, type?: Array<Type>): number | number[] {
     switch (this.name) {
       case "abs": {
         const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.abs(v));
         }
-        return Math.abs(value);
+        return Math.abs(value as number);
       }
       case "acos": {
         const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.acos(v));
         }
-        return Math.acos(value);
+        return Math.acos(value as number);
       }
       case "acosh": {
         const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.acosh(v));
         }
-        return Math.acosh(value);
+        return Math.acosh(value as number);
       }
       case "asin": {
         const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.asin(v));
         }
-        return Math.asin(value);
+        return Math.asin(value as number);
       }
       case "asinh": {
         const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.asinh(v));
         }
-        return Math.asinh(value);
+        return Math.asinh(value as number);
       }
       case "atan": {
         const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.atan(v));
         }
-        return Math.atan(value);
+        return Math.atan(value as number);
       }
       case "atan2":
         const value = this.args[0].constEvaluate(context, type);
@@ -2042,14 +2042,14 @@ export class CallExpr extends Expression {
         if (Array.isArray(value)) {
           return value.map((v) => Math.atanh(v));
         }
-        return Math.atanh(value);
+        return Math.atanh(value as number);
       }
       case "ceil": {
         const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.ceil(v));
         }
-        return Math.ceil(value);
+        return Math.ceil(value as number);
       }
       case "clamp": {
         const value = this.args[0].constEvaluate(context, type);
@@ -2058,14 +2058,14 @@ export class CallExpr extends Expression {
         if (Array.isArray(value)) {
           return value.map((v) => Math.min(Math.max(v, a), b));
         }
-        return Math.min(Math.max(value, a), b);
+        return Math.min(Math.max(value as number, a), b);
       }
       case "cos": {
         const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.cos(v));
         }
-        return Math.cos(value);
+        return Math.cos(value as number);
       }
       case "cross": {
         const x = this.args[0].constEvaluate(context, type);
@@ -2084,7 +2084,7 @@ export class CallExpr extends Expression {
         if (Array.isArray(value)) {
           return value.map((v) => v * 180 / Math.PI);
         }
-        return value * 180 / Math.PI;
+        return (value as number) * 180 / Math.PI;
       }
       case "determinant":
         throw new Error("TODO Determinant is not implemented");
@@ -2119,14 +2119,14 @@ export class CallExpr extends Expression {
         if (Array.isArray(value)) {
           return value.map((v) => Math.exp(v));
         }
-        return Math.exp(value);
+        return Math.exp(value as number);
       }
       case "exp2": {
         const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.pow(2, v));
         }
-        return Math.pow(2, value);
+        return Math.pow(2, value as number);
       }
       //case "extractBits":
       //TODO: implement
@@ -2137,7 +2137,7 @@ export class CallExpr extends Expression {
         if (Array.isArray(value)) {
           return value.map((v) => Math.floor(v));
         }
-        return Math.floor(value);
+        return Math.floor(value as number);
       }
       case "fma": {
         const a = this.args[0].constEvaluate(context, type);
@@ -2153,7 +2153,7 @@ export class CallExpr extends Expression {
         if (Array.isArray(value)) {
           return value.map((v) => v - Math.floor(v));
         }
-        return value - Math.floor(value);
+        return (value as number) - Math.floor(value as number);
       }
       //case "frexp":
       //TODO: implement
@@ -2162,7 +2162,7 @@ export class CallExpr extends Expression {
         if (Array.isArray(value)) {
           return value.map((v) => 1 / Math.sqrt(v));
         }
-        return 1 / Math.sqrt(value);
+        return 1 / Math.sqrt(value as number);
       }
       case "length": {
         const value = this.args[0].constEvaluate(context, type);
@@ -2173,21 +2173,21 @@ export class CallExpr extends Expression {
           }
           return Math.sqrt(d2);
         }
-        return Math.abs(value);
+        return Math.abs(value as number);
       }
       case "log": {
         const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.log(v));
         }
-        return Math.log(value);
+        return Math.log(value as number);
       }
       case "log2": {
         const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.log2(v));
         }
-        return Math.log2(value);
+        return Math.log2(value as number);
       }
       case "max": {
         const a = this.args[0].constEvaluate(context, type);
@@ -2229,42 +2229,42 @@ export class CallExpr extends Expression {
         if (Array.isArray(value)) {
           return value.map((v) => (v * Math.PI) / 180);
         }
-        return (value * Math.PI) / 180;
+        return ((value as number) * Math.PI) / 180;
       }
       case "round": {
         const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.round(v));
         }
-        return Math.round(value);
+        return Math.round(value as number);
       }
       case "sign": {
         const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.sign(v));
         }
-        return Math.sign(value);
+        return Math.sign(value as number);
       }
       case "sin": {
         const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.sin(v));
         }
-        return Math.sin(value);
+        return Math.sin(value as number);
       }
       case "sinh": {
         const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.sinh(v));
         }
-        return Math.sinh(value);
+        return Math.sinh(value as number);
       }
       case "saturate": {
         const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.min(Math.max(v, 0), 1));
         }
-        return Math.min(Math.max(value, 0), 1);
+        return Math.min(Math.max(value as number, 0), 1);
       }
       case "smoothstep": {
         const edge0 = this.args[0].constEvaluate(context, type);
@@ -2287,7 +2287,7 @@ export class CallExpr extends Expression {
         if (Array.isArray(value)) {
           return value.map((v) => Math.sqrt(v));
         }
-        return Math.sqrt(value);
+        return Math.sqrt(value as number);
       }
       case "step": {
         if (type !== undefined) {
@@ -2305,21 +2305,21 @@ export class CallExpr extends Expression {
         if (Array.isArray(value)) {
           return value.map((v) => Math.tan(v));
         }
-        return Math.tan(value);
+        return Math.tan(value as number);
       }
       case "tanh": {
         const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.tanh(v));
         }
-        return Math.tanh(value);
+        return Math.tanh(value as number);
       }
       case "trunc": {
         const value = this.args[0].constEvaluate(context, type);
         if (Array.isArray(value)) {
           return value.map((v) => Math.trunc(v));
         }
-        return Math.trunc(value);
+        return Math.trunc(value as number);
       }
       default:
         throw new Error("Non const function: " + this.name);
@@ -2358,7 +2358,7 @@ export class VariableExpr extends Expression {
     }
   }
 
-  constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
+  constEvaluate(context: ParseContext, type?: Array<Type>): number | number[] {
     const constant = context.constants.get(this.name);
     if (!constant) {
       throw new Error("Cannot evaluate node");
@@ -2386,7 +2386,7 @@ export class ConstExpr extends Expression {
     return "constExpr";
   }
 
-  constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
+  constEvaluate(context: ParseContext, type?: Array<Type>): number | number[] {
     if (this.initializer instanceof CreateExpr) {
       // This is a struct constant
       const property = this.postfix?.constEvaluateString(context);
@@ -2484,7 +2484,7 @@ export class TypecastExpr extends Expression {
     return "typecastExpr";
   }
 
-  constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
+  constEvaluate(context: ParseContext, type?: Array<Type>): number | number[] {
     if (type !== undefined) {
       type[0] = this.type;
     }
@@ -2513,7 +2513,7 @@ export class GroupingExpr extends Expression {
     return "groupExpr";
   }
 
-  constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
+  constEvaluate(context: ParseContext, type?: Array<Type>): number | number[] {
     return this.contents[0].constEvaluate(context, type);
   }
 
@@ -2570,7 +2570,7 @@ export class UnaryOperator extends Operator {
     return "unaryOp";
   }
 
-  constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number> {
+  constEvaluate(context: ParseContext, type?: Array<Type>): number | number[] {
     switch (this.operator) {
       case "+":
         return this.right.constEvaluate(context, type);

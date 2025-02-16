@@ -1,5 +1,6 @@
 import * as AST from "./wgsl_ast.js";
-import { WgslReflect, TypeInfo } from "./wgsl_reflect.js";
+import { Reflect } from "./reflect/reflect.js";
+import { TypeInfo } from "./reflect/info.js";
 import { ExecContext, FunctionRef } from "./exec/exec_context.js";
 import { ExecInterface } from "./exec/exec_interface.js";
 import { BuiltinFunctions } from "./exec/builtin_functions.js";
@@ -7,7 +8,7 @@ import { Data } from "./exec/data.js";
 export declare class WgslExec extends ExecInterface {
     ast: Array<AST.Node>;
     context: ExecContext;
-    reflection: WgslReflect;
+    reflection: Reflect;
     builtins: BuiltinFunctions;
     typeInfo: Object;
     constructor(ast?: Array<AST.Node>, context?: ExecContext);

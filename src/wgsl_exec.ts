@@ -1,5 +1,6 @@
 import * as AST from "./wgsl_ast.js";
-import { WgslReflect, TypeInfo, StructInfo, ArrayInfo, TemplateInfo } from "./wgsl_reflect.js";
+import { Reflect } from "./reflect/reflect.js";
+import { TypeInfo, StructInfo, ArrayInfo, TemplateInfo } from "./reflect/info.js";
 import { ExecContext, FunctionRef } from "./exec/exec_context.js";
 import { ExecInterface } from "./exec/exec_interface.js";
 import { BuiltinFunctions } from "./exec/builtin_functions.js";
@@ -9,14 +10,14 @@ import { isArray, castScalar, castVector } from "./exec/util.js";
 export class WgslExec extends ExecInterface {
     ast: Array<AST.Node>;
     context: ExecContext;
-    reflection: WgslReflect;
+    reflection: Reflect;
     builtins: BuiltinFunctions;
     typeInfo: Object;
 
     constructor(ast?: Array<AST.Node>, context?: ExecContext) {
         super();
         this.ast = ast ?? [];
-        this.reflection = new WgslReflect();
+        this.reflection = new Reflect();
         this.reflection.updateAST(this.ast);
 
         this.context = context?.clone() ?? new ExecContext();

@@ -15,7 +15,7 @@ export declare class Node {
     constructor();
     get isAstNode(): boolean;
     get astNodeType(): string;
-    constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
+    constEvaluate(context: ParseContext, type?: Array<Type>): number | number[];
     constEvaluateString(context: ParseContext): string;
     search(callback: (node: Node) => void): void;
     searchBlock(block: Array<Node> | null, callback: (node: Node) => void): void;
@@ -160,7 +160,7 @@ export declare class Const extends Statement {
     attributes: Array<Attribute> | null;
     constructor(name: string, type: Type | null, storage: string | null, access: string | null, value: Expression);
     get astNodeType(): string;
-    constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
+    constEvaluate(context: ParseContext, type?: Array<Type>): number | number[];
     search(callback: (node: Node) => void): void;
 }
 export declare enum IncrementOperator {
@@ -489,7 +489,7 @@ export declare class CreateExpr extends Expression {
     constructor(type: Type | null, args: Array<Expression> | null);
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;
-    constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
+    constEvaluate(context: ParseContext, type?: Array<Type>): number | number[];
 }
 /**
  * @class CallExpr
@@ -505,7 +505,7 @@ export declare class CallExpr extends Expression {
     setCachedReturnValue(value: any): void;
     static builtinFunctionNames: Set<string>;
     get isBuiltin(): boolean;
-    constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
+    constEvaluate(context: ParseContext, type?: Array<Type>): number | number[];
     search(callback: (node: Node) => void): void;
 }
 /**
@@ -518,7 +518,7 @@ export declare class VariableExpr extends Expression {
     constructor(name: string);
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;
-    constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
+    constEvaluate(context: ParseContext, type?: Array<Type>): number | number[];
 }
 /**
  * @class ConstExpr
@@ -530,7 +530,7 @@ export declare class ConstExpr extends Expression {
     initializer: Expression;
     constructor(name: string, initializer: Expression);
     get astNodeType(): string;
-    constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
+    constEvaluate(context: ParseContext, type?: Array<Type>): number | number[];
     search(callback: (node: Node) => void): void;
 }
 /**
@@ -569,7 +569,7 @@ export declare class TypecastExpr extends Expression {
     args: Array<Expression> | null;
     constructor(type: Type | null, args: Array<Expression> | null);
     get astNodeType(): string;
-    constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
+    constEvaluate(context: ParseContext, type?: Array<Type>): number | number[];
     search(callback: (node: Node) => void): void;
 }
 /**
@@ -581,7 +581,7 @@ export declare class GroupingExpr extends Expression {
     contents: Array<Expression>;
     constructor(contents: Array<Expression>);
     get astNodeType(): string;
-    constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
+    constEvaluate(context: ParseContext, type?: Array<Type>): number | number[];
     search(callback: (node: Node) => void): void;
 }
 /**
@@ -613,7 +613,7 @@ export declare class UnaryOperator extends Operator {
     right: Expression;
     constructor(operator: string, right: Expression);
     get astNodeType(): string;
-    constEvaluate(context: ParseContext, type?: Array<Type>): number | Array<number>;
+    constEvaluate(context: ParseContext, type?: Array<Type>): number | number[];
     search(callback: (node: Node) => void): void;
 }
 /**

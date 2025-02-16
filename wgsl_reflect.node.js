@@ -3502,8 +3502,8 @@ class _TypeSize {
         this.size = size;
     }
 }
-class WgslReflect {
-    constructor(code) {
+class Reflect {
+    constructor() {
         /// All top-level uniform vars in the shader.
         this.uniforms = [];
         /// All top-level storage vars in the shader.
@@ -3524,20 +3524,12 @@ class WgslReflect {
         this.functions = [];
         this._types = new Map();
         this._functions = new Map();
-        if (code) {
-            this.update(code);
-        }
     }
     _isStorageTexture(type) {
         return (type.name == "texture_storage_1d" ||
             type.name == "texture_storage_2d" ||
             type.name == "texture_storage_2d_array" ||
             type.name == "texture_storage_3d");
-    }
-    update(code) {
-        const parser = new WgslParser();
-        const ast = parser.parse(code);
-        this.updateAST(ast);
     }
     updateAST(ast) {
         for (const node of ast) {
@@ -4104,14 +4096,14 @@ class WgslReflect {
             }
         }
         {
-            const info = WgslReflect._typeInfo[type.name];
+            const info = Reflect._typeInfo[type.name];
             if (info !== undefined) {
                 const divisor = ((_a = type["format"]) === null || _a === void 0 ? void 0 : _a.name) === "f16" ? 2 : 1;
                 return new _TypeSize(Math.max(explicitAlign, info.align / divisor), Math.max(explicitSize, info.size / divisor));
             }
         }
         {
-            const info = WgslReflect._typeInfo[type.name.substring(0, type.name.length - 1)];
+            const info = Reflect._typeInfo[type.name.substring(0, type.name.length - 1)];
             if (info) {
                 const divisor = type.name[type.name.length - 1] === "h" ? 2 : 1;
                 return new _TypeSize(Math.max(explicitAlign, info.align / divisor), Math.max(explicitSize, info.size / divisor));
@@ -4176,12 +4168,12 @@ class WgslReflect {
     _isTextureVar(node) {
         return (node instanceof Var &&
             node.type !== null &&
-            WgslReflect._textureTypes.indexOf(node.type.name) != -1);
+            Reflect._textureTypes.indexOf(node.type.name) != -1);
     }
     _isSamplerVar(node) {
         return (node instanceof Var &&
             node.type !== null &&
-            WgslReflect._samplerTypes.indexOf(node.type.name) != -1);
+            Reflect._samplerTypes.indexOf(node.type.name) != -1);
     }
     _getAttribute(node, name) {
         const obj = node;
@@ -4236,7 +4228,7 @@ class WgslReflect {
 // mat2x4<f32>          16                  32
 // mat3x4<f32>          16                  48
 // mat4x4<f32>          16                  64
-WgslReflect._typeInfo = {
+Reflect._typeInfo = {
     f16: { align: 2, size: 2 },
     i32: { align: 4, size: 4 },
     u32: { align: 4, size: 4 },
@@ -4255,10 +4247,10 @@ WgslReflect._typeInfo = {
     mat3x4: { align: 16, size: 48 },
     mat4x4: { align: 16, size: 64 },
 };
-WgslReflect._textureTypes = TokenTypes.any_texture_type.map((t) => {
+Reflect._textureTypes = TokenTypes.any_texture_type.map((t) => {
     return t.name;
 });
-WgslReflect._samplerTypes = TokenTypes.sampler_type.map((t) => {
+Reflect._samplerTypes = TokenTypes.sampler_type.map((t) => {
     return t.name;
 });
 
@@ -6897,7 +6889,7 @@ class WgslExec extends ExecInterface {
         var _a;
         super();
         this.ast = ast !== null && ast !== void 0 ? ast : [];
-        this.reflection = new WgslReflect();
+        this.reflection = new Reflect();
         this.reflection.updateAST(this.ast);
         this.context = (_a = context === null || context === void 0 ? void 0 : context.clone()) !== null && _a !== void 0 ? _a : new ExecContext();
         this.builtins = new BuiltinFunctions(this);
@@ -10287,8 +10279,6 @@ class WgslParser {
         let value = null;
         this._consume(TokenTypes.tokens.equal, "const declarations require an assignment");
         const valueExpr = this._short_circuit_or_expression();
-        const v = this._exec.evalExpression(valueExpr, this._exec.context);
-        console.log(v);
         /*if (valueExpr instanceof AST.CreateExpr) {
           value = valueExpr;
         } else if (valueExpr instanceof AST.ConstExpr &&
@@ -10625,6 +10615,23 @@ class WgslParser {
             return null;
         }
         return attributes;
+    }
+}
+
+/**
+ * @author Brendan Duncan / https://github.com/brendan-duncan
+ */
+class WgslReflect extends Reflect {
+    constructor(code) {
+        super();
+        if (code) {
+            this.update(code);
+        }
+    }
+    update(code) {
+        const parser = new WgslParser();
+        const ast = parser.parse(code);
+        this.updateAST(ast);
     }
 }
 

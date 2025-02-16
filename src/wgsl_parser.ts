@@ -3,7 +3,6 @@
  */
 import { WgslScanner, Token, TokenType, TokenTypes } from "./wgsl_scanner.js";
 import * as AST from "./wgsl_ast.js";
-import { ExecContext } from "./exec/exec_context.js";
 import { WgslExec } from "./wgsl_exec.js";
 
 /// Parse a sequence of tokens from the WgslScanner into an Abstract Syntax Tree (AST).
@@ -1485,9 +1484,6 @@ export class WgslParser {
     this._consume(TokenTypes.tokens.equal, "const declarations require an assignment")
 
     const valueExpr = this._short_circuit_or_expression();
-
-    const v = this._exec.evalExpression(valueExpr, this._exec.context);
-    console.log(v);
 
     /*if (valueExpr instanceof AST.CreateExpr) {
       value = valueExpr;

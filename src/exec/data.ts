@@ -5,6 +5,7 @@ import { TypeInfo, ArrayInfo, StructInfo, TemplateInfo } from "../reflect/info.j
 
 export class Data {
     typeInfo: TypeInfo;
+
     constructor(typeInfo: TypeInfo) {
         this.typeInfo = typeInfo;
     }
