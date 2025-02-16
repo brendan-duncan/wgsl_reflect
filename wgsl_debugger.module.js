@@ -6656,11 +6656,12 @@ class BuiltinFunctions {
         throw new Error(`Any() expects a vector argument. Line ${node.line}`);
     }
     Select(node, context) {
+        // select(false, true, condition)
         const condition = this.exec.evalExpression(node.args[2], context);
         if (!(condition instanceof ScalarData)) {
             throw new Error(`Select() expects a bool condition. Line ${node.line}`);
         }
-        if (condition.value) {
+        if (!condition.value) {
             return this.exec.evalExpression(node.args[0], context);
         }
         else {

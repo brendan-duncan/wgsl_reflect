@@ -36,11 +36,12 @@ export class BuiltinFunctions {
     }
 
     Select(node: AST.CallExpr | AST.Call, context: ExecContext): Data | null {
+        // select(false, true, condition)
         const condition = this.exec.evalExpression(node.args[2], context);
         if (!(condition instanceof ScalarData)) {
             throw new Error(`Select() expects a bool condition. Line ${node.line}`);
         }
-        if (condition.value) {
+        if (!condition.value) {
             return this.exec.evalExpression(node.args[0], context);
         } else {
             return this.exec.evalExpression(node.args[1], context);
