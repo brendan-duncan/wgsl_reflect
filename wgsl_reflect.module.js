@@ -769,36 +769,84 @@ class CreateExpr extends Expression {
             return v;
         }
         if (t.name === "vec3" || t.name === "vec3f" || t.name === "vec3h" || t.name === "vec3i" || t.name === "vec3u") {
-            const tx = [Type.f32];
-            const ty = [Type.f32];
-            const tz = [Type.f32];
-            const v = [this.args[0].constEvaluate(context, tx),
-                this.args[1].constEvaluate(context, ty),
-                this.args[2].constEvaluate(context, tz)];
-            if (type) {
-                type[0] = t;
-                if (t instanceof TemplateType && t.format === null) {
-                    t.format = Type.maxFormatType([tx[0], ty[0], tz[0]]);
+            if (this.args.length === 1) {
+                const tx = [Type.f32];
+                const vx = this.args[0].constEvaluate(context, tx);
+                const v = [vx, vx, vx];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        t.format = tx[0];
+                    }
                 }
+                return v;
             }
-            return v;
+            else if (this.args.length === 2) {
+                const tx = [Type.f32];
+                const ty = [Type.f32];
+                const vx = this.args[0].constEvaluate(context, tx);
+                const vy = this.args[1].constEvaluate(context, ty);
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        t.format = Type.maxFormatType([tx[0], ty[0]]);
+                    }
+                }
+                console.error("TODO vec3", vx, vy);
+                throw "TODO";
+                //return v;
+            }
+            else {
+                const tx = [Type.f32];
+                const ty = [Type.f32];
+                const tz = [Type.f32];
+                const v = [this.args[0].constEvaluate(context, tx),
+                    this.args[1].constEvaluate(context, ty),
+                    this.args[2].constEvaluate(context, tz)];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        t.format = Type.maxFormatType([tx[0], ty[0], tz[0]]);
+                    }
+                }
+                return v;
+            }
         }
         if (t.name === "vec4" || t.name === "vec4f" || t.name === "vec4h" || t.name === "vec4i" || t.name === "vec4u") {
-            const tx = [Type.f32];
-            const ty = [Type.f32];
-            const tz = [Type.f32];
-            const tw = [Type.f32];
-            const v = [this.args[0].constEvaluate(context, tx),
-                this.args[1].constEvaluate(context, ty),
-                this.args[2].constEvaluate(context, tz),
-                this.args[3].constEvaluate(context, tw)];
-            if (type) {
-                type[0] = t;
-                if (t instanceof TemplateType && t.format === null) {
-                    t.format = Type.maxFormatType([tx[0], ty[0], tz[0], tw[0]]);
-                }
+            if (this.args.length === 1) {
+                // vec4(other: vec4)
+                [Type.f32];
             }
-            return v;
+            else if (this.args.length === 2) {
+                // vec4(v1: vec2, v2: vec2)
+                // vec4(v1: vec3, v2: f32)
+                const tx = [Type.f32];
+                const ty = [Type.f32];
+                const v1 = this.args[0].constEvaluate(context, tx);
+                const v2 = this.args[1].constEvaluate(context, ty);
+                console.log(v1, v2);
+            }
+            else if (this.args.length === 4) {
+                // vec4(e1, e2, e3, e4)
+                const tx = [Type.f32];
+                const ty = [Type.f32];
+                const tz = [Type.f32];
+                const tw = [Type.f32];
+                const v = [this.args[0].constEvaluate(context, tx),
+                    this.args[1].constEvaluate(context, ty),
+                    this.args[2].constEvaluate(context, tz),
+                    this.args[3].constEvaluate(context, tw)];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        t.format = Type.maxFormatType([tx[0], ty[0], tz[0], tw[0]]);
+                    }
+                }
+                return v;
+            }
+            else {
+                throw "Invalid arguments for vec4";
+            }
         }
         if (t.name === "mat2x2") {
             if (this.args.length === 1) {
@@ -1369,7 +1417,7 @@ class CreateExpr extends Expression {
                 }
                 return v;
             }
-            else if (this.args.length === 9) {
+            else if (this.args.length === 12) {
                 // mat4x3(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12)
                 const e1 = [Type.f32];
                 const e2 = [Type.f32];
@@ -1462,7 +1510,7 @@ class CreateExpr extends Expression {
                 }
                 return v;
             }
-            else if (this.args.length === 9) {
+            else if (this.args.length === 16) {
                 // mat4x4(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15, e16)
                 const e1 = [Type.f32];
                 const e2 = [Type.f32];

@@ -462,7 +462,7 @@ export class TypedData extends Data {
     setData(exec: ExecInterface, value: Data, typeInfo: TypeInfo, offset: number, context: ExecContext): void {
         const typeName = exec.getTypeName(typeInfo);
 
-        if (typeName === "f32") {
+        if (typeName === "f32" || typeName === "f16") {
             if (value instanceof ScalarData) {
                 new Float32Array(this.buffer, offset, 1)[0] = value.value;
             }
@@ -477,7 +477,12 @@ export class TypedData extends Data {
                 new Uint32Array(this.buffer, offset, 1)[0] = value.value;
             }
             return;
-        } else if (typeName === "vec2f") {
+        } else if (typeName === "bool") {
+            if (value instanceof ScalarData) {
+                new Int32Array(this.buffer, offset, 1)[0] = value.value;
+            }
+            return;
+        } else if (typeName === "vec2f" || typeName === "vec2h") {
             const x = new Float32Array(this.buffer, offset, 2);
             if (value instanceof VectorData) {
                 x[0] = value.value[0];
@@ -487,7 +492,7 @@ export class TypedData extends Data {
                 x[1] = value[1];
             }
             return;
-        } else if (typeName === "vec3f") {
+        } else if (typeName === "vec3f" || typeName === "vec3h") {
             const x = new Float32Array(this.buffer, offset, 3);
             if (value instanceof VectorData) {
                 x[0] = value.value[0];
@@ -499,7 +504,7 @@ export class TypedData extends Data {
                 x[2] = value[2];
             }
             return;
-        } else if (typeName === "vec4f") {
+        } else if (typeName === "vec4f" || typeName === "vec4h") {
             const x = new Float32Array(this.buffer, offset, 4);
             if (value instanceof VectorData) {
                 x[0] = value.value[0];
@@ -583,6 +588,258 @@ export class TypedData extends Data {
                 x[1] = value[1];
                 x[2] = value[2];
                 x[3] = value[3];
+            }
+            return;
+        } else if (typeName === "vec2b") {
+            const x = new Uint32Array(this.buffer, offset, 2);
+            if (value instanceof VectorData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+            } else {
+                x[0] = value[0];
+                x[1] = value[1];
+            }
+            return;
+        } else if (typeName === "vec3b") {
+            const x = new Uint32Array(this.buffer, offset, 3);
+            if (value instanceof VectorData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+                x[2] = value.value[2];
+            } else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+            }
+            return;
+        } else if (typeName === "vec4b") {
+            const x = new Uint32Array(this.buffer, offset, 4);
+            if (value instanceof VectorData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+                x[2] = value.value[2];
+                x[3] = value.value[3];
+            } else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+            }
+            return;
+        } else if (typeName === "mat2x2f" || typeName === "mat2x2h") {
+            const x = new Float32Array(this.buffer, offset, 4);
+            if (value instanceof MatrixData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+                x[2] = value.value[2];
+                x[3] = value.value[3];
+            } else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+            }
+            return;
+        } else if (typeName === "mat2x3f" || typeName === "mat2x3h") {
+            const x = new Float32Array(this.buffer, offset, 6);
+            if (value instanceof MatrixData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+                x[2] = value.value[2];
+                x[3] = value.value[3];
+                x[4] = value.value[4];
+                x[5] = value.value[5];
+            } else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+                x[4] = value[4];
+                x[5] = value[5];
+            }
+            return;
+        } else if (typeName === "mat2x4f" || typeName === "mat2x4h") {
+            const x = new Float32Array(this.buffer, offset, 8);
+            if (value instanceof MatrixData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+                x[2] = value.value[2];
+                x[3] = value.value[3];
+                x[4] = value.value[4];
+                x[5] = value.value[5];
+                x[6] = value.value[6];
+                x[7] = value.value[7];
+            } else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+                x[4] = value[4];
+                x[5] = value[5];
+                x[6] = value[6];
+                x[7] = value[7];
+            }
+            return;
+        } else if (typeName === "mat3x2f" || typeName === "mat3x2h") {
+            const x = new Float32Array(this.buffer, offset, 6);
+            if (value instanceof MatrixData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+                x[2] = value.value[2];
+                x[3] = value.value[3];
+                x[4] = value.value[4];
+                x[5] = value.value[5];
+            } else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+                x[4] = value[4];
+                x[5] = value[5];
+            }
+            return;
+        } else if (typeName === "mat3x3f" || typeName === "mat3x3h") {
+            const x = new Float32Array(this.buffer, offset, 9);
+            if (value instanceof MatrixData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+                x[2] = value.value[2];
+                x[3] = value.value[3];
+                x[4] = value.value[4];
+                x[5] = value.value[5];
+                x[6] = value.value[6];
+                x[7] = value.value[7];
+                x[8] = value.value[8];
+            } else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+                x[4] = value[4];
+                x[5] = value[5];
+                x[6] = value[6];
+                x[7] = value[7];
+                x[8] = value[8];
+            }
+            return;
+        } else if (typeName === "mat3x4f" || typeName === "mat3x4h") {
+            const x = new Float32Array(this.buffer, offset, 12);
+            if (value instanceof MatrixData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+                x[2] = value.value[2];
+                x[3] = value.value[3];
+                x[4] = value.value[4];
+                x[5] = value.value[5];
+                x[6] = value.value[6];
+                x[7] = value.value[7];
+                x[8] = value.value[8];
+                x[9] = value.value[9];
+                x[10] = value.value[10];
+                x[11] = value.value[11];
+            } else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+                x[4] = value[4];
+                x[5] = value[5];
+                x[6] = value[6];
+                x[7] = value[7];
+                x[8] = value[8];
+                x[9] = value[9];
+                x[10] = value[10];
+                x[11] = value[11];
+            }
+            return;
+        } else if (typeName === "mat4x2f" || typeName === "mat4x2h") {
+            const x = new Float32Array(this.buffer, offset, 8);
+            if (value instanceof MatrixData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+                x[2] = value.value[2];
+                x[3] = value.value[3];
+                x[4] = value.value[4];
+                x[5] = value.value[5];
+                x[6] = value.value[6];
+                x[7] = value.value[7];
+            } else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+                x[4] = value[4];
+                x[5] = value[5];
+                x[6] = value[6];
+                x[7] = value[7];
+            }
+            return;
+        } else if (typeName === "mat4x3f" || typeName === "mat4x3h") {
+            const x = new Float32Array(this.buffer, offset, 12);
+            if (value instanceof MatrixData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+                x[2] = value.value[2];
+                x[3] = value.value[3];
+                x[4] = value.value[4];
+                x[5] = value.value[5];
+                x[6] = value.value[6];
+                x[7] = value.value[7];
+                x[8] = value.value[8];
+                x[9] = value.value[9];
+                x[10] = value.value[10];
+                x[11] = value.value[11];
+            } else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+                x[4] = value[4];
+                x[5] = value[5];
+                x[6] = value[6];
+                x[7] = value[7];
+                x[8] = value[8];
+                x[9] = value[9];
+                x[10] = value[10];
+                x[11] = value[11];
+            }
+            return;
+        } else if (typeName === "mat4x4f" || typeName === "mat4x4h") {
+            const x = new Float32Array(this.buffer, offset, 16);
+            if (value instanceof MatrixData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+                x[2] = value.value[2];
+                x[3] = value.value[3];
+                x[4] = value.value[4];
+                x[5] = value.value[5];
+                x[6] = value.value[6];
+                x[7] = value.value[7];
+                x[8] = value.value[8];
+                x[9] = value.value[9];
+                x[10] = value.value[10];
+                x[11] = value.value[11];
+                x[12] = value.value[12];
+                x[13] = value.value[13];
+                x[14] = value.value[14];
+                x[15] = value.value[15];
+            } else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+                x[4] = value[4];
+                x[5] = value[5];
+                x[6] = value[6];
+                x[7] = value[7];
+                x[8] = value[8];
+                x[9] = value[9];
+                x[10] = value[10];
+                x[11] = value[11];
+                x[12] = value[12];
+                x[13] = value[13];
+                x[14] = value[14];
+                x[15] = value[15];
             }
             return;
         }

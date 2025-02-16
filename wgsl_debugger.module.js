@@ -769,36 +769,84 @@ class CreateExpr extends Expression {
             return v;
         }
         if (t.name === "vec3" || t.name === "vec3f" || t.name === "vec3h" || t.name === "vec3i" || t.name === "vec3u") {
-            const tx = [Type.f32];
-            const ty = [Type.f32];
-            const tz = [Type.f32];
-            const v = [this.args[0].constEvaluate(context, tx),
-                this.args[1].constEvaluate(context, ty),
-                this.args[2].constEvaluate(context, tz)];
-            if (type) {
-                type[0] = t;
-                if (t instanceof TemplateType && t.format === null) {
-                    t.format = Type.maxFormatType([tx[0], ty[0], tz[0]]);
+            if (this.args.length === 1) {
+                const tx = [Type.f32];
+                const vx = this.args[0].constEvaluate(context, tx);
+                const v = [vx, vx, vx];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        t.format = tx[0];
+                    }
                 }
+                return v;
             }
-            return v;
+            else if (this.args.length === 2) {
+                const tx = [Type.f32];
+                const ty = [Type.f32];
+                const vx = this.args[0].constEvaluate(context, tx);
+                const vy = this.args[1].constEvaluate(context, ty);
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        t.format = Type.maxFormatType([tx[0], ty[0]]);
+                    }
+                }
+                console.error("TODO vec3", vx, vy);
+                throw "TODO";
+                //return v;
+            }
+            else {
+                const tx = [Type.f32];
+                const ty = [Type.f32];
+                const tz = [Type.f32];
+                const v = [this.args[0].constEvaluate(context, tx),
+                    this.args[1].constEvaluate(context, ty),
+                    this.args[2].constEvaluate(context, tz)];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        t.format = Type.maxFormatType([tx[0], ty[0], tz[0]]);
+                    }
+                }
+                return v;
+            }
         }
         if (t.name === "vec4" || t.name === "vec4f" || t.name === "vec4h" || t.name === "vec4i" || t.name === "vec4u") {
-            const tx = [Type.f32];
-            const ty = [Type.f32];
-            const tz = [Type.f32];
-            const tw = [Type.f32];
-            const v = [this.args[0].constEvaluate(context, tx),
-                this.args[1].constEvaluate(context, ty),
-                this.args[2].constEvaluate(context, tz),
-                this.args[3].constEvaluate(context, tw)];
-            if (type) {
-                type[0] = t;
-                if (t instanceof TemplateType && t.format === null) {
-                    t.format = Type.maxFormatType([tx[0], ty[0], tz[0], tw[0]]);
-                }
+            if (this.args.length === 1) {
+                // vec4(other: vec4)
+                [Type.f32];
             }
-            return v;
+            else if (this.args.length === 2) {
+                // vec4(v1: vec2, v2: vec2)
+                // vec4(v1: vec3, v2: f32)
+                const tx = [Type.f32];
+                const ty = [Type.f32];
+                const v1 = this.args[0].constEvaluate(context, tx);
+                const v2 = this.args[1].constEvaluate(context, ty);
+                console.log(v1, v2);
+            }
+            else if (this.args.length === 4) {
+                // vec4(e1, e2, e3, e4)
+                const tx = [Type.f32];
+                const ty = [Type.f32];
+                const tz = [Type.f32];
+                const tw = [Type.f32];
+                const v = [this.args[0].constEvaluate(context, tx),
+                    this.args[1].constEvaluate(context, ty),
+                    this.args[2].constEvaluate(context, tz),
+                    this.args[3].constEvaluate(context, tw)];
+                if (type) {
+                    type[0] = t;
+                    if (t instanceof TemplateType && t.format === null) {
+                        t.format = Type.maxFormatType([tx[0], ty[0], tz[0], tw[0]]);
+                    }
+                }
+                return v;
+            }
+            else {
+                throw "Invalid arguments for vec4";
+            }
         }
         if (t.name === "mat2x2") {
             if (this.args.length === 1) {
@@ -1369,7 +1417,7 @@ class CreateExpr extends Expression {
                 }
                 return v;
             }
-            else if (this.args.length === 9) {
+            else if (this.args.length === 12) {
                 // mat4x3(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12)
                 const e1 = [Type.f32];
                 const e2 = [Type.f32];
@@ -1462,7 +1510,7 @@ class CreateExpr extends Expression {
                 }
                 return v;
             }
-            else if (this.args.length === 9) {
+            else if (this.args.length === 16) {
                 // mat4x4(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15, e16)
                 const e1 = [Type.f32];
                 const e2 = [Type.f32];
@@ -6235,7 +6283,7 @@ class TypedData extends Data {
     }
     setData(exec, value, typeInfo, offset, context) {
         const typeName = exec.getTypeName(typeInfo);
-        if (typeName === "f32") {
+        if (typeName === "f32" || typeName === "f16") {
             if (value instanceof ScalarData) {
                 new Float32Array(this.buffer, offset, 1)[0] = value.value;
             }
@@ -6253,7 +6301,13 @@ class TypedData extends Data {
             }
             return;
         }
-        else if (typeName === "vec2f") {
+        else if (typeName === "bool") {
+            if (value instanceof ScalarData) {
+                new Int32Array(this.buffer, offset, 1)[0] = value.value;
+            }
+            return;
+        }
+        else if (typeName === "vec2f" || typeName === "vec2h") {
             const x = new Float32Array(this.buffer, offset, 2);
             if (value instanceof VectorData) {
                 x[0] = value.value[0];
@@ -6265,7 +6319,7 @@ class TypedData extends Data {
             }
             return;
         }
-        else if (typeName === "vec3f") {
+        else if (typeName === "vec3f" || typeName === "vec3h") {
             const x = new Float32Array(this.buffer, offset, 3);
             if (value instanceof VectorData) {
                 x[0] = value.value[0];
@@ -6279,7 +6333,7 @@ class TypedData extends Data {
             }
             return;
         }
-        else if (typeName === "vec4f") {
+        else if (typeName === "vec4f" || typeName === "vec4h") {
             const x = new Float32Array(this.buffer, offset, 4);
             if (value instanceof VectorData) {
                 x[0] = value.value[0];
@@ -6376,6 +6430,282 @@ class TypedData extends Data {
                 x[1] = value[1];
                 x[2] = value[2];
                 x[3] = value[3];
+            }
+            return;
+        }
+        else if (typeName === "vec2b") {
+            const x = new Uint32Array(this.buffer, offset, 2);
+            if (value instanceof VectorData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+            }
+            return;
+        }
+        else if (typeName === "vec3b") {
+            const x = new Uint32Array(this.buffer, offset, 3);
+            if (value instanceof VectorData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+                x[2] = value.value[2];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+            }
+            return;
+        }
+        else if (typeName === "vec4b") {
+            const x = new Uint32Array(this.buffer, offset, 4);
+            if (value instanceof VectorData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+                x[2] = value.value[2];
+                x[3] = value.value[3];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+            }
+            return;
+        }
+        else if (typeName === "mat2x2f" || typeName === "mat2x2h") {
+            const x = new Float32Array(this.buffer, offset, 4);
+            if (value instanceof MatrixData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+                x[2] = value.value[2];
+                x[3] = value.value[3];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+            }
+            return;
+        }
+        else if (typeName === "mat2x3f" || typeName === "mat2x3h") {
+            const x = new Float32Array(this.buffer, offset, 6);
+            if (value instanceof MatrixData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+                x[2] = value.value[2];
+                x[3] = value.value[3];
+                x[4] = value.value[4];
+                x[5] = value.value[5];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+                x[4] = value[4];
+                x[5] = value[5];
+            }
+            return;
+        }
+        else if (typeName === "mat2x4f" || typeName === "mat2x4h") {
+            const x = new Float32Array(this.buffer, offset, 8);
+            if (value instanceof MatrixData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+                x[2] = value.value[2];
+                x[3] = value.value[3];
+                x[4] = value.value[4];
+                x[5] = value.value[5];
+                x[6] = value.value[6];
+                x[7] = value.value[7];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+                x[4] = value[4];
+                x[5] = value[5];
+                x[6] = value[6];
+                x[7] = value[7];
+            }
+            return;
+        }
+        else if (typeName === "mat3x2f" || typeName === "mat3x2h") {
+            const x = new Float32Array(this.buffer, offset, 6);
+            if (value instanceof MatrixData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+                x[2] = value.value[2];
+                x[3] = value.value[3];
+                x[4] = value.value[4];
+                x[5] = value.value[5];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+                x[4] = value[4];
+                x[5] = value[5];
+            }
+            return;
+        }
+        else if (typeName === "mat3x3f" || typeName === "mat3x3h") {
+            const x = new Float32Array(this.buffer, offset, 9);
+            if (value instanceof MatrixData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+                x[2] = value.value[2];
+                x[3] = value.value[3];
+                x[4] = value.value[4];
+                x[5] = value.value[5];
+                x[6] = value.value[6];
+                x[7] = value.value[7];
+                x[8] = value.value[8];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+                x[4] = value[4];
+                x[5] = value[5];
+                x[6] = value[6];
+                x[7] = value[7];
+                x[8] = value[8];
+            }
+            return;
+        }
+        else if (typeName === "mat3x4f" || typeName === "mat3x4h") {
+            const x = new Float32Array(this.buffer, offset, 12);
+            if (value instanceof MatrixData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+                x[2] = value.value[2];
+                x[3] = value.value[3];
+                x[4] = value.value[4];
+                x[5] = value.value[5];
+                x[6] = value.value[6];
+                x[7] = value.value[7];
+                x[8] = value.value[8];
+                x[9] = value.value[9];
+                x[10] = value.value[10];
+                x[11] = value.value[11];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+                x[4] = value[4];
+                x[5] = value[5];
+                x[6] = value[6];
+                x[7] = value[7];
+                x[8] = value[8];
+                x[9] = value[9];
+                x[10] = value[10];
+                x[11] = value[11];
+            }
+            return;
+        }
+        else if (typeName === "mat4x2f" || typeName === "mat4x2h") {
+            const x = new Float32Array(this.buffer, offset, 8);
+            if (value instanceof MatrixData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+                x[2] = value.value[2];
+                x[3] = value.value[3];
+                x[4] = value.value[4];
+                x[5] = value.value[5];
+                x[6] = value.value[6];
+                x[7] = value.value[7];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+                x[4] = value[4];
+                x[5] = value[5];
+                x[6] = value[6];
+                x[7] = value[7];
+            }
+            return;
+        }
+        else if (typeName === "mat4x3f" || typeName === "mat4x3h") {
+            const x = new Float32Array(this.buffer, offset, 12);
+            if (value instanceof MatrixData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+                x[2] = value.value[2];
+                x[3] = value.value[3];
+                x[4] = value.value[4];
+                x[5] = value.value[5];
+                x[6] = value.value[6];
+                x[7] = value.value[7];
+                x[8] = value.value[8];
+                x[9] = value.value[9];
+                x[10] = value.value[10];
+                x[11] = value.value[11];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+                x[4] = value[4];
+                x[5] = value[5];
+                x[6] = value[6];
+                x[7] = value[7];
+                x[8] = value[8];
+                x[9] = value[9];
+                x[10] = value[10];
+                x[11] = value[11];
+            }
+            return;
+        }
+        else if (typeName === "mat4x4f" || typeName === "mat4x4h") {
+            const x = new Float32Array(this.buffer, offset, 16);
+            if (value instanceof MatrixData) {
+                x[0] = value.value[0];
+                x[1] = value.value[1];
+                x[2] = value.value[2];
+                x[3] = value.value[3];
+                x[4] = value.value[4];
+                x[5] = value.value[5];
+                x[6] = value.value[6];
+                x[7] = value.value[7];
+                x[8] = value.value[8];
+                x[9] = value.value[9];
+                x[10] = value.value[10];
+                x[11] = value.value[11];
+                x[12] = value.value[12];
+                x[13] = value.value[13];
+                x[14] = value.value[14];
+                x[15] = value.value[15];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+                x[4] = value[4];
+                x[5] = value[5];
+                x[6] = value[6];
+                x[7] = value[7];
+                x[8] = value[8];
+                x[9] = value[9];
+                x[10] = value[10];
+                x[11] = value[11];
+                x[12] = value[12];
+                x[13] = value[13];
+                x[14] = value[14];
+                x[15] = value[15];
             }
             return;
         }

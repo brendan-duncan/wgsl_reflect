@@ -4,15 +4,19 @@ import { WgslExec } from "../../../wgsl_debugger.module.js";
 export async function run() {
     await group("WgslExec", async function () {
         await test("mat array access", function (test) {
-            const shader = `var<private> a = mat4x4f(1.0, 0.0, 0.0, 0.0,
+            const shader = `const a = mat4x4f(1.0, 0.0, 0.0, 0.0,
                                                 0.0, 1.0, 0.0, 0.0,
                                                 0.0, 0.0, 1.0, 0.0,
                                                 0.0, 0.0, 0.0, 1.0);
-            var<private> v4 = vec4f(a[1].xyz * vec3f(0.5), 0.5);`;
+            const v4 = vec4f(a[1].xyz * vec3f(0.5), 0.5);
+            struct Foo { a: mat4x4f }
+            const foo = Foo(a);
+            const v4b = vec4f(foo.a[1].xyz * vec3f(0.5), 0.5);`;
             const wgsl = new WgslExec(shader);
             wgsl.execute();
             // Ensure the top-level instructions were executed and the global variable has the correct value.
             test.equals(wgsl.getVariableValue("v4"), [0, 0.5, 0, 0.5]);
+            test.equals(wgsl.getVariableValue("v4b"), [0, 0.5, 0, 0.5]);
         });
 
         await test("array construction", function (test) {
