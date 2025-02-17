@@ -1448,8 +1448,10 @@ export class WgslParser {
       // Default constructor
       const createExpr = new AST.CreateExpr(_var.type, null);
       const value = this._exec.evalExpression(createExpr, this._exec.context);
-      _var.value = new AST.LiteralExpr(value, _var.type);
-      this._exec.context.setVariable(_var.name, value);
+      if (value !== null) {
+        _var.value = new AST.LiteralExpr(value, _var.type);
+        this._exec.context.setVariable(_var.name, value);
+      }
     }
 
     if (_var.type !== null && _var.value instanceof AST.LiteralExpr) {
@@ -1576,7 +1578,9 @@ export class WgslParser {
       const type = [AST.Type.f32];
       try {
         const v = value!.constEvaluate(this._exec, type);
-        value = new AST.LiteralExpr(v, type[0]);
+        if (v !== null) {
+          value = new AST.LiteralExpr(v, type[0]);
+        }
       } catch (_) {
       }
     }

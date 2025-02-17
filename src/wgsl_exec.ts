@@ -294,6 +294,9 @@ export class WgslExec extends ExecInterface {
                     } else if (type.format.name === "bool") {
                         name += "b";
                         return name;
+                    } else if (type.format.name === "f16") {
+                        name += "h";
+                        return name;
                     }
                 }
                 name += `<${type.format.name}>`;
@@ -1059,7 +1062,10 @@ export class WgslExec extends ExecInterface {
             case "vec2f":
             case "vec3f":
             case "vec4f":
-            case "vec2i":
+                case "vec2f":
+            case "vec3h":
+            case "vec4h":
+            case "vec2h":
             case "vec3i":
             case "vec4i":
             case "vec2u":
@@ -1102,6 +1108,10 @@ export class WgslExec extends ExecInterface {
         const typeInfo = this.getTypeInfo(node.type);
         if (typeInfo === null) {
             console.error(`Unknown type ${typeName}. Line ${node.line}`);
+            return null;
+        }
+
+        if (typeInfo.size === 0) {
             return null;
         }
 
@@ -2078,12 +2088,12 @@ export class WgslExec extends ExecInterface {
             return this._execStatements(f.node.body, subContext);
         }
 
-        console.error(`Function ${node.name} not found. Line ${node.line}`);
+        //console.error(`Function ${node.name} not found. Line ${node.line}`);
         return null;
     }
 
     _callConstructorValue(node: CreateExpr, context: ExecContext): Data | null {
-        if (node.args.length === 0) {
+        if (!node.args || node.args.length === 0) {
             return new ScalarData(0, this.getTypeInfo(node.type));
         }
         const v = this.evalExpression(node.args[0], context);
@@ -2199,17 +2209,19 @@ export class WgslExec extends ExecInterface {
                 values.push(node.scalarValue);
             }
         } else {
-            for (const arg of node.args) {
-                const argValue = this.evalExpression(arg, context) ;
-                if (argValue instanceof VectorData) {
-                    const vd = argValue.value;
-                    for (let i = 0; i < vd.length; ++i) {
-                        values.push(vd[i]);
+            if (node.args) {
+                for (const arg of node.args) {
+                    const argValue = this.evalExpression(arg, context) ;
+                    if (argValue instanceof VectorData) {
+                        const vd = argValue.value;
+                        for (let i = 0; i < vd.length; ++i) {
+                            values.push(vd[i]);
+                        }
+                    } else if (argValue instanceof ScalarData) {
+                        values.push(argValue.value);
+                    } else if (argValue instanceof MatrixData) {
+                        values.push(...argValue.value);
                     }
-                } else if (argValue instanceof ScalarData) {
-                    values.push(argValue.value);
-                } else if (argValue instanceof MatrixData) {
-                    values.push(...argValue.value);
                 }
             }
         }

@@ -5914,6 +5914,10 @@ class WgslExec extends ExecInterface {
                         name += "b";
                         return name;
                     }
+                    else if (type.format.name === "f16") {
+                        name += "h";
+                        return name;
+                    }
                 }
                 name += `<${type.format.name}>`;
             }
@@ -6717,7 +6721,10 @@ class WgslExec extends ExecInterface {
             case "vec2f":
             case "vec3f":
             case "vec4f":
-            case "vec2i":
+            case "vec2f":
+            case "vec3h":
+            case "vec4h":
+            case "vec2h":
             case "vec3i":
             case "vec4i":
             case "vec2u":
@@ -6759,6 +6766,9 @@ class WgslExec extends ExecInterface {
         const typeInfo = this.getTypeInfo(node.type);
         if (typeInfo === null) {
             console.error(`Unknown type ${typeName}. Line ${node.line}`);
+            return null;
+        }
+        if (typeInfo.size === 0) {
             return null;
         }
         const data = new TypedData(new ArrayBuffer(typeInfo.size), typeInfo, 0);
@@ -7742,11 +7752,11 @@ class WgslExec extends ExecInterface {
             }
             return this._execStatements(f.node.body, subContext);
         }
-        console.error(`Function ${node.name} not found. Line ${node.line}`);
+        //console.error(`Function ${node.name} not found. Line ${node.line}`);
         return null;
     }
     _callConstructorValue(node, context) {
-        if (node.args.length === 0) {
+        if (!node.args || node.args.length === 0) {
             return new ScalarData(0, this.getTypeInfo(node.type));
         }
         const v = this.evalExpression(node.args[0], context);
@@ -7853,19 +7863,21 @@ class WgslExec extends ExecInterface {
             }
         }
         else {
-            for (const arg of node.args) {
-                const argValue = this.evalExpression(arg, context);
-                if (argValue instanceof VectorData) {
-                    const vd = argValue.value;
-                    for (let i = 0; i < vd.length; ++i) {
-                        values.push(vd[i]);
+            if (node.args) {
+                for (const arg of node.args) {
+                    const argValue = this.evalExpression(arg, context);
+                    if (argValue instanceof VectorData) {
+                        const vd = argValue.value;
+                        for (let i = 0; i < vd.length; ++i) {
+                            values.push(vd[i]);
+                        }
                     }
-                }
-                else if (argValue instanceof ScalarData) {
-                    values.push(argValue.value);
-                }
-                else if (argValue instanceof MatrixData) {
-                    values.push(...argValue.value);
+                    else if (argValue instanceof ScalarData) {
+                        values.push(argValue.value);
+                    }
+                    else if (argValue instanceof MatrixData) {
+                        values.push(...argValue.value);
+                    }
                 }
             }
         }
@@ -9011,8 +9023,10 @@ class WgslParser {
             // Default constructor
             const createExpr = new CreateExpr(_var.type, null);
             const value = this._exec.evalExpression(createExpr, this._exec.context);
-            _var.value = new LiteralExpr(value, _var.type);
-            this._exec.context.setVariable(_var.name, value);
+            if (value !== null) {
+                _var.value = new LiteralExpr(value, _var.type);
+                this._exec.context.setVariable(_var.name, value);
+            }
         }
         if (_var.type !== null && _var.value instanceof LiteralExpr) {
             if (_var.value.type.name !== "x32") {
@@ -9131,7 +9145,9 @@ class WgslParser {
             const type = [Type.f32];
             try {
                 const v = value.constEvaluate(this._exec, type);
-                value = new LiteralExpr(v, type[0]);
+                if (v !== null) {
+                    value = new LiteralExpr(v, type[0]);
+                }
             }
             catch (_) {
             }

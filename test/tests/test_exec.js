@@ -7,7 +7,7 @@ function _newWgslExec(code) {
 
 export async function run() {
     await group("WgslExec", async function () {
-        /*await test("mat array access", function (test) {
+        await test("mat array access", function (test) {
             const shader = `const a = mat4x4f(1.0, 0.0, 0.0, 0.0,
                                                 0.0, 1.0, 0.0, 0.0,
                                                 0.0, 0.0, 1.0, 0.0,
@@ -21,7 +21,7 @@ export async function run() {
             // Ensure the top-level instructions were executed and the global variable has the correct value.
             test.equals(wgsl.getVariableValue("v4"), [0, 0.5, 0, 0.5]);
             test.equals(wgsl.getVariableValue("v4b"), [0, 0.5, 0, 0.5]);
-        });*/
+        });
 
         await test("array construction", function (test) {
             const shader = `var<private> a: array<vec4f, 3u>;
@@ -463,7 +463,7 @@ export async function run() {
             const shader = `
                 @group(0) @binding(0) var<storage, read_write> bins: array<u32>;
                 @group(0) @binding(1) var inTexture: texture_2d<f32>;
-                @group(0) @binding(2) var outTexture : texture_storage_2d<rgba8unorm, write>;
+                @group(0) @binding(2) var outTexture: texture_storage_2d<rgba8unorm, write>;
 
                 // from: https://www.w3.org/WAI/GL/wiki/Relative_luminance
                 const kSRGBLuminanceFactors = vec3f(0.2126, 0.7152, 0.0722);
