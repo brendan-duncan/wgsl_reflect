@@ -6717,10 +6717,10 @@ class WgslExec extends ExecInterface {
             case "vec2f":
             case "vec3f":
             case "vec4f":
-            case "vec2f":
+            case "vec2h":
             case "vec3h":
             case "vec4h":
-            case "vec2h":
+            case "vec2i":
             case "vec3i":
             case "vec4i":
             case "vec2u":
