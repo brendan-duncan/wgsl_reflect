@@ -1430,27 +1430,43 @@ export class WgslParser {
   _global_variable_decl(): AST.Var | null {
     // attribute* variable_decl (equal const_expression)?
     const _var = this._variable_decl();
-    if (_var && this._match(TokenTypes.tokens.equal)) {
+    if (!_var) {
+      return null;
+    }
+
+    if (this._match(TokenTypes.tokens.equal)) {
       const expr = this._const_expression();
       const type = [AST.Type.f32];
       try {
         const value = expr.constEvaluate(this._exec, type);
         _var.value = new AST.LiteralExpr(value, type[0]);
+        this._exec.context.setVariable(_var.name, value);
       } catch (_) {
         _var.value = expr;
       }
+    } else {
+      // Default constructor
+      const createExpr = new AST.CreateExpr(_var.type, null);
+      const value = this._exec.evalExpression(createExpr, this._exec.context);
+      _var.value = new AST.LiteralExpr(value, _var.type);
+      this._exec.context.setVariable(_var.name, value);
     }
+
     if (_var.type !== null && _var.value instanceof AST.LiteralExpr) {
       if (_var.value.type.name !== "x32") {
         if (_var.type.name !== _var.value.type.name) {
           throw this._error(this._peek(), `Invalid cast from ${_var.value.type.name} to ${_var.type.name}. Line:${this._currentLine}`);
         }
       }
-      this._validateTypeRange(_var.value.scalarValue, _var.type);
+      if (_var.value.isScalar) {
+        this._validateTypeRange(_var.value.scalarValue, _var.type);
+      }
       _var.value.type = _var.type;
     } else if (_var.type === null && _var.value instanceof AST.LiteralExpr) {
       _var.type = _var.value.type.name === "x32" ? AST.Type.i32 : _var.value.type;
-      this._validateTypeRange(_var.value.scalarValue, _var.type);
+      if (_var.value.isScalar) {
+        this._validateTypeRange(_var.value.scalarValue, _var.type);
+      }
     }
     return _var;
   }
@@ -1575,7 +1591,9 @@ export class WgslParser {
       type = value.type.name === "x32" ? AST.Type.i32 : value.type;
     }
     if (value instanceof AST.LiteralExpr) {
-      this._validateTypeRange(value.scalarValue, type);
+      if (value.isScalar) {
+        this._validateTypeRange(value.scalarValue, type);
+      }
     }
     return this._updateNode(new AST.Let(name.toString(), type, "", "", value));
   }

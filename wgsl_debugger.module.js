@@ -1211,7 +1211,7 @@ class LiteralExpr extends Expression {
         return this.value instanceof ScalarData;
     }
     get isVector() {
-        return this.value instanceof VectorData;
+        return this.value instanceof VectorData || this.value instanceof MatrixData;
     }
     get scalarValue() {
         if (this.value instanceof ScalarData) {
@@ -1224,7 +1224,10 @@ class LiteralExpr extends Expression {
         if (this.value instanceof VectorData) {
             return this.value.value;
         }
-        console.error("Value is not a vector.");
+        if (this.value instanceof MatrixData) {
+            return this.value.value;
+        }
+        console.error("Value is not a vector or matrix.");
         return [];
     }
 }
@@ -1962,7 +1965,7 @@ class TypedData extends Data {
             }
             return;
         }
-        else if (typeName === "i32" || typeName === "atomic<i32>") {
+        else if (typeName === "i32" || typeName === "atomic<i32>" || typeName === "x32") {
             if (value instanceof ScalarData) {
                 new Int32Array(this.buffer, offset, 1)[0] = value.value;
             }
@@ -2400,30 +2403,28 @@ class TypedData extends Data {
         let typeInfo = this.typeInfo;
         while (postfix) {
             if (postfix instanceof ArrayIndex) {
+                const idx = postfix.index;
+                const _i = exec.evalExpression(idx, context);
+                let i = 0;
+                if (_i instanceof ScalarData) {
+                    i = _i.value;
+                }
+                else {
+                    console.error(`GetDataValue: Invalid index type`, idx);
+                }
                 if (typeInfo instanceof ArrayInfo) {
-                    const idx = postfix.index;
-                    if (idx instanceof LiteralExpr) {
-                        if (idx.value instanceof ScalarData) {
-                            offset += idx.value.value * typeInfo.stride;
-                        }
-                        else {
-                            console.error(`GetDataValue: Invalid index type`, idx);
-                        }
-                    }
-                    else {
-                        const i = exec.evalExpression(idx, context);
-                        if (i instanceof ScalarData) {
-                            offset += i.value * typeInfo.stride;
-                        }
-                        else {
-                            console.error(`GetDataValue: Unknown index type`, idx);
-                            return null;
-                        }
-                    }
+                    offset += i * typeInfo.stride;
                     typeInfo = typeInfo.format;
                 }
                 else {
-                    console.error(`Type ${exec.getTypeName(typeInfo)} is not an array`);
+                    const typeName = exec.getTypeName(typeInfo);
+                    if (typeName === "mat4x4" || typeName === "mat4x4f" || typeName === "mat4x4h") {
+                        offset += i * 16;
+                        typeInfo = exec.getTypeInfo("vec4f");
+                    }
+                    else {
+                        console.error(`getDataValue: Type ${exec.getTypeName(typeInfo)} is not an array`);
+                    }
                 }
             }
             else if (postfix instanceof StringExpr) {
@@ -2453,6 +2454,7 @@ class TypedData extends Data {
                         typeName === "vec2" || typeName === "vec3" || typeName === "vec4") {
                         if (member.length > 0 && member.length < 5) {
                             let formatName = "f32";
+                            let formatSuffix = "f";
                             const value = [];
                             for (let i = 0; i < member.length; ++i) {
                                 const m = member[i].toLocaleLowerCase();
@@ -2489,32 +2491,50 @@ class TypedData extends Data {
                                 }
                                 else if (typeName === "vec2i") {
                                     formatName = "i32";
+                                    formatSuffix = "i";
                                     value.push(new Int32Array(this.buffer, offset, 2)[element]);
                                 }
                                 else if (typeName === "vec3i") {
                                     formatName = "i32";
+                                    formatSuffix = "i";
                                     value.push(new Int32Array(this.buffer, offset, 3)[element]);
                                 }
                                 else if (typeName === "vec4i") {
                                     formatName = "i32";
+                                    formatSuffix = "i";
                                     value.push(new Int32Array(this.buffer, offset, 4)[element]);
                                 }
                                 else if (typeName === "vec2u") {
                                     formatName = "u32";
+                                    formatSuffix = "u";
                                     const ua = new Uint32Array(this.buffer, offset, 2);
                                     value.push(ua[element]);
                                 }
                                 else if (typeName === "vec3u") {
                                     formatName = "u32";
+                                    formatSuffix = "u";
                                     value.push(new Uint32Array(this.buffer, offset, 3)[element]);
                                 }
                                 else if (typeName === "vec4u") {
                                     formatName = "u32";
+                                    formatSuffix = "u";
                                     value.push(new Uint32Array(this.buffer, offset, 4)[element]);
                                 }
                             }
                             if (value.length === 1) {
                                 return new ScalarData(value[0], exec.getTypeInfo(formatName));
+                            }
+                            if (value.length === 2) {
+                                typeInfo = exec.getTypeInfo(`vec2${formatSuffix}`);
+                            }
+                            else if (value.length === 3) {
+                                typeInfo = exec.getTypeInfo(`vec3${formatSuffix}`);
+                            }
+                            else if (value.length === 4) {
+                                typeInfo = exec.getTypeInfo(`vec4${formatSuffix}`);
+                            }
+                            else {
+                                console.error(`GetDataValue: Invalid vector length ${value.length}`);
                             }
                             return new VectorData(value, typeInfo);
                         }
@@ -6666,9 +6686,14 @@ class WgslExec extends ExecInterface {
         return null;
     }
     _evalConst(node, context) {
-        return context.getVariableValue(node.name);
+        const data = context.getVariableValue(node.name);
+        if (node.postfix) {
+            return data.getDataValue(this, node.postfix, context);
+        }
+        return data;
     }
     _evalCreate(node, context) {
+        var _a;
         if (node.type === null) {
             return VoidData.void;
         }
@@ -6735,20 +6760,32 @@ class WgslExec extends ExecInterface {
         const data = new TypedData(new ArrayBuffer(typeInfo.size), typeInfo, 0);
         // Assign the values in node.args to the data.
         if (typeInfo instanceof StructInfo) {
-            for (let i = 0; i < node.args.length; ++i) {
-                const memberInfo = typeInfo.members[i];
-                const arg = node.args[i];
-                const value = this.evalExpression(arg, context);
-                data.setData(this, value, memberInfo.type, memberInfo.offset, context);
+            if (node.args) {
+                for (let i = 0; i < node.args.length; ++i) {
+                    const memberInfo = typeInfo.members[i];
+                    const arg = node.args[i];
+                    const value = this.evalExpression(arg, context);
+                    data.setData(this, value, memberInfo.type, memberInfo.offset, context);
+                }
             }
         }
         else if (typeInfo instanceof ArrayInfo) {
             let offset = 0;
-            for (let i = 0; i < node.args.length; ++i) {
-                const arg = node.args[i];
-                const value = this.evalExpression(arg, context);
-                data.setData(this, value, typeInfo.format, offset, context);
-                offset += typeInfo.stride;
+            if (node.args) {
+                for (let i = 0; i < node.args.length; ++i) {
+                    const arg = node.args[i];
+                    const value = this.evalExpression(arg, context);
+                    if (typeInfo.format === null) {
+                        if (((_a = value.typeInfo) === null || _a === void 0 ? void 0 : _a.name) === "x32") {
+                            typeInfo.format = this.getTypeInfo("i32");
+                        }
+                        else {
+                            typeInfo.format = value.typeInfo;
+                        }
+                    }
+                    data.setData(this, value, typeInfo.format, offset, context);
+                    offset += typeInfo.stride;
+                }
             }
         }
         else {
@@ -6864,9 +6901,12 @@ class WgslExec extends ExecInterface {
         const _l = this.evalExpression(node.left, context);
         const _r = this.evalExpression(node.right, context);
         const l = _l instanceof ScalarData ? _l.value :
-            _l instanceof VectorData ? _l.value : null;
+            _l instanceof VectorData ? _l.value :
+                _l instanceof MatrixData ? _l.value : null;
         const r = _r instanceof ScalarData ? _r.value :
-            _r instanceof VectorData ? _r.value : null;
+            _r instanceof VectorData ? _r.value :
+                _r instanceof MatrixData ? _r.value :
+                    null;
         switch (node.operator) {
             case "+": {
                 if (isArray(l) && isArray(r)) {
@@ -7736,24 +7776,26 @@ class WgslExec extends ExecInterface {
             }
         }
         else {
-            for (const arg of node.args) {
-                const argValue = this.evalExpression(arg, context);
-                if (argValue instanceof VectorData) {
-                    const vd = argValue.value;
-                    for (let i = 0; i < vd.length; ++i) {
-                        let e = vd[i];
-                        if (isInt) {
-                            e = Math.floor(e);
+            if (node.args) {
+                for (const arg of node.args) {
+                    const argValue = this.evalExpression(arg, context);
+                    if (argValue instanceof VectorData) {
+                        const vd = argValue.value;
+                        for (let i = 0; i < vd.length; ++i) {
+                            let e = vd[i];
+                            if (isInt) {
+                                e = Math.floor(e);
+                            }
+                            values.push(e);
                         }
-                        values.push(e);
                     }
-                }
-                else if (argValue instanceof ScalarData) {
-                    let v = argValue.value;
-                    if (isInt) {
-                        v = Math.floor(v);
+                    else if (argValue instanceof ScalarData) {
+                        let v = argValue.value;
+                        if (isInt) {
+                            v = Math.floor(v);
+                        }
+                        values.push(v);
                     }
-                    values.push(v);
                 }
             }
         }
@@ -8946,16 +8988,27 @@ class WgslParser {
     _global_variable_decl() {
         // attribute* variable_decl (equal const_expression)?
         const _var = this._variable_decl();
-        if (_var && this._match(TokenTypes.tokens.equal)) {
+        if (!_var) {
+            return null;
+        }
+        if (this._match(TokenTypes.tokens.equal)) {
             const expr = this._const_expression();
             const type = [Type.f32];
             try {
                 const value = expr.constEvaluate(this._exec, type);
                 _var.value = new LiteralExpr(value, type[0]);
+                this._exec.context.setVariable(_var.name, value);
             }
             catch (_) {
                 _var.value = expr;
             }
+        }
+        else {
+            // Default constructor
+            const createExpr = new CreateExpr(_var.type, null);
+            const value = this._exec.evalExpression(createExpr, this._exec.context);
+            _var.value = new LiteralExpr(value, _var.type);
+            this._exec.context.setVariable(_var.name, value);
         }
         if (_var.type !== null && _var.value instanceof LiteralExpr) {
             if (_var.value.type.name !== "x32") {
@@ -8963,12 +9016,16 @@ class WgslParser {
                     throw this._error(this._peek(), `Invalid cast from ${_var.value.type.name} to ${_var.type.name}. Line:${this._currentLine}`);
                 }
             }
-            this._validateTypeRange(_var.value.scalarValue, _var.type);
+            if (_var.value.isScalar) {
+                this._validateTypeRange(_var.value.scalarValue, _var.type);
+            }
             _var.value.type = _var.type;
         }
         else if (_var.type === null && _var.value instanceof LiteralExpr) {
             _var.type = _var.value.type.name === "x32" ? Type.i32 : _var.value.type;
-            this._validateTypeRange(_var.value.scalarValue, _var.type);
+            if (_var.value.isScalar) {
+                this._validateTypeRange(_var.value.scalarValue, _var.type);
+            }
         }
         return _var;
     }
@@ -9087,7 +9144,9 @@ class WgslParser {
             type = value.type.name === "x32" ? Type.i32 : value.type;
         }
         if (value instanceof LiteralExpr) {
-            this._validateTypeRange(value.scalarValue, type);
+            if (value.isScalar) {
+                this._validateTypeRange(value.scalarValue, type);
+            }
         }
         return this._updateNode(new Let(name.toString(), type, "", "", value));
     }

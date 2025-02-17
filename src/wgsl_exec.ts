@@ -1030,7 +1030,11 @@ export class WgslExec extends ExecInterface {
     }
 
     _evalConst(node: ConstExpr, context: ExecContext): Data | null {
-        return context.getVariableValue(node.name);
+        const data = context.getVariableValue(node.name);
+        if (node.postfix) {
+            return data.getDataValue(this, node.postfix, context);
+        }
+        return data;
     }
 
     _evalCreate(node: CreateExpr, context: ExecContext): Data | null {
@@ -1105,19 +1109,30 @@ export class WgslExec extends ExecInterface {
 
         // Assign the values in node.args to the data.
         if (typeInfo instanceof StructInfo) {
-            for (let i = 0; i < node.args.length; ++i) {
-                const memberInfo = typeInfo.members[i];
-                const arg = node.args[i];
-                const value = this.evalExpression(arg, context);
-                data.setData(this, value, memberInfo.type, memberInfo.offset, context);
+            if (node.args) {
+                for (let i = 0; i < node.args.length; ++i) {
+                    const memberInfo = typeInfo.members[i];
+                    const arg = node.args[i];
+                    const value = this.evalExpression(arg, context);
+                    data.setData(this, value, memberInfo.type, memberInfo.offset, context);
+                }
             }
         } else if (typeInfo instanceof ArrayInfo) {
             let offset = 0;
-            for (let i = 0; i < node.args.length; ++i) {
-                const arg = node.args[i];
-                const value = this.evalExpression(arg, context);
-                data.setData(this, value, typeInfo.format, offset, context);
-                offset += typeInfo.stride;
+            if (node.args) {
+                for (let i = 0; i < node.args.length; ++i) {
+                    const arg = node.args[i];
+                    const value = this.evalExpression(arg, context);
+                    if (typeInfo.format === null) {
+                        if (value.typeInfo?.name === "x32") {
+                            typeInfo.format = this.getTypeInfo("i32");
+                        } else {
+                            typeInfo.format = value.typeInfo;
+                        }
+                    }
+                    data.setData(this, value, typeInfo.format, offset, context);
+                    offset += typeInfo.stride;
+                }
             }
         } else {
             console.error(`Unknown type "${typeName}". Line ${node.line}`);
@@ -1243,9 +1258,12 @@ export class WgslExec extends ExecInterface {
         const _r = this.evalExpression(node.right, context);
 
         const l = _l instanceof ScalarData ? _l.value : 
-            _l instanceof VectorData ? _l.value : null;
+            _l instanceof VectorData ? _l.value :
+            _l instanceof MatrixData ? _l.value : null;
         const r = _r instanceof ScalarData ? _r.value : 
-            _r instanceof VectorData ? _r.value : null;
+            _r instanceof VectorData ? _r.value : 
+            _r instanceof MatrixData ? _r.value :
+            null;
 
         switch (node.operator) {
             case "+": {
@@ -2102,23 +2120,25 @@ export class WgslExec extends ExecInterface {
                 values.push(node.scalarValue);
             }
         } else {
-            for (const arg of node.args) {
-                const argValue = this.evalExpression(arg, context) ;
-                if (argValue instanceof VectorData) {
-                    const vd = argValue.value;
-                    for (let i = 0; i < vd.length; ++i) {
-                        let e = vd[i];
-                        if (isInt) {
-                            e = Math.floor(e);
+            if (node.args) {
+                for (const arg of node.args) {
+                    const argValue = this.evalExpression(arg, context) ;
+                    if (argValue instanceof VectorData) {
+                        const vd = argValue.value;
+                        for (let i = 0; i < vd.length; ++i) {
+                            let e = vd[i];
+                            if (isInt) {
+                                e = Math.floor(e);
+                            }
+                            values.push(e);
                         }
-                        values.push(e);
+                    } else if (argValue instanceof ScalarData) {
+                        let v = argValue.value;
+                        if (isInt) {
+                            v = Math.floor(v);
+                        }
+                        values.push(v);
                     }
-                } else if (argValue instanceof ScalarData) {
-                    let v = argValue.value;
-                    if (isInt) {
-                        v = Math.floor(v);
-                    }
-                    values.push(v);
                 }
             }
         }

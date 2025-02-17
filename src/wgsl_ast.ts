@@ -1301,7 +1301,7 @@ export class LiteralExpr extends Expression {
   }
 
   get isVector(): boolean {
-    return this.value instanceof VectorData;
+    return this.value instanceof VectorData || this.value instanceof MatrixData;
   }
 
   get scalarValue(): number {
@@ -1316,7 +1316,10 @@ export class LiteralExpr extends Expression {
     if (this.value instanceof VectorData) {
       return this.value.value;
     }
-    console.error("Value is not a vector.");
+    if (this.value instanceof MatrixData) {
+      return this.value.value;
+    }
+    console.error("Value is not a vector or matrix.");
     return [];
   }
 }
@@ -2132,7 +2135,7 @@ export class TypedData extends Data {
               new Float32Array(this.buffer, offset, 1)[0] = value.value;
           }
           return;
-      } else if (typeName === "i32" || typeName === "atomic<i32>") {
+      } else if (typeName === "i32" || typeName === "atomic<i32>" || typeName === "x32") {
           if (value instanceof ScalarData) {
               new Int32Array(this.buffer, offset, 1)[0] = value.value;
           }
@@ -2528,27 +2531,26 @@ export class TypedData extends Data {
       let typeInfo = this.typeInfo;
       while (postfix) {
           if (postfix instanceof ArrayIndex) {
-              if (typeInfo instanceof ArrayInfo) {
-                  const idx = postfix.index;
-                  if (idx instanceof LiteralExpr) {
-                      if (idx.value instanceof ScalarData) {
-                          offset += idx.value.value * typeInfo.stride;
-                      } else {
-                          console.error(`GetDataValue: Invalid index type`, idx);
-                      }
-                  } else {
-                      const i = exec.evalExpression(idx, context);
-                      if (i instanceof ScalarData) {
-                          offset += i.value * typeInfo.stride;
-                      } else {
-                          console.error(`GetDataValue: Unknown index type`, idx);
-                          return null;
-                      }
-                  }
-                  typeInfo = typeInfo.format;
-              } else {
-                  console.error(`Type ${exec.getTypeName(typeInfo)} is not an array`);
-              }
+            const idx = postfix.index;
+            const _i = exec.evalExpression(idx, context);
+            let i = 0;
+            if (_i instanceof ScalarData) {
+                i = _i.value;
+            } else {
+                console.error(`GetDataValue: Invalid index type`, idx);
+            }
+            if (typeInfo instanceof ArrayInfo) {
+                offset += i * typeInfo.stride;
+                typeInfo = typeInfo.format;
+            } else {
+                const typeName = exec.getTypeName(typeInfo);
+                if (typeName === "mat4x4" || typeName === "mat4x4f" || typeName === "mat4x4h") {
+                  offset += i * 16;
+                  typeInfo = exec.getTypeInfo("vec4f");
+                } else {
+                    console.error(`getDataValue: Type ${exec.getTypeName(typeInfo)} is not an array`);
+                }
+            }
           } else if (postfix instanceof StringExpr) {
               const member = postfix.value;
               if (typeInfo instanceof StructInfo) {
@@ -2576,6 +2578,7 @@ export class TypedData extends Data {
 
                       if (member.length > 0 && member.length < 5) {
                           let formatName = "f32";
+                          let formatSuffix = "f";
                           const value = [];
                           for (let i = 0; i < member.length; ++i) {
                               const m = member[i].toLocaleLowerCase();
@@ -2605,28 +2608,44 @@ export class TypedData extends Data {
                                   value.push(new Float32Array(this.buffer, offset, 4)[element]);
                               } else if (typeName === "vec2i") {
                                   formatName = "i32";
+                                  formatSuffix = "i";
                                   value.push(new Int32Array(this.buffer, offset, 2)[element]);
                               } else if (typeName === "vec3i") {
                                   formatName = "i32";
+                                  formatSuffix = "i";
                                   value.push(new Int32Array(this.buffer, offset, 3)[element]);
                               } else if (typeName === "vec4i") {
                                   formatName = "i32";
+                                  formatSuffix = "i";
                                   value.push(new Int32Array(this.buffer, offset, 4)[element]);
                               } else if (typeName === "vec2u") {
                                   formatName = "u32";
+                                  formatSuffix = "u";
                                   const ua = new Uint32Array(this.buffer, offset, 2);
                                   value.push(ua[element]);
                               } else if (typeName === "vec3u") {
                                   formatName = "u32";
+                                  formatSuffix = "u";
                                   value.push(new Uint32Array(this.buffer, offset, 3)[element]);
                               } else if (typeName === "vec4u") {
                                   formatName = "u32";
+                                  formatSuffix = "u";
                                   value.push(new Uint32Array(this.buffer, offset, 4)[element]);
                               }
                           }
 
                           if (value.length === 1) {
                               return new ScalarData(value[0], exec.getTypeInfo(formatName));
+                          }
+
+                          if (value.length === 2) {
+                            typeInfo = exec.getTypeInfo(`vec2${formatSuffix}`);
+                          } else if (value.length === 3) {
+                            typeInfo = exec.getTypeInfo(`vec3${formatSuffix}`);
+                          } else if (value.length === 4) {
+                            typeInfo = exec.getTypeInfo(`vec4${formatSuffix}`);
+                          } else {
+                            console.error(`GetDataValue: Invalid vector length ${value.length}`);
                           }
 
                           return new VectorData(value, typeInfo);
