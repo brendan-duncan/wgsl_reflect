@@ -3,13 +3,6 @@ import { WgslParser } from "../../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Parser", function () {
-    test("diagnostic", function (test) {
-      const shader = `diagnostic(off, chromium.unreachable_code);`;
-      const parser = new WgslParser();
-      const t = parser.parse(shader);
-      test.equals(t.length, 1);
-    });
-
     test("const", function (test) {
       const shader = `
       const a = 4; // i32 -- 4
@@ -27,24 +20,31 @@ export async function run() {
       const t = parser.parse(shader);
       test.equals(t.length, 11);
 
-      test.equals(t[0].type.name, "i32", "0");
-      test.equals(t[0].value.value, 4, "0.b");
-      test.equals(t[1].type.name, "i32", "1");
-      test.equals(t[1].value.value, 4), "1.b";
-      test.equals(t[2].type.name, "u32", "2");
-      test.equals(t[2].value.value, 4, "2.b");
-      test.equals(t[3].type.name, "f32", "3");
-      test.equals(t[3].value.value, 4, "3.b");
-      test.equals(t[4].type?.name, "vec3", "4");
-      test.equals(t[5].type.name, "f32", "5");
-      test.equals(t[5].value.value, 2, "5.b");
-      test.equals(t[6].type?.name, "mat2x2", "6");
-      test.equals(t[6].type?.format?.name, "f32", "6.b");
-      test.equals(t[7].type?.name, "array", "7");
-      test.equals(t[8].type?.name, "mat2x2", "8");
-      test.equals(t[8].type?.format?.name, "f32", "8.b");
-      test.equals(t[9].type?.name, "vec3", "9");
-      test.equals(t[10].type?.name, "mat2x3", "10");
+      test.equals(t[0].type.name, "i32", "a.type");
+      test.equals(t[0].value.value, 4, "a.value");
+      test.equals(t[1].type.name, "i32", "b.type");
+      test.equals(t[1].value.value, 4), "b.value";
+      test.equals(t[2].type.name, "u32", "c.type");
+      test.equals(t[2].value.value, 4, "c.value");
+      test.equals(t[3].type.name, "f32", "d.type");
+      test.equals(t[3].value.value, 4, "d.value");
+      test.equals(t[4].type?.name, "vec3", "e.type");
+      test.equals(t[5].type.name, "f32", "f.type");
+      test.equals(t[5].value.value, 2, "f.value");
+      test.equals(t[6].type?.name, "mat2x2", "g.type");
+      test.equals(t[6].type?.format?.name, "f32", "g.format");
+      test.equals(t[7].type?.name, "array", "h.type");
+      test.equals(t[8].type?.name, "mat2x2", "i.type");
+      test.equals(t[8].type?.format?.name, "f32", "i.format");
+      test.equals(t[9].type?.name, "vec3", "j.type");
+      test.equals(t[10].type?.name, "mat2x3", "k.type");
+    });
+
+    test("diagnostic", function (test) {
+      const shader = `diagnostic(off, chromium.unreachable_code);`;
+      const parser = new WgslParser();
+      const t = parser.parse(shader);
+      test.equals(t.length, 1);
     });
 
     test("vec2 var", function (test) {
@@ -313,7 +313,7 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
           type: {
             name: "f32",
           },
-          value: { value: 1.61803398875 },
+          value: { value: { value: 1.61803398875 } },
         },
       ]);
     });
@@ -594,7 +594,7 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
               format: {
                 name: "f32",
               },
-              count: 5,
+              count: { value: 5 },
             },
           },
           {
@@ -614,5 +614,5 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
       test.equals(t[0].value.astNodeType, "literalExpr");
       test.equals(t[1].value.astNodeType, "literalExpr");
     });
-  });
+  }, true);
 }

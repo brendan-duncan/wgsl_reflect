@@ -2,7 +2,6 @@ import * as AST from "./wgsl_ast.js";
 import { WgslExec } from "./wgsl_exec.js";
 import { WgslParser } from "./wgsl_parser.js";
 import { ExecContext, FunctionRef } from "./exec/exec_context.js";
-import { MatrixData, ScalarData, TypedData, VectorData } from "./exec/data.js";
 import { Command, StatementCommand, CallExprCommand, GotoCommand, BlockCommand,
         ContinueTargetCommand, ContinueCommand, BreakCommand, BreakTargetCommand } from "./exec/command.js";
 
@@ -73,13 +72,13 @@ export class WgslDebug {
         if (v === null) {
             return null;
         }
-        if (v instanceof ScalarData) {
+        if (v instanceof AST.ScalarData) {
             return v.value;
         }
-        if (v instanceof VectorData) {
+        if (v instanceof AST.VectorData) {
             return v.value;
         }
-        if (v instanceof MatrixData) {
+        if (v instanceof AST.MatrixData) {
             return v.value;
         }
         console.error(`Unsupported return variable type ${v.typeInfo.name}`);
@@ -259,7 +258,7 @@ export class WgslDebug {
         const width = dispatchCount[0];
 
         const vec3u = this._exec.typeInfo["vec3u"];
-        context.setVariable("@num_workgroups", new VectorData(dispatchCount, vec3u));
+        context.setVariable("@num_workgroups", new AST.VectorData(dispatchCount, vec3u));
 
         for (const set in bindGroups) {
             for (const binding in bindGroups[set]) {
@@ -280,13 +279,13 @@ export class WgslDebug {
                         if (binding == b && set == s) {
                             if (entry.texture !== undefined && entry.size !== undefined) {
                                 // Texture
-                                v.value = new TypedData(entry.texture, this._exec.getTypeInfo(node.type), 0, entry.size);
+                                v.value = new AST.TypedData(entry.texture, this._exec.getTypeInfo(node.type), 0, entry.size);
                             } else if (entry.uniform !== undefined) {
                                 // Uniform buffer
-                                v.value = new TypedData(entry.uniform, this._exec.getTypeInfo(node.type));
+                                v.value = new AST.TypedData(entry.uniform, this._exec.getTypeInfo(node.type));
                             } else {
                                 // Storage buffer
-                                v.value = new TypedData(entry, this._exec.getTypeInfo(node.type));
+                                v.value = new AST.TypedData(entry, this._exec.getTypeInfo(node.type));
                             }
                         }
                     }
@@ -298,7 +297,7 @@ export class WgslDebug {
         for (let z = 0; z < depth && !found; ++z) {
             for (let y = 0; y < height && !found; ++y) {
                 for (let x = 0; x < width && !found; ++x) {
-                    context.setVariable("@workgroup_id", new VectorData([x, y, z], vec3u));
+                    context.setVariable("@workgroup_id", new AST.VectorData([x, y, z], vec3u));
                     if (this._dispatchWorkgroup(f, [x, y, z], context)) {
                         found = true;
                         break;
@@ -510,7 +509,7 @@ export class WgslDebug {
                 // break-if conditional break 
                 if (command.condition) {
                     const res = this._exec.evalExpression(command.condition, state.context);
-                    if (!(res instanceof ScalarData)) {
+                    if (!(res instanceof AST.ScalarData)) {
                         console.error("Condition must be a scalar");
                         return false;
                     }
@@ -544,7 +543,7 @@ export class WgslDebug {
             } else if (command instanceof GotoCommand) {
                 if (command.condition) {
                     const res = this._exec.evalExpression(command.condition, state.context);
-                    if (!(res instanceof ScalarData)) {
+                    if (!(res instanceof AST.ScalarData)) {
                         console.error("Condition must be a scalar");
                         return false;
                     }
@@ -590,7 +589,7 @@ export class WgslDebug {
                     if (attr.value.length > 0) {
                         // The value could be an override constant
                         const v = context.getVariableValue(attr.value[0]);
-                        if (v instanceof ScalarData) {
+                        if (v instanceof AST.ScalarData) {
                             workgroupSize[0] = v.value;
                         } else {
                             workgroupSize[0] = parseInt(attr.value[0]);
@@ -598,7 +597,7 @@ export class WgslDebug {
                     }
                     if (attr.value.length > 1) {
                         const v = context.getVariableValue(attr.value[1]);
-                        if (v instanceof ScalarData) {
+                        if (v instanceof AST.ScalarData) {
                             workgroupSize[1] = v.value;
                         } else {
                             workgroupSize[1] = parseInt(attr.value[1]);
@@ -606,7 +605,7 @@ export class WgslDebug {
                     }
                     if (attr.value.length > 2) {
                         const v = context.getVariableValue(attr.value[2]);
-                        if (v instanceof ScalarData) {
+                        if (v instanceof AST.ScalarData) {
                             workgroupSize[2] = v.value;
                         } else {
                             workgroupSize[2] = parseInt(attr.value[2]);
@@ -620,7 +619,7 @@ export class WgslDebug {
 
         const vec3u = this._exec.typeInfo["vec3u"];
         const u32 = this._exec.typeInfo["u32"];
-        context.setVariable("@workgroup_size", new VectorData(workgroupSize, vec3u));
+        context.setVariable("@workgroup_size", new AST.VectorData(workgroupSize, vec3u));
 
         const width = workgroupSize[0];
         const height = workgroupSize[1];
@@ -636,9 +635,9 @@ export class WgslDebug {
                         y + workgroup_id[1] * workgroupSize[1],
                         z + workgroup_id[2] * workgroupSize[2]];
 
-                    context.setVariable("@local_invocation_id", new VectorData(local_invocation_id, vec3u));
-                    context.setVariable("@global_invocation_id", new VectorData(global_invocation_id, vec3u));
-                    context.setVariable("@local_invocation_index", new ScalarData(li, u32));
+                    context.setVariable("@local_invocation_id", new AST.VectorData(local_invocation_id, vec3u));
+                    context.setVariable("@global_invocation_id", new AST.VectorData(global_invocation_id, vec3u));
+                    context.setVariable("@local_invocation_index", new AST.ScalarData(li, u32));
 
                     if (global_invocation_id[0] === this._dispatchId[0] &&
                         global_invocation_id[1] === this._dispatchId[1] &&

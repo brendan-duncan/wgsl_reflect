@@ -2,13 +2,13 @@ import { Node, Type, TemplateType, Return, Break, Continue, Let, Var, Const,
     If, For, While, Loop, Continuing, Assign, Increment, Struct, Override,
     Call, Diagnostic, Alias, GroupingExpr, BinaryOperator, LiteralExpr,
     VariableExpr, CallExpr, CreateExpr, ConstExpr, BitcastExpr, UnaryOperator,
-    ArrayIndex, StringExpr, Function } from "./wgsl_ast.js";
+    ArrayIndex, StringExpr, Function,
+    Data, ScalarData, VectorData, MatrixData, TypedData, VoidData } from "./wgsl_ast.js";
 import { Reflect } from "./reflect/reflect.js";
 import { TypeInfo, StructInfo, ArrayInfo, TemplateInfo } from "./reflect/info.js";
 import { ExecContext, FunctionRef } from "./exec/exec_context.js";
 import { ExecInterface } from "./exec/exec_interface.js";
 import { BuiltinFunctions } from "./exec/builtin_functions.js";
-import { Data, ScalarData, VectorData, MatrixData, TypedData, VoidData } from "./exec/data.js";
 import { isArray, castScalar, castVector } from "./exec/util.js";
 
 export class WgslExec extends ExecInterface {
@@ -301,7 +301,7 @@ export class WgslExec extends ExecInterface {
                 if (name === "vec2" || name === "vec3" || name === "vec4") {
                     return name;
                 }
-                console.error("Template format is null.");
+                //console.error("Template format is null.");
             }
         }
         return name;
@@ -2193,6 +2193,10 @@ export class WgslExec extends ExecInterface {
                     values.push(...argValue.value);
                 }
             }
+        }
+
+        if ((typeInfo instanceof TemplateInfo) && typeInfo.format === null) {
+            typeInfo.format = this.getTypeInfo("f32");
         }
 
         if (values.length === 0) {

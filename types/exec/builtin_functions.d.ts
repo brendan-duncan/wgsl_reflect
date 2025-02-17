@@ -1,5 +1,4 @@
-import { CallExpr, Call } from "../wgsl_ast.js";
-import { Data } from "./data.js";
+import { CallExpr, Call, Data } from "../wgsl_ast.js";
 import { ExecContext } from "./exec_context.js";
 import { ExecInterface } from "./exec_interface.js";
 import { TypeInfo } from "../reflect/info.js";

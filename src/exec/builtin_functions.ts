@@ -1,5 +1,5 @@
-import { CallExpr, Call, UnaryOperator, VariableExpr } from "../wgsl_ast.js";
-import { Data, TypedData, ScalarData, VectorData, MatrixData } from "./data.js";
+import { CallExpr, Call, UnaryOperator, VariableExpr,
+    Data, TypedData, ScalarData, VectorData, MatrixData } from "../wgsl_ast.js";
 import { ExecContext } from "./exec_context.js";
 import { ExecInterface } from "./exec_interface.js";
 import { ArrayInfo, TemplateInfo, TypeInfo } from "../reflect/info.js";

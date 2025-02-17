@@ -4,7 +4,7 @@
 import { WgslScanner, Token, TokenType, TokenTypes } from "./wgsl_scanner.js";
 import * as AST from "./wgsl_ast.js";
 import { WgslExec } from "./wgsl_exec.js";
-import { Data, ScalarData } from "./exec/data.js";
+import { TemplateInfo } from "./reflect/info.js";
 
 /// Parse a sequence of tokens from the WgslScanner into an Abstract Syntax Tree (AST).
 export class WgslParser {
@@ -1286,11 +1286,11 @@ export class WgslParser {
           s.endsWith("u") || s.endsWith("U") ? AST.Type.u32 : AST.Type.x32;
       const i = parseInt(s);
       this._validateTypeRange(i, type);
-      return this._updateNode(new AST.LiteralExpr(new ScalarData(i, this._exec.getTypeInfo(type)), type));
+      return this._updateNode(new AST.LiteralExpr(new AST.ScalarData(i, this._exec.getTypeInfo(type)), type));
     } else if (this._match(TokenTypes.tokens.uint_literal)) {
       const u = parseInt(this._previous().toString());
       this._validateTypeRange(u, AST.Type.u32);
-      return this._updateNode(new AST.LiteralExpr(new ScalarData(u, this._exec.getTypeInfo(AST.Type.u32)), AST.Type.u32));
+      return this._updateNode(new AST.LiteralExpr(new AST.ScalarData(u, this._exec.getTypeInfo(AST.Type.u32)), AST.Type.u32));
     } else if (this._match([TokenTypes.tokens.decimal_float_literal, TokenTypes.tokens.hex_float_literal])) {
       let fs = this._previous().toString();
       let isF16 = fs.endsWith("h");
@@ -1300,10 +1300,10 @@ export class WgslParser {
       const f = parseFloat(fs);
       this._validateTypeRange(f, isF16 ? AST.Type.f16 : AST.Type.f32);
       const type = isF16 ? AST.Type.f16 : AST.Type.f32;
-      return this._updateNode(new AST.LiteralExpr(new ScalarData(f, this._exec.getTypeInfo(type)), type));
+      return this._updateNode(new AST.LiteralExpr(new AST.ScalarData(f, this._exec.getTypeInfo(type)), type));
     } else if (this._match([TokenTypes.keywords.true, TokenTypes.keywords.false])) {
       let b = this._previous().toString() === TokenTypes.keywords.true.rule;
-      return this._updateNode(new AST.LiteralExpr(new ScalarData(b ? 1 : 0, this._exec.getTypeInfo(AST.Type.bool)), AST.Type.bool));
+      return this._updateNode(new AST.LiteralExpr(new AST.ScalarData(b ? 1 : 0, this._exec.getTypeInfo(AST.Type.bool)), AST.Type.bool));
     }
 
     // paren_expression
@@ -1488,25 +1488,32 @@ export class WgslParser {
     this._consume(TokenTypes.tokens.equal, "const declarations require an assignment")
 
     const valueExpr = this._short_circuit_or_expression();
-    const valueData = this._exec.evalExpression(valueExpr, this._exec.context);
-    console.log(valueData);
-
-    /*if (valueExpr instanceof AST.CreateExpr) {
-      value = valueExpr;
-    } else if (valueExpr instanceof AST.ConstExpr &&
-               valueExpr.initializer instanceof AST.CreateExpr) {
-      value = valueExpr.initializer;
-    } else*/ {
-      try {
-        let type = [AST.Type.f32];
-        const constValue = valueExpr.constEvaluate(this._exec, type);
-        if (constValue instanceof ScalarData) {
-          this._validateTypeRange(constValue.value, type[0]);
-        }
-        value = this._updateNode(new AST.LiteralExpr(constValue, type[0]));
-      } catch {
-        value = valueExpr;
+    try {
+      let type = [AST.Type.f32];
+      const constValue = valueExpr.constEvaluate(this._exec, type);
+      if (constValue instanceof AST.ScalarData) {
+        this._validateTypeRange(constValue.value, type[0]);
       }
+      if (type[0] instanceof AST.TemplateType && type[0].format === null &&
+        constValue.typeInfo instanceof TemplateInfo && constValue.typeInfo.format !== null) {
+        if (constValue.typeInfo.format.name === "f16") {
+          type[0].format = AST.Type.f16;
+        } else if (constValue.typeInfo.format.name === "f32") {
+          type[0].format = AST.Type.f32;
+        } else if (constValue.typeInfo.format.name === "i32") {
+          type[0].format = AST.Type.i32;
+        } else if (constValue.typeInfo.format.name === "u32") {
+          type[0].format = AST.Type.u32;
+        } else if (constValue.typeInfo.format.name === "bool") {
+          type[0].format = AST.Type.bool;
+        } else {
+          console.error(`TODO: impelement template format type ${constValue.typeInfo.format.name}`);
+        }
+      }
+      value = this._updateNode(new AST.LiteralExpr(constValue, type[0]));
+      this._exec.context.setVariable(name.toString(), constValue);
+    } catch {
+      value = valueExpr;
     }
 
     if (type !== null && value instanceof AST.LiteralExpr) {

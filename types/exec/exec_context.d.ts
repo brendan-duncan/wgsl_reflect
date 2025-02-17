@@ -1,5 +1,4 @@
-import { Let, Var, Argument, Function } from "../wgsl_ast.js";
-import { Data } from "./data.js";
+import { Let, Var, Argument, Function, Data } from "../wgsl_ast.js";
 type ASTVarNode = Let | Var | Argument;
 export declare class VarRef {
     name: string;
