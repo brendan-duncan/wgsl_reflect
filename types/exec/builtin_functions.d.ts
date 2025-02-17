@@ -40,7 +40,9 @@ export declare class BuiltinFunctions {
     Exp2(node: CallExpr | Call, context: ExecContext): Data | null;
     ExtractBits(node: CallExpr | Call, context: ExecContext): Data | null;
     FaceForward(node: CallExpr | Call, context: ExecContext): Data | null;
+    _firstLeadingBit(s: number): number;
     FirstLeadingBit(node: CallExpr | Call, context: ExecContext): Data | null;
+    _firstTrailingBit(s: number): number;
     FirstTrailingBit(node: CallExpr | Call, context: ExecContext): Data | null;
     Floor(node: CallExpr | Call, context: ExecContext): Data | null;
     Fma(node: CallExpr | Call, context: ExecContext): Data | null;

@@ -400,14 +400,36 @@ export class BuiltinFunctions {
         return null;
     }
 
+    _firstLeadingBit(s: number): number {
+        if (s === 0) {
+            return -1;
+        }
+        return 31 - Math.clz32(s);  // clz32: count leading zeros
+    }
+
     FirstLeadingBit(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error(`TODO: firstLeadingBit. Line ${node.line}`);
-        return null;
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v: number) => this._firstLeadingBit(v)), value.typeInfo);
+        }
+        const s = value as ScalarData;
+        return new ScalarData(this._firstLeadingBit(s.value), value.typeInfo);
+    }
+
+    _firstTrailingBit(s: number): number {
+        if (s === 0) {
+            return -1;
+        }
+        return Math.log2(s & -s); // n & -n isolates the lowest set bit.  Math.log2 gives its position.
     }
 
     FirstTrailingBit(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error(`TODO: firstTrailingBit. Line ${node.line}`);
-        return null;
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v: number) => this._firstTrailingBit(v)), value.typeInfo);
+        }
+        const s = value as ScalarData;
+        return new ScalarData(this._firstTrailingBit(s.value), value.typeInfo);
     }
 
     Floor(node: CallExpr | Call, context: ExecContext): Data | null {

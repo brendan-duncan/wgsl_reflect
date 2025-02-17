@@ -4583,13 +4583,33 @@ class BuiltinFunctions {
         console.error(`FaceForward() expects vector arguments. Line ${node.line}`);
         return null;
     }
+    _firstLeadingBit(s) {
+        if (s === 0) {
+            return -1;
+        }
+        return 31 - Math.clz32(s); // clz32: count leading zeros
+    }
     FirstLeadingBit(node, context) {
-        console.error(`TODO: firstLeadingBit. Line ${node.line}`);
-        return null;
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => this._firstLeadingBit(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(this._firstLeadingBit(s.value), value.typeInfo);
+    }
+    _firstTrailingBit(s) {
+        if (s === 0) {
+            return -1;
+        }
+        return Math.log2(s & -s); // n & -n isolates the lowest set bit.  Math.log2 gives its position.
     }
     FirstTrailingBit(node, context) {
-        console.error(`TODO: firstTrailingBit. Line ${node.line}`);
-        return null;
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.value.map((v) => this._firstTrailingBit(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(this._firstTrailingBit(s.value), value.typeInfo);
     }
     Floor(node, context) {
         const value = this.exec.evalExpression(node.args[0], context);
