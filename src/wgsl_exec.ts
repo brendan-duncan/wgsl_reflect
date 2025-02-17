@@ -2094,13 +2094,13 @@ export class WgslExec extends ExecInterface {
 
         const values: number[] = [];
         if (node instanceof LiteralExpr) {
-            if (isArray(node.value)) {
-                const a = node.value as number[];
+            if (node.isVector) {
+                const a = node.vectorValue;
                 for (const v of a) {
                     values.push(v);
                 }
             } else {
-                values.push(node.value as number);
+                values.push(node.scalarValue);
             }
         } else {
             for (const arg of node.args) {
@@ -2171,13 +2171,13 @@ export class WgslExec extends ExecInterface {
 
         const values = [];
         if (node instanceof LiteralExpr) {
-            if (isArray(node.value)) {
-                const a = node.value as number[];
+            if (node.isVector) {
+                const a = node.vectorValue;
                 for (const v of a) {
                     values.push(v);
                 }
             } else {
-                values.push(node.value);
+                values.push(node.scalarValue);
             }
         } else {
             for (const arg of node.args) {

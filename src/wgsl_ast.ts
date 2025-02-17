@@ -1,4 +1,21 @@
-import { Data } from "./exec/data.js";
+//import { Data, ScalarData, VectorData } from "./exec/data.js";
+import { WgslExec } from "./wgsl_exec.js";
+import { ExecInterface } from "./exec/exec_interface.js";
+import { ExecContext } from "./exec/exec_context.js";
+
+declare class Data {
+    setDataValue(exec: ExecInterface, value: Data, postfix: Expression | null, context: ExecContext): void;
+
+    getDataValue(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null;
+}
+
+declare class ScalarData extends Data {
+    value: number;
+}
+
+declare class VectorData extends Data {
+  value: number[];
+}
 
 export class ParseContext {
   constants: Map<string, Const> = new Map();
@@ -30,11 +47,11 @@ export class Node {
     return "";
   }
 
-  constEvaluate(context: ParseContext, type?: Type[]): number | number[] {
+  constEvaluate(context: WgslExec, type?: Type[]): Data | null {
     throw new Error("Cannot evaluate node");
   }
 
-  constEvaluateString(context: ParseContext): string {
+  constEvaluateString(context: WgslExec): string {
     return this.constEvaluate(context).toString();
   }
 
@@ -357,7 +374,7 @@ export class Const extends Statement {
     return "const";
   }
 
-  constEvaluate(context: ParseContext, type?: Type[]): number | number[] {
+  constEvaluate(context: WgslExec, type?: Type[]): Data | null {
     return this.value.constEvaluate(context, type);
   }
 
@@ -1006,808 +1023,8 @@ export class CreateExpr extends Expression {
     }
   }
 
-  constEvaluate(context: ParseContext, type?: Type[]): number | number[] {
-    const t = this.type;
-    if (t.name === "f32" || t.name === "f16" || t.name === "i32" || t.name === "u32" || t.name === "bool") {
-      return this.args[0].constEvaluate(context, type);
-    }
-
-    if (t.name === "vec2" || t.name === "vec2f" || t.name === "vec2h" || t.name === "vec2i" || t.name === "vec2u") {
-      const tx = [Type.f32];
-      const ty = [Type.f32];
-      const v = [this.args[0].constEvaluate(context, tx) as number,
-                this.args[1].constEvaluate(context, ty) as number];
-      if (type) {
-        type[0] = t;
-        if (t instanceof TemplateType && t.format === null) {
-          t.format = Type.maxFormatType([tx[0], ty[0]]);
-        }
-      }
-      return v;
-    }
-
-    if (t.name === "vec3" || t.name === "vec3f" || t.name === "vec3h" || t.name === "vec3i" || t.name === "vec3u") {
-      if (this.args.length === 1) {
-        const tx = [Type.f32];
-        const vx = this.args[0].constEvaluate(context, tx);
-        const v = [vx as number, vx as number, vx as number];
-        if (type) {
-          type[0] = t;
-          if (t instanceof TemplateType && t.format === null) {
-            t.format = tx[0];
-          }
-        }
-        return v;
-      } else if (this.args.length === 2) {
-        const tx = [Type.f32];
-        const ty = [Type.f32];
-        const vx = this.args[0].constEvaluate(context, tx);
-        const vy = this.args[1].constEvaluate(context, ty);
-        if (type) {
-          type[0] = t;
-          if (t instanceof TemplateType && t.format === null) {
-            t.format = Type.maxFormatType([tx[0], ty[0]]);
-          }
-        }
-        console.error("TODO vec3", vx, vy);
-        throw "TODO";
-        //return v;
-      } else {
-        const tx = [Type.f32];
-        const ty = [Type.f32];
-        const tz = [Type.f32];
-        const v = [this.args[0].constEvaluate(context, tx) as number,
-                  this.args[1].constEvaluate(context, ty) as number,
-                  this.args[2].constEvaluate(context, tz) as number];
-        if (type) {
-          type[0] = t;
-          if (t instanceof TemplateType && t.format === null) {
-            t.format = Type.maxFormatType([tx[0], ty[0], tz[0]]);
-          }
-        }
-        return v;
-      }
-    }
-
-    if (t.name === "vec4" || t.name === "vec4f" || t.name === "vec4h" || t.name === "vec4i" || t.name === "vec4u") {
-      if (this.args.length === 1) {
-        // vec4(other: vec4)
-        const tx = [Type.f32];
-      } else if (this.args.length === 2) {
-        // vec4(v1: vec2, v2: vec2)
-        // vec4(v1: vec3, v2: f32)
-        const tx = [Type.f32];
-        const ty = [Type.f32];
-        const v1 = this.args[0].constEvaluate(context, tx);
-        const v2 = this.args[1].constEvaluate(context, ty);
-        console.log(v1, v2);
-      } else if (this.args.length === 4) {
-        // vec4(e1, e2, e3, e4)
-        const tx = [Type.f32];
-        const ty = [Type.f32];
-        const tz = [Type.f32];
-        const tw = [Type.f32];
-        const v = [this.args[0].constEvaluate(context, tx) as number,
-                  this.args[1].constEvaluate(context, ty) as number,
-                  this.args[2].constEvaluate(context, tz) as number,
-                  this.args[3].constEvaluate(context, tw) as number];
-        if (type) {
-          type[0] = t;
-          if (t instanceof TemplateType && t.format === null) {
-            t.format = Type.maxFormatType([tx[0], ty[0], tz[0], tw[0]]);
-          }
-        }
-        return v;
-      } else {
-        throw "Invalid arguments for vec4";
-      }
-    }
-
-    if (t.name === "mat2x2") {
-      if (this.args.length === 1) {
-        // mat2x2(other: mat2x2)
-        const e1 = [Type.f32];
-        const v = this.args[0].constEvaluate(context, e1);
-        if (e1[0].name !== "mat2x2" && e1[0].name !== "mat2x2f" && e1[0].name != "mat2x2h") {
-          throw "Invalid argument for mat2x2";
-        }
-        if (type) {
-          type[0] = e1[0];
-        }
-        return v;
-      } else if (this.args.length === 2) {
-        // mat2x2(v1: vec2, v2: vec2)
-        const e1 = [Type.f32];
-        const e2 = [Type.f32];
-        const v1 = this.args[0].constEvaluate(context, e1);
-        const v2 = this.args[1].constEvaluate(context, e2);
-        if ((e1[0].name !== "vec2" && e1[0].name !== "vec2f" && e1[0].name !== "vec2h") ||
-            (e2[0].name !== "vec2" && e2[0].name !== "vec2f" && e2[0].name !== "vec2h")) {
-          throw "Invalid arguments for mat2x2";
-        }
-        const v1a = v1 as number[];
-        const v2a = v2 as number[];
-        const v = [v1a[0], v1a[1], v2a[0], v2a[1]];
-        if (type) {
-          type[0] = t;
-          if (t instanceof TemplateType && t.format === null) {
-            if (e1[0].name === "vec2f") {
-              t.format = Type.f32;
-            } else if (e1[0].name === "vec2h") {
-              t.format = Type.f16;
-            } else if (e1[0] instanceof TemplateType) {
-              t.format = e1[0].format;
-            }
-          }
-        }
-        return v;
-      } else if (this.args.length === 4) {
-        // mat2x2(e1, e2, e3, e4)
-        const e1 = [Type.f32];
-        const e2 = [Type.f32];
-        const e3 = [Type.f32];
-        const e4 = [Type.f32];
-        const v = [this.args[0].constEvaluate(context, e1) as number,
-                  this.args[1].constEvaluate(context, e2) as number,
-                  this.args[2].constEvaluate(context, e3) as number,
-                  this.args[3].constEvaluate(context, e4) as number];
-        if (type) {
-          type[0] = t;
-          if (t instanceof TemplateType && t.format === null) {
-            t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0]]);
-          }
-        }
-
-        return v;
-      } else {
-        throw "Invalid arguments for mat2x2";
-      }
-    }
-
-    if (t.name === "mat2x3") {
-      if (this.args.length === 1) {
-        // mat2x3(other: mat2x3)
-        const e1 = [Type.f32];
-        const v = this.args[0].constEvaluate(context, e1);
-        if (e1[0].name !== "mat232" && e1[0].name !== "mat2x3f" && e1[0].name != "mat2x3h") {
-          throw "Invalid argument for mat2x3";
-        }
-        if (type) {
-          type[0] = e1[0];
-        }
-        return v;
-      } else if (this.args.length === 2) {
-        // mat2x3(v1: vec3, v2: vec3)
-        const e1 = [Type.f32];
-        const e2 = [Type.f32];
-        const v1 = this.args[0].constEvaluate(context, e1);
-        const v2 = this.args[1].constEvaluate(context, e2);
-        if ((e1[0].name !== "vec3" && e1[0].name !== "vec3f" && e1[0].name !== "vec3h") ||
-            (e2[0].name !== "vec3" && e2[0].name !== "vec3f" && e2[0].name !== "vec3h")) {
-          throw "Invalid arguments for mat2x3";
-        }
-        const v1a = v1 as number[];
-        const v2a = v2 as number[];
-        const v = [v1a[0], v1a[1], v1a[2], v2a[0], v2a[1], v2a[2]];
-        if (type) {
-          type[0] = t;
-          if (t instanceof TemplateType && t.format === null) {
-            if (e1[0].name === "vec3f") {
-              t.format = Type.f32;
-            } else if (e1[0].name === "vec3h") {
-              t.format = Type.f16;
-            } else if (e1[0] instanceof TemplateType) {
-              t.format = e1[0].format;
-            }
-          }
-        }
-        return v;
-      } else if (this.args.length === 6) {
-        // mat2x3(e1, e2, e3, e4, e5, e6)
-        const e1 = [Type.f32];
-        const e2 = [Type.f32];
-        const e3 = [Type.f32];
-        const e4 = [Type.f32];
-        const e5 = [Type.f32];
-        const e6 = [Type.f32];
-        const v = [this.args[0].constEvaluate(context, e1) as number,
-                  this.args[1].constEvaluate(context, e2) as number,
-                  this.args[2].constEvaluate(context, e3) as number,
-                  this.args[3].constEvaluate(context, e4) as number,
-                  this.args[4].constEvaluate(context, e5) as number,
-                  this.args[5].constEvaluate(context, e6) as number];
-        if (type) {
-          type[0] = t;
-          if (t instanceof TemplateType && t.format === null) {
-            t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0]]);
-          }
-        }
-
-        return v;
-      } else {
-        throw "Invalid arguments for mat2x3";
-      }
-    }
-
-    if (t.name === "mat2x4") {
-      if (this.args.length === 1) {
-        // mat2x4(other: mat2x4)
-        const e1 = [Type.f32];
-        const v = this.args[0].constEvaluate(context, e1);
-        if (e1[0].name !== "mat2x4" && e1[0].name !== "mat2x4f" && e1[0].name != "mat2x4h") {
-          throw "Invalid argument for mat2x4";
-        }
-        if (type) {
-          type[0] = e1[0];
-        }
-        return v;
-      } else if (this.args.length === 2) {
-        // mat2x4(v1: vec4, v2: vec4)
-        const e1 = [Type.f32];
-        const e2 = [Type.f32];
-        const v1 = this.args[0].constEvaluate(context, e1);
-        const v2 = this.args[1].constEvaluate(context, e2);
-        if ((e1[0].name !== "vec4" && e1[0].name !== "vec4f" && e1[0].name !== "vec4h") ||
-            (e2[0].name !== "vec4" && e2[0].name !== "vec4f" && e2[0].name !== "vec4h")) {
-          throw "Invalid arguments for mat2x4";
-        }
-        const v1a = v1 as number[];
-        const v2a = v2 as number[];
-        const v = [v1a[0], v1a[1], v1a[2], v1a[3], v2a[0], v2a[1], v2a[2], v2a[3]];
-        if (type) {
-          type[0] = t;
-          if (t instanceof TemplateType && t.format === null) {
-            if (e1[0].name === "vec4f") {
-              t.format = Type.f32;
-            } else if (e1[0].name === "vec4h") {
-              t.format = Type.f16;
-            } else if (e1[0] instanceof TemplateType) {
-              t.format = e1[0].format;
-            }
-          }
-        }
-        return v;
-      } else if (this.args.length === 8) {
-        // mat2x4(e1, e2, e3, e4, e5, e6, e7, e8)
-        const e1 = [Type.f32];
-        const e2 = [Type.f32];
-        const e3 = [Type.f32];
-        const e4 = [Type.f32];
-        const e5 = [Type.f32];
-        const e6 = [Type.f32];
-        const e7 = [Type.f32];
-        const e8 = [Type.f32];
-        const v = [this.args[0].constEvaluate(context, e1) as number,
-                  this.args[1].constEvaluate(context, e2) as number,
-                  this.args[2].constEvaluate(context, e3) as number,
-                  this.args[3].constEvaluate(context, e4) as number,
-                  this.args[4].constEvaluate(context, e5) as number,
-                  this.args[5].constEvaluate(context, e6) as number,
-                  this.args[6].constEvaluate(context, e7) as number,
-                  this.args[7].constEvaluate(context, e8) as number];
-        if (type) {
-          type[0] = t;
-          if (t instanceof TemplateType && t.format === null) {
-            t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0]]);
-          }
-        }
-
-        return v;
-      } else {
-        throw "Invalid arguments for mat2x4";
-      }
-    }
-
-    if (t.name === "mat3x2") {
-      if (this.args.length === 1) {
-        // mat3x2(other: mat3x2)
-        const e1 = [Type.f32];
-        const v = this.args[0].constEvaluate(context, e1);
-        if (e1[0].name !== "mat3x2" && e1[0].name !== "mat3x2f" && e1[0].name != "mat3x2h") {
-          throw "Invalid argument for mat3x2";
-        }
-        if (type) {
-          type[0] = e1[0];
-        }
-        return v;
-      } else if (this.args.length === 3) {
-        // mat3x2(v1: vec2, v2: vec2, v3: vec2)
-        const e1 = [Type.f32];
-        const e2 = [Type.f32];
-        const e3 = [Type.f32];
-        const v1 = this.args[0].constEvaluate(context, e1);
-        const v2 = this.args[1].constEvaluate(context, e2);
-        const v3 = this.args[1].constEvaluate(context, e3);
-        if ((e1[0].name !== "vec2" && e1[0].name !== "vec2f" && e1[0].name !== "vec2h") ||
-            (e2[0].name !== "vec2" && e2[0].name !== "vec2f" && e2[0].name !== "vec2h") ||
-            (e3[0].name !== "vec2" && e3[0].name !== "vec2f" && e3[0].name !== "vec2h")) {
-          throw "Invalid arguments for mat3x2";
-        }
-        const v1a = v1 as number[];
-        const v2a = v2 as number[];
-        const v3a = v3 as number[];
-        const v = [v1a[0], v1a[1], v2a[0], v2a[1], v3a[0], v3a[1]];
-        if (type) {
-          type[0] = t;
-          if (t instanceof TemplateType && t.format === null) {
-            if (e1[0].name === "vec2f") {
-              t.format = Type.f32;
-            } else if (e1[0].name === "vec2h") {
-              t.format = Type.f16;
-            } else if (e1[0] instanceof TemplateType) {
-              t.format = e1[0].format;
-            }
-          }
-        }
-        return v;
-      } else if (this.args.length === 6) {
-        // mat3x2(e1, e2, e3, e4, e5, e6)
-        const e1 = [Type.f32];
-        const e2 = [Type.f32];
-        const e3 = [Type.f32];
-        const e4 = [Type.f32];
-        const e5 = [Type.f32];
-        const e6 = [Type.f32];
-        const v = [this.args[0].constEvaluate(context, e1) as number,
-                  this.args[1].constEvaluate(context, e2) as number,
-                  this.args[2].constEvaluate(context, e3) as number,
-                  this.args[3].constEvaluate(context, e4) as number,
-                  this.args[4].constEvaluate(context, e5) as number,
-                  this.args[5].constEvaluate(context, e6) as number];
-        if (type) {
-          type[0] = t;
-          if (t instanceof TemplateType && t.format === null) {
-            t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0]]);
-          }
-        }
-
-        return v;
-      } else {
-        throw "Invalid arguments for mat3x2";
-      }
-    }
-
-    if (t.name === "mat3x3") {
-      if (this.args.length === 1) {
-        // mat3x3(other: mat3x3)
-        const e1 = [Type.f32];
-        const v = this.args[0].constEvaluate(context, e1);
-        if (e1[0].name !== "mat3x3" && e1[0].name !== "mat3x3f" && e1[0].name != "mat3x3h") {
-          throw "Invalid argument for mat3x3";
-        }
-        if (type) {
-          type[0] = e1[0];
-        }
-        return v;
-      } else if (this.args.length === 3) {
-        // mat3x3(v1: vec3, v2: vec3, v3: vec3)
-        const e1 = [Type.f32];
-        const e2 = [Type.f32];
-        const e3 = [Type.f32];
-        const v1 = this.args[0].constEvaluate(context, e1);
-        const v2 = this.args[1].constEvaluate(context, e2);
-        const v3 = this.args[1].constEvaluate(context, e3);
-        if ((e1[0].name !== "vec3" && e1[0].name !== "vec3f" && e1[0].name !== "vec3h") ||
-            (e2[0].name !== "vec3" && e2[0].name !== "vec3f" && e2[0].name !== "vec3h") ||
-            (e3[0].name !== "vec3" && e3[0].name !== "vec3f" && e3[0].name !== "vec3h")) {
-          throw "Invalid arguments for mat3x3";
-        }
-        const v1a = v1 as number[];
-        const v2a = v2 as number[];
-        const v3a = v3 as number[];
-        const v = [v1a[0], v1a[1], v1a[2], v2a[0], v2a[1], v2a[2], v3a[0], v3a[1], v3a[2]];
-        if (type) {
-          type[0] = t;
-          if (t instanceof TemplateType && t.format === null) {
-            if (e1[0].name === "vec3f") {
-              t.format = Type.f32;
-            } else if (e1[0].name === "vec3h") {
-              t.format = Type.f16;
-            } else if (e1[0] instanceof TemplateType) {
-              t.format = e1[0].format;
-            }
-          }
-        }
-        return v;
-      } else if (this.args.length === 9) {
-        // mat2x4(e1, e2, e3, e4, e5, e6, e7, e8, e9)
-        const e1 = [Type.f32];
-        const e2 = [Type.f32];
-        const e3 = [Type.f32];
-        const e4 = [Type.f32];
-        const e5 = [Type.f32];
-        const e6 = [Type.f32];
-        const e7 = [Type.f32];
-        const e8 = [Type.f32];
-        const e9 = [Type.f32];
-        const v = [this.args[0].constEvaluate(context, e1) as number,
-                  this.args[1].constEvaluate(context, e2) as number,
-                  this.args[2].constEvaluate(context, e3) as number,
-                  this.args[3].constEvaluate(context, e4) as number,
-                  this.args[4].constEvaluate(context, e5) as number,
-                  this.args[5].constEvaluate(context, e6) as number,
-                  this.args[6].constEvaluate(context, e7) as number,
-                  this.args[7].constEvaluate(context, e8) as number,
-                  this.args[8].constEvaluate(context, e9) as number];
-        if (type) {
-          type[0] = t;
-          if (t instanceof TemplateType && t.format === null) {
-            t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0], e9[0]]);
-          }
-        }
-
-        return v;
-      } else {
-        throw "Invalid arguments for mat3x3";
-      }
-    }
-
-    if (t.name === "mat3x4") {
-      if (this.args.length === 1) {
-        // mat3x4(other: mat3x4)
-        const e1 = [Type.f32];
-        const v = this.args[0].constEvaluate(context, e1);
-        if (e1[0].name !== "mat3x4" && e1[0].name !== "mat3x4f" && e1[0].name != "mat3x4h") {
-          throw "Invalid argument for mat3x4";
-        }
-        if (type) {
-          type[0] = e1[0];
-        }
-        return v;
-      } else if (this.args.length === 3) {
-        // mat3x4(v1: vec4, v2: vec4, v3: vec4)
-        const e1 = [Type.f32];
-        const e2 = [Type.f32];
-        const e3 = [Type.f32];
-        const v1 = this.args[0].constEvaluate(context, e1);
-        const v2 = this.args[1].constEvaluate(context, e2);
-        const v3 = this.args[1].constEvaluate(context, e3);
-        if ((e1[0].name !== "vec4" && e1[0].name !== "vec4f" && e1[0].name !== "vec4h") ||
-            (e2[0].name !== "vec4" && e2[0].name !== "vec4f" && e2[0].name !== "vec4h") ||
-            (e3[0].name !== "vec4" && e3[0].name !== "vec4f" && e3[0].name !== "vec4h")) {
-          throw "Invalid arguments for mat3x4";
-        }
-        const v1a = v1 as number[];
-        const v2a = v2 as number[];
-        const v3a = v3 as number[];
-        const v = [v1a[0], v1a[1], v1a[2], v1a[3], v2a[0], v2a[1], v2a[2], v2a[3], v3a[0], v3a[1], v3a[2], v3a[3]];
-        if (type) {
-          type[0] = t;
-          if (t instanceof TemplateType && t.format === null) {
-            if (e1[0].name === "vec4f") {
-              t.format = Type.f32;
-            } else if (e1[0].name === "vec4h") {
-              t.format = Type.f16;
-            } else if (e1[0] instanceof TemplateType) {
-              t.format = e1[0].format;
-            }
-          }
-        }
-        return v;
-      } else if (this.args.length === 9) {
-        // mat3x4(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12)
-        const e1 = [Type.f32];
-        const e2 = [Type.f32];
-        const e3 = [Type.f32];
-        const e4 = [Type.f32];
-        const e5 = [Type.f32];
-        const e6 = [Type.f32];
-        const e7 = [Type.f32];
-        const e8 = [Type.f32];
-        const e9 = [Type.f32];
-        const e10 = [Type.f32];
-        const e11 = [Type.f32];
-        const e12 = [Type.f32];
-        const v = [this.args[0].constEvaluate(context, e1) as number,
-                  this.args[1].constEvaluate(context, e2) as number,
-                  this.args[2].constEvaluate(context, e3) as number,
-                  this.args[3].constEvaluate(context, e4) as number,
-                  this.args[4].constEvaluate(context, e5) as number,
-                  this.args[5].constEvaluate(context, e6) as number,
-                  this.args[6].constEvaluate(context, e7) as number,
-                  this.args[7].constEvaluate(context, e8) as number,
-                  this.args[8].constEvaluate(context, e9) as number,
-                  this.args[9].constEvaluate(context, e10) as number,
-                  this.args[10].constEvaluate(context, e11) as number,
-                  this.args[11].constEvaluate(context, e12) as number];
-        if (type) {
-          type[0] = t;
-          if (t instanceof TemplateType && t.format === null) {
-            t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0],
-                  e8[0], e9[0], e10[0], e11[0]]);
-          }
-        }
-
-        return v;
-      } else {
-        throw "Invalid arguments for mat3x4";
-      }
-    }
-
-    if (t.name === "mat4x2") {
-      if (this.args.length === 1) {
-        // mat4x2(other: mat4x2)
-        const e1 = [Type.f32];
-        const v = this.args[0].constEvaluate(context, e1);
-        if (e1[0].name !== "mat4x2" && e1[0].name !== "mat4x2f" && e1[0].name != "mat4x2h") {
-          throw "Invalid argument for mat4x2";
-        }
-        if (type) {
-          type[0] = e1[0];
-        }
-        return v;
-      } else if (this.args.length === 4) {
-        // mat4x2(v1: vec2, v2: vec2, v3: vec2, v4: vec2)
-        const e1 = [Type.f32];
-        const e2 = [Type.f32];
-        const e3 = [Type.f32];
-        const e4 = [Type.f32];
-        const v1 = this.args[0].constEvaluate(context, e1);
-        const v2 = this.args[1].constEvaluate(context, e2);
-        const v3 = this.args[1].constEvaluate(context, e3);
-        const v4 = this.args[1].constEvaluate(context, e4);
-        if ((e1[0].name !== "vec2" && e1[0].name !== "vec2f" && e1[0].name !== "vec2h") ||
-            (e2[0].name !== "vec2" && e2[0].name !== "vec2f" && e2[0].name !== "vec2h") ||
-            (e3[0].name !== "vec2" && e3[0].name !== "vec2f" && e3[0].name !== "vec2h") ||
-            (e4[0].name !== "vec2" && e4[0].name !== "vec2f" && e4[0].name !== "vec2h")) {
-          throw "Invalid arguments for mat4x2";
-        }
-        const v1a = v1 as number[];
-        const v2a = v2 as number[];
-        const v3a = v3 as number[];
-        const v4a = v4 as number[];
-        const v = [v1a[0], v1a[1], v2a[0], v2a[1], v3a[0], v3a[1], v4a[0], v4a[1]];
-        if (type) {
-          type[0] = t;
-          if (t instanceof TemplateType && t.format === null) {
-            if (e1[0].name === "vec2f") {
-              t.format = Type.f32;
-            } else if (e1[0].name === "vec2h") {
-              t.format = Type.f16;
-            } else if (e1[0] instanceof TemplateType) {
-              t.format = e1[0].format;
-            }
-          }
-        }
-        return v;
-      } else if (this.args.length === 8) {
-        // mat4x2(e1, e2, e3, e4, e5, e6, e7, e8)
-        const e1 = [Type.f32];
-        const e2 = [Type.f32];
-        const e3 = [Type.f32];
-        const e4 = [Type.f32];
-        const e5 = [Type.f32];
-        const e6 = [Type.f32];
-        const e7 = [Type.f32];
-        const e8 = [Type.f32];
-        const v = [this.args[0].constEvaluate(context, e1) as number,
-                  this.args[1].constEvaluate(context, e2) as number,
-                  this.args[2].constEvaluate(context, e3) as number,
-                  this.args[3].constEvaluate(context, e4) as number,
-                  this.args[4].constEvaluate(context, e5) as number,
-                  this.args[5].constEvaluate(context, e6) as number,
-                  this.args[6].constEvaluate(context, e7) as number,
-                  this.args[7].constEvaluate(context, e8) as number];
-        if (type) {
-          type[0] = t;
-          if (t instanceof TemplateType && t.format === null) {
-            t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0]]);
-          }
-        }
-
-        return v;
-      } else {
-        throw "Invalid arguments for mat4x2";
-      }
-    }
-
-    if (t.name === "mat4x3") {
-      if (this.args.length === 1) {
-        // mat4x3(other: mat4x3)
-        const e1 = [Type.f32];
-        const v = this.args[0].constEvaluate(context, e1);
-        if (e1[0].name !== "mat4x3" && e1[0].name !== "mat4x3f" && e1[0].name != "mat4x3h") {
-          throw "Invalid argument for mat4x3";
-        }
-        if (type) {
-          type[0] = e1[0];
-        }
-        return v;
-      } else if (this.args.length === 4) {
-        // mat4x3(v1: vec3, v2: vec3, v3: vec3, v4: vec3)
-        const e1 = [Type.f32];
-        const e2 = [Type.f32];
-        const e3 = [Type.f32];
-        const e4 = [Type.f32];
-        const v1 = this.args[0].constEvaluate(context, e1);
-        const v2 = this.args[1].constEvaluate(context, e2);
-        const v3 = this.args[1].constEvaluate(context, e3);
-        const v4 = this.args[1].constEvaluate(context, e4);
-        if ((e1[0].name !== "vec3" && e1[0].name !== "vec3f" && e1[0].name !== "vec3h") ||
-            (e2[0].name !== "vec3" && e2[0].name !== "vec3f" && e2[0].name !== "vec3h") ||
-            (e3[0].name !== "vec3" && e3[0].name !== "vec3f" && e3[0].name !== "vec3h") ||
-            (e4[0].name !== "vec3" && e4[0].name !== "vec3f" && e4[0].name !== "vec3h")) {
-          throw "Invalid arguments for mat4x3";
-        }
-        const v1a = v1 as number[];
-        const v2a = v2 as number[];
-        const v3a = v3 as number[];
-        const v4a = v4 as number[];
-        const v = [v1a[0], v1a[1], v1a[2], v2a[0], v2a[1], v2a[2], v3a[0], v3a[1], v3a[2], v4a[0], v4a[1], v4a[2]];
-        if (type) {
-          type[0] = t;
-          if (t instanceof TemplateType && t.format === null) {
-            if (e1[0].name === "vec3f") {
-              t.format = Type.f32;
-            } else if (e1[0].name === "vec3h") {
-              t.format = Type.f16;
-            } else if (e1[0] instanceof TemplateType) {
-              t.format = e1[0].format;
-            }
-          }
-        }
-        return v;
-      } else if (this.args.length === 12) {
-        // mat4x3(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12)
-        const e1 = [Type.f32];
-        const e2 = [Type.f32];
-        const e3 = [Type.f32];
-        const e4 = [Type.f32];
-        const e5 = [Type.f32];
-        const e6 = [Type.f32];
-        const e7 = [Type.f32];
-        const e8 = [Type.f32];
-        const e9 = [Type.f32];
-        const e10 = [Type.f32];
-        const e11 = [Type.f32];
-        const e12 = [Type.f32];
-        const v = [this.args[0].constEvaluate(context, e1) as number,
-                  this.args[1].constEvaluate(context, e2) as number,
-                  this.args[2].constEvaluate(context, e3) as number,
-                  this.args[3].constEvaluate(context, e4) as number,
-                  this.args[4].constEvaluate(context, e5) as number,
-                  this.args[5].constEvaluate(context, e6) as number,
-                  this.args[6].constEvaluate(context, e7) as number,
-                  this.args[7].constEvaluate(context, e8) as number,
-                  this.args[8].constEvaluate(context, e9) as number,
-                  this.args[9].constEvaluate(context, e10) as number,
-                  this.args[10].constEvaluate(context, e11) as number,
-                  this.args[11].constEvaluate(context, e12) as number];
-        if (type) {
-          type[0] = t;
-          if (t instanceof TemplateType && t.format === null) {
-            t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0],
-                  e9[0], e10[0], e11[0], e12[0]]);
-          }
-        }
-
-        return v;
-      } else {
-        throw "Invalid arguments for mat4x3";
-      }
-    }
-
-    if (t.name === "mat4x4") {
-      if (this.args.length === 1) {
-        // mat4x4(other: mat4x4)
-        const e1 = [Type.f32];
-        const v = this.args[0].constEvaluate(context, e1);
-        if (e1[0].name !== "mat4x4" && e1[0].name !== "mat4x4f" && e1[0].name != "mat4x4h") {
-          throw "Invalid argument for mat4x4";
-        }
-        if (type) {
-          type[0] = e1[0];
-        }
-        return v;
-      } else if (this.args.length === 4) {
-        // mat4x4(v1: vec4, v2: vec4, v3: vec4, v4: vec4)
-        // mat4x3(v1: vec3, v2: vec3, v3: vec3, v4: vec3)
-        const e1 = [Type.f32];
-        const e2 = [Type.f32];
-        const e3 = [Type.f32];
-        const e4 = [Type.f32];
-        const v1 = this.args[0].constEvaluate(context, e1);
-        const v2 = this.args[1].constEvaluate(context, e2);
-        const v3 = this.args[1].constEvaluate(context, e3);
-        const v4 = this.args[1].constEvaluate(context, e4);
-        if ((e1[0].name !== "vec4" && e1[0].name !== "vec4f" && e1[0].name !== "vec4h") ||
-            (e2[0].name !== "vec4" && e2[0].name !== "vec4f" && e2[0].name !== "vec4h") ||
-            (e3[0].name !== "vec4" && e3[0].name !== "vec4f" && e3[0].name !== "vec4h") ||
-            (e4[0].name !== "vec4" && e4[0].name !== "vec4f" && e4[0].name !== "vec4h")) {
-          throw "Invalid arguments for mat4x4";
-        }
-        const v1a = v1 as number[];
-        const v2a = v2 as number[];
-        const v3a = v3 as number[];
-        const v4a = v4 as number[];
-        const v = [v1a[0], v1a[1], v1a[2], v1a[3],
-            v2a[0], v2a[1], v2a[2], v2a[3],
-            v3a[0], v3a[1], v3a[2], v3a[3],
-            v4a[0], v4a[1], v4a[2], v4a[3]];
-        if (type) {
-          type[0] = t;
-          if (t instanceof TemplateType && t.format === null) {
-            if (e1[0].name === "vec4f") {
-              t.format = Type.f32;
-            } else if (e1[0].name === "vec4h") {
-              t.format = Type.f16;
-            } else if (e1[0] instanceof TemplateType) {
-              t.format = e1[0].format;
-            }
-          }
-        }
-        return v;
-      } else if (this.args.length === 16) {
-        // mat4x4(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15, e16)
-        const e1 = [Type.f32];
-        const e2 = [Type.f32];
-        const e3 = [Type.f32];
-        const e4 = [Type.f32];
-        const e5 = [Type.f32];
-        const e6 = [Type.f32];
-        const e7 = [Type.f32];
-        const e8 = [Type.f32];
-        const e9 = [Type.f32];
-        const e10 = [Type.f32];
-        const e11 = [Type.f32];
-        const e12 = [Type.f32];
-        const e13 = [Type.f32];
-        const e14 = [Type.f32];
-        const e15 = [Type.f32];
-        const e16 = [Type.f32];
-        const v = [this.args[0].constEvaluate(context, e1) as number,
-                  this.args[1].constEvaluate(context, e2) as number,
-                  this.args[2].constEvaluate(context, e3) as number,
-                  this.args[3].constEvaluate(context, e4) as number,
-                  this.args[4].constEvaluate(context, e5) as number,
-                  this.args[5].constEvaluate(context, e6) as number,
-                  this.args[6].constEvaluate(context, e7) as number,
-                  this.args[7].constEvaluate(context, e8) as number,
-                  this.args[8].constEvaluate(context, e9) as number,
-                  this.args[9].constEvaluate(context, e10) as number,
-                  this.args[10].constEvaluate(context, e11) as number,
-                  this.args[11].constEvaluate(context, e12) as number,
-                  this.args[12].constEvaluate(context, e13) as number,
-                  this.args[13].constEvaluate(context, e14) as number,
-                  this.args[14].constEvaluate(context, e15) as number,
-                  this.args[15].constEvaluate(context, e16) as number];
-        if (type) {
-          type[0] = t;
-          if (t instanceof TemplateType && t.format === null) {
-            t.format = Type.maxFormatType([e1[0], e2[0], e3[0], e4[0], e5[0], e6[0], e7[0], e8[0],
-              e9[0], e10[0], e11[0], e12[0], e13[0], e14[0], e15[0]]);
-          }
-        }
-
-        return v;
-      } else {
-        throw "Invalid arguments for mat4x4";
-      }
-    }
-
-    if (t.name === "array") {
-      const v: number[] = [];
-      const ta = t as ArrayType;
-      for (const arg of this.args) {
-        const te = [Type.f32];
-        const e = arg.constEvaluate(context, te) as number;
-        v.push(e);
-
-        if (ta.format === null) {
-          ta.format = te[0];
-        } else {
-          ta.format = Type.maxFormatType([ta.format, te[0]]);
-        }
-      }
-
-      if (type) {
-        type[0] = ta;
-      }
-
-      return v;
-    }
-
-    throw new Error(`Cannot evaluate node ${this.constructor.name}`);
+  constEvaluate(context: WgslExec, type?: Type[]): Data | null {
+    return context.evalExpression(this, context.context);
   }
 }
 
@@ -1988,344 +1205,8 @@ export class CallExpr extends Expression {
     return CallExpr.builtinFunctionNames.has(this.name);
   }
 
-  constEvaluate(context: ParseContext, type?: Type[]): number | number[] {
-    switch (this.name) {
-      case "abs": {
-        const value = this.args[0].constEvaluate(context, type);
-        if (Array.isArray(value)) {
-          return value.map((v) => Math.abs(v));
-        }
-        return Math.abs(value as number);
-      }
-      case "acos": {
-        const value = this.args[0].constEvaluate(context, type);
-        if (Array.isArray(value)) {
-          return value.map((v) => Math.acos(v));
-        }
-        return Math.acos(value as number);
-      }
-      case "acosh": {
-        const value = this.args[0].constEvaluate(context, type);
-        if (Array.isArray(value)) {
-          return value.map((v) => Math.acosh(v));
-        }
-        return Math.acosh(value as number);
-      }
-      case "asin": {
-        const value = this.args[0].constEvaluate(context, type);
-        if (Array.isArray(value)) {
-          return value.map((v) => Math.asin(v));
-        }
-        return Math.asin(value as number);
-      }
-      case "asinh": {
-        const value = this.args[0].constEvaluate(context, type);
-        if (Array.isArray(value)) {
-          return value.map((v) => Math.asinh(v));
-        }
-        return Math.asinh(value as number);
-      }
-      case "atan": {
-        const value = this.args[0].constEvaluate(context, type);
-        if (Array.isArray(value)) {
-          return value.map((v) => Math.atan(v));
-        }
-        return Math.atan(value as number);
-      }
-      case "atan2":
-        const value = this.args[0].constEvaluate(context, type);
-        const value2 = this.args[1].constEvaluate(context, type);
-        if (Array.isArray(value) && Array.isArray(value2)) {
-          return value.map((v, i) => Math.atan2(v, value2[i]));
-        }
-        return Math.atan2(value as number, value2 as number);
-      case "atanh": {
-        const value = this.args[0].constEvaluate(context, type);
-        if (Array.isArray(value)) {
-          return value.map((v) => Math.atanh(v));
-        }
-        return Math.atanh(value as number);
-      }
-      case "ceil": {
-        const value = this.args[0].constEvaluate(context, type);
-        if (Array.isArray(value)) {
-          return value.map((v) => Math.ceil(v));
-        }
-        return Math.ceil(value as number);
-      }
-      case "clamp": {
-        const value = this.args[0].constEvaluate(context, type);
-        const a = this.args[1].constEvaluate(context, type) as number;
-        const b = this.args[2].constEvaluate(context, type) as number;
-        if (Array.isArray(value)) {
-          return value.map((v) => Math.min(Math.max(v, a), b));
-        }
-        return Math.min(Math.max(value as number, a), b);
-      }
-      case "cos": {
-        const value = this.args[0].constEvaluate(context, type);
-        if (Array.isArray(value)) {
-          return value.map((v) => Math.cos(v));
-        }
-        return Math.cos(value as number);
-      }
-      case "cross": {
-        const x = this.args[0].constEvaluate(context, type);
-        const y = this.args[1].constEvaluate(context, type);
-        if (Array.isArray(x) && Array.isArray(y) && x.length === y.length && x.length === 3) {
-          const result = [
-            x[1] * y[2] - x[2] * y[1],
-            x[2] * y[0] - x[0] * y[2],
-            x[0] * y[1] - x[1] * y[0]
-          ];
-        }
-        throw new Error("Cross product is only supported for vec3");
-      }
-      case "degrees": {
-        const value = this.args[0].constEvaluate(context, type);
-        if (Array.isArray(value)) {
-          return value.map((v) => v * 180 / Math.PI);
-        }
-        return (value as number) * 180 / Math.PI;
-      }
-      case "determinant":
-        throw new Error("TODO Determinant is not implemented");
-      case "distance": {
-        const a = this.args[0].constEvaluate(context, type);
-        const b = this.args[1].constEvaluate(context, type);
-        if (Array.isArray(a) && Array.isArray(b)) {
-          let d2 = 0;
-          for (let i = 0; i < a.length; i++) {
-            d2 += (a[i] - b[i]) * (a[i] - b[i]);
-          }
-          return Math.sqrt(d2);
-        }
-        const an = a as number;
-        const bn = b as number;
-        return Math.sqrt((bn - an) * (bn - an));
-      }
-      case "dot": {
-        const a = this.args[0].constEvaluate(context, type);
-        const b = this.args[1].constEvaluate(context, type);
-        if (Array.isArray(a) && Array.isArray(b) && a.length === b.length) {
-          let d = 0;
-          for (let i = 0; i < a.length; i++) {
-            d += a[i] * b[i];
-          }
-          return d;
-        }
-        return (a as number) * (b as number);
-      }
-      case "exp": {
-        const value = this.args[0].constEvaluate(context, type);
-        if (Array.isArray(value)) {
-          return value.map((v) => Math.exp(v));
-        }
-        return Math.exp(value as number);
-      }
-      case "exp2": {
-        const value = this.args[0].constEvaluate(context, type);
-        if (Array.isArray(value)) {
-          return value.map((v) => Math.pow(2, v));
-        }
-        return Math.pow(2, value as number);
-      }
-      //case "extractBits":
-      //TODO: implement
-      //case "firstLeadingBit":
-      //TODO: implement
-      case "floor": {
-        const value = this.args[0].constEvaluate(context, type);
-        if (Array.isArray(value)) {
-          return value.map((v) => Math.floor(v));
-        }
-        return Math.floor(value as number);
-      }
-      case "fma": {
-        const a = this.args[0].constEvaluate(context, type);
-        const b = this.args[1].constEvaluate(context, type);
-        const c = this.args[2].constEvaluate(context, type);
-        if (Array.isArray(a) && Array.isArray(b) && Array.isArray(c)) {
-          return a.map((v, i) => v * b[i] + c[i]);
-        }
-        return (a as number) * (b as number) + (c as number);
-      }
-      case "fract": {
-        const value = this.args[0].constEvaluate(context, type);
-        if (Array.isArray(value)) {
-          return value.map((v) => v - Math.floor(v));
-        }
-        return (value as number) - Math.floor(value as number);
-      }
-      //case "frexp":
-      //TODO: implement
-      case "inverseSqrt": {
-        const value = this.args[0].constEvaluate(context, type);
-        if (Array.isArray(value)) {
-          return value.map((v) => 1 / Math.sqrt(v));
-        }
-        return 1 / Math.sqrt(value as number);
-      }
-      case "length": {
-        const value = this.args[0].constEvaluate(context, type);
-        if (Array.isArray(value)) {
-          let d2 = 0;
-          for (let i = 0; i < value.length; i++) {
-            d2 += value[i] * value[i];
-          }
-          return Math.sqrt(d2);
-        }
-        return Math.abs(value as number);
-      }
-      case "log": {
-        const value = this.args[0].constEvaluate(context, type);
-        if (Array.isArray(value)) {
-          return value.map((v) => Math.log(v));
-        }
-        return Math.log(value as number);
-      }
-      case "log2": {
-        const value = this.args[0].constEvaluate(context, type);
-        if (Array.isArray(value)) {
-          return value.map((v) => Math.log2(v));
-        }
-        return Math.log2(value as number);
-      }
-      case "max": {
-        const a = this.args[0].constEvaluate(context, type);
-        const b = this.args[0].constEvaluate(context, type);
-        if (Array.isArray(value) && Array.isArray(b)) {
-          return value.map((v, i) => Math.max(v, b[i]));
-        }
-        return Math.max(a as number, b as number);
-      }
-      case "min": {
-        const a = this.args[0].constEvaluate(context, type);
-        const b = this.args[0].constEvaluate(context, type);
-        if (Array.isArray(value) && Array.isArray(b)) {
-          return value.map((v, i) => Math.min(v, b[i]));
-        }
-        return Math.min(a as number, b as number);
-      }
-      case "mix": {
-        const a = this.args[0].constEvaluate(context, type);
-        const b = this.args[1].constEvaluate(context, type);
-        const c = this.args[2].constEvaluate(context, type);
-        if (Array.isArray(a) && Array.isArray(b) && Array.isArray(c)) {
-          return a.map((v, i) => v * (1 - c[i]) + b[i] * c[i]);
-        }
-        return (a as number) * (1 - (c as number)) + (b as number) * (c as number);
-      }
-      case "modf":
-        throw new Error("TODO Modf is not implemented");
-      case "pow": {
-        const a = this.args[0].constEvaluate(context, type);
-        const b = this.args[1].constEvaluate(context, type);
-        if (Array.isArray(a) && Array.isArray(b)) {
-          return a.map((v, i) => Math.pow(v, b[i]));
-        }
-        return Math.pow(a as number, b as number);
-      }
-      case "radians": {
-        const value = this.args[0].constEvaluate(context, type);
-        if (Array.isArray(value)) {
-          return value.map((v) => (v * Math.PI) / 180);
-        }
-        return ((value as number) * Math.PI) / 180;
-      }
-      case "round": {
-        const value = this.args[0].constEvaluate(context, type);
-        if (Array.isArray(value)) {
-          return value.map((v) => Math.round(v));
-        }
-        return Math.round(value as number);
-      }
-      case "sign": {
-        const value = this.args[0].constEvaluate(context, type);
-        if (Array.isArray(value)) {
-          return value.map((v) => Math.sign(v));
-        }
-        return Math.sign(value as number);
-      }
-      case "sin": {
-        const value = this.args[0].constEvaluate(context, type);
-        if (Array.isArray(value)) {
-          return value.map((v) => Math.sin(v));
-        }
-        return Math.sin(value as number);
-      }
-      case "sinh": {
-        const value = this.args[0].constEvaluate(context, type);
-        if (Array.isArray(value)) {
-          return value.map((v) => Math.sinh(v));
-        }
-        return Math.sinh(value as number);
-      }
-      case "saturate": {
-        const value = this.args[0].constEvaluate(context, type);
-        if (Array.isArray(value)) {
-          return value.map((v) => Math.min(Math.max(v, 0), 1));
-        }
-        return Math.min(Math.max(value as number, 0), 1);
-      }
-      case "smoothstep": {
-        const edge0 = this.args[0].constEvaluate(context, type);
-        const edge1 = this.args[1].constEvaluate(context, type);
-        const x = this.args[2].constEvaluate(context, type);
-        if (Array.isArray(edge0) && Array.isArray(edge1) && Array.isArray(x)) {
-          return x.map((v, i) => {
-            const t = Math.min(Math.max((v - edge0[i]) / (edge1[i] - edge0[i]), 0), 1);
-            return t * t * (3 - 2 * t);
-          });
-        }
-        const _x = x as number;
-        const _edge0 = edge0 as number;
-        const _edge1 = edge1 as number;
-        const t = Math.min(Math.max((_x - _edge0) / (_edge1 - _edge0), 0), 1);
-        return t * t * (3 - 2 * t);
-      }
-      case "sqrt": {
-        const value = this.args[0].constEvaluate(context, type);
-        if (Array.isArray(value)) {
-          return value.map((v) => Math.sqrt(v));
-        }
-        return Math.sqrt(value as number);
-      }
-      case "step": {
-        if (type !== undefined) {
-          type[0] = Type.bool;
-        }
-        const edge = this.args[0].constEvaluate(context, type);
-        const x = this.args[1].constEvaluate(context, type);
-        if (Array.isArray(edge) && Array.isArray(x)) {
-          return edge.map((v, i) => x[i] < v ? 0 : 1);
-        }
-        return x < edge ? 0 : 1;
-      }
-      case "tan": {
-        const value = this.args[0].constEvaluate(context, type);
-        if (Array.isArray(value)) {
-          return value.map((v) => Math.tan(v));
-        }
-        return Math.tan(value as number);
-      }
-      case "tanh": {
-        const value = this.args[0].constEvaluate(context, type);
-        if (Array.isArray(value)) {
-          return value.map((v) => Math.tanh(v));
-        }
-        return Math.tanh(value as number);
-      }
-      case "trunc": {
-        const value = this.args[0].constEvaluate(context, type);
-        if (Array.isArray(value)) {
-          return value.map((v) => Math.trunc(v));
-        }
-        return Math.trunc(value as number);
-      }
-      default:
-        throw new Error("Non const function: " + this.name);
-    }
+  constEvaluate(context: WgslExec, type?: Type[]): Data {
+    return context.evalExpression(this, context.context);
   }
 
   search(callback: (node: Node) => void) {
@@ -2360,12 +1241,8 @@ export class VariableExpr extends Expression {
     }
   }
 
-  constEvaluate(context: ParseContext, type?: Type[]): number | number[] {
-    const constant = context.constants.get(this.name);
-    if (!constant) {
-      throw new Error("Cannot evaluate node");
-    }
-    return constant.constEvaluate(context, type);
+  constEvaluate(context: WgslExec, type?: Type[]): Data {
+    return context.evalExpression(this, context.context);
   }
 }
 
@@ -2388,23 +1265,11 @@ export class ConstExpr extends Expression {
     return "constExpr";
   }
 
-  constEvaluate(context: ParseContext, type?: Type[]): number | number[] {
-    if (this.initializer instanceof CreateExpr) {
-      // This is a struct constant
-      const property = this.postfix?.constEvaluateString(context);
-      const t = this.initializer.type?.name;
-      const struct = context.structs.get(t);
-      const memberIndex = struct?.getMemberIndex(property);
-      if (memberIndex !== undefined && memberIndex != -1) {
-        const value = this.initializer.args[memberIndex].constEvaluate(context, type);
-        return value;
-      } else {
-        return this.initializer.constEvaluate(context, type);
-      }
-      console.log(memberIndex);
+  constEvaluate(context: WgslExec, type?: Type[]): Data | null {
+    if (this.initializer) {
+      context.evalExpression(this.initializer, context.context);
     }
-
-    return this.initializer.constEvaluate(context, type);
+    return null;
   }
 
   search(callback: (node: Node) => void): void {
@@ -2418,10 +1283,10 @@ export class ConstExpr extends Expression {
  * @category AST
  */
 export class LiteralExpr extends Expression {
-  value: number | number[];
+  value: Data
   type: Type;
 
-  constructor(value: number | number[], type: Type) {
+  constructor(value: Data, type: Type) {
     super();
     this.value = value;
     this.type = type;
@@ -2431,16 +1296,36 @@ export class LiteralExpr extends Expression {
     return "literalExpr";
   }
 
-  constEvaluate(context: ParseContext, type?: Type[]): number | number[] {
+  constEvaluate(context: WgslExec, type?: Type[]): Data | null {
     if (type !== undefined) {
       type[0] = this.type;
     }
     return this.value;
   }
 
-  get scalarValue(): number { return this.value as number; }
+  get isScalar(): boolean {
+    return this.value instanceof ScalarData;
+  }
 
-  get vectorValue(): number[] { return this.value as number[]; }
+  get isVector(): boolean {
+    return this.value instanceof VectorData;
+  }
+
+  get scalarValue(): number {
+    if (this.value instanceof ScalarData) {
+      return this.value.value;
+    }
+    console.error("Value is not scalar.");
+    return 0.0;
+  }
+
+  get vectorValue(): number[] {
+    if (this.value instanceof VectorData) {
+      return this.value.value;
+    }
+    console.error("Value is not a vector.");
+    return [];
+  }
 }
 
 /**
@@ -2486,11 +1371,8 @@ export class TypecastExpr extends Expression {
     return "typecastExpr";
   }
 
-  constEvaluate(context: ParseContext, type?: Type[]): number | number[] {
-    if (type !== undefined) {
-      type[0] = this.type;
-    }
-    return this.args[0].constEvaluate(context);
+  constEvaluate(context: WgslExec, type?: Type[]): Data | null {
+    return context.evalExpression(this, context.context);
   }
 
   search(callback: (node: Node) => void): void {
@@ -2515,7 +1397,7 @@ export class GroupingExpr extends Expression {
     return "groupExpr";
   }
 
-  constEvaluate(context: ParseContext, type?: Type[]): number | number[] {
+  constEvaluate(context: WgslExec, type?: Type[]): Data | null {
     return this.contents[0].constEvaluate(context, type);
   }
 
@@ -2572,22 +1454,8 @@ export class UnaryOperator extends Operator {
     return "unaryOp";
   }
 
-  constEvaluate(context: ParseContext, type?: Type[]): number | number[] {
-    switch (this.operator) {
-      case "+":
-        return this.right.constEvaluate(context, type);
-      case "-":
-        return -this.right.constEvaluate(context, type);
-      case "!":
-        if (type !== undefined) {
-          type[0] = Type.bool;
-        }
-        return this.right.constEvaluate(context) ? 0 : 1;
-      case "~":
-        return ~this.right.constEvaluate(context, type);
-      default:
-        throw new Error("Unknown unary operator: " + this.operator);
-    }
+  constEvaluate(context: WgslExec, type?: Type[]): Data | null {
+    return context.evalExpression(this, context.context);
   }
 
   search(callback: (node: Node) => void): void {
@@ -2630,149 +1498,8 @@ export class BinaryOperator extends Operator {
     return Type.i32;
   }
 
-  constEvaluate(context: ParseContext, type?: Type[]): number | number[] {
-    const t1 = [Type.i32];
-    const t2 = [Type.i32];
-    switch (this.operator) {
-      case "+": {
-        const v1 = this.left.constEvaluate(context, t1);
-        const v2 = this.right.constEvaluate(context, t2);
-        if (Array.isArray(v1) && Array.isArray(v2)) {
-          return v1.map((v, i) => v + v2[i]);
-        }
-
-        const value = (v1 as number) + (v2 as number);
-        if (type !== undefined) {
-          type[0] = this._getPromotedType(t1[0], t2[0]);
-          if (type[0] === Type.i32 || type[0] === Type.u32) {
-            return Math.floor(value);
-          }
-        }
-        return value;
-      }
-      case "-": {
-        const v1 = this.left.constEvaluate(context, t1);
-        const v2 = this.right.constEvaluate(context, t2);
-        if (Array.isArray(v1) && Array.isArray(v2)) {
-          return v1.map((v, i) => v - v2[i]);
-        }
-
-        const value = (v1 as number) - (v2 as number);
-        if (type !== undefined) {
-          type[0] = this._getPromotedType(t1[0], t2[0]);
-          if (type[0] === Type.i32 || type[0] === Type.u32) {
-            return Math.floor(value);
-          }
-        }
-        return value;
-      }
-      case "*": {
-        const v1 = this.left.constEvaluate(context, t1);
-        const v2 = this.right.constEvaluate(context, t2);
-        if (Array.isArray(v1) && Array.isArray(v2)) {
-          return v1.map((v, i) => v * v2[i]);
-        }
-
-        const value = (v1 as number) * (v2 as number);
-        if (type !== undefined) {
-          type[0] = this._getPromotedType(t1[0], t2[0]);
-          if (type[0] === Type.i32 || type[0] === Type.u32) {
-            return Math.floor(value);
-          }
-        }
-        return value;
-      }
-      case "/": {
-        const v1 = this.left.constEvaluate(context, t1);
-        const v2 = this.right.constEvaluate(context, t2);
-        if (Array.isArray(v1) && Array.isArray(v2)) {
-          return v1.map((v, i) => v / v2[i]);
-        }
-
-        const value = (v1 as number) / (v2 as number);
-        if (type !== undefined) {
-          type[0] = this._getPromotedType(t1[0], t2[0]);
-          if (type[0] === Type.i32 || type[0] === Type.u32) {
-            return Math.floor(value);
-          }
-        }
-        return value;
-      }
-      case "%": {
-        const v1 = this.left.constEvaluate(context, t1);
-        const v2 = this.right.constEvaluate(context, t2);
-        if (Array.isArray(v1) && Array.isArray(v2)) {
-          return v1.map((v, i) => v % v2[i]);
-        }
-
-        const value = (v1 as number) % (v2 as number);
-        if (type !== undefined) {
-          type[0] = this._getPromotedType(t1[0], t2[0]);
-          if (type[0] === Type.i32 || type[0] === Type.u32) {
-            return Math.floor(value);
-          }
-        }
-        return value;
-      }
-      case "<":
-        if (type !== undefined) {
-          type[0] = Type.bool;
-        }
-        return this.left.constEvaluate(context) < this.right.constEvaluate(context)
-          ? 1
-          : 0;
-      case ">":
-        if (type !== undefined) {
-          type[0] = Type.bool;
-        }
-        return this.left.constEvaluate(context) > this.right.constEvaluate(context)
-          ? 1
-          : 0;
-      case "==":
-        if (type !== undefined) {
-          type[0] = Type.bool;
-        }
-        return this.left.constEvaluate(context) == this.right.constEvaluate(context)
-            ? 1
-            : 0;
-      case "!=":
-        if (type !== undefined) {
-          type[0] = Type.bool;
-        }
-        return this.left.constEvaluate(context) != this.right.constEvaluate(context)
-            ? 1
-            : 0;
-      case "<=":
-        if (type !== undefined) {
-          type[0] = Type.bool;
-        }
-        return this.left.constEvaluate(context) <= this.right.constEvaluate(context)
-          ? 1
-          : 0;
-      case ">=":
-        if (type !== undefined) {
-          type[0] = Type.bool;
-        }
-        return this.left.constEvaluate(context) >= this.right.constEvaluate(context)
-          ? 1
-          : 0;
-      case "&&":
-        if (type !== undefined) {
-          type[0] = Type.bool;
-        }
-        return this.left.constEvaluate(context) && this.right.constEvaluate(context)
-          ? 1
-          : 0;
-      case "||":
-        if (type !== undefined) {
-          type[0] = Type.bool;
-        }
-        return this.left.constEvaluate(context) || this.right.constEvaluate(context)
-          ? 1
-          : 0;
-      default:
-        throw new Error(`Unknown operator ${this.operator}`);
-    }
+  constEvaluate(context: WgslExec, type?: Type[]): Data | null {
+    return context.evalExpression(this, context.context);
   }
 
   search(callback: (node: Node) => void): void {

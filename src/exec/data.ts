@@ -185,7 +185,12 @@ export class VectorData extends Data {
             const idx = postfix.index;
             let i = -1;
             if (idx instanceof LiteralExpr) {
-                i = idx.value as number;
+                if (idx.value instanceof ScalarData) {
+                    i = idx.value.value;
+                } else {
+                    console.error(`GetValueData: Invalid array index ${idx.value}`);
+                    return null;
+                }
             } else {
                 const d = exec.evalExpression(idx, context);
                 if (d instanceof ScalarData) {
@@ -276,6 +281,7 @@ export class MatrixData extends Data {
                 format = exec.getTypeInfo("f16");
             } else {
                 console.error(`GetDataValue: Unknown type ${typeName}`);
+                return null;
             }
         }
 
@@ -283,7 +289,12 @@ export class MatrixData extends Data {
             const idx = postfix.index;
             let i = -1;
             if (idx instanceof LiteralExpr) {
-                i = idx.value as number;
+                if (idx.value instanceof ScalarData) {
+                    i = idx.value.value;
+                } else {
+                    console.error(`GetDataValue: Invalid array index ${idx.value}`);
+                    return null;
+                }
             } else {
                 const d = exec.evalExpression(idx, context);
                 if (d instanceof ScalarData) {
@@ -369,7 +380,12 @@ export class TypedData extends Data {
                 if (typeInfo instanceof ArrayInfo) {
                     const idx = postfix.index;
                     if (idx instanceof LiteralExpr) {
-                        offset += (idx.value as number) * typeInfo.stride;
+                        if (idx.value instanceof ScalarData) {
+                            offset += idx.value.value * typeInfo.stride;
+                        } else {
+                            console.error(`SetDataValue: Invalid index type ${idx.value}`);
+                            return;
+                        }
                     } else {
                         const i = exec.evalExpression(idx, context);
                         if (i instanceof ScalarData) {
@@ -867,7 +883,11 @@ export class TypedData extends Data {
                 if (typeInfo instanceof ArrayInfo) {
                     const idx = postfix.index;
                     if (idx instanceof LiteralExpr) {
-                        offset += (idx.value as number) * typeInfo.stride;
+                        if (idx.value instanceof ScalarData) {
+                            offset += idx.value.value * typeInfo.stride;
+                        } else {
+                            console.error(`GetDataValue: Invalid index type`, idx);
+                        }
                     } else {
                         const i = exec.evalExpression(idx, context);
                         if (i instanceof ScalarData) {

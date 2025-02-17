@@ -4,16 +4,17 @@
 import { WgslScanner, Token, TokenType, TokenTypes } from "./wgsl_scanner.js";
 import * as AST from "./wgsl_ast.js";
 import { WgslExec } from "./wgsl_exec.js";
+import { Data, ScalarData } from "./exec/data.js";
 
 /// Parse a sequence of tokens from the WgslScanner into an Abstract Syntax Tree (AST).
 export class WgslParser {
   _tokens: Token[] = [];
   _current: number = 0;
   _currentLine: number = 0;
-  _context: AST.ParseContext = new AST.ParseContext();
   _deferArrayCountEval: Object[] = [];
   _currentLoop: AST.Statement[] = [];
-  _exec: WgslExec = new WgslExec();
+  _context = new AST.ParseContext();
+  _exec = new WgslExec();
 
   parse(tokensOrCode: Token[] | string): AST.Statement[] {
     this._initialize(tokensOrCode);
@@ -40,10 +41,12 @@ export class WgslParser {
         if (countNode instanceof AST.VariableExpr) {
           const variable = countNode as AST.VariableExpr;
           const name = variable.name;
+          //const constant = this._exec.getVariableValue(name);
+          //arrayType.count = constant as number;
           const constant = this._context.constants.get(name);
           if (constant) {
             try {
-              const count = constant.constEvaluate(this._context);
+              const count = constant.constEvaluate(this._exec);
               arrayType.count = count;
             } catch (e) {
             }
@@ -1283,11 +1286,11 @@ export class WgslParser {
           s.endsWith("u") || s.endsWith("U") ? AST.Type.u32 : AST.Type.x32;
       const i = parseInt(s);
       this._validateTypeRange(i, type);
-      return this._updateNode(new AST.LiteralExpr(i, type));
+      return this._updateNode(new AST.LiteralExpr(new ScalarData(i, this._exec.getTypeInfo(type)), type));
     } else if (this._match(TokenTypes.tokens.uint_literal)) {
       const u = parseInt(this._previous().toString());
       this._validateTypeRange(u, AST.Type.u32);
-      return this._updateNode(new AST.LiteralExpr(u, AST.Type.u32));
+      return this._updateNode(new AST.LiteralExpr(new ScalarData(u, this._exec.getTypeInfo(AST.Type.u32)), AST.Type.u32));
     } else if (this._match([TokenTypes.tokens.decimal_float_literal, TokenTypes.tokens.hex_float_literal])) {
       let fs = this._previous().toString();
       let isF16 = fs.endsWith("h");
@@ -1296,10 +1299,11 @@ export class WgslParser {
       }
       const f = parseFloat(fs);
       this._validateTypeRange(f, isF16 ? AST.Type.f16 : AST.Type.f32);
-      return this._updateNode(new AST.LiteralExpr(f, isF16 ? AST.Type.f16 : AST.Type.f32));
+      const type = isF16 ? AST.Type.f16 : AST.Type.f32;
+      return this._updateNode(new AST.LiteralExpr(new ScalarData(f, this._exec.getTypeInfo(type)), type));
     } else if (this._match([TokenTypes.keywords.true, TokenTypes.keywords.false])) {
       let b = this._previous().toString() === TokenTypes.keywords.true.rule;
-      return this._updateNode(new AST.LiteralExpr(b ? 1 : 0, AST.Type.bool));
+      return this._updateNode(new AST.LiteralExpr(new ScalarData(b ? 1 : 0, this._exec.getTypeInfo(AST.Type.bool)), AST.Type.bool));
     }
 
     // paren_expression
@@ -1430,7 +1434,7 @@ export class WgslParser {
       const expr = this._const_expression();
       const type = [AST.Type.f32];
       try {
-        const value = expr.constEvaluate(this._context, type) as number;
+        const value = expr.constEvaluate(this._exec, type);
         _var.value = new AST.LiteralExpr(value, type[0]);
       } catch (_) {
         _var.value = expr;
@@ -1484,6 +1488,8 @@ export class WgslParser {
     this._consume(TokenTypes.tokens.equal, "const declarations require an assignment")
 
     const valueExpr = this._short_circuit_or_expression();
+    const valueData = this._exec.evalExpression(valueExpr, this._exec.context);
+    console.log(valueData);
 
     /*if (valueExpr instanceof AST.CreateExpr) {
       value = valueExpr;
@@ -1493,8 +1499,10 @@ export class WgslParser {
     } else*/ {
       try {
         let type = [AST.Type.f32];
-        const constValue = valueExpr.constEvaluate(this._context, type) as number;
-        this._validateTypeRange(constValue, type[0]);
+        const constValue = valueExpr.constEvaluate(this._exec, type);
+        if (constValue instanceof ScalarData) {
+          this._validateTypeRange(constValue.value, type[0]);
+        }
         value = this._updateNode(new AST.LiteralExpr(constValue, type[0]));
       } catch {
         value = valueExpr;
@@ -1544,7 +1552,7 @@ export class WgslParser {
       value = this._const_expression();
       const type = [AST.Type.f32];
       try {
-        const v = value!.constEvaluate(this._context, type) as number;
+        const v = value!.constEvaluate(this._exec, type);
         value = new AST.LiteralExpr(v, type[0]);
       } catch (_) {
       }
@@ -1805,7 +1813,7 @@ export class WgslParser {
           // finished being parsed, because const statements can be declared **after** they
           // are used.
           try {
-            count = countNode.constEvaluate(this._context).toString();
+            count = countNode.constEvaluate(this._exec).toString();
             countNode = null;
           } catch (e) {
             count = "1";

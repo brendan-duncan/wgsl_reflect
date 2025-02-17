@@ -1,3 +1,10 @@
+import { WgslExec } from "./wgsl_exec.js";
+import { ExecInterface } from "./exec/exec_interface.js";
+import { ExecContext } from "./exec/exec_context.js";
+declare class Data {
+    setDataValue(exec: ExecInterface, value: Data, postfix: Expression | null, context: ExecContext): void;
+    getDataValue(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null;
+}
 export declare class ParseContext {
     constants: Map<string, Const>;
     aliases: Map<string, Alias>;
@@ -15,8 +22,8 @@ export declare class Node {
     constructor();
     get isAstNode(): boolean;
     get astNodeType(): string;
-    constEvaluate(context: ParseContext, type?: Type[]): number | number[];
-    constEvaluateString(context: ParseContext): string;
+    constEvaluate(context: WgslExec, type?: Type[]): Data | null;
+    constEvaluateString(context: WgslExec): string;
     search(callback: (node: Node) => void): void;
     searchBlock(block: Node[] | null, callback: (node: Node) => void): void;
 }
@@ -160,7 +167,7 @@ export declare class Const extends Statement {
     attributes: Attribute[] | null;
     constructor(name: string, type: Type | null, storage: string | null, access: string | null, value: Expression);
     get astNodeType(): string;
-    constEvaluate(context: ParseContext, type?: Type[]): number | number[];
+    constEvaluate(context: WgslExec, type?: Type[]): Data | null;
     search(callback: (node: Node) => void): void;
 }
 export declare enum IncrementOperator {
@@ -489,7 +496,7 @@ export declare class CreateExpr extends Expression {
     constructor(type: Type | null, args: Expression[] | null);
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;
-    constEvaluate(context: ParseContext, type?: Type[]): number | number[];
+    constEvaluate(context: WgslExec, type?: Type[]): Data | null;
 }
 /**
  * @class CallExpr
@@ -505,7 +512,7 @@ export declare class CallExpr extends Expression {
     setCachedReturnValue(value: any): void;
     static builtinFunctionNames: Set<string>;
     get isBuiltin(): boolean;
-    constEvaluate(context: ParseContext, type?: Type[]): number | number[];
+    constEvaluate(context: WgslExec, type?: Type[]): Data;
     search(callback: (node: Node) => void): void;
 }
 /**
@@ -518,7 +525,7 @@ export declare class VariableExpr extends Expression {
     constructor(name: string);
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;
-    constEvaluate(context: ParseContext, type?: Type[]): number | number[];
+    constEvaluate(context: WgslExec, type?: Type[]): Data;
 }
 /**
  * @class ConstExpr
@@ -530,7 +537,7 @@ export declare class ConstExpr extends Expression {
     initializer: Expression;
     constructor(name: string, initializer: Expression);
     get astNodeType(): string;
-    constEvaluate(context: ParseContext, type?: Type[]): number | number[];
+    constEvaluate(context: WgslExec, type?: Type[]): Data | null;
     search(callback: (node: Node) => void): void;
 }
 /**
@@ -539,11 +546,13 @@ export declare class ConstExpr extends Expression {
  * @category AST
  */
 export declare class LiteralExpr extends Expression {
-    value: number | number[];
+    value: Data;
     type: Type;
-    constructor(value: number | number[], type: Type);
+    constructor(value: Data, type: Type);
     get astNodeType(): string;
-    constEvaluate(context: ParseContext, type?: Type[]): number | number[];
+    constEvaluate(context: WgslExec, type?: Type[]): Data | null;
+    get isScalar(): boolean;
+    get isVector(): boolean;
     get scalarValue(): number;
     get vectorValue(): number[];
 }
@@ -569,7 +578,7 @@ export declare class TypecastExpr extends Expression {
     args: Expression[] | null;
     constructor(type: Type | null, args: Expression[] | null);
     get astNodeType(): string;
-    constEvaluate(context: ParseContext, type?: Type[]): number | number[];
+    constEvaluate(context: WgslExec, type?: Type[]): Data | null;
     search(callback: (node: Node) => void): void;
 }
 /**
@@ -581,7 +590,7 @@ export declare class GroupingExpr extends Expression {
     contents: Expression[];
     constructor(contents: Expression[]);
     get astNodeType(): string;
-    constEvaluate(context: ParseContext, type?: Type[]): number | number[];
+    constEvaluate(context: WgslExec, type?: Type[]): Data | null;
     search(callback: (node: Node) => void): void;
 }
 /**
@@ -613,7 +622,7 @@ export declare class UnaryOperator extends Operator {
     right: Expression;
     constructor(operator: string, right: Expression);
     get astNodeType(): string;
-    constEvaluate(context: ParseContext, type?: Type[]): number | number[];
+    constEvaluate(context: WgslExec, type?: Type[]): Data | null;
     search(callback: (node: Node) => void): void;
 }
 /**
@@ -629,7 +638,7 @@ export declare class BinaryOperator extends Operator {
     constructor(operator: string, left: Expression, right: Expression);
     get astNodeType(): string;
     _getPromotedType(t1: Type, t2: Type): Type;
-    constEvaluate(context: ParseContext, type?: Type[]): number | number[];
+    constEvaluate(context: WgslExec, type?: Type[]): Data | null;
     search(callback: (node: Node) => void): void;
 }
 /**
@@ -710,3 +719,4 @@ export declare class Attribute extends Node {
     constructor(name: string, value: string | string[] | null);
     get astNodeType(): string;
 }
+export {};

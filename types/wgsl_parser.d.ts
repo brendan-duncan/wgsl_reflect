@@ -8,9 +8,9 @@ export declare class WgslParser {
     _tokens: Token[];
     _current: number;
     _currentLine: number;
-    _context: AST.ParseContext;
     _deferArrayCountEval: Object[];
     _currentLoop: AST.Statement[];
+    _context: AST.ParseContext;
     _exec: WgslExec;
     parse(tokensOrCode: Token[] | string): AST.Statement[];
     _initialize(tokensOrCode: Token[] | string): void;
