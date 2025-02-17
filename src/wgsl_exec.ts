@@ -1152,8 +1152,7 @@ export class WgslExec extends ExecInterface {
             typeName === "mat4x2h" || typeName === "mat4x3h" || typeName === "mat4x4h") {
             return this._callConstructorMatrix(node, context);
         }
-        console.error(`Unknown literal type`, typeName, `Line ${node.line}`);
-        return null;
+        return node.value;
     }
 
     _evalVariable(node: VariableExpr, context: ExecContext): Data | null {

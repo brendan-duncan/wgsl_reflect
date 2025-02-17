@@ -1256,7 +1256,11 @@ export class ConstExpr extends Expression {
 
   constEvaluate(context: WgslExec, type?: Type[]): Data | null {
     if (this.initializer) {
-      context.evalExpression(this.initializer, context.context);
+      const data = context.evalExpression(this.initializer, context.context);
+      if (data !== null && this.postfix) {
+        return data.getDataValue(context, this.postfix, context.context);
+      }
+      return data;
     }
     return null;
   }

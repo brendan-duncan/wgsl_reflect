@@ -1175,7 +1175,11 @@ class ConstExpr extends Expression {
     }
     constEvaluate(context, type) {
         if (this.initializer) {
-            context.evalExpression(this.initializer, context.context);
+            const data = context.evalExpression(this.initializer, context.context);
+            if (data !== null && this.postfix) {
+                return data.getDataValue(context, this.postfix, context.context);
+            }
+            return data;
         }
         return null;
     }
@@ -6778,8 +6782,7 @@ class WgslExec extends ExecInterface {
             typeName === "mat4x2h" || typeName === "mat4x3h" || typeName === "mat4x4h") {
             return this._callConstructorMatrix(node, context);
         }
-        console.error(`Unknown literal type`, typeName, `Line ${node.line}`);
-        return null;
+        return node.value;
     }
     _evalVariable(node, context) {
         const value = context.getVariableValue(node.name);
