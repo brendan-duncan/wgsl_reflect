@@ -68,7 +68,8 @@ export class WgslDebug {
     }
 
     getVariableValue(name: string): number | number[] | null {
-        const v = this._exec.context.getVariable(name)?.value ?? null;
+        const context = this.context;
+        const v = context.getVariable(name)?.value ?? null;
         if (v === null) {
             return null;
         }
@@ -99,7 +100,11 @@ export class WgslDebug {
     }
 
     get context(): ExecContext {
-        return this._exec.context;
+        const state = this.currentState;
+        if (state === null) {
+            return this._exec.context;
+        }
+        return state.context;
     }
 
     get currentState(): StackFrame | null {

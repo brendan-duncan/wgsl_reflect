@@ -9585,7 +9585,8 @@ class WgslDebug {
     }
     getVariableValue(name) {
         var _a, _b;
-        const v = (_b = (_a = this._exec.context.getVariable(name)) === null || _a === void 0 ? void 0 : _a.value) !== null && _b !== void 0 ? _b : null;
+        const context = this.context;
+        const v = (_b = (_a = context.getVariable(name)) === null || _a === void 0 ? void 0 : _a.value) !== null && _b !== void 0 ? _b : null;
         if (v === null) {
             return null;
         }
@@ -9613,7 +9614,11 @@ class WgslDebug {
         this._execStack.states.push(state);
     }
     get context() {
-        return this._exec.context;
+        const state = this.currentState;
+        if (state === null) {
+            return this._exec.context;
+        }
+        return state.context;
     }
     get currentState() {
         while (true) {
