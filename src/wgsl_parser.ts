@@ -129,10 +129,36 @@ export class WgslParser {
     const tk = this._peek();
     if (types instanceof Array) {
       const t = tk.type;
-      const index = types.indexOf(t);
-      return index != -1;
+      let hasNameType = false;
+      for (const type of types) {
+        if (t === type) {
+          return true;
+        }
+        if (type === TokenTypes.tokens.name) {
+          hasNameType =  true;
+        }
+      }
+      if (hasNameType) {
+        // ident can include any of the other keywords, so special case it.
+        const match = (TokenTypes.tokens.name.rule as RegExp).exec(tk.lexeme);
+        if (match && match.index == 0 && match[0] == tk.lexeme) {
+          return true;
+        }
+      }
+      return false;
     }
-    return tk.type == types;
+
+    if (tk.type === types) {
+      return true;
+    }
+
+    // ident can include any of the other keywords, so special case it.
+    if (types === TokenTypes.tokens.name) {
+      const match = (TokenTypes.tokens.name.rule as RegExp).exec(tk.lexeme);
+      return match && match.index == 0 && match[0] == tk.lexeme;
+    }
+
+    return false;
   }
 
   _advance(): Token {
@@ -283,7 +309,7 @@ export class WgslParser {
         const argAttrs = this._attribute();
 
         const name = this._consume(
-          TokenTypes.tokens.ident,
+          TokenTypes.tokens.name,
           "Expected argument name."
         ).toString();
 
@@ -577,7 +603,7 @@ export class WgslParser {
 
     if (this._match(TokenTypes.keywords.let)) {
       const name = this._consume(
-        TokenTypes.tokens.ident,
+        TokenTypes.tokens.name,
         "Expected name for let."
       ).toString();
       let type: AST.Type | null = null;
@@ -595,7 +621,7 @@ export class WgslParser {
 
     if (this._match(TokenTypes.keywords.const)) {
       const name = this._consume(
-        TokenTypes.tokens.ident,
+        TokenTypes.tokens.name,
         "Expected name for const."
       ).toString();
       let type: AST.Type | null = null;
@@ -1142,7 +1168,7 @@ export class WgslParser {
     // period ident postfix_expression?
     if (this._match(TokenTypes.tokens.period)) {
       const name = this._consume(
-        TokenTypes.tokens.ident,
+        TokenTypes.tokens.name,
         "Expected member name."
       );
       const p = this._postfix_expression();
@@ -1388,7 +1414,7 @@ export class WgslParser {
       const memberAttrs = this._attribute();
 
       const memberName = this._consume(
-        TokenTypes.tokens.ident,
+        TokenTypes.tokens.name,
         "Expected variable name."
       ).toString();
 
@@ -1490,7 +1516,7 @@ export class WgslParser {
     }
 
     const name = this._consume(
-      TokenTypes.tokens.ident,
+      TokenTypes.tokens.name,
       "Expected variable name"
     );
     let type: AST.Type | null = null;
@@ -1561,7 +1587,7 @@ export class WgslParser {
     }
 
     const name = this._consume(
-      TokenTypes.tokens.ident,
+      TokenTypes.tokens.name,
       "Expected variable name"
     );
     let type: AST.Type | null = null;
@@ -1631,7 +1657,7 @@ export class WgslParser {
     }
 
     const name = this._consume(
-      TokenTypes.tokens.ident,
+      TokenTypes.tokens.name,
       "Expected variable name"
     );
     let type: AST.Type | null = null;
@@ -1653,7 +1679,7 @@ export class WgslParser {
     }
 
     const name = this._consume(
-      TokenTypes.tokens.ident,
+      TokenTypes.tokens.name,
       "Expected variable name"
     );
     let type: AST.Type | null = null;

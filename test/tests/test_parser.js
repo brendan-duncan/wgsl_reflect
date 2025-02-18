@@ -3,6 +3,13 @@ import { WgslParser } from "../../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Parser", function () {
+    test("override reserved name", function (test) {
+      const shader = `override read = 123; @compute @workgroup_size(read) fn cs() { }`
+      const parser = new WgslParser();
+      const t = parser.parse(shader);
+      test.equals(t.length, 2);
+    });
+
     test("const", function (test) {
       const shader = `
       const a = 4; // i32 -- 4
@@ -614,5 +621,5 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
       test.equals(t[0].value.astNodeType, "literalExpr");
       test.equals(t[1].value.astNodeType, "literalExpr");
     });
-  }, true);
+  });
 }

@@ -283,6 +283,7 @@ export class TokenTypes {
       TokenClass.token,
       /0x[0-9a-fA-F]+u|0u|[1-9][0-9]*u/
     ),
+    name: new TokenType("name", TokenClass.token, /[_a-zA-Z][0-9a-zA-Z_]*/),
     ident: new TokenType("ident", TokenClass.token, /[_a-zA-Z][0-9a-zA-Z_]*/),
     and: new TokenType("and", TokenClass.token, "&"),
     and_and: new TokenType("and_and", TokenClass.token, "&&"),
@@ -514,6 +515,7 @@ export class TokenTypes {
     this.tokens.uint_literal,
     this.tokens.decimal_float_literal,
     this.tokens.hex_float_literal,
+    this.tokens.name
   ];
 
   static readonly element_count_expression = [

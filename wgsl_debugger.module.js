@@ -2833,6 +2833,7 @@ TokenTypes.tokens = {
     hex_float_literal: new TokenType("hex_float_literal", TokenClass.token, /-?0x((([0-9a-fA-F]*\.[0-9a-fA-F]+|[0-9a-fA-F]+\.[0-9a-fA-F]*)((p|P)(\+|-)?[0-9]+[fh]?)?)|([0-9a-fA-F]+(p|P)(\+|-)?[0-9]+[fh]?))/),
     int_literal: new TokenType("int_literal", TokenClass.token, /-?0x[0-9a-fA-F]+|0i?|-?[1-9][0-9]*i?/),
     uint_literal: new TokenType("uint_literal", TokenClass.token, /0x[0-9a-fA-F]+u|0u|[1-9][0-9]*u/),
+    name: new TokenType("name", TokenClass.token, /[_a-zA-Z][0-9a-zA-Z_]*/),
     ident: new TokenType("ident", TokenClass.token, /[_a-zA-Z][0-9a-zA-Z_]*/),
     and: new TokenType("and", TokenClass.token, "&"),
     and_and: new TokenType("and_and", TokenClass.token, "&&"),
@@ -3037,6 +3038,7 @@ TokenTypes.literal_or_ident = [
     _a.tokens.uint_literal,
     _a.tokens.decimal_float_literal,
     _a.tokens.hex_float_literal,
+    _a.tokens.name
 ];
 TokenTypes.element_count_expression = [
     _a.tokens.int_literal,
@@ -8029,10 +8031,33 @@ class WgslParser {
         const tk = this._peek();
         if (types instanceof Array) {
             const t = tk.type;
-            const index = types.indexOf(t);
-            return index != -1;
+            let hasNameType = false;
+            for (const type of types) {
+                if (t === type) {
+                    return true;
+                }
+                if (type === TokenTypes.tokens.name) {
+                    hasNameType = true;
+                }
+            }
+            if (hasNameType) {
+                // ident can include any of the other keywords, so special case it.
+                const match = TokenTypes.tokens.name.rule.exec(tk.lexeme);
+                if (match && match.index == 0 && match[0] == tk.lexeme) {
+                    return true;
+                }
+            }
+            return false;
         }
-        return tk.type == types;
+        if (tk.type === types) {
+            return true;
+        }
+        // ident can include any of the other keywords, so special case it.
+        if (types === TokenTypes.tokens.name) {
+            const match = TokenTypes.tokens.name.rule.exec(tk.lexeme);
+            return match && match.index == 0 && match[0] == tk.lexeme;
+        }
+        return false;
     }
     _advance() {
         var _a, _b;
@@ -8155,7 +8180,7 @@ class WgslParser {
                     break;
                 }
                 const argAttrs = this._attribute();
-                const name = this._consume(TokenTypes.tokens.ident, "Expected argument name.").toString();
+                const name = this._consume(TokenTypes.tokens.name, "Expected argument name.").toString();
                 this._consume(TokenTypes.tokens.colon, "Expected ':' for argument type.");
                 const typeAttrs = this._attribute();
                 const type = this._type_decl();
@@ -8381,7 +8406,7 @@ class WgslParser {
             return this._updateNode(new Var(_var.name, _var.type, _var.storage, _var.access, value));
         }
         if (this._match(TokenTypes.keywords.let)) {
-            const name = this._consume(TokenTypes.tokens.ident, "Expected name for let.").toString();
+            const name = this._consume(TokenTypes.tokens.name, "Expected name for let.").toString();
             let type = null;
             if (this._match(TokenTypes.tokens.colon)) {
                 const typeAttrs = this._attribute();
@@ -8395,7 +8420,7 @@ class WgslParser {
             return this._updateNode(new Let(name, type, null, null, value));
         }
         if (this._match(TokenTypes.keywords.const)) {
-            const name = this._consume(TokenTypes.tokens.ident, "Expected name for const.").toString();
+            const name = this._consume(TokenTypes.tokens.name, "Expected name for const.").toString();
             let type = null;
             if (this._match(TokenTypes.tokens.colon)) {
                 const typeAttrs = this._attribute();
@@ -8777,7 +8802,7 @@ class WgslParser {
         }
         // period ident postfix_expression?
         if (this._match(TokenTypes.tokens.period)) {
-            const name = this._consume(TokenTypes.tokens.ident, "Expected member name.");
+            const name = this._consume(TokenTypes.tokens.name, "Expected member name.");
             const p = this._postfix_expression();
             const expr = this._updateNode(new StringExpr(name.lexeme));
             if (p) {
@@ -8996,7 +9021,7 @@ class WgslParser {
         while (!this._check(TokenTypes.tokens.brace_right)) {
             // struct_member: attribute* variable_ident_decl
             const memberAttrs = this._attribute();
-            const memberName = this._consume(TokenTypes.tokens.ident, "Expected variable name.").toString();
+            const memberName = this._consume(TokenTypes.tokens.name, "Expected variable name.").toString();
             this._consume(TokenTypes.tokens.colon, "Expected ':' for struct member type.");
             const typeAttrs = this._attribute();
             const memberType = this._type_decl();
@@ -9077,7 +9102,7 @@ class WgslParser {
         if (!this._match(TokenTypes.keywords.const)) {
             return null;
         }
-        const name = this._consume(TokenTypes.tokens.ident, "Expected variable name");
+        const name = this._consume(TokenTypes.tokens.name, "Expected variable name");
         let type = null;
         if (this._match(TokenTypes.tokens.colon)) {
             const attrs = this._attribute();
@@ -9146,7 +9171,7 @@ class WgslParser {
         if (!this._match(TokenTypes.keywords.let)) {
             return null;
         }
-        const name = this._consume(TokenTypes.tokens.ident, "Expected variable name");
+        const name = this._consume(TokenTypes.tokens.name, "Expected variable name");
         let type = null;
         if (this._match(TokenTypes.tokens.colon)) {
             const attrs = this._attribute();
@@ -9205,7 +9230,7 @@ class WgslParser {
                 access = this._consume(TokenTypes.access_mode, "Expected access_mode.").toString();
             this._consume(TokenTypes.tokens.greater_than, "Expected '>'.");
         }
-        const name = this._consume(TokenTypes.tokens.ident, "Expected variable name");
+        const name = this._consume(TokenTypes.tokens.name, "Expected variable name");
         let type = null;
         if (this._match(TokenTypes.tokens.colon)) {
             const attrs = this._attribute();
@@ -9221,7 +9246,7 @@ class WgslParser {
         if (!this._match(TokenTypes.keywords.override)) {
             return null;
         }
-        const name = this._consume(TokenTypes.tokens.ident, "Expected variable name");
+        const name = this._consume(TokenTypes.tokens.name, "Expected variable name");
         let type = null;
         if (this._match(TokenTypes.tokens.colon)) {
             const attrs = this._attribute();

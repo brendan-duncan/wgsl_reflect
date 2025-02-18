@@ -154,6 +154,7 @@ export declare class TokenTypes {
         hex_float_literal: TokenType;
         int_literal: TokenType;
         uint_literal: TokenType;
+        name: TokenType;
         ident: TokenType;
         and: TokenType;
         and_and: TokenType;
