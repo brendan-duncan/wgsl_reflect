@@ -7,6 +7,22 @@ function _newWgslExec(code) {
 
 export async function run() {
     await group("WgslExec", async function () {
+        await test("struct shadow", function (test) {
+            const shader = `struct Time { frame: u32, elapsed: f32, delta: f32 }
+            const time = Time(1, 2.0, 3.0);
+            fn foo() -> f32 {
+                let time = 0.5;
+                return time;
+            }
+            fn bar() -> f32 {
+                return time.elapsed;
+            }
+            let frame = bar() * foo();`;
+            const wgsl = _newWgslExec(shader);
+            wgsl.execute();
+            // Ensure the top-level instructions were executed and the global variable has the correct value.
+            test.equals(wgsl.getVariableValue("frame"), 1.0);
+        });
         await test("mat array access", function (test) {
             const shader = `const a = mat4x4f(1.0, 0.0, 0.0, 0.0,
                                                 0.0, 1.0, 0.0, 0.0,
@@ -233,6 +249,7 @@ export async function run() {
                 let i = id.x;
                 let j = 2.0;
                 var k = f32(id.x);
+                let l = vec3f(j, j, j);
                 data[i].x = data[i].x * j;
                 {
                     // Make sure variables defined in blocks shadow outer variables, and that
@@ -240,8 +257,9 @@ export async function run() {
                     k = 3.0;
                     let j = 3.0;
                     data[i].y = data[i].y * 3.0;
+                    let l = 42.0;
                 }
-                data[i].z = k * j;
+                data[i].z = k * j * l.x;
             }`;
 
             const buffer = new Float32Array([1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9, 0]);
