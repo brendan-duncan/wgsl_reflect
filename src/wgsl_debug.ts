@@ -462,7 +462,7 @@ export class WgslDebug {
                 }
 
                 const res = this._exec.execStatement(node, state.context);
-                if (res !== null && res !== undefined) {
+                if (res !== null && res !== undefined && !(res instanceof AST.VoidData)) {
                     let s = state;
                     // Find the CallExpr to store the return value in.
                     while (s) {
