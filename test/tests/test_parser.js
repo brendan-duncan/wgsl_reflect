@@ -3,6 +3,13 @@ import { WgslParser } from "../../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Parser", function () {
+    test("vec4f", function (test) {
+      const shader = `const bitShift:vec4f = vec4f(1.0, 1.0/256.0, 1.0/(256.0*256.0), 1.0/(256.0*256.0*256.0));`
+      const parser = new WgslParser();
+      const t = parser.parse(shader);
+      test.equals(t.length, 1);
+    });
+
     test("override reserved name", function (test) {
       const shader = `override read = 123; @compute @workgroup_size(read) fn cs() { }`
       const parser = new WgslParser();

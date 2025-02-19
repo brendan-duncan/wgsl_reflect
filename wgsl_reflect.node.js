@@ -8288,10 +8288,6 @@ class WgslParser {
                 const loop = this._currentLoop[this._currentLoop.length - 1];
                 breakStmt.loopId = loop.id;
             }
-            else {
-                // This break statement is not inside a loop. 
-                throw this._error(this._peek(), "Break statement must be inside a loop.");
-            }
             result = breakStmt;
             if (this._check(TokenTypes.keywords.if)) {
                 // break-if
@@ -8310,7 +8306,7 @@ class WgslParser {
             }
             else {
                 // This continue statement is not inside a loop. 
-                throw this._error(this._peek(), "Continue statement must be inside a loop.");
+                throw this._error(this._peek(), `Continue statement must be inside a loop. Line: ${continueStmt.line}`);
             }
             result = continueStmt;
         }
@@ -9075,7 +9071,9 @@ class WgslParser {
         }
         if (_var.type !== null && _var.value instanceof LiteralExpr) {
             if (_var.value.type.name !== "x32") {
-                if (_var.type.name !== _var.value.type.name) {
+                const t1 = this._exec.getTypeName(_var.type);
+                const t2 = this._exec.getTypeName(_var.value.type);
+                if (t1 !== t2) {
                     throw this._error(this._peek(), `Invalid cast from ${_var.value.type.name} to ${_var.type.name}. Line:${this._currentLine}`);
                 }
             }
@@ -9153,7 +9151,9 @@ class WgslParser {
         }
         if (type !== null && value instanceof LiteralExpr) {
             if (value.type.name !== "x32") {
-                if (type.name !== value.type.name) {
+                const t1 = this._exec.getTypeName(type);
+                const t2 = this._exec.getTypeName(value.type);
+                if (t1 !== t2) {
                     throw this._error(this._peek(), `Invalid cast from ${value.type.name} to ${type.name}. Line:${this._currentLine}`);
                 }
             }
@@ -9199,7 +9199,9 @@ class WgslParser {
         }
         if (type !== null && value instanceof LiteralExpr) {
             if (value.type.name !== "x32") {
-                if (type.name !== value.type.name) {
+                const t1 = this._exec.getTypeName(type);
+                const t2 = this._exec.getTypeName(value.type);
+                if (t1 !== t2) {
                     throw this._error(this._peek(), `Invalid cast from ${value.type.name} to ${type.name}. Line:${this._currentLine}`);
                 }
             }

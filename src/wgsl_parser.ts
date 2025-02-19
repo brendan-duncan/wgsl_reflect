@@ -444,7 +444,7 @@ export class WgslParser {
         breakStmt.loopId = loop.id;
       } else {
         // This break statement is not inside a loop. 
-        throw this._error(this._peek(), "Break statement must be inside a loop.");
+        //throw this._error(this._peek(), `Break statement must be inside a loop. Line: ${breakStmt.line}`);
       }
       result = breakStmt;
       if (this._check(TokenTypes.keywords.if)) {
@@ -462,7 +462,7 @@ export class WgslParser {
         continueStmt.loopId = loop.id;
       } else {
         // This continue statement is not inside a loop. 
-        throw this._error(this._peek(), "Continue statement must be inside a loop.");
+        throw this._error(this._peek(), `Continue statement must be inside a loop. Line: ${continueStmt.line}`);
       }
       result = continueStmt;
     } else {
@@ -1482,7 +1482,9 @@ export class WgslParser {
 
     if (_var.type !== null && _var.value instanceof AST.LiteralExpr) {
       if (_var.value.type.name !== "x32") {
-        if (_var.type.name !== _var.value.type.name) {
+        const t1 = this._exec.getTypeName(_var.type);
+        const t2 = this._exec.getTypeName(_var.value.type);
+        if (t1 !== t2) {
           throw this._error(this._peek(), `Invalid cast from ${_var.value.type.name} to ${_var.type.name}. Line:${this._currentLine}`);
         }
       }
@@ -1562,7 +1564,9 @@ export class WgslParser {
 
     if (type !== null && value instanceof AST.LiteralExpr) {
       if (value.type.name !== "x32") {
-        if (type.name !== value.type.name) {
+        const t1 = this._exec.getTypeName(type);
+        const t2 = this._exec.getTypeName(value.type);
+        if (t1 !== t2) {
           throw this._error(this._peek(), `Invalid cast from ${value.type.name} to ${type.name}. Line:${this._currentLine}`);
         }
       }
@@ -1612,7 +1616,9 @@ export class WgslParser {
     }
     if (type !== null && value instanceof AST.LiteralExpr) {
       if (value.type.name !== "x32") {
-        if (type.name !== value.type.name) {
+        const t1 = this._exec.getTypeName(type);
+        const t2 = this._exec.getTypeName(value.type);
+        if (t1 !== t2) {
           throw this._error(this._peek(), `Invalid cast from ${value.type.name} to ${type.name}. Line:${this._currentLine}`);
         }
       }
