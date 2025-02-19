@@ -646,6 +646,10 @@ export declare class BinaryOperator extends Operator {
 export declare class SwitchCase extends Node {
     constructor();
 }
+export declare class DefaultSelector extends Expression {
+    constructor();
+    get astNodeType(): string;
+}
 /**
  * @class Case
  * @extends SwitchCase

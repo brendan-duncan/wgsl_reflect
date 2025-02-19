@@ -3,6 +3,31 @@ import { WgslParser } from "../../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Parser", function () {
+    test("switch default selector", function (test) {
+      const shader = `
+        const c = 2;
+        fn foo(x: i32) -> i32 {
+          var a : i32;
+          switch x {
+            case 0: { // colon is optional
+              a = 1;
+            }
+            case 1, c { // Const-expression can be used in case selectors
+              a = 3;
+            }
+            case 3, default { // The default keyword can be used with other clauses
+              a = 4;
+            }
+          }
+          return a;
+        }
+        let x = foo(2);
+        let y = foo(5);`;
+        const parser = new WgslParser();
+        const t = parser.parse(shader);
+        test.equals(t.length, 4);
+    });
+
     test("vec4f", function (test) {
       const shader = `const bitShift:vec4f = vec4f(1.0, 1.0/256.0, 1.0/(256.0*256.0), 1.0/(256.0*256.0*256.0));`
       const parser = new WgslParser();

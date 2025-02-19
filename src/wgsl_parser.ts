@@ -443,7 +443,7 @@ export class WgslParser {
         const loop = this._currentLoop[this._currentLoop.length - 1];
         breakStmt.loopId = loop.id;
       } else {
-        // This break statement is not inside a loop. 
+        // This break statement is not inside a loop.
         //throw this._error(this._peek(), `Break statement must be inside a loop. Line: ${breakStmt.line}`);
       }
       result = breakStmt;
@@ -461,7 +461,7 @@ export class WgslParser {
         const loop = this._currentLoop[this._currentLoop.length - 1];
         continueStmt.loopId = loop.id;
       } else {
-        // This continue statement is not inside a loop. 
+        // This continue statement is not inside a loop.
         throw this._error(this._peek(), `Continue statement must be inside a loop. Line: ${continueStmt.line}`);
       }
       result = continueStmt;
@@ -770,7 +770,11 @@ export class WgslParser {
       return null;
     }
 
-    const condition = this._optional_paren_expression();
+    const switchStmt = this._updateNode(new AST.Switch(null, []));
+
+    this._currentLoop.push(switchStmt);
+
+    switchStmt.condition = this._optional_paren_expression();
 
     let attributes = null;
     if (this._check(TokenTypes.tokens.attr)) {
@@ -778,77 +782,107 @@ export class WgslParser {
     }
 
     this._consume(TokenTypes.tokens.brace_left, "Expected '{' for switch.");
-    const body = this._switch_body();
-    if (body == null || body.length == 0) {
+    switchStmt.body = this._switch_body();
+    if (switchStmt.body == null || switchStmt.body.length == 0) {
       throw this._error(this._previous(), "Expected 'case' or 'default'.");
     }
     this._consume(TokenTypes.tokens.brace_right, "Expected '}' for switch.");
-    return this._updateNode(new AST.Switch(condition, body));
+
+    this._currentLoop.pop();
+
+    return switchStmt;
   }
 
   _switch_body(): AST.Statement[] {
-    // case case_selectors colon brace_left case_body? brace_right
-    // default colon brace_left case_body? brace_right
+    // case case_selectors optional_colon brace_left case_body? brace_right
+    // default optional_colon brace_left case_body? brace_right
     const cases: AST.Statement[] = [];
-    if (this._match(TokenTypes.keywords.case)) {
-      const selector = this._case_selectors();
-      this._match(TokenTypes.tokens.colon); // colon is optional
+    
+    let hasDefault = false;
+    while (this._check([TokenTypes.keywords.default, TokenTypes.keywords.case])) {
+      if (this._match(TokenTypes.keywords.case)) {
+        const selectors = this._case_selectors();
+        for (const selector of selectors) {
+          if (selector instanceof AST.DefaultSelector) {
+            if (hasDefault) {
+              throw this._error(this._previous(), "Multiple default cases in switch statement.");
+            }
+            hasDefault = true;
+            break;
+          }
+        }
 
-      let attributes = null;
-      if (this._check(TokenTypes.tokens.attr)) {
-        attributes = this._attribute();
+        this._match(TokenTypes.tokens.colon); // colon is optional
+
+        let attributes = null;
+        if (this._check(TokenTypes.tokens.attr)) {
+          attributes = this._attribute();
+        }
+
+        this._consume(
+          TokenTypes.tokens.brace_left,
+          "Exected '{' for switch case."
+        );
+
+        const body = this._case_body();
+
+        this._consume(
+          TokenTypes.tokens.brace_right,
+          "Exected '}' for switch case."
+        );
+
+        cases.push(this._updateNode(new AST.Case(selectors, body)));
       }
 
-      this._consume(
-        TokenTypes.tokens.brace_left,
-        "Exected '{' for switch case."
-      );
-      const body = this._case_body();
-      this._consume(
-        TokenTypes.tokens.brace_right,
-        "Exected '}' for switch case."
-      );
-      cases.push(this._updateNode(new AST.Case(selector, body)));
-    }
+      if (this._match(TokenTypes.keywords.default)) {
+        if (hasDefault) {
+          throw this._error(this._previous(), "Multiple default cases in switch statement.");
+        }
+        this._match(TokenTypes.tokens.colon); // colon is optional
 
-    if (this._match(TokenTypes.keywords.default)) {
-      this._match(TokenTypes.tokens.colon); // colon is optional
-      
-      let attributes = null;
-      if (this._check(TokenTypes.tokens.attr)) {
-        attributes = this._attribute();
+        let attributes = null;
+        if (this._check(TokenTypes.tokens.attr)) {
+          attributes = this._attribute();
+        }
+
+        this._consume(
+          TokenTypes.tokens.brace_left,
+          "Exected '{' for switch default."
+        );
+
+        const body = this._case_body();
+
+        this._consume(
+          TokenTypes.tokens.brace_right,
+          "Exected '}' for switch default."
+        );
+
+        cases.push(this._updateNode(new AST.Default(body)));
       }
-      
-      this._consume(
-        TokenTypes.tokens.brace_left,
-        "Exected '{' for switch default."
-      );
-      const body = this._case_body();
-      this._consume(
-        TokenTypes.tokens.brace_right,
-        "Exected '}' for switch default."
-      );
-      cases.push(this._updateNode(new AST.Default(body)));
-    }
-
-    if (this._check([TokenTypes.keywords.default, TokenTypes.keywords.case])) {
-      const _cases = this._switch_body();
-      cases.push(_cases[0]);
     }
 
     return cases;
   }
 
   _case_selectors(): AST.Expression[] {
-    // const_literal (comma const_literal)* comma?
-    const selectors = [
-      this._shift_expression(),//?.constEvaluate(this._context).toString() ?? "",
-    ];
-    while (this._match(TokenTypes.tokens.comma)) {
-      selectors.push(
-        this._shift_expression(),//?.constEvaluate(this._context).toString() ?? ""
-      );
+    // case_selector (comma case_selector)* comma?
+    // case_selector: expression | default
+    const selectors = [];
+
+    if (this._match(TokenTypes.keywords.default)) {
+      selectors.push(this._updateNode(new AST.DefaultSelector()));
+    } else {
+      selectors.push(this._shift_expression());
     }
+
+    while (this._match(TokenTypes.tokens.comma)) {
+      if (this._match(TokenTypes.keywords.default)) {
+        selectors.push(this._updateNode(new AST.DefaultSelector()));
+      } else {
+        selectors.push(this._shift_expression());
+      }
+    }
+
     return selectors;
   }
 
@@ -1308,7 +1342,7 @@ export class WgslParser {
     // const_literal
     if (this._match(TokenTypes.tokens.int_literal)) {
       const s = this._previous().toString();
-      let type = s.endsWith("i") || s.endsWith("i") ? AST.Type.i32 : 
+      let type = s.endsWith("i") || s.endsWith("i") ? AST.Type.i32 :
           s.endsWith("u") || s.endsWith("U") ? AST.Type.u32 : AST.Type.x32;
       const i = parseInt(s);
       this._validateTypeRange(i, type);

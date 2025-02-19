@@ -2,7 +2,7 @@ import { Node, Type, TemplateType, Return, Break, Continue, Let, Var, Const,
     If, For, While, Loop, Continuing, Assign, Increment, Struct, Override,
     Call, Diagnostic, Alias, GroupingExpr, BinaryOperator, LiteralExpr,
     VariableExpr, CallExpr, CreateExpr, ConstExpr, BitcastExpr, UnaryOperator,
-    ArrayIndex, StringExpr, Function,
+    ArrayIndex, StringExpr, Function, Switch, Case, Default,
     Data, ScalarData, VectorData, MatrixData, TypedData, VoidData } from "./wgsl_ast.js";
 import { Reflect } from "./reflect/reflect.js";
 import { TypeInfo, StructInfo, ArrayInfo, TemplateInfo } from "./reflect/info.js";
@@ -192,6 +192,8 @@ export class WgslExec extends ExecInterface {
             this._function(stmt, context);
         } else if (stmt instanceof If) {
             return this._if(stmt, context);
+        } else if (stmt instanceof Switch) {
+            return this._switch(stmt, context);
         } else if (stmt instanceof For) {
             return this._for(stmt, context);
         } else if (stmt instanceof While) {
@@ -886,6 +888,34 @@ export class WgslExec extends ExecInterface {
         }
 
         context.createVariable(node.name, value, node);
+    }
+
+    _switch(node: Switch, context: ExecContext) : Data | null {
+        context = context.clone();
+        const condition = this.evalExpression(node.condition, context);
+        if (!(condition instanceof ScalarData)) {
+            console.error(`Invalid if condition. Line ${node.line}`);
+            return null;
+        }
+
+        for (const c of node.body) {
+            if (c instanceof Case) {
+                for (const selector of c.selector) {
+                    const selectorValue = this.evalExpression(selector, context);
+                    if (!(selectorValue instanceof ScalarData)) {
+                        console.error(`Invalid case selector. Line ${node.line}`);
+                        return null;
+                    }
+                    if (selectorValue.value === condition.value) {
+                        return this._execStatements(c.body, context);
+                    }
+                }
+            } else if (c instanceof Default) {
+                return this._execStatements(c.body, context);
+            }
+        }
+
+        return null;
     }
 
     _if(node: If, context: ExecContext): Data | null {

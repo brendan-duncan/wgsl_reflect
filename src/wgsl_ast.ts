@@ -1515,6 +1515,16 @@ export class SwitchCase extends Node {
   }
 }
 
+export class DefaultSelector extends Expression {
+  constructor() {
+    super();
+  }
+
+  get astNodeType(): string {
+    return "default";
+  }
+}
+
 /**
  * @class Case
  * @extends SwitchCase
