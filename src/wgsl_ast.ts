@@ -517,16 +517,16 @@ export class Loop extends Statement {
  */
 export class Switch extends Statement {
   condition: Expression;
-  body: Statement[];
+  cases: SwitchCase[];
 
-  constructor(condition: Expression, body: Statement[]) {
+  constructor(condition: Expression, cases: SwitchCase[]) {
     super();
     this.condition = condition;
-    this.body = body;
+    this.cases = cases;
   }
 
   get astNodeType(): string {
-    return "body";
+    return "switch";
   }
 }
 
@@ -1534,11 +1534,11 @@ export class DefaultSelector extends Expression {
  * @category AST
  */
 export class Case extends SwitchCase {
-  selector: Expression[];
+  selectors: Expression[];
 
-  constructor(selector: Expression[], body: Statement[]) {
+  constructor(selectors: Expression[], body: Statement[]) {
     super(body);
-    this.selector = selector;
+    this.selectors = selectors;
   }
 
   get astNodeType(): string {

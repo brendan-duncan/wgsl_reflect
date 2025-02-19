@@ -3,6 +3,32 @@ import { WgslDebug } from "../../../wgsl_debugger.module.js";
 
 export async function run() {
   await group("Debug", async function () {
+    test("switch default selector", function (test) {
+        const shader = `
+          const c = 2;
+          fn foo(x: i32) -> i32 {
+            var a : i32;
+            switch x {
+              case 0: { // colon is optional
+                a = 1;
+              }
+              case 3, default { // The default keyword can be used with other clauses
+                a = 4;
+              }
+              case 1, c { // Const-expression can be used in case selectors
+                a = 3;
+              }
+            }
+            return a;
+          }
+          let x = foo(2);
+          let y = foo(5);`;
+        const dbg = new WgslDebug(shader);
+        while (dbg.stepNext());
+        test.equals(dbg.getVariableValue("x"), 3);
+        test.equals(dbg.getVariableValue("y"), 4);
+    });
+
     await test("nested loops", async function (test) {
       const shader = `
       fn foo() -> i32 {

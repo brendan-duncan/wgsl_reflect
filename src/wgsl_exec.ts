@@ -900,9 +900,9 @@ export class WgslExec extends ExecInterface {
 
         let defaultCase: SwitchCase | null = null;
 
-        for (const c of node.body) {
+        for (const c of node.cases) {
             if (c instanceof Case) {
-                for (const selector of c.selector) {
+                for (const selector of c.selectors) {
                     if (selector instanceof DefaultSelector) {
                         defaultCase = c;
                         continue;

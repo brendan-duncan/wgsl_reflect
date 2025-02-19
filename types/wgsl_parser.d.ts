@@ -39,7 +39,7 @@ export declare class WgslParser {
     _func_call_statement(): AST.Call | null;
     _loop_statement(): AST.Loop | null;
     _switch_statement(): AST.Switch | null;
-    _switch_body(): AST.Statement[];
+    _switch_body(): AST.SwitchCase[];
     _case_selectors(): AST.Expression[];
     _case_body(): AST.Statement[];
     _if_statement(): AST.If | null;

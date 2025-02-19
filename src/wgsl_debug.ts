@@ -431,7 +431,7 @@ export class WgslDebug {
                 for (let ai = 0; ai < fn.node.args.length; ++ai) {
                     const arg = fn.node.args[ai];
                     const value = this._exec.evalExpression(node.args[ai], fnState.context);
-                    fnState.context.setVariable(arg.name, value, arg);
+                    fnState.context.createVariable(arg.name, value, arg);
                 }
 
                 fnState.parentCallExpr = node;
@@ -453,7 +453,7 @@ export class WgslDebug {
                         for (let ai = 0; ai < fn.node.args.length; ++ai) {
                             const arg = fn.node.args[ai];
                             const value = this._exec.evalExpression(node.args[ai], fnState.context);
-                            fnState.context.setVariable(arg.name, value, arg);
+                            fnState.context.createVariable(arg.name, value, arg);
                         }
 
                         this._execStack.states.push(fnState);
@@ -691,6 +691,7 @@ export class WgslDebug {
             // already computed value. This allows us to step into the function
             if (statement instanceof AST.Let ||
                 statement instanceof AST.Var ||
+                statement instanceof AST.Const ||
                 statement instanceof AST.Assign) {
                 const functionCalls = [];
                 this._collectFunctionCalls(statement.value, functionCalls);
@@ -758,6 +759,72 @@ export class WgslDebug {
                 }
 
                 gotoEnd.position = state.commands.length;
+            } else if (statement instanceof AST.Switch) {
+                const functionCalls = [];
+                this._collectFunctionCalls(statement.condition, functionCalls);
+                for (const call of functionCalls) {
+                    state.commands.push(new CallExprCommand(call, statement));
+                }
+
+                let defaultCase: AST.SwitchCase | null = null;
+                for (const c of statement.cases) {
+                    if (c instanceof AST.Default) {
+                        defaultCase = c;
+                        break;
+                    } else if (c instanceof AST.Case) {
+                        for (const selector of c.selectors) {
+                            if (selector instanceof AST.DefaultSelector) {
+                                defaultCase = c;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                const gotoEndCommands: GotoCommand[] = [];
+
+                for (const c of statement.cases) {
+                    if (c === defaultCase) {
+                        continue;
+                    }
+
+                    if (!(c instanceof AST.Case)) {
+                        continue;
+                    }
+
+                    let lastCondition = null;
+                    for (const selector of c.selectors) {
+                        let conditionExpr = new AST.BinaryOperator("==", statement.condition, selector);
+                        if (lastCondition) {
+                            conditionExpr = new AST.BinaryOperator("||", lastCondition, conditionExpr);
+                        }
+                        lastCondition = conditionExpr;
+                    }
+
+                    const gotoCommand = new GotoCommand(lastCondition, 0, c.line);
+                    state.commands.push(gotoCommand);
+
+                    if (c.body.length > 0) {
+                        state.commands.push(new BlockCommand(c.body));
+                    }
+
+                    const gotoEndCommand = new GotoCommand(null, 0, c.line);
+                    gotoEndCommands.push(gotoEndCommand);
+                    state.commands.push(gotoEndCommand);
+
+                    gotoCommand.position = state.commands.length;
+                }
+
+                if (defaultCase) {
+                    state.commands.push(new BlockCommand(defaultCase.body));
+                }
+
+                state.commands.push(new BreakTargetCommand(statement.id));
+
+                const commandPos = state.commands.length;
+                for (let i = 0; i < gotoEndCommands.length; ++i) {
+                    gotoEndCommands[i].position = commandPos;
+                }
             } else if (statement instanceof AST.While) {
                 const functionCalls = [];
                 state.commands.push(new ContinueTargetCommand(statement.id));
@@ -768,10 +835,12 @@ export class WgslDebug {
                 const conditionCmd = new GotoCommand(statement.condition, 0, statement.line);
                 state.commands.push(conditionCmd);
                 let lastLine = statement.line;
+
                 if (statement.body.length > 0) {
                     state.commands.push(new BlockCommand(statement.body));
                     lastLine = statement.body[statement.body.length - 1].line;
                 }
+
                 state.commands.push(new GotoCommand(statement.condition, 0, lastLine));
                 state.commands.push(new BreakTargetCommand(statement.id));
                 conditionCmd.position = state.commands.length;

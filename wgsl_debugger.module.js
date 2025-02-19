@@ -577,13 +577,13 @@ class Loop extends Statement {
  * @category AST
  */
 class Switch extends Statement {
-    constructor(condition, body) {
+    constructor(condition, cases) {
         super();
         this.condition = condition;
-        this.body = body;
+        this.cases = cases;
     }
     get astNodeType() {
-        return "body";
+        return "switch";
     }
 }
 /**
@@ -1397,9 +1397,9 @@ class DefaultSelector extends Expression {
  * @category AST
  */
 class Case extends SwitchCase {
-    constructor(selector, body) {
+    constructor(selectors, body) {
         super(body);
-        this.selector = selector;
+        this.selectors = selectors;
     }
     get astNodeType() {
         return "case";
@@ -6589,9 +6589,9 @@ class WgslExec extends ExecInterface {
             return null;
         }
         let defaultCase = null;
-        for (const c of node.body) {
+        for (const c of node.cases) {
             if (c instanceof Case) {
-                for (const selector of c.selector) {
+                for (const selector of c.selectors) {
                     if (selector instanceof DefaultSelector) {
                         defaultCase = c;
                         continue;
@@ -8571,8 +8571,8 @@ class WgslParser {
             this._attribute();
         }
         this._consume(TokenTypes.tokens.brace_left, "Expected '{' for switch.");
-        switchStmt.body = this._switch_body();
-        if (switchStmt.body == null || switchStmt.body.length == 0) {
+        switchStmt.cases = this._switch_body();
+        if (switchStmt.cases == null || switchStmt.cases.length == 0) {
             throw this._error(this._previous(), "Expected 'case' or 'default'.");
         }
         this._consume(TokenTypes.tokens.brace_right, "Expected '}' for switch.");
@@ -10006,7 +10006,7 @@ class WgslDebug {
                 for (let ai = 0; ai < fn.node.args.length; ++ai) {
                     const arg = fn.node.args[ai];
                     const value = this._exec.evalExpression(node.args[ai], fnState.context);
-                    fnState.context.setVariable(arg.name, value, arg);
+                    fnState.context.createVariable(arg.name, value, arg);
                 }
                 fnState.parentCallExpr = node;
                 this._execStack.states.push(fnState);
@@ -10026,7 +10026,7 @@ class WgslDebug {
                         for (let ai = 0; ai < fn.node.args.length; ++ai) {
                             const arg = fn.node.args[ai];
                             const value = this._exec.evalExpression(node.args[ai], fnState.context);
-                            fnState.context.setVariable(arg.name, value, arg);
+                            fnState.context.createVariable(arg.name, value, arg);
                         }
                         this._execStack.states.push(fnState);
                         fnState.context.currentFunctionName = fn.name;
@@ -10257,6 +10257,7 @@ class WgslDebug {
             // already computed value. This allows us to step into the function
             if (statement instanceof Let ||
                 statement instanceof Var ||
+                statement instanceof Const ||
                 statement instanceof Assign) {
                 const functionCalls = [];
                 this._collectFunctionCalls(statement.value, functionCalls);
@@ -10323,6 +10324,62 @@ class WgslDebug {
                     state.commands.push(new BlockCommand(statement.else));
                 }
                 gotoEnd.position = state.commands.length;
+            }
+            else if (statement instanceof Switch) {
+                const functionCalls = [];
+                this._collectFunctionCalls(statement.condition, functionCalls);
+                for (const call of functionCalls) {
+                    state.commands.push(new CallExprCommand(call, statement));
+                }
+                let defaultCase = null;
+                for (const c of statement.cases) {
+                    if (c instanceof Default) {
+                        defaultCase = c;
+                        break;
+                    }
+                    else if (c instanceof Case) {
+                        for (const selector of c.selectors) {
+                            if (selector instanceof DefaultSelector) {
+                                defaultCase = c;
+                                break;
+                            }
+                        }
+                    }
+                }
+                const gotoEndCommands = [];
+                for (const c of statement.cases) {
+                    if (c === defaultCase) {
+                        continue;
+                    }
+                    if (!(c instanceof Case)) {
+                        continue;
+                    }
+                    let lastCondition = null;
+                    for (const selector of c.selectors) {
+                        let conditionExpr = new BinaryOperator("==", statement.condition, selector);
+                        if (lastCondition) {
+                            conditionExpr = new BinaryOperator("||", lastCondition, conditionExpr);
+                        }
+                        lastCondition = conditionExpr;
+                    }
+                    const gotoCommand = new GotoCommand(lastCondition, 0, c.line);
+                    state.commands.push(gotoCommand);
+                    if (c.body.length > 0) {
+                        state.commands.push(new BlockCommand(c.body));
+                    }
+                    const gotoEndCommand = new GotoCommand(null, 0, c.line);
+                    gotoEndCommands.push(gotoEndCommand);
+                    state.commands.push(gotoEndCommand);
+                    gotoCommand.position = state.commands.length;
+                }
+                if (defaultCase) {
+                    state.commands.push(new BlockCommand(defaultCase.body));
+                }
+                state.commands.push(new BreakTargetCommand(statement.id));
+                const commandPos = state.commands.length;
+                for (let i = 0; i < gotoEndCommands.length; ++i) {
+                    gotoEndCommands[i].position = commandPos;
+                }
             }
             else if (statement instanceof While) {
                 const functionCalls = [];

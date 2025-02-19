@@ -577,13 +577,13 @@ class Loop extends Statement {
  * @category AST
  */
 class Switch extends Statement {
-    constructor(condition, body) {
+    constructor(condition, cases) {
         super();
         this.condition = condition;
-        this.body = body;
+        this.cases = cases;
     }
     get astNodeType() {
-        return "body";
+        return "switch";
     }
 }
 /**
@@ -1397,9 +1397,9 @@ class DefaultSelector extends Expression {
  * @category AST
  */
 class Case extends SwitchCase {
-    constructor(selector, body) {
+    constructor(selectors, body) {
         super(body);
-        this.selector = selector;
+        this.selectors = selectors;
     }
     get astNodeType() {
         return "case";
@@ -6589,9 +6589,9 @@ class WgslExec extends ExecInterface {
             return null;
         }
         let defaultCase = null;
-        for (const c of node.body) {
+        for (const c of node.cases) {
             if (c instanceof Case) {
-                for (const selector of c.selector) {
+                for (const selector of c.selectors) {
                     if (selector instanceof DefaultSelector) {
                         defaultCase = c;
                         continue;
@@ -8571,8 +8571,8 @@ class WgslParser {
             this._attribute();
         }
         this._consume(TokenTypes.tokens.brace_left, "Expected '{' for switch.");
-        switchStmt.body = this._switch_body();
-        if (switchStmt.body == null || switchStmt.body.length == 0) {
+        switchStmt.cases = this._switch_body();
+        if (switchStmt.cases == null || switchStmt.cases.length == 0) {
             throw this._error(this._previous(), "Expected 'case' or 'default'.");
         }
         this._consume(TokenTypes.tokens.brace_right, "Expected '}' for switch.");

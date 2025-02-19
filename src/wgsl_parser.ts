@@ -782,8 +782,8 @@ export class WgslParser {
     }
 
     this._consume(TokenTypes.tokens.brace_left, "Expected '{' for switch.");
-    switchStmt.body = this._switch_body();
-    if (switchStmt.body == null || switchStmt.body.length == 0) {
+    switchStmt.cases = this._switch_body();
+    if (switchStmt.cases == null || switchStmt.cases.length == 0) {
       throw this._error(this._previous(), "Expected 'case' or 'default'.");
     }
     this._consume(TokenTypes.tokens.brace_right, "Expected '}' for switch.");
@@ -793,11 +793,11 @@ export class WgslParser {
     return switchStmt;
   }
 
-  _switch_body(): AST.Statement[] {
+  _switch_body(): AST.SwitchCase[] {
     // case case_selectors optional_colon brace_left case_body? brace_right
     // default optional_colon brace_left case_body? brace_right
-    const cases: AST.Statement[] = [];
-    
+    const cases: AST.SwitchCase[] = [];
+
     let hasDefault = false;
     while (this._check([TokenTypes.keywords.default, TokenTypes.keywords.case])) {
       if (this._match(TokenTypes.keywords.case)) {

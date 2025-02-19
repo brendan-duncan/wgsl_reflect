@@ -16,11 +16,11 @@ export async function run() {
                   case 0: { // colon is optional
                     a = 1;
                   }
-                  case 1, c { // Const-expression can be used in case selectors
-                    a = 3;
-                  }
                   case 3, default { // The default keyword can be used with other clauses
                     a = 4;
+                  }
+                  case 1, c { // Const-expression can be used in case selectors
+                    a = 3;
                   }
                 }
                 return a;

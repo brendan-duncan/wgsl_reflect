@@ -245,8 +245,8 @@ export declare class Loop extends Statement {
  */
 export declare class Switch extends Statement {
     condition: Expression;
-    body: Statement[];
-    constructor(condition: Expression, body: Statement[]);
+    cases: SwitchCase[];
+    constructor(condition: Expression, cases: SwitchCase[]);
     get astNodeType(): string;
 }
 /**
@@ -657,8 +657,8 @@ export declare class DefaultSelector extends Expression {
  * @category AST
  */
 export declare class Case extends SwitchCase {
-    selector: Expression[];
-    constructor(selector: Expression[], body: Statement[]);
+    selectors: Expression[];
+    constructor(selectors: Expression[], body: Statement[]);
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;
 }
