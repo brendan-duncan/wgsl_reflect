@@ -44,9 +44,10 @@
   ],
 
   "devDependencies": {
-    "@rollup/plugin-typescript": "^11.1.2",
     "rollup": "^2.60.0",
-    "tslib": "^2.6.1"
+    "tslib": "^2.6.1",
+    "@rollup/plugin-typescript": "^11.1.2",
+    "@rollup/plugin-terser": "^0.4.4"
   },
   "jspm": {
     "files": [
@@ -57,10 +58,6 @@
       "wgsl_reflect.module.js.map",
       "wgsl_reflect.node.js",
       "wgsl_reflect.node.js.map",
-      "wgsl_debugger.module.js",
-      "wgsl_debugger.module.js.map",
-      "wgsl_debugger.node.js",
-      "wgsl_debugger.node.js.map",
       "types"
     ]
   }
