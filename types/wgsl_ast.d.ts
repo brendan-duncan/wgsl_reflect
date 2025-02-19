@@ -644,7 +644,8 @@ export declare class BinaryOperator extends Operator {
  * @category AST
  */
 export declare class SwitchCase extends Node {
-    constructor();
+    body: Statement[];
+    constructor(body: Statement[]);
 }
 export declare class DefaultSelector extends Expression {
     constructor();
@@ -657,7 +658,6 @@ export declare class DefaultSelector extends Expression {
  */
 export declare class Case extends SwitchCase {
     selector: Expression[];
-    body: Statement[];
     constructor(selector: Expression[], body: Statement[]);
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;
@@ -668,7 +668,6 @@ export declare class Case extends SwitchCase {
  * @category AST
  */
 export declare class Default extends SwitchCase {
-    body: Statement[];
     constructor(body: Statement[]);
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;

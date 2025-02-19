@@ -7,6 +7,32 @@ function _newWgslExec(code) {
 
 export async function run() {
     await group("WgslExec", async function () {
+        test("switch default selector", function (test) {
+            const shader = `
+              const c = 2;
+              fn foo(x: i32) -> i32 {
+                var a : i32;
+                switch x {
+                  case 0: { // colon is optional
+                    a = 1;
+                  }
+                  case 1, c { // Const-expression can be used in case selectors
+                    a = 3;
+                  }
+                  case 3, default { // The default keyword can be used with other clauses
+                    a = 4;
+                  }
+                }
+                return a;
+              }
+              let x = foo(2);
+              let y = foo(5);`;
+            const wgsl = _newWgslExec(shader);
+            wgsl.execute();
+            test.equals(wgsl.getVariableValue("x"), 3);
+            test.equals(wgsl.getVariableValue("y"), 4);
+        });
+
         await test("struct shadow", function (test) {
             const shader = `struct Time { frame: u32, elapsed: f32, delta: f32 }
             const time = Time(1, 2.0, 3.0);
@@ -23,6 +49,7 @@ export async function run() {
             // Ensure the top-level instructions were executed and the global variable has the correct value.
             test.equals(wgsl.getVariableValue("frame"), 1.0);
         });
+
         await test("mat array access", function (test) {
             const shader = `const a = mat4x4f(1.0, 0.0, 0.0, 0.0,
                                                 0.0, 1.0, 0.0, 0.0,

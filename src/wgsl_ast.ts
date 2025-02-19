@@ -1510,8 +1510,11 @@ export class BinaryOperator extends Operator {
  * @category AST
  */
 export class SwitchCase extends Node {
-  constructor() {
+  body: Statement[];
+
+  constructor(body: Statement[]) {
     super();
+    this.body = body;
   }
 }
 
@@ -1532,12 +1535,10 @@ export class DefaultSelector extends Expression {
  */
 export class Case extends SwitchCase {
   selector: Expression[];
-  body: Statement[];
 
   constructor(selector: Expression[], body: Statement[]) {
-    super();
+    super(body);
     this.selector = selector;
-    this.body = body;
   }
 
   get astNodeType(): string {
@@ -1555,11 +1556,8 @@ export class Case extends SwitchCase {
  * @category AST
  */
 export class Default extends SwitchCase {
-  body: Statement[];
-
   constructor(body: Statement[]) {
-    super();
-    this.body = body;
+    super(body);
   }
 
   get astNodeType(): string {

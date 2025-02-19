@@ -1378,8 +1378,9 @@ class BinaryOperator extends Operator {
  * @category AST
  */
 class SwitchCase extends Node {
-    constructor() {
+    constructor(body) {
         super();
+        this.body = body;
     }
 }
 class DefaultSelector extends Expression {
@@ -1397,9 +1398,8 @@ class DefaultSelector extends Expression {
  */
 class Case extends SwitchCase {
     constructor(selector, body) {
-        super();
+        super(body);
         this.selector = selector;
-        this.body = body;
     }
     get astNodeType() {
         return "case";
@@ -1415,8 +1415,7 @@ class Case extends SwitchCase {
  */
 class Default extends SwitchCase {
     constructor(body) {
-        super();
-        this.body = body;
+        super(body);
     }
     get astNodeType() {
         return "default";
@@ -6589,9 +6588,14 @@ class WgslExec extends ExecInterface {
             console.error(`Invalid if condition. Line ${node.line}`);
             return null;
         }
+        let defaultCase = null;
         for (const c of node.body) {
             if (c instanceof Case) {
                 for (const selector of c.selector) {
+                    if (selector instanceof DefaultSelector) {
+                        defaultCase = c;
+                        continue;
+                    }
                     const selectorValue = this.evalExpression(selector, context);
                     if (!(selectorValue instanceof ScalarData)) {
                         console.error(`Invalid case selector. Line ${node.line}`);
@@ -6603,8 +6607,11 @@ class WgslExec extends ExecInterface {
                 }
             }
             else if (c instanceof Default) {
-                return this._execStatements(c.body, context);
+                defaultCase = c;
             }
+        }
+        if (defaultCase) {
+            return this._execStatements(defaultCase.body, context);
         }
         return null;
     }
@@ -7489,7 +7496,7 @@ class WgslExec extends ExecInterface {
         for (let ai = 0; ai < f.node.args.length; ++ai) {
             const arg = f.node.args[ai];
             const value = this.evalExpression(node.args[ai], subContext);
-            subContext.setVariable(arg.name, value, arg);
+            subContext.createVariable(arg.name, value, arg);
         }
         return this._execStatements(f.node.body, subContext);
     }
