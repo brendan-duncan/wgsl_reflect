@@ -17,7 +17,7 @@ function build(input, format, file, sourcemap) {
                     drop_debugger: false
                 },
                 output: { quote_style: 1 }
-                })
+            })
         ],
         output: [ { format, file, sourcemap, } ]
     };

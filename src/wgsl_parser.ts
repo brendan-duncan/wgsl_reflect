@@ -1605,7 +1605,9 @@ export class WgslParser {
         }
       }
       value.type = type;
-      this._validateTypeRange(value.scalarValue, value.type);
+      if (value.isScalar) {
+        this._validateTypeRange(value.scalarValue, value.type);
+      }
     } else if (type === null && value instanceof AST.LiteralExpr) {
       type = value?.type ?? AST.Type.f32;
       if (type === AST.Type.x32) {
