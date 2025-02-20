@@ -213,7 +213,8 @@ export class WgslExec extends ExecInterface {
         } else if (stmt instanceof Override) {
             const name = stmt.name;
             if (context.getVariable(name) === null) {
-                console.error(`Override constant ${name} not found. Line ${stmt.line}`);
+                context.setVariable(name, new ScalarData(0, this.getTypeInfo("u32")));
+                //console.error(`Override constant ${name} not found. Line ${stmt.line}`);
             }
         } else if (stmt instanceof Call) {
             this._call(stmt, context);
