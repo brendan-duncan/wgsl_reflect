@@ -260,7 +260,7 @@ export class WgslDebug {
         }*/
         this._exec._execStatements(this._exec.ast, context);
 
-        const f = context.functions.get(kernel);
+        const f = context.getFunction(kernel);
         if (!f) {
             console.error(`Function ${kernel} not found`);
             return false;
@@ -443,7 +443,7 @@ export class WgslDebug {
 
             if (stepInto && command instanceof CallExprCommand) {
                 const node = command.node;
-                const fn = state.context.functions.get(node.name);
+                const fn = state.context.getFunction(node.name);
                 if (!fn) {
                     continue; // it's not a custom function, step over it
                 }
@@ -466,7 +466,7 @@ export class WgslDebug {
             } else if (command instanceof StatementCommand) {
                 const node = command.node;
                 if (node instanceof AST.Call) {
-                    const fn = state.context.functions.get(node.name);
+                    const fn = state.context.getFunction(node.name);
                     // We want to step into custom functions, not directly execute them
                     if (fn) {
                         const fnState = this._createState(fn.node.body, state.context.clone(), state);

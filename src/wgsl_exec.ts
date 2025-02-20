@@ -94,7 +94,7 @@ export class WgslExec extends ExecInterface {
 
         this._execStatements(this.ast, context);
 
-        const f = context.functions.get(kernel);
+        const f = context.getFunction(kernel);
         if (!f) {
             console.error(`Function ${kernel} not found`);
             return;
@@ -447,7 +447,7 @@ export class WgslExec extends ExecInterface {
         const subContext = context.clone();
         subContext.currentFunctionName = node.name;
 
-        const f = context.functions.get(node.name);
+        const f = context.getFunction(node.name);
         if (!f) {
             this._callBuiltinFunction(node, subContext);
             return;
@@ -1791,7 +1791,7 @@ export class WgslExec extends ExecInterface {
         const subContext = context.clone();
         subContext.currentFunctionName = node.name;
 
-        const f = context.functions.get(node.name);
+        const f = context.getFunction(node.name);
         if (!f) {
             return this._callBuiltinFunction(node, subContext);
         }

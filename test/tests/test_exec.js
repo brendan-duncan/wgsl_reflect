@@ -7,6 +7,22 @@ function _newWgslExec(code) {
 
 export async function run() {
     await group("WgslExec", async function () {
+        test("struct construction in return", function (test) {
+            const shader = `
+                struct Foo {
+                    a: i32,
+                    b: f32
+                }
+                fn foo() -> Foo {
+                    return Foo(1, 2.0);
+                }
+                let bar = foo();
+                let baz = bar.a + bar.b;`;
+            const wgsl = _newWgslExec(shader);
+            wgsl.execute();
+            test.equals(wgsl.getVariableValue("baz"), 3.0);
+        });
+
         test("switch default selector", function (test) {
             const shader = `
               const c = 2;
