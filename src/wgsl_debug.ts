@@ -213,6 +213,30 @@ export class WgslDebug {
         }
     }
 
+    _setOverrides(constants: Object, context: ExecContext): void {
+        for (const k in constants) {
+            const v = constants[k];
+            const override = this._exec.reflection.getOverrideInfo(k);
+            if (override !== null) {
+                if (override.type.name === "u32" || override.type.name === "i32" || override.type.name === "f32" || override.type.name === "f16") {
+                    context.setVariable(k, new AST.ScalarData(v, override.type));
+                } else if (override.type.name === "bool") {
+                    context.setVariable(k, new AST.ScalarData(v ? 1 : 0, override.type));
+                } else if (override.type.name === "vec2" || override.type.name === "vec3" || override.type.name === "vec4" ||
+                    override.type.name === "vec2f" || override.type.name === "vec3f" || override.type.name === "vec4f" ||
+                    override.type.name === "vec2i" || override.type.name === "vec3i" || override.type.name === "vec4i" ||
+                    override.type.name === "vec2u" || override.type.name === "vec3u" || override.type.name === "vec4u" ||
+                    override.type.name === "vec2h" || override.type.name === "vec3h" || override.type.name === "vec4h") {
+                    context.setVariable(k, new AST.VectorData(v, override.type));
+                } else {
+                    console.error(`Invalid constant type for ${k}`);
+                }
+            } else {
+                console.error(`Override ${k} does not exist in the shader.`);
+            }
+        }
+    }
+
     debugWorkgroup(kernel: string, dispatchId: number[], 
         dispatchCount: number | number[], bindGroups: Object, config?: Object): boolean {
 
@@ -225,10 +249,7 @@ export class WgslDebug {
 
         config = config ?? {};
         if (config["constants"]) {
-            for (const k in config["constants"]) {
-                const v = config["constants"][k];
-                context.setVariable(k, v);
-            }
+            this._setOverrides(config["constants"], context);
         }
 
         // Use this to debug the top level statements, otherwise call _execStatements.
@@ -617,7 +638,16 @@ export class WgslDebug {
                         }
                     }
                 } else {
-                    workgroupSize[0] = parseInt(attr.value);
+                    const v = context.getVariableValue(attr.value);
+                    if (v instanceof AST.ScalarData) {
+                        workgroupSize[0] = v.value;
+                    } else if (v instanceof AST.VectorData) {
+                        workgroupSize[0] = v.value[0];
+                        workgroupSize[1] = v.value.length > 1 ? v.value[1] : 1;
+                        workgroupSize[2] = v.value.length > 2 ? v.value[2] : 1;
+                    } else {
+                        workgroupSize[0] = parseInt(attr.value);
+                    }
                 }
             }
         }
