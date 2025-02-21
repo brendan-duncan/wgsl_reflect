@@ -7,6 +7,22 @@ function _newWgslExec(code) {
 
 export async function run() {
     await group("WgslExec", async function () {
+        test("any vec2", function (test) {
+            const shader = `
+                fn foo() -> i32 {
+                    let dims = vec2u(3, 4);
+                    let coord = vec2u(1, 2);
+                    if (all(coord < dims)) {
+                        return 1;
+                    }
+                    return 0;
+                }
+                let bar = foo();`;
+            const wgsl = _newWgslExec(shader);
+            wgsl.execute();
+            test.equals(wgsl.getVariableValue("bar"), 1);
+        });
+
         test("struct construction in return", function (test) {
             const shader = `
                 struct Foo {

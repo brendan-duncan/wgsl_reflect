@@ -174,10 +174,12 @@ export class While extends Statement {
  */
 export class Continuing extends Statement {
   body: Statement[];
+  loopId: number;
 
-  constructor(body: Statement[]) {
+  constructor(body: Statement[], loopId: number) {
     super();
     this.body = body;
+    this.loopId = loopId;
   }
 
   get astNodeType(): string {

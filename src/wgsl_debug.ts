@@ -921,7 +921,7 @@ export class WgslDebug {
                 state.commands.push(new GotoCommand(null, loopStartPos, lastLine));
                 state.commands.push(new BreakTargetCommand(statement.id));
             } else if (statement instanceof AST.Continuing) {
-                state.commands.push(new ContinueTargetCommand(statement.id));
+                state.commands.push(new ContinueTargetCommand(statement.loopId));
                 state.commands.push(new BlockCommand(statement.body));
             } else if (statement instanceof AST.Continue) {
                 state.commands.push(new ContinueCommand(statement.loopId, statement));

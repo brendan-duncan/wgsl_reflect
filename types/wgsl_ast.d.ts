@@ -86,7 +86,8 @@ export declare class While extends Statement {
  */
 export declare class Continuing extends Statement {
     body: Statement[];
-    constructor(body: Statement[]);
+    loopId: number;
+    constructor(body: Statement[], loopId: number);
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;
 }

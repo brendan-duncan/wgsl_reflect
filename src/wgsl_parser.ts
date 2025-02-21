@@ -513,11 +513,12 @@ export class WgslParser {
   }
 
   _continuing_statement(): AST.Continuing | null {
+    const loopId = this._currentLoop.length > 0 ? this._currentLoop[this._currentLoop.length - 1].id : -1;
     if (!this._match(TokenTypes.keywords.continuing)) {
       return null;
     }
     const block = this._compound_statement();
-    return this._updateNode(new AST.Continuing(block));
+    return this._updateNode(new AST.Continuing(block, loopId));
   }
 
   _for_statement(): AST.For | null {
