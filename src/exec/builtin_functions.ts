@@ -916,7 +916,8 @@ export class BuiltinFunctions {
             const textureName = (textureArg as VariableExpr).name;
             const texture = context.getVariableValue(textureName);
             if (texture instanceof TypedData) {
-                return new VectorData(texture.textureSize, this.getTypeInfo("vec2u"));
+                const textureSize = texture.textureSize.slice(0, 2);
+                return new VectorData(textureSize, this.getTypeInfo("vec2u"));
             } else {
                 console.error(`Texture ${textureName} not found. Line ${node.line}`);
                 return null;
@@ -978,7 +979,21 @@ export class BuiltinFunctions {
     }
 
     TextureNumLayers(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: textureNumLayers");
+        const textureArg = node.args[0];
+
+        if (textureArg instanceof VariableExpr) {
+            const textureName = (textureArg as VariableExpr).name;
+            const texture = context.getVariableValue(textureName);
+            if (texture instanceof TypedData) {
+                if (texture.textureSize.length === 3) {
+                    return new ScalarData(texture.textureSize[2], this.getTypeInfo("u32"));
+                }
+            } else {
+                console.error(`Texture ${textureName} not found. Line ${node.line}`);
+                return null;
+            }
+        }
+        console.error(`Invalid texture argument for textureDimensions. Line ${node.line}`);
         return null;
     }
 
@@ -1030,7 +1045,10 @@ export class BuiltinFunctions {
     TextureStore(node: CallExpr | Call, context: ExecContext): Data | null {
         const textureArg = node.args[0];
         const uv = this.exec.evalExpression(node.args[1], context);
-        const value = (this.exec.evalExpression(node.args[2], context) as VectorData).value;
+        const index = (node.args.length === 4) ? (this.exec.evalExpression(node.args[2], context) as ScalarData).value : 0;
+        const value = (node.args.length === 4) ? (this.exec.evalExpression(node.args[3], context) as VectorData).value :
+            (this.exec.evalExpression(node.args[2], context) as VectorData).value;
+
         if (value.length !== 4) {
             console.error(`Invalid value argument for textureStore. Line ${node.line}`);
             return null;
