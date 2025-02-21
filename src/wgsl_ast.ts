@@ -2016,16 +2016,12 @@ export class MatrixData extends Data {
 export class TypedData extends Data {
   buffer: ArrayBuffer;
   offset: number;
-  textureSize: number[] = [0, 0, 0];
 
   constructor(data: ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array,
-      typeInfo: TypeInfo, offset: number = 0, textureSize?: number[]) {
+      typeInfo: TypeInfo, offset: number = 0) {
       super(typeInfo);
       this.buffer = data instanceof ArrayBuffer ? data : data.buffer;
       this.offset = offset;
-      if (textureSize !== undefined) {
-          this.textureSize = textureSize;
-      }
   }
 
   setDataValue(exec: ExecInterface, value: Data, postfix: Expression | null, context: ExecContext): void {
@@ -2765,5 +2761,17 @@ export class TypedData extends Data {
           s = `[...]`;
       }
       return s;
+  }
+}
+
+export class TextureData extends TypedData {
+  textureSize: number[] = [0, 0, 0];
+  viewDescriptor: Object | null = null;
+  descriptor: Object | null = null;
+
+  constructor(data: ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array,
+      typeInfo: TypeInfo, offset: number, textureSize: number[]) {
+      super(data, typeInfo, offset);
+      this.textureSize = textureSize;
   }
 }

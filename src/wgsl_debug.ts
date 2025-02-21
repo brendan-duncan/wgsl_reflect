@@ -305,7 +305,10 @@ export class WgslDebug {
                         if (binding == b && set == s) {
                             if (entry.texture !== undefined && entry.size !== undefined) {
                                 // Texture
-                                v.value = new AST.TypedData(entry.texture, this._exec.getTypeInfo(node.type), 0, entry.size);
+                                const textureData = new AST.TextureData(entry.texture, this._exec.getTypeInfo(node.type), 0, entry.size);
+                                v.value = textureData;
+                                textureData.viewDescriptor = entry.texture.view ?? null;
+                                textureData.descriptor = entry.texture.descriptor ?? null;
                             } else if (entry.uniform !== undefined) {
                                 // Uniform buffer
                                 v.value = new AST.TypedData(entry.uniform, this._exec.getTypeInfo(node.type));

@@ -756,10 +756,15 @@ export declare class MatrixData extends Data {
 export declare class TypedData extends Data {
     buffer: ArrayBuffer;
     offset: number;
-    textureSize: number[];
-    constructor(data: ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array, typeInfo: TypeInfo, offset?: number, textureSize?: number[]);
+    constructor(data: ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array, typeInfo: TypeInfo, offset?: number);
     setDataValue(exec: ExecInterface, value: Data, postfix: Expression | null, context: ExecContext): void;
     setData(exec: ExecInterface, value: Data, typeInfo: TypeInfo, offset: number, context: ExecContext): void;
     getDataValue(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null;
     toString(): string;
+}
+export declare class TextureData extends TypedData {
+    textureSize: number[];
+    viewDescriptor: Object | null;
+    descriptor: Object | null;
+    constructor(data: ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array, typeInfo: TypeInfo, offset: number, textureSize: number[]);
 }

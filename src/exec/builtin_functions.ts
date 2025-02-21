@@ -1,8 +1,8 @@
 import { CallExpr, Call, UnaryOperator, VariableExpr,
-    Data, TypedData, ScalarData, VectorData, MatrixData } from "../wgsl_ast.js";
+    Data, TypedData, TextureData, ScalarData, VectorData, MatrixData } from "../wgsl_ast.js";
 import { ExecContext } from "./exec_context.js";
 import { ExecInterface } from "./exec_interface.js";
-import { ArrayInfo, TemplateInfo, TypeInfo } from "../reflect/info.js";
+import { ArrayInfo, TypeInfo } from "../reflect/info.js";
 
 export class BuiltinFunctions {
     exec: ExecInterface;
@@ -915,7 +915,7 @@ export class BuiltinFunctions {
         if (textureArg instanceof VariableExpr) {
             const textureName = (textureArg as VariableExpr).name;
             const texture = context.getVariableValue(textureName);
-            if (texture instanceof TypedData) {
+            if (texture instanceof TextureData) {
                 const textureSize = texture.textureSize.slice(0, 2);
                 return new VectorData(textureSize, this.getTypeInfo("vec2u"));
             } else {
@@ -955,7 +955,7 @@ export class BuiltinFunctions {
         if (textureArg instanceof VariableExpr) {
             const textureName = (textureArg as VariableExpr).name;
             const texture = context.getVariableValue(textureName);
-            if (texture instanceof TypedData) {
+            if (texture instanceof TextureData) {
                 const textureSize = texture.textureSize;
                 const x = Math.floor(uv.value[0]);
                 const y = Math.floor(uv.value[1]);
@@ -984,7 +984,7 @@ export class BuiltinFunctions {
         if (textureArg instanceof VariableExpr) {
             const textureName = (textureArg as VariableExpr).name;
             const texture = context.getVariableValue(textureName);
-            if (texture instanceof TypedData) {
+            if (texture instanceof TextureData) {
                 if (texture.textureSize.length === 3) {
                     return new ScalarData(texture.textureSize[2], this.getTypeInfo("u32"));
                 }
@@ -1063,7 +1063,7 @@ export class BuiltinFunctions {
         if (textureArg instanceof VariableExpr) {
             const textureName = (textureArg as VariableExpr).name;
             const texture = context.getVariableValue(textureName);
-            if (texture instanceof TypedData) {
+            if (texture instanceof TextureData) {
                 const textureSize = texture.textureSize;
                 const x = Math.floor(uv.value[0]);
                 const y = Math.floor(uv.value[1]);
