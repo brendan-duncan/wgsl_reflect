@@ -2774,4 +2774,32 @@ export class TextureData extends TypedData {
       super(data, typeInfo, offset);
       this.textureSize = textureSize;
   }
+
+  get format(): string {
+    if (this.descriptor) {
+      return this.descriptor["format"] ?? "rgba8unorm";
+    }
+    return "rgba8unorm";
+  }
+
+  get sampleCount(): number {
+    if (this.descriptor) {
+      return this.descriptor["sampleCount"] ?? 1;
+    }
+    return 1;
+  }
+
+  get mipLevelCount(): number {
+    if (this.descriptor) {
+      return this.descriptor["mipLevelCount"] ?? 1;
+    }
+    return 1;
+  }
+
+  get dimension(): string {
+    if (this.descriptor) {
+      return this.descriptor["dimension"] ?? "2d";
+    }
+    return "2d";
+  }
 }

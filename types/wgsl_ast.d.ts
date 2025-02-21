@@ -767,4 +767,8 @@ export declare class TextureData extends TypedData {
     viewDescriptor: Object | null;
     descriptor: Object | null;
     constructor(data: ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array, typeInfo: TypeInfo, offset: number, textureSize: number[]);
+    get format(): string;
+    get sampleCount(): number;
+    get mipLevelCount(): number;
+    get dimension(): string;
 }
