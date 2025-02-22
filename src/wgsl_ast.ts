@@ -2,6 +2,8 @@ import { WgslExec } from "./wgsl_exec.js";
 import { TypeInfo, ArrayInfo, StructInfo, TemplateInfo } from "./reflect/info.js";
 import { ExecInterface } from "./exec/exec_interface.js";
 import { ExecContext } from "./exec/exec_context.js";
+import { TextureFormatInfo } from "./utils/texture_format_info.js";
+import { getTexturePixel } from "./utils/texture_sample.js";
 
 export class ParseContext {
   constants: Map<string, Const> = new Map();
@@ -2765,14 +2767,44 @@ export class TypedData extends Data {
 }
 
 export class TextureData extends TypedData {
-  textureSize: number[] = [0, 0, 0];
-  viewDescriptor: Object | null = null;
-  descriptor: Object | null = null;
+  descriptor: Object;
+  view: Object | null;
 
   constructor(data: ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array,
-      typeInfo: TypeInfo, offset: number, textureSize: number[]) {
+      typeInfo: TypeInfo, offset: number, descriptor: Object, view: Object | null) {
       super(data, typeInfo, offset);
-      this.textureSize = textureSize;
+      this.descriptor = descriptor;
+      this.view = view;
+  }
+
+  get width(): number {
+    const size = this.descriptor["size"];
+    if (size instanceof Array && size.length > 0) {
+      return size[0] ?? 0;
+    } else if (size instanceof Object) {
+      return size["width"] ?? 0;
+    }
+    return 0;
+  }
+
+  get height(): number {
+    const size = this.descriptor["size"];
+    if (size instanceof Array && size.length > 1) {
+      return size[1] ?? 0;
+    } else if (size instanceof Object) {
+      return size["height"] ?? 0;
+    }
+    return 0;
+  }
+
+  get depthOrArrayLayers(): number {
+    const size = this.descriptor["size"];
+    if (size instanceof Array && size.length > 2) {
+      return size[2] ?? 0;
+    } else if (size instanceof Object) {
+      return size["depthOrArrayLayers"] ?? 0;
+    }
+    return 0;
   }
 
   get format(): string {
@@ -2801,5 +2833,72 @@ export class TextureData extends TypedData {
       return this.descriptor["dimension"] ?? "2d";
     }
     return "2d";
+  }
+
+  getMipLevelSize(level: number): number[] {
+    if (level >= this.mipLevelCount) {
+      return [0, 0, 0];
+    }
+
+    const size = [this.width, this.height, this.depthOrArrayLayers];
+    for (let i = 0; i < size.length; ++i) {
+      size[i] = Math.max(1, size[i] >> level);
+    }
+
+    return size;
+  }
+
+  get texelByteSize() {
+    const format = this.format;
+    const formatInfo = TextureFormatInfo[format];
+    if (!formatInfo) {
+      return 0;
+    }
+    if (formatInfo.isDepthStencil) {
+      return 4; // depth textures have r32float imageData
+    }
+    return formatInfo.bytesPerBlock;
+  }
+
+  get bytesPerRow() {
+    const width = this.width;
+    const texelByteSize = this.texelByteSize;
+    //return (width * texelByteSize + 255) & ~0xff; // bytesPerRow is aligned to a multiple of 256 bytes
+    return width * texelByteSize;
+  }
+
+  get isDepthStencil() {
+    const format = this.format;
+    const formatInfo = TextureFormatInfo[format];
+    if (!formatInfo) {
+      return false;
+    }
+    return formatInfo.isDepthStencil;
+  }
+
+  getGpuSize() {
+    const format = this.format;
+    const formatInfo = TextureFormatInfo[format];
+    const width = this.width;
+    if (!format || width <= 0 || !formatInfo) {
+      return -1;
+    }
+
+    const height = this.height;
+    const depthOrArrayLayers = this.depthOrArrayLayers;
+    const dimension = this.dimension;
+    const blockWidth = width / formatInfo.blockWidth;
+    const blockHeight = dimension === "1d" ? 1 : height / formatInfo.blockHeight;
+    const bytesPerBlock = formatInfo.bytesPerBlock;
+
+    return blockWidth * blockHeight * bytesPerBlock * depthOrArrayLayers;
+  }
+
+  getPixel(x: number, y: number, z: number = 0, mipLevel: number = 0): number[] | null {
+    const texelByteSize = this.texelByteSize;
+    const bytesPerRow = this.bytesPerRow;
+    const height = this.height;
+    const imageData = new Uint8Array(this.buffer);
+    return getTexturePixel(imageData, x, y, z, mipLevel, height, bytesPerRow, texelByteSize, this.format);
   }
 }

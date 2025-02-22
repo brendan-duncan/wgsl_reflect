@@ -1,7 +1,7 @@
 
 export class Test {
     static isArray(obj) {
-        return obj && (obj.constructor === Array || 
+        return obj && (obj.constructor === Array ||
             (obj.buffer && obj.buffer.constructor === ArrayBuffer));
     }
 
@@ -308,7 +308,7 @@ async function getWebGPUDevice() {
     }
     const adapter = await navigator.gpu.requestAdapter();
     __device = await adapter.requestDevice();
-    
+
     __device.addEventListener('uncapturederror', (event) => {
         console.error(event.error.message);
     });
@@ -362,22 +362,12 @@ export async function webgpuDispatch(shader, module, dispatchCount, bindgroupDat
                     bindGroups[group] = [];
                 }
                 bindGroups[group].push({ binding, resource: { buffer: uniformBuffer } });
-            } else if (data.texture !== undefined && data.size !== undefined) {
-                let flags = GPUTextureUsage.TEXTURE_BINDING;
-                if (data.storage) {
-                    flags |= GPUTextureUsage.STORAGE_BINDING;
-                }
-                const texture = device.createTexture({
-                    dimension: "2d",
-                    format: "rgba8unorm",
-                    mipLevelCount: 1,
-                    sampleCount: 1,
-                    size: data.size,
-                    usage: GPUTextureUsage.COPY_DST | flags
-                });
+            } else if (data.texture !== undefined && data.descriptor !== undefined) {
+                const texture = device.createTexture(data.descriptor);
 
-                device.queue.writeTexture({ texture }, data.texture, {bytesPerRow: data.size[0] * 4},
-                    {width: data.size[0], height: data.size[1]});
+                // hard-coded to assume 4 bytes per pixel and no mips
+                device.queue.writeTexture({ texture }, data.texture, {bytesPerRow: data.descriptor.size[0] * 4},
+                    {width: data.descriptor.size[0], height: data.descriptor.size[1]});
 
                 bindGroups[group].push({ binding, resource: texture.createView() });
             }

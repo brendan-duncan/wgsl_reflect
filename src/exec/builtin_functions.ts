@@ -907,16 +907,16 @@ export class BuiltinFunctions {
     TextureDimensions(node: CallExpr | Call, context: ExecContext): Data | null {
         const textureArg = node.args[0];
         const level = node.args.length > 1 ? (this.exec.evalExpression(node.args[1], context) as ScalarData).value : 0;
-        if (level > 0) {
-            console.error(`TODO: Mip levels. Line ${node.line}`);
-            return null;
-        }
-
         if (textureArg instanceof VariableExpr) {
             const textureName = (textureArg as VariableExpr).name;
             const texture = context.getVariableValue(textureName);
             if (texture instanceof TextureData) {
-                const textureSize = texture.textureSize.slice(0, 2);
+                if (level < 0 || level >= texture.mipLevelCount) {
+                    console.error(`Invalid mip level for textureDimensions. Line ${node.line}`);
+                    return null;
+                }
+
+                const textureSize = texture.getMipLevelSize(level);
                 return new VectorData(textureSize, this.getTypeInfo("vec2u"));
             } else {
                 console.error(`Texture ${textureName} not found. Line ${node.line}`);
@@ -956,18 +956,20 @@ export class BuiltinFunctions {
             const textureName = (textureArg as VariableExpr).name;
             const texture = context.getVariableValue(textureName);
             if (texture instanceof TextureData) {
-                const textureSize = texture.textureSize;
                 const x = Math.floor(uv.value[0]);
                 const y = Math.floor(uv.value[1]);
-                if (x < 0 || x >= textureSize[0] || y < 0 || y >= textureSize[1]) {
+                if (x < 0 || x >= texture.width || y < 0 || y >= texture.height) {
                     console.error(`Texture ${textureName} out of bounds. Line ${node.line}`);
                     return null;
                 }
-                // TODO non RGBA8 textures
-                const offset = (y * textureSize[0] + x) * 4; 
-                const texel = new Uint8Array(texture.buffer, offset, 4);
-                // TODO: non-f32 textures
-                return new VectorData([texel[0] / 255, texel[1] / 255, texel[2] / 255, texel[3] / 255], this.getTypeInfo("vec4f"));
+
+                const texel = texture.getPixel(x, y, 0, level);
+                if (texel === null) {
+                    console.error(`Invalid texture format for textureLoad. Line ${node.line}`);
+                    return null;
+                }
+
+                return new VectorData(texel, this.getTypeInfo("vec4f"));
             } else {
                 console.error(`Texture ${textureName} not found. Line ${node.line}`);
                 return null;
@@ -980,30 +982,49 @@ export class BuiltinFunctions {
 
     TextureNumLayers(node: CallExpr | Call, context: ExecContext): Data | null {
         const textureArg = node.args[0];
-
         if (textureArg instanceof VariableExpr) {
             const textureName = (textureArg as VariableExpr).name;
             const texture = context.getVariableValue(textureName);
             if (texture instanceof TextureData) {
-                if (texture.textureSize.length === 3) {
-                    return new ScalarData(texture.textureSize[2], this.getTypeInfo("u32"));
-                }
+                return new ScalarData(texture.depthOrArrayLayers, this.getTypeInfo("u32"));
             } else {
                 console.error(`Texture ${textureName} not found. Line ${node.line}`);
                 return null;
             }
         }
-        console.error(`Invalid texture argument for textureDimensions. Line ${node.line}`);
+        console.error(`Invalid texture argument for textureNumLayers. Line ${node.line}`);
         return null;
     }
 
     TextureNumLevels(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: textureNumLevels");
+        const textureArg = node.args[0];
+        if (textureArg instanceof VariableExpr) {
+            const textureName = (textureArg as VariableExpr).name;
+            const texture = context.getVariableValue(textureName);
+            if (texture instanceof TextureData) {
+                return new ScalarData(texture.mipLevelCount, this.getTypeInfo("u32"));
+            } else {
+                console.error(`Texture ${textureName} not found. Line ${node.line}`);
+                return null;
+            }
+        }
+        console.error(`Invalid texture argument for textureNumLevels. Line ${node.line}`);
         return null;
     }
 
     TextureNumSamples(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: textureNumSamples");
+        const textureArg = node.args[0];
+        if (textureArg instanceof VariableExpr) {
+            const textureName = (textureArg as VariableExpr).name;
+            const texture = context.getVariableValue(textureName);
+            if (texture instanceof TextureData) {
+                return new ScalarData(texture.sampleCount, this.getTypeInfo("u32"));
+            } else {
+                console.error(`Texture ${textureName} not found. Line ${node.line}`);
+                return null;
+            }
+        }
+        console.error(`Invalid texture argument for textureNumSamples. Line ${node.line}`);
         return null;
     }
 
@@ -1064,7 +1085,7 @@ export class BuiltinFunctions {
             const textureName = (textureArg as VariableExpr).name;
             const texture = context.getVariableValue(textureName);
             if (texture instanceof TextureData) {
-                const textureSize = texture.textureSize;
+                const textureSize = texture.getMipLevelSize(0);
                 const x = Math.floor(uv.value[0]);
                 const y = Math.floor(uv.value[1]);
                 if (x < 0 || x >= textureSize[0] || y < 0 || y >= textureSize[1]) {

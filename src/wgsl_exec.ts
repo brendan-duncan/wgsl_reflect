@@ -137,12 +137,11 @@ export class WgslExec extends ExecInterface {
                             }
                         }
                         if (binding == b && set == s) {
-                            if (entry.texture !== undefined && entry.size !== undefined) {
+                            if (entry.texture !== undefined && entry.descriptor !== undefined) {
                                 // Texture
-                                const textureData = new TextureData(entry.texture, this.getTypeInfo(node.type), 0, entry.size);
+                                const textureData = new TextureData(entry.texture, this.getTypeInfo(node.type), 0, entry.descriptor,
+                                        entry.texture.view ?? null);
                                 v.value = textureData;
-                                textureData.viewDescriptor = entry.texture.view ?? null;
-                                textureData.descriptor = entry.texture.descriptor ?? null;
                             } else if (entry.uniform !== undefined) {
                                 // Uniform buffer
                                 v.value = new TypedData(entry.uniform, this.getTypeInfo(node.type));

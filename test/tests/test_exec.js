@@ -587,7 +587,29 @@ export async function run() {
                     }
                 }
 
-                const bg = {0: {0: histogramBuffer, 1: {texture: inTexture, size}, 2: {texture: outTexture, size, storage:1}}};
+                const descriptor = {
+                    dimension: "2d",
+                    size: size,
+                    mipLevelCount: 1,
+                    sampleCount: 1,
+                    format: "rgba8unorm",
+                    usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+                };
+
+                const storageDescriptor = {
+                    dimension: "2d",
+                    size: size,
+                    mipLevelCount: 1,
+                    sampleCount: 1,
+                    format: "rgba8unorm",
+                    usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.STORAGE_BINDING
+                };
+
+                const bg = {0: {
+                    0: histogramBuffer,
+                    1: {texture: inTexture, descriptor},
+                    2: {texture: outTexture, descriptor: storageDescriptor}
+                }};
 
                 const _data = await webgpuDispatch(shader, "main", 1, bg);
                 const webgpuData = new Uint32Array(_data);
@@ -635,7 +657,16 @@ export async function run() {
                 }
             }
 
-            const bg = {0: {0: histogramBuffer, 1: {texture, size}}};
+            const descriptor = {
+                dimension: "2d",
+                size,
+                mipLevelCount: 1,
+                sampleCount: 1,
+                format: "rgba8unorm",
+                usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+            };
+
+            const bg = {0: {0: histogramBuffer, 1: {texture, descriptor}}};
 
             const _data = await webgpuDispatch(shader, "main", 1, bg);
             const webgpuData = new Uint32Array(_data);

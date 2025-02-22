@@ -763,12 +763,20 @@ export declare class TypedData extends Data {
     toString(): string;
 }
 export declare class TextureData extends TypedData {
-    textureSize: number[];
-    viewDescriptor: Object | null;
-    descriptor: Object | null;
-    constructor(data: ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array, typeInfo: TypeInfo, offset: number, textureSize: number[]);
+    descriptor: Object;
+    view: Object | null;
+    constructor(data: ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array, typeInfo: TypeInfo, offset: number, descriptor: Object, view: Object | null);
+    get width(): number;
+    get height(): number;
+    get depthOrArrayLayers(): number;
     get format(): string;
     get sampleCount(): number;
     get mipLevelCount(): number;
     get dimension(): string;
+    getMipLevelSize(level: number): number[];
+    get texelByteSize(): any;
+    get bytesPerRow(): number;
+    get isDepthStencil(): any;
+    getGpuSize(): number;
+    getPixel(x: number, y: number, z?: number, mipLevel?: number): number[] | null;
 }
