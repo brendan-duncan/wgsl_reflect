@@ -1,9 +1,9 @@
 import { Node, Type, TemplateType, Return, Break, Continue, Let, Var, Const,
     If, For, While, Loop, Continuing, Assign, Increment, Struct, Override,
-    Call, Diagnostic, Alias, GroupingExpr, BinaryOperator, LiteralExpr,
+    Call, Diagnostic, Alias, GroupingExpr, BinaryOperator, LiteralExpr, Expression,
     VariableExpr, CallExpr, CreateExpr, ConstExpr, BitcastExpr, UnaryOperator,
     ArrayIndex, StringExpr, Function, Switch, SwitchCase, Case, Default, DefaultSelector,
-    Data, ScalarData, VectorData, MatrixData, TypedData, TextureData, VoidData } from "./wgsl_ast.js";
+    Data, ScalarData, VectorData, MatrixData, TypedData, TextureData, VoidData, PointerData } from "./wgsl_ast.js";
 import { Reflect } from "./reflect/reflect.js";
 import { TypeInfo, StructInfo, ArrayInfo, TemplateInfo } from "./reflect/info.js";
 import { ExecContext, FunctionRef } from "./exec/exec_context.js";
@@ -489,8 +489,36 @@ export class WgslExec extends ExecInterface {
     }
 
     _assign(node: Assign, context: ExecContext): void {
-        const name = this.getVariableName(node.variable, context);
-        const v = context.getVariable(name);
+        let v: Data | null = null;
+        let name: string = "<var>";
+
+        let postfix: Expression | null = null;
+
+        if (node.variable instanceof UnaryOperator) {
+            if (node.variable.operator === "*") {
+                name = this.getVariableName(node.variable.right, context);
+                const _var = context.getVariable(name);
+                if (_var && _var.value instanceof PointerData) {
+                    v = _var.value.reference;
+                } else {
+                    console.error(`Variable ${name} is not a pointer. Line ${node.line}`);
+                    return;
+                }
+
+                if (node.variable.postfix) {
+                    v = v.getDataValue(this, node.variable.postfix, context);
+                }
+            }
+        } else {
+            postfix = node.variable.postfix;
+            name = this.getVariableName(node.variable, context);
+            const _var = context.getVariable(name);
+            if (_var === null) {
+                console.error(`Variable ${name} not found. Line ${node.line}`);
+                return;
+            }
+            v = _var.value;
+        }
 
         if (v === null) {
             console.error(`Variable ${name} not found. Line ${node.line}`);
@@ -501,7 +529,7 @@ export class WgslExec extends ExecInterface {
 
         const op = node.operator;
         if (op !== "=") {
-            const currentValue = v.value.getDataValue(this, node.variable.postfix, context);
+            const currentValue = v.getDataValue(this, postfix, context);
 
             if (currentValue instanceof VectorData && value instanceof ScalarData) {
                 const cv = currentValue.value;
@@ -632,203 +660,212 @@ export class WgslExec extends ExecInterface {
 
             // If the variable is a TypedData, as in a struct or array, and we're assigning a
             // sub portion of it, set the data in the original buffer.
-            if (v.value instanceof TypedData) {
-                v.value.setDataValue(this, currentValue, node.variable.postfix, context);
+            if (v instanceof TypedData) {
+                v.setDataValue(this, currentValue, postfix, context);
             }
 
             return;
         }
 
-        if (v.value instanceof TypedData) {
-            v.value.setDataValue(this, value, node.variable.postfix, context);
-        } else if (node.variable.postfix) {
-            if (!(v.value instanceof VectorData) && !(v.value instanceof MatrixData)) {
-                console.error(`Variable ${v.name} is not a vector or matrix. Line ${node.line}`);
+        if (v instanceof TypedData) {
+            v.setDataValue(this, value, postfix, context);
+        } else if (postfix) {
+            if (!(v instanceof VectorData) && !(v instanceof MatrixData)) {
+                console.error(`Variable ${name} is not a vector or matrix. Line ${node.line}`);
                 return;
             }
 
-            if (node.variable.postfix instanceof ArrayIndex) {
-                const idx = (this.evalExpression(node.variable.postfix.index, context) as ScalarData).value;
+            if (postfix instanceof ArrayIndex) {
+                const idx = (this.evalExpression(postfix.index, context) as ScalarData).value;
 
-                if (v.value instanceof VectorData) {
+                if (v instanceof VectorData) {
                     if (value instanceof ScalarData) {
-                        v.value.value[idx] = value.value;
+                        v.value[idx] = value.value;
                     } else {
-                        console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
+                        console.error(`Invalid assignment to ${name}. Line ${node.line}`);
                         return;
                     }
                 } else if (v.value instanceof MatrixData) {
-                    const idx = (this.evalExpression(node.variable.postfix.index, context) as ScalarData).value;
+                    const idx = (this.evalExpression(postfix.index, context) as ScalarData).value;
                     if (idx < 0) {
-                        console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
+                        console.error(`Invalid assignment to ${name}. Line ${node.line}`);
                         return;
                     }
                     if (value instanceof VectorData) {
-                        const typeName = this.getTypeName(v.value.typeInfo);
+                        const typeName = this.getTypeName(v.typeInfo);
                         if (typeName === "mat2x2" || typeName === "mat2x2f" || typeName === "mat2x2h") {
                             if (idx < 2 && value.value.length === 2) {
-                                v.value.value[idx * 2] = value.value[0];
-                                v.value.value[idx * 2 + 1] = value.value[1];
+                                v.value[idx * 2] = value.value[0];
+                                v.value[idx * 2 + 1] = value.value[1];
                             } else {
-                                console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
+                                console.error(`Invalid assignment to ${name}. Line ${node.line}`);
                                 return;
                             }
                         } else if (typeName === "mat2x3" || typeName === "mat2x3f" || typeName === "mat2x3h") {
                             if (idx < 2 && value.value.length === 3) {
-                                v.value.value[idx * 3] = value.value[0];
-                                v.value.value[idx * 3 + 1] = value.value[1];
-                                v.value.value[idx * 3 + 2] = value.value[2];
+                                v.value[idx * 3] = value.value[0];
+                                v.value[idx * 3 + 1] = value.value[1];
+                                v.value[idx * 3 + 2] = value.value[2];
                             } else {
-                                console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
+                                console.error(`Invalid assignment to ${name}. Line ${node.line}`);
                                 return;
                             }
                         } else if (typeName === "mat2x4" || typeName === "mat2x4f" || typeName === "mat2x4h") {
                             if (idx < 2 && value.value.length === 4) {
-                                v.value.value[idx * 4] = value.value[0];
-                                v.value.value[idx * 4 + 1] = value.value[1];
-                                v.value.value[idx * 4 + 2] = value.value[2];
-                                v.value.value[idx * 4 + 3] = value.value[3];
+                                v.value[idx * 4] = value.value[0];
+                                v.value[idx * 4 + 1] = value.value[1];
+                                v.value[idx * 4 + 2] = value.value[2];
+                                v.value[idx * 4 + 3] = value.value[3];
                             } else {
-                                console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
+                                console.error(`Invalid assignment to ${name}. Line ${node.line}`);
                                 return;
                             }
                         } else if (typeName === "mat3x2" || typeName === "mat3x2f" || typeName === "mat3x2h") {
                             if (idx < 3 && value.value.length === 2) {
-                                v.value.value[idx * 2] = value.value[0];
-                                v.value.value[idx * 2 + 1] = value.value[1];
+                                v.value[idx * 2] = value.value[0];
+                                v.value[idx * 2 + 1] = value.value[1];
                             } else {
-                                console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
+                                console.error(`Invalid assignment to ${name}. Line ${node.line}`);
                                 return;
                             }
                         } else if (typeName === "mat3x3" || typeName === "mat3x3f" || typeName === "mat3x3h") {
                             if (idx < 3 && value.value.length === 3) {
-                                v.value.value[idx * 3] = value.value[0];
-                                v.value.value[idx * 3 + 1] = value.value[1];
-                                v.value.value[idx * 3 + 2] = value.value[2];
+                                v.value[idx * 3] = value.value[0];
+                                v.value[idx * 3 + 1] = value.value[1];
+                                v.value[idx * 3 + 2] = value.value[2];
                             } else {
-                                console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
+                                console.error(`Invalid assignment to ${name}. Line ${node.line}`);
                                 return;
                             }
                         } else if (typeName === "mat3x4" || typeName === "mat3x4f" || typeName === "mat3x4h") {
                             if (idx < 3 && value.value.length === 4) {
-                                v.value.value[idx * 4] = value.value[0];
-                                v.value.value[idx * 4 + 1] = value.value[1];
-                                v.value.value[idx * 4 + 2] = value.value[2];
-                                v.value.value[idx * 4 + 3] = value.value[3];
+                                v.value[idx * 4] = value.value[0];
+                                v.value[idx * 4 + 1] = value.value[1];
+                                v.value[idx * 4 + 2] = value.value[2];
+                                v.value[idx * 4 + 3] = value.value[3];
                             } else {
-                                console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
+                                console.error(`Invalid assignment to ${name}. Line ${node.line}`);
                                 return;
                             }
                         } else if (typeName === "mat4x2" || typeName === "mat4x2f" || typeName === "mat4x2h") {
                             if (idx < 4 && value.value.length === 2) {
-                                v.value.value[idx * 2] = value.value[0];
-                                v.value.value[idx * 2 + 1] = value.value[1];
+                                v.value[idx * 2] = value.value[0];
+                                v.value[idx * 2 + 1] = value.value[1];
                             } else {
-                                console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
+                                console.error(`Invalid assignment to ${name}. Line ${node.line}`);
                                 return;
                             }
                         } else if (typeName === "mat4x3" || typeName === "mat4x3f" || typeName === "mat4x3h") {
                             if (idx < 4 && value.value.length === 3) {
-                                v.value.value[idx * 3] = value.value[0];
-                                v.value.value[idx * 3 + 1] = value.value[1];
-                                v.value.value[idx * 3 + 2] = value.value[2];
+                                v.value[idx * 3] = value.value[0];
+                                v.value[idx * 3 + 1] = value.value[1];
+                                v.value[idx * 3 + 2] = value.value[2];
                             } else {
-                                console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
+                                console.error(`Invalid assignment to ${name}. Line ${node.line}`);
                                 return;
                             }
                         } else if (typeName === "mat4x4" || typeName === "mat4x4f" || typeName === "mat4x4h") {
                             if (idx < 4 && value.value.length === 4) {
-                                v.value.value[idx * 4] = value.value[0];
-                                v.value.value[idx * 4 + 1] = value.value[1];
-                                v.value.value[idx * 4 + 2] = value.value[2];
-                                v.value.value[idx * 4 + 3] = value.value[3];
+                                v.value[idx * 4] = value.value[0];
+                                v.value[idx * 4 + 1] = value.value[1];
+                                v.value[idx * 4 + 2] = value.value[2];
+                                v.value[idx * 4 + 3] = value.value[3];
                             } else {
-                                console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
+                                console.error(`Invalid assignment to ${name}. Line ${node.line}`);
                                 return;
                             }
                         } else {
-                            console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
+                            console.error(`Invalid assignment to ${name}. Line ${node.line}`);
                             return;
                         }
                     } else {
-                        console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
+                        console.error(`Invalid assignment to ${name}. Line ${node.line}`);
                         return;
                     }
                 } else {
-                    console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
+                    console.error(`Invalid assignment to ${name}. Line ${node.line}`);
                     return;
                 }
-            } else if (node.variable.postfix instanceof StringExpr) {
-                const member = node.variable.postfix.value;
-                if (!(v.value instanceof VectorData)) {
-                    console.error(`Invalid assignment to ${member}. Variable ${v.name} is not a vector. Line ${node.line}`);
+            } else if (postfix instanceof StringExpr) {
+                const member = postfix.value;
+                if (!(v instanceof VectorData)) {
+                    console.error(`Invalid assignment to ${member}. Variable ${name} is not a vector. Line ${node.line}`);
                     return;
                 }
                 if (value instanceof ScalarData) {
                     if (member.length > 1) {
-                        console.error(`Invalid assignment to ${member} for variable ${v.name}. Line ${node.line}`);
+                        console.error(`Invalid assignment to ${member} for variable ${name}. Line ${node.line}`);
                         return;
                     }
                     if (member === "x") {
-                        v.value.value[0] = value.value;
+                        v.value[0] = value.value;
                     } else if (member === "y") {
-                        if (v.value.value.length < 2) {
-                            console.error(`Invalid assignment to ${member} for variable ${v.name}. Line ${node.line}`);
+                        if (v.value.length < 2) {
+                            console.error(`Invalid assignment to ${member} for variable ${name}. Line ${node.line}`);
                             return;
                         }
-                        v.value.value[1] = value.value;
+                        v.value[1] = value.value;
                     } else if (member === "z") {
-                        if (v.value.value.length < 3) {
-                            console.error(`Invalid assignment to ${member} for variable ${v.name}. Line ${node.line}`);
+                        if (v.value.length < 3) {
+                            console.error(`Invalid assignment to ${member} for variable ${name}. Line ${node.line}`);
                             return;
                         }
-                        v.value.value[2] = value.value;
+                        v.value[2] = value.value;
                     } else if (member === "w") {
-                        if (v.value.value.length < 4) {
-                            console.error(`Invalid assignment to ${member} for variable ${v.name}. Line ${node.line}`);
+                        if (v.value.length < 4) {
+                            console.error(`Invalid assignment to ${member} for variable ${name}. Line ${node.line}`);
                             return;
                         }
-                        v.value.value[3] = value.value;
+                        v.value[3] = value.value;
                     }
                 } else if (value instanceof VectorData) {
                     if (member.length !== value.value.length) {
-                        console.error(`Invalid assignment to ${member} for variable ${v.name}. Line ${node.line}`);
+                        console.error(`Invalid assignment to ${member} for variable ${name}. Line ${node.line}`);
                         return;
                     }
                     for (let i = 0; i < member.length; ++i) {
                         const m = member[i];
                         if (m === "x" || m === "r") {
-                            v.value.value[0] = value.value[i];
+                            v.value[0] = value.value[i];
                         } else if (m === "y" || m === "g") {
                             if (value.value.length < 2) {
-                                console.error(`Invalid assignment to ${m} for variable ${v.name}. Line ${node.line}`);
+                                console.error(`Invalid assignment to ${m} for variable ${name}. Line ${node.line}`);
                                 return;
                             }
-                            v.value.value[1] = value.value[i];
+                            v.value[1] = value.value[i];
                         } else if (m === "z" || m === "b") {
                             if (value.value.length < 3) {
-                                console.error(`Invalid assignment to ${m} for variable ${v.name}. Line ${node.line}`);
+                                console.error(`Invalid assignment to ${m} for variable ${name}. Line ${node.line}`);
                                 return;
                             }
-                            v.value.value[2] = value.value[i];
+                            v.value[2] = value.value[i];
                         } else if (m === "w" || m === "a") {
                             if (value.value.length < 4) {
-                                console.error(`Invalid assignment to ${m} for variable ${v.name}. Line ${node.line}`);
+                                console.error(`Invalid assignment to ${m} for variable ${name}. Line ${node.line}`);
                                 return;
                             }
-                            v.value.value[3] = value.value[i];
+                            v.value[3] = value.value[i];
                         } else {
-                            console.error(`Invalid assignment to ${m} for variable ${v.name}. Line ${node.line}`);
+                            console.error(`Invalid assignment to ${m} for variable ${name}. Line ${node.line}`);
                             return;
                         }
                     }
                 } else {
-                    console.error(`Invalid assignment to ${v.name}. Line ${node.line}`);
+                    console.error(`Invalid assignment to ${name}. Line ${node.line}`);
                     return;
                 }
             }
         } else {
-            v.value = value;
+            if (v instanceof ScalarData && value instanceof ScalarData) {
+                v.value = value.value;
+            } else if (v instanceof VectorData && value instanceof VectorData) {
+                v.value = value.value;
+            } else if (v instanceof MatrixData && value instanceof MatrixData) {
+                v.value = value.value;
+            } else {
+                console.error(`Invalid assignment to ${name}. Line ${node.line}`);
+            }
+            //v.value = value;
         }
         return;
     }
@@ -1302,6 +1339,19 @@ export class WgslExec extends ExecInterface {
                 const rn = r as number;
                 const t = this._maxFormatTypeInfo([_r.typeInfo, _r.typeInfo]);
                 return new ScalarData(~rn, t);
+            }
+            case "&": {
+                return new PointerData(_r);
+            }
+            case "*": {
+                if (_r instanceof PointerData) {
+                    if (node.postfix) {
+                        return _r.reference.getDataValue(this, node.postfix, context);
+                    }
+                    return _r.reference;
+                }
+                console.error(`Invalid dereference. Line ${node.line}`);
+                return null;
             }
         }
         console.error(`Invalid unary operator ${node.operator}. Line ${node.line}`);

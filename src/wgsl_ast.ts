@@ -1699,6 +1699,15 @@ export class VoidData extends Data {
   }
 }
 
+export class PointerData extends Data {
+  reference: Data;
+
+  constructor(reference: Data) {
+    super(new TypeInfo("pointer", null));
+    this.reference = reference;
+  }
+}
+
 // Used to store scalar data
 export class ScalarData extends Data {
   value: number;
@@ -2763,7 +2772,7 @@ export class TypedData extends Data {
           s = `[...]`;
       }
       return s;
-  }
+   }
 }
 
 export class TextureData extends TypedData {

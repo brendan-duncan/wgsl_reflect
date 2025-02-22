@@ -64,8 +64,8 @@ export declare class WgslParser {
     _validateTypeRange(value: number, type: AST.Type): void;
     _primary_expression(): AST.Expression;
     _argument_expression_list(): AST.Expression[] | null;
-    _optional_paren_expression(): AST.GroupingExpr;
-    _paren_expression(): AST.GroupingExpr;
+    _optional_paren_expression(): AST.Expression;
+    _paren_expression(): AST.Expression;
     _struct_decl(): AST.Struct | null;
     _global_variable_decl(): AST.Var | null;
     _override_variable_decl(): AST.Override | null;

@@ -732,6 +732,10 @@ export declare class VoidData extends Data {
     static void: VoidData;
     toString(): string;
 }
+export declare class PointerData extends Data {
+    reference: Data;
+    constructor(reference: Data);
+}
 export declare class ScalarData extends Data {
     value: number;
     constructor(value: number, typeInfo: TypeInfo);

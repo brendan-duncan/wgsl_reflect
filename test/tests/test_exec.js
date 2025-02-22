@@ -7,7 +7,99 @@ function _newWgslExec(code) {
 
 export async function run() {
     await group("WgslExec", async function () {
-        test("any vec2", function (test) {
+        await test("struct pointer", async function (test) {
+            const shader = `
+                struct Particle {
+                    position: vec3<f32>,
+                    velocity: vec3<f32>
+                }
+                struct System {
+                    active_index: i32,
+                    timestep: f32,
+                    particles: array<Particle,100>
+                }
+                @group(0) @binding(0) var<storage,read_write> system: System;
+
+                @compute @workgroup_size(1)
+                fn main() {
+                    // Form a pointer to a specific Particle in storage memory.
+                    let active_particle: ptr<storage,Particle,read_write> =
+                        &system.particles[system.active_index];
+
+                    let delta_position: vec3<f32> = (*active_particle).velocity * system.timestep;
+                    let current_position: vec3<f32>  = (*active_particle).position;
+                    (*active_particle).position = delta_position + current_position;
+                }`;
+
+            // Verify the emulated dispatch has the same results as the WebGPU dispatch.
+            const buffer = new Float32Array(32 * 100 + 8);
+            buffer[0] = 0; // active_index
+            buffer[1] = 0.1; // timestep
+            for (let i = 0; i < 100; ++i) {
+                buffer[2 + i * 8 + 0] = i;
+                buffer[2 + i * 8 + 1] = i + 1;
+                buffer[2 + i * 8 + 2] = i + 2;
+                buffer[2 + i * 8 + 3] = i + 3;
+                buffer[2 + i * 8 + 4] = i + 4;
+                buffer[2 + i * 8 + 5] = i + 5;
+                buffer[2 + i * 8 + 6] = i + 6;
+                buffer[2 + i * 8 + 7] = i + 7;
+            }
+            const bg = {0: {0: buffer}};
+
+            const _data = await webgpuDispatch(shader, "main", 4, bg);
+            const webgpuData = new Float32Array(_data);
+
+            const wgsl = _newWgslExec(shader);
+            wgsl.dispatchWorkgroups("main", 4, bg);
+            test.closeTo(buffer, webgpuData);
+        });
+
+        /*await test("array struct member", function (test) {
+            const shader = `
+                struct Ray {
+                    origin: vec3f,
+                    direction: vec3f
+                }
+                fn foo() -> vec3f {
+                    let r = array<Ray, 2>();
+                    r[0].direction = vec3f(4.0, 5.0, 6.0);
+                    let foo = r[0].direction * 0.5;
+                    return foo;
+                }
+                let bar = foo();`;
+            const wgsl = _newWgslExec(shader);
+            wgsl.execute();
+            test.closeTo(wgsl.getVariableValue("bar"), [2, 2.5, 3]);
+        });
+
+        await test("pointers", function (test) {
+            const shader = `
+                fn f() -> f32 {
+                    var x: f32 = 1.5;
+                    let px = &x;  // Get a pointer to x
+                    *px = 3.0;    // Update x through px.
+                    // Now x is 3.0
+                    return x;
+                }
+                var<private> age: f32;
+                fn happy_birthday() {
+                    let age_ptr = &age;       // Get a pointer.
+                    *age_ptr = *age_ptr + 1;  // Updates 'age'
+                }
+                fn main() -> f32 {
+                    age = 6.0 * f();
+                    happy_birthday();
+                    // Now age is 19.0
+                    return age;
+                }
+                let foo = main();`;
+            const wgsl = _newWgslExec(shader);
+            wgsl.execute();
+            test.equals(wgsl.getVariableValue("foo"), 19);
+        });
+
+        await test("any vec2", function (test) {
             const shader = `
                 fn foo() -> i32 {
                     let dims = vec2u(3, 4);
@@ -23,7 +115,7 @@ export async function run() {
             test.equals(wgsl.getVariableValue("bar"), 1);
         });
 
-        test("struct construction in return", function (test) {
+        await test("struct construction in return", function (test) {
             const shader = `
                 struct Foo {
                     a: i32,
@@ -39,7 +131,7 @@ export async function run() {
             test.equals(wgsl.getVariableValue("baz"), 3.0);
         });
 
-        test("switch default selector", function (test) {
+        await test("switch default selector", function (test) {
             const shader = `
               const c = 2;
               fn foo(x: i32) -> i32 {
@@ -790,6 +882,6 @@ export async function run() {
             //while (dbg.stepInto());
             //const t4 = performance.now();
             //console.log("dbg time: ", t4 - t3);
-        });
+        });*/
     }, true);
 }

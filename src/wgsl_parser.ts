@@ -1409,20 +1409,22 @@ export class WgslParser {
     return args;
   }
 
-  _optional_paren_expression(): AST.GroupingExpr {
+  _optional_paren_expression(): AST.Expression {
     // [paren_left] short_circuit_or_expression [paren_right]
     this._match(TokenTypes.tokens.paren_left);
     const expr = this._short_circuit_or_expression();
     this._match(TokenTypes.tokens.paren_right);
-    return this._updateNode(new AST.GroupingExpr([expr]));
+    return expr;
+    //return this._updateNode(new AST.GroupingExpr([expr]));
   }
 
-  _paren_expression(): AST.GroupingExpr {
+  _paren_expression(): AST.Expression {
     // paren_left short_circuit_or_expression paren_right
     this._consume(TokenTypes.tokens.paren_left, "Expected '('.");
     const expr = this._short_circuit_or_expression();
     this._consume(TokenTypes.tokens.paren_right, "Expected ')'.");
-    return this._updateNode(new AST.GroupingExpr([expr]));
+    return expr;
+    //return this._updateNode(new AST.GroupingExpr([expr]));
   }
 
   _struct_decl(): AST.Struct | null {
