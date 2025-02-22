@@ -917,7 +917,19 @@ export class BuiltinFunctions {
                 }
 
                 const textureSize = texture.getMipLevelSize(level);
-                return new VectorData(textureSize, this.getTypeInfo("vec2u"));
+
+                const dimension = texture.dimension;
+
+                if (dimension === "1d") {
+                    return new ScalarData(textureSize[0], this.getTypeInfo("u32"));
+                } else if (dimension === "3d" || texture.depthOrArrayLayers > 1) {
+                    return new VectorData(textureSize, this.getTypeInfo("vec3u"));
+                } else if (dimension === "2d") {
+                    return new VectorData(textureSize.slice(0, 2), this.getTypeInfo("vec2u"));
+                } else {
+                    console.error(`Invalid texture dimension ${dimension} not found. Line ${node.line}`);
+                    return null;
+                }
             } else {
                 console.error(`Texture ${textureName} not found. Line ${node.line}`);
                 return null;

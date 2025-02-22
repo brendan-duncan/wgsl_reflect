@@ -9,7 +9,7 @@ import { TypeInfo, StructInfo, ArrayInfo, TemplateInfo } from "./reflect/info.js
 import { ExecContext, FunctionRef } from "./exec/exec_context.js";
 import { ExecInterface } from "./exec/exec_interface.js";
 import { BuiltinFunctions } from "./exec/builtin_functions.js";
-import { isArray, castScalar, castVector } from "./exec/util.js";
+import { isArray, castScalar, castVector } from "./utils/cast.js";
 
 export class WgslExec extends ExecInterface {
     ast: Node[];
