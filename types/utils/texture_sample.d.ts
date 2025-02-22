@@ -1,1 +1,2 @@
+export declare function setTexturePixel(imageData: Uint8Array, x: number, y: number, z: number, mipLevel: number, height: number, bytesPerRow: number, texelByteSize: number, format: string, value: number[]): void;
 export declare function getTexturePixel(imageData: Uint8Array, x: number, y: number, z: number, mipLevel: number, height: number, bytesPerRow: number, texelByteSize: number, format: string): number[] | null;

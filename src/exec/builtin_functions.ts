@@ -1092,15 +1092,8 @@ export class BuiltinFunctions {
                     console.error(`Texture ${textureName} out of bounds. Line ${node.line}`);
                     return null;
                 }
-                // TODO non RGBA8 textures
-                const offset = (y * textureSize[0] + x) * 4; 
-                const texel = new Uint8Array(texture.buffer, offset, 4);
 
-                // TODO: non-f32 textures
-                texel[0] = value[0] * 255;
-                texel[1] = value[1] * 255;
-                texel[2] = value[2] * 255;
-                texel[3] = value[3] * 255;
+                texture.setPixel(x, y, 0, index, value);
 
                 return null;
             } else {

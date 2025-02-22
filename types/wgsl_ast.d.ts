@@ -774,9 +774,10 @@ export declare class TextureData extends TypedData {
     get mipLevelCount(): number;
     get dimension(): string;
     getMipLevelSize(level: number): number[];
-    get texelByteSize(): any;
+    get texelByteSize(): number;
     get bytesPerRow(): number;
-    get isDepthStencil(): any;
+    get isDepthStencil(): boolean;
     getGpuSize(): number;
     getPixel(x: number, y: number, z?: number, mipLevel?: number): number[] | null;
+    setPixel(x: number, y: number, z: number, mipLevel: number, value: number[]): void;
 }

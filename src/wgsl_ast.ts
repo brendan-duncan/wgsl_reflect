@@ -3,7 +3,7 @@ import { TypeInfo, ArrayInfo, StructInfo, TemplateInfo } from "./reflect/info.js
 import { ExecInterface } from "./exec/exec_interface.js";
 import { ExecContext } from "./exec/exec_context.js";
 import { TextureFormatInfo } from "./utils/texture_format_info.js";
-import { getTexturePixel } from "./utils/texture_sample.js";
+import { getTexturePixel, setTexturePixel } from "./utils/texture_sample.js";
 
 export class ParseContext {
   constants: Map<string, Const> = new Map();
@@ -2848,7 +2848,7 @@ export class TextureData extends TypedData {
     return size;
   }
 
-  get texelByteSize() {
+  get texelByteSize(): number {
     const format = this.format;
     const formatInfo = TextureFormatInfo[format];
     if (!formatInfo) {
@@ -2860,14 +2860,14 @@ export class TextureData extends TypedData {
     return formatInfo.bytesPerBlock;
   }
 
-  get bytesPerRow() {
+  get bytesPerRow(): number {
     const width = this.width;
     const texelByteSize = this.texelByteSize;
     //return (width * texelByteSize + 255) & ~0xff; // bytesPerRow is aligned to a multiple of 256 bytes
     return width * texelByteSize;
   }
 
-  get isDepthStencil() {
+  get isDepthStencil(): boolean {
     const format = this.format;
     const formatInfo = TextureFormatInfo[format];
     if (!formatInfo) {
@@ -2876,7 +2876,7 @@ export class TextureData extends TypedData {
     return formatInfo.isDepthStencil;
   }
 
-  getGpuSize() {
+  getGpuSize(): number {
     const format = this.format;
     const formatInfo = TextureFormatInfo[format];
     const width = this.width;
@@ -2900,5 +2900,13 @@ export class TextureData extends TypedData {
     const height = this.height;
     const imageData = new Uint8Array(this.buffer);
     return getTexturePixel(imageData, x, y, z, mipLevel, height, bytesPerRow, texelByteSize, this.format);
+  }
+
+  setPixel(x: number, y: number, z: number, mipLevel: number, value: number[]): void {
+    const texelByteSize = this.texelByteSize;
+    const bytesPerRow = this.bytesPerRow;
+    const height = this.height;
+    const imageData = new Uint8Array(this.buffer);
+    setTexturePixel(imageData, x, y, z, mipLevel, height, bytesPerRow, texelByteSize, this.format, value);
   }
 }
