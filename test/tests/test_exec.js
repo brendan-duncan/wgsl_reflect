@@ -55,7 +55,7 @@ export async function run() {
             test.closeTo(buffer, webgpuData);
         });
 
-        /*await test("array struct member", function (test) {
+        await test("array struct member", function (test) {
             const shader = `
                 struct Ray {
                     origin: vec3f,
@@ -882,6 +882,6 @@ export async function run() {
             //while (dbg.stepInto());
             //const t4 = performance.now();
             //console.log("dbg time: ", t4 - t3);
-        });*/
-    }, true);
+        });
+    });
 }
