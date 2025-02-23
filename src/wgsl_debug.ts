@@ -218,6 +218,9 @@ export class WgslDebug {
             const v = constants[k];
             const override = this._exec.reflection.getOverrideInfo(k);
             if (override !== null) {
+                if (override.type === null) {
+                    override.type = this._exec.getTypeInfo("u32");
+                }
                 if (override.type.name === "u32" || override.type.name === "i32" || override.type.name === "f32" || override.type.name === "f16") {
                     context.setVariable(k, new AST.ScalarData(v, override.type));
                 } else if (override.type.name === "bool") {
