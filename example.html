@@ -3,22 +3,11 @@
     <h1>WGSL Reflection Library</h1>
     <h1>Shader</h1>
     <textarea id="shader" style="width: 100%; height: 300px"></textarea>
-    <button
-      id="parse"
-      style="margin-top: 10px; width: 100px; background-color: #afa"
-    >
-      COMPILE
-    </button>
+    <button id="parse" style="margin-top: 10px; width: 100px; background-color: #afa">COMPILE</button>
     <h1>Reflection Info</h1>
     <div
       id="shader_info"
-      style="
-        width: 100%;
-        background-color: #eee;
-        padding: 10px;
-        border: 1px solid #888;
-      "
-    ></div>
+      style="width: 100%; background-color: #eee; padding: 10px; border: 1px solid #888;"></div>
 
     <script type="module">
       import * as wgsl from "./wgsl_reflect.module.js";
@@ -73,9 +62,48 @@ fn main(input: VertexInput) -> VertexOutput {
       function getTypeName(type) {
         let name = type.name;
         if (type.format) {
-          name += `&lt;${type.format.name}&gt;`;
+          name += `&lt;${getTypeName(type.format)}&gt;`;
         }
         return name;
+      }
+
+      function getStructInfo(type, offset) {
+        let info = "";
+        info += `<li><b>Size:</b> ${type.size}</li>`;
+        info += `<li><b>Members:</b></li>`;
+        info += "<ul>";
+        for (let m in type.members) {
+          info += `<li><b>${type.members[m].name}</b> : <b>${getTypeName(type.members[m].type)}</b></li>`;
+          info += "<ul>";
+          info += `<li><b>Offset:</b>${type.members[m].offset}</li>`;
+          if (type.members[m].type.isArray) {
+            info += getArrayInfo(type.members[m].type, offset + type.members[m].offset);
+          } else if (type.members[m].type.isStruct) {
+            info += `<li><b>Size:</b>${type.members[m].size}</li>`;
+            info += getStructInfo(type.members[m].type, offset + type.members[m].offset);
+          } else {
+            info += `<li><b>Size:</b>${type.members[m].size}</li>`;
+          }
+          info += "</ul>";
+        }
+        info += "</ul>";
+        return info;
+      }
+
+      function getArrayInfo(type, offset) {
+        let info = "";
+        info += `<li><b>Size:</b> ${type.size}</li>`;
+        info += `<li><b>Count:</b> ${type.count}</li>`;
+        info += `<li><b>Stride:</b> ${type.stride}</li>`;
+        info += `<li><b>Format:</b> <b>${getTypeName(type.format)}</b></li>`;
+        info += "<ul>";
+        if (type.format.isArray) {
+          info += getArrayInfo(type.format, offset);
+        } else if (type.format.isStruct) {
+          info += getStructInfo(type.format, offset);
+        }
+        info += "</ul>";
+        return info;
       }
 
       function parse() {
@@ -106,9 +134,7 @@ fn main(input: VertexInput) -> VertexOutput {
               info += "<li><b>Inputs</b></li>";
               info += "<ul>";
               for (let ei of e.inputs) {
-                info += `<li><b>${ei.name}</b>: <b>${getTypeName(
-                  ei.type
-                )}</b>  location:<b> ${ei.location}</b></li>`;
+                info += `<li><b>${ei.name}</b>: <b>${getTypeName(ei.type)}</b>  location:<b> ${ei.location}</b></li>`;
               }
               info += "</ul>";
               info += "</ul>";
@@ -152,6 +178,11 @@ fn main(input: VertexInput) -> VertexOutput {
             info += "<ul>";
             info += `<li><b>Group:</b> ${s.group}</li>`;
             info += `<li><b>Binding:</b> ${s.binding}</li>`;
+            if (s.type.isStruct) {
+              info += getStructInfo(s.type, 0);
+            } else if (s.type.isArray) {
+              info += getArrayInfo(s.type, 0);
+            }
             info += "</ul>";
           }
           info += "</ul>";
@@ -167,18 +198,11 @@ fn main(input: VertexInput) -> VertexOutput {
             info += `<li><b>Buffer Size:</b> ${s.type.size}</li>`;
             info += `<li><b>Group:</b> ${s.group}</li>`;
             info += `<li><b>Binding:</b> ${s.binding}</li>`;
-            info += `<li><b>Members:</b></li>`;
-            info += "<ul>";
-            for (let m in s.type.members) {
-              info += `<li><b>${s.type.members[m].name}</b> : <b>${getTypeName(
-                s.type.members[m].type
-              )}</b></li>`;
-              info += "<ul>";
-              info += `<li><b>Offset:</b>${s.type.members[m].offset}</li>`;
-              info += `<li><b>Size:</b>${s.type.members[m].size}</li>`;
-              info += "</ul>";
+            if (s.type.isStruct) {
+              info += getStructInfo(s.type, 0);
+            } else if (s.type.isArray) {
+              info += getArrayInfo(s.type, 0);
             }
-            info += "</ul>";
             info += "</ul>";
           }
           info += "</ul>";
