@@ -277,6 +277,9 @@ export class WgslExec extends ExecInterface {
             const v = constants[k];
             const override = this.reflection.getOverrideInfo(k);
             if (override !== null) {
+                if (override.type === null) {
+                    override.type = this.getTypeInfo("u32");
+                }
                 if (override.type.name === "u32" || override.type.name === "i32" || override.type.name === "f32" || override.type.name === "f16") {
                     context.setVariable(k, new ScalarData(v, override.type));
                 } else if (override.type.name === "bool") {

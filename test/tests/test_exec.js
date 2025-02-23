@@ -564,8 +564,8 @@ export async function run() {
                 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
                 @group(1) @binding(0) var<storage, read> rays: array<Ray>;
                 @group(1) @binding(1) var<storage, read_write> imageBuffer: array<vec3f>;
-                override WORKGROUP_SIZE_X: u32; // specialization constants
-                override WORKGROUP_SIZE_Y: u32;
+                override WORKGROUP_SIZE_X = 1; // constant overrides
+                override WORKGROUP_SIZE_Y = 1;
                 @compute @workgroup_size(WORKGROUP_SIZE_X, WORKGROUP_SIZE_Y)
                 fn main(@builtin(global_invocation_id) globalInvocationId : vec3<u32>) {
                     if any(globalInvocationId.xy > uniforms.viewportSize) {
