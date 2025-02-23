@@ -772,6 +772,10 @@ export class Type extends Statement {
 
     return t;
   }
+
+  getTypeName(): string {
+    return this.name;
+  }
 }
 
 /**
@@ -825,6 +829,40 @@ export class TemplateType extends Type {
 
   get astNodeType(): string {
     return "template";
+  }
+
+  getTypeName(): string {
+    let name = this.name;
+    if (this.format !== null) {
+      if (name === "vec2" || name === "vec3" || name === "vec4" ||
+          name === "mat2x2" || name === "mat2x3" || name === "mat2x4" ||
+          name === "mat3x2" || name === "mat3x3" || name === "mat3x4" ||
+          name === "mat4x2" || name === "mat4x3" || name === "mat4x4") {
+        if (this.format.name === "f32") {
+          name += "f";
+          return name;
+        } else if (this.format.name === "i32") {
+          name += "i";
+          return name;
+        } else if (this.format.name === "u32") {
+          name += "u";
+          return name;
+        } else if (this.format.name === "bool") {
+          name += "b";
+          return name;
+        } else if (this.format.name === "f16") {
+          name += "h";
+          return name;
+        }
+      }
+      name += `<${this.format.name}>`;
+    } else {
+      if (name === "vec2" || name === "vec3" || name === "vec4") {
+        return name;
+      }
+      //console.error("Template format is null.");
+    }
+    return name;
   }
 
   static vec2f = new TemplateType("vec2", Type.f32, null);
@@ -1316,15 +1354,15 @@ export class LiteralExpr extends Expression {
     return 0.0;
   }
 
-  get vectorValue(): number[] {
+  get vectorValue(): Float32Array | Int32Array | Uint32Array {
     if (this.value instanceof VectorData) {
-      return this.value.value;
+      return this.value.data;
     }
     if (this.value instanceof MatrixData) {
-      return this.value.value;
+      return this.value.data;
     }
     console.error("Value is not a vector or matrix.");
-    return [];
+    return new Float32Array(0);
   }
 }
 
@@ -1708,53 +1746,75 @@ export class PointerData extends Data {
   }
 }
 
-// Used to store scalar data
 export class ScalarData extends Data {
-  value: number;
+  data: Int32Array | Uint32Array | Float32Array;
 
-  constructor(value: number, typeInfo: TypeInfo) {
-      super(typeInfo);
-      if (this.typeInfo.name === "i32" || this.typeInfo.name === "u32") {
-          value = Math.floor(value);
-      } else if (this.typeInfo.name === "bool") {
-          value = value ? 1 : 0;
+  constructor(value: number | Int32Array | Uint32Array | Float32Array, typeInfo: TypeInfo) {
+    super(typeInfo);
+    if (value instanceof Int32Array || value instanceof Uint32Array || value instanceof Float32Array) {
+        this.data = value;
+    } else {
+      if (this.typeInfo.name === "x32") {
+        if (value - Math.floor(value) !== 0) {
+          this.data = new Float32Array([value]);
+        } else if (value >= 0) {
+            this.data = new Uint32Array([value]);
+        } else {
+            this.data = new Int32Array([value]);
+        } 
+      } else if (this.typeInfo.name === "i32" || this.typeInfo.name === "bool") {
+          this.data = new Int32Array([value]);
+      } else if (this.typeInfo.name === "u32") {
+          this.data = new Uint32Array([value]);
+      } else if (this.typeInfo.name === "f32" || this.typeInfo.name === "f16") {
+          this.data = new Float32Array([value]);
+      } else {
+          console.error(`ScalarData2: Invalid type`, typeInfo);
       }
-      this.value = value;
+    }
+  }
+
+  get value(): number {
+      return this.data[0];
+  }
+
+  set value(v: number) {
+      this.data[0] = v;
   }
 
   setDataValue(exec: ExecInterface, value: Data, postfix: Expression | null, context: ExecContext): void {
-      if (postfix) {
-          console.error(`SetDataValue: Scalar data does not support postfix`, postfix);
-          return;
-      }
+    if (postfix) {
+        console.error(`SetDataValue: Scalar data does not support postfix`, postfix);
+        return;
+    }
 
-      if (!(value instanceof ScalarData)) {
-          console.error(`SetDataValue: Invalid value`, value);
-          return;
-      }
+    if (!(value instanceof ScalarData)) {
+        console.error(`SetDataValue: Invalid value`, value);
+        return;
+    }
 
-      let v = value.value;
+    let v = value.data[0];
 
-      if (this.typeInfo.name === "i32" || this.typeInfo.name === "u32") {
-          v = Math.floor(v);
-      } else if (this.typeInfo.name === "bool") {
-          v = v ? 1 : 0;
-      }
+    if (this.typeInfo.name === "i32" || this.typeInfo.name === "u32") {
+        v = Math.floor(v);
+    } else if (this.typeInfo.name === "bool") {
+        v = v ? 1 : 0;
+    }
 
-      this.value = value.value;
+    this.data[0] = v;
   }
 
   getDataValue(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null {
-      if (postfix) {
-          console.error(`GetDataValue: Scalar data does not support postfix`, postfix);
-          return null;
-      }
+    if (postfix) {
+        console.error(`GetDataValue: Scalar data does not support postfix`, postfix);
+        return null;
+    }
 
-      return this;
+    return this;
   }
 
   toString(): string {
-      return `${this.value}`;
+    return `${this.value}`;
   }
 }
 
@@ -1762,13 +1822,13 @@ function _getVectorData(exec: ExecInterface, values: number[], formatName: strin
   const size = values.length;
   if (size === 2) {
       if (formatName === "f32") {
-          return new VectorData(values, exec.getTypeInfo("vec2f"));
-      } else if (formatName === "i32") {
-          return new VectorData(values, exec.getTypeInfo("vec2i"));
+          return new VectorData(new Float32Array(values), exec.getTypeInfo("vec2f"));
+      } else if (formatName === "i32" || formatName === "bool") {
+          return new VectorData(new Int32Array(values), exec.getTypeInfo("vec2i"));
       } else if (formatName === "u32") {
-          return new VectorData(values, exec.getTypeInfo("vec2u"));
+          return new VectorData(new Uint32Array(values), exec.getTypeInfo("vec2u"));
       } else if (formatName === "f16") {
-          return new VectorData(values, exec.getTypeInfo("vec2h"));
+          return new VectorData(new Float32Array(values), exec.getTypeInfo("vec2h"));
       } else {
           console.error(`GetDataValue: Unknown format ${formatName}`);
       }
@@ -1777,13 +1837,13 @@ function _getVectorData(exec: ExecInterface, values: number[], formatName: strin
 
   if (size === 3) {
       if (formatName === "f32") {
-          return new VectorData(values, exec.getTypeInfo("vec3f"));
-      } else if (formatName === "i32") {
-          return new VectorData(values, exec.getTypeInfo("vec3i"));
+          return new VectorData(new Float32Array(values), exec.getTypeInfo("vec3f"));
+      } else if (formatName === "i32" || formatName === "bool") {
+          return new VectorData(new Int32Array(values), exec.getTypeInfo("vec3i"));
       } else if (formatName === "u32") {
-          return new VectorData(values, exec.getTypeInfo("vec3u"));
+          return new VectorData(new Uint32Array(values), exec.getTypeInfo("vec3u"));
       } else if (formatName === "f16") {
-          return new VectorData(values, exec.getTypeInfo("vec3h"));
+          return new VectorData(new Float32Array(values), exec.getTypeInfo("vec3h"));
       } else {
           console.error(`GetDataValue: Unknown format ${formatName}`);
       }
@@ -1792,13 +1852,13 @@ function _getVectorData(exec: ExecInterface, values: number[], formatName: strin
 
   if (size === 4) {
       if (formatName === "f32") {
-          return new VectorData(values, exec.getTypeInfo("vec4f"));
-      } else if (formatName === "i32") {
-          return new VectorData(values, exec.getTypeInfo("vec4i"));
+          return new VectorData(new Float32Array(values), exec.getTypeInfo("vec4f"));
+      } else if (formatName === "i32" || formatName === "bool") {
+          return new VectorData(new Int32Array(values), exec.getTypeInfo("vec4i"));
       } else if (formatName === "u32") {
-          return new VectorData(values, exec.getTypeInfo("vec4u"));
+          return new VectorData(new Uint32Array(values), exec.getTypeInfo("vec4u"));
       } else if (formatName === "f16") {
-          return new VectorData(values, exec.getTypeInfo("vec4h"));
+          return new VectorData(new Float32Array(values), exec.getTypeInfo("vec4h"));
       }
       console.error(`GetDataValue: Unknown format ${formatName}`);
       return null;
@@ -1809,14 +1869,29 @@ function _getVectorData(exec: ExecInterface, values: number[], formatName: strin
 }
 
 export class VectorData extends Data {
-  value: number[];
+  data: Int32Array | Uint32Array | Float32Array;
 
   constructor(value: number[] | Float32Array | Uint32Array | Int32Array, typeInfo: TypeInfo) {
       super(typeInfo);
-      if (Array.isArray(value)) {
-          this.value = value;
+      if (value instanceof Float32Array || value instanceof Uint32Array || value instanceof Int32Array) {
+        this.data = value;
       } else {
-          this.value = Array.from(value);
+        const typename = this.typeInfo.name;
+        if (typename === "vec2f" || typename === "vec3f" || typename === "vec4f") {
+            this.data = new Float32Array(value);
+        } else if (typename === "vec2i" || typename === "vec3i" || typename === "vec4i") {
+            this.data = new Int32Array(value);
+        } else if (typename === "vec2u" || typename === "vec3u" || typename === "vec4u") {
+            this.data = new Uint32Array(value);
+        } else if (typename === "vec2h" || typename === "vec3h" || typename === "vec4h") {
+            this.data = new Float32Array(value);
+        } else if (typename === "vec2b" || typename === "vec3b" || typename === "vec4b") {
+            this.data = new Int32Array(value);
+        } else if (typename === "vec2" || typename === "vec3" || typename === "vec4") {
+            this.data = new Float32Array(value);
+        } else {
+            console.error(`VectorData: Invalid type ${typename}`);
+        }
       }
   }
 
@@ -1831,7 +1906,7 @@ export class VectorData extends Data {
           return
       }
 
-      this.value = value.value;
+      this.data = value.data;
   }
 
   getDataValue(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null {
@@ -1872,11 +1947,11 @@ export class VectorData extends Data {
                   return null;
               }
           }
-          if (i < 0 || i >= this.value.length) {
+          if (i < 0 || i >= this.data.length) {
               console.error(`GetDataValue: Index out of range`, i);
               return null;
           }
-          return new ScalarData(this.value[i], format);
+          return new ScalarData(this.data[i], format);
       }
 
       if (postfix instanceof StringExpr) {
@@ -1884,13 +1959,13 @@ export class VectorData extends Data {
           const values = [];
           for (const m of member) {
               if (m === "x" || m === "r") {
-                  values.push(this.value[0]);
+                  values.push(this.data[0]);
               } else if (m === "y" || m === "g") {
-                  values.push(this.value[1]);
+                  values.push(this.data[1]);
               } else if (m === "z" || m === "b") {
-                  values.push(this.value[2]);
+                  values.push(this.data[2]);
               } else if (m === "w" || m === "a") {
-                  values.push(this.value[3]);
+                  values.push(this.data[3]);
               } else {
                   console.error(`GetDataValue: Unknown member ${m}`);
               }
@@ -1907,20 +1982,24 @@ export class VectorData extends Data {
   }
 
   toString(): string {
-      let s = `${this.value[0]}`;
-      for (let i = 1; i < this.value.length; ++i) {
-          s += `, ${this.value[i]}`;
+      let s = `${this.data[0]}`;
+      for (let i = 1; i < this.data.length; ++i) {
+          s += `, ${this.data[i]}`;
       }
       return s;
   }
 }
 
 export class MatrixData extends Data {
-  value: number[];
+  data: Float32Array;
 
-  constructor(value: number[], typeInfo: TypeInfo) {
+  constructor(value: number[] | Float32Array, typeInfo: TypeInfo) {
       super(typeInfo);
-      this.value = value;
+      if (value instanceof Float32Array) {
+          this.data = value;
+      } else {
+          this.data = new Float32Array(value);
+      }
   }
 
   setDataValue(exec: ExecInterface, value: Data, postfix: Expression | null, context: ExecContext): void {
@@ -1934,7 +2013,7 @@ export class MatrixData extends Data {
           return
       }
 
-      this.value = value.value;
+      this.data = value.data;
   }
 
   getDataValue(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null {
@@ -1976,36 +2055,36 @@ export class MatrixData extends Data {
                   return null;
               }
           }
-          if (i < 0 || i >= this.value.length) {
+          if (i < 0 || i >= this.data.length) {
               console.error(`GetDataValue: Index out of range`, i);
               return null;
           }
 
-          let values: number[];
+          let values: Float32Array;
           if (typeName === "mat2x2" || typeName === "mat2x2f" || typeName === "mat2x2h") {
-              values = this.value.slice(i * 2, i * 2 + 2);
+              values = this.data.slice(i * 2, i * 2 + 2);
           } else if (typeName === "mat2x3" || typeName === "mat2x3f" || typeName === "mat2x3h") {
-              values = this.value.slice(i * 3, i * 3 + 3);
+              values = this.data.slice(i * 3, i * 3 + 3);
           } else if (typeName === "mat2x4" || typeName === "mat2x4f" || typeName === "mat2x4h") {
-              values = this.value.slice(i * 4, i * 4 + 4);
+              values = this.data.slice(i * 4, i * 4 + 4);
           } else if (typeName === "mat3x2" || typeName === "mat3x2f" || typeName === "mat3x2h") {
-              values = this.value.slice(i * 2, i * 2 + 2);
+              values = this.data.slice(i * 2, i * 2 + 2);
           } else if (typeName === "mat3x3" || typeName === "mat3x3f" || typeName === "mat3x3h") {
-              values = this.value.slice(i * 3, i * 3 + 3);
+              values = this.data.slice(i * 3, i * 3 + 3);
           } else if (typeName === "mat3x4" || typeName === "mat3x4f" || typeName === "mat3x4h") {
-              values = this.value.slice(i * 4, i * 4 + 4);
+              values = this.data.slice(i * 4, i * 4 + 4);
           } else if (typeName === "mat4x2" || typeName === "mat4x2f" || typeName === "mat4x2h") {
-              values = this.value.slice(i * 2, i * 2 + 2);
+              values = this.data.slice(i * 2, i * 2 + 2);
           } else if (typeName === "mat4x3" || typeName === "mat4x3f" || typeName === "mat4x3h") {
-              values = this.value.slice(i * 3, i * 3 + 3);
+              values = this.data.slice(i * 3, i * 3 + 3);
           } else if (typeName === "mat4x4" || typeName === "mat4x4f" || typeName === "mat4x4h") {
-              values = this.value.slice(i * 4, i * 4 + 4);
+              values = this.data.slice(i * 4, i * 4 + 4);
           } else {
               console.error(`GetDataValue: Unknown type ${typeName}`);
               return null;
           }
 
-          const vecData = _getVectorData(exec, values, format.name);
+          const vecData = _getVectorData(exec, Array.from(values), format.name);
           if (postfix.postfix) {
               return vecData.getDataValue(exec, postfix.postfix, context);
           }
@@ -2015,9 +2094,9 @@ export class MatrixData extends Data {
   }
 
   toString(): string {
-      let s = `${this.value[0]}`;
-      for (let i = 1; i < this.value.length; ++i) {
-          s += `, ${this.value[i]}`;
+      let s = `${this.data[0]}`;
+      for (let i = 1; i < this.data.length; ++i) {
+          s += `, ${this.data[i]}`;
       }
       return s;
   }
@@ -2065,7 +2144,7 @@ export class TypedData extends Data {
                   }
                   typeInfo = typeInfo.format;
               } else {
-                  console.error(`SetDataValue: Type ${exec.getTypeName(typeInfo)} is not an array`);
+                  console.error(`SetDataValue: Type ${typeInfo.getTypeName()} is not an array`);
               }
           } else if (postfix instanceof StringExpr) {
               const member = postfix.value;
@@ -2084,7 +2163,7 @@ export class TypedData extends Data {
                       return;
                   }
               } else if (typeInfo instanceof TypeInfo) {
-                  const typeName = exec.getTypeName(typeInfo);
+                  const typeName = typeInfo.getTypeName();
                   let element = 0;
                   if (member === "x" || member === "r") {
                       element = 0;
@@ -2145,7 +2224,7 @@ export class TypedData extends Data {
   }
 
   setData(exec: ExecInterface, value: Data, typeInfo: TypeInfo, offset: number, context: ExecContext): void {
-      const typeName = exec.getTypeName(typeInfo);
+      const typeName = typeInfo.getTypeName();
 
       if (typeName === "f32" || typeName === "f16") {
           if (value instanceof ScalarData) {
@@ -2170,8 +2249,8 @@ export class TypedData extends Data {
       } else if (typeName === "vec2f" || typeName === "vec2h") {
           const x = new Float32Array(this.buffer, offset, 2);
           if (value instanceof VectorData) {
-              x[0] = value.value[0];
-              x[1] = value.value[1];
+              x[0] = value.data[0];
+              x[1] = value.data[1];
           } else {
               x[0] = value[0];
               x[1] = value[1];
@@ -2180,9 +2259,9 @@ export class TypedData extends Data {
       } else if (typeName === "vec3f" || typeName === "vec3h") {
           const x = new Float32Array(this.buffer, offset, 3);
           if (value instanceof VectorData) {
-              x[0] = value.value[0];
-              x[1] = value.value[1];
-              x[2] = value.value[2];
+              x[0] = value.data[0];
+              x[1] = value.data[1];
+              x[2] = value.data[2];
           } else {
               x[0] = value[0];
               x[1] = value[1];
@@ -2192,10 +2271,10 @@ export class TypedData extends Data {
       } else if (typeName === "vec4f" || typeName === "vec4h") {
           const x = new Float32Array(this.buffer, offset, 4);
           if (value instanceof VectorData) {
-              x[0] = value.value[0];
-              x[1] = value.value[1];
-              x[2] = value.value[2];
-              x[3] = value.value[3];
+              x[0] = value.data[0];
+              x[1] = value.data[1];
+              x[2] = value.data[2];
+              x[3] = value.data[3];
           } else {
               x[0] = value[0];
               x[1] = value[1];
@@ -2206,8 +2285,8 @@ export class TypedData extends Data {
       } else if (typeName === "vec2i") {
           const x = new Int32Array(this.buffer, offset, 2);
           if (value instanceof VectorData) {
-              x[0] = value.value[0];
-              x[1] = value.value[1];
+              x[0] = value.data[0];
+              x[1] = value.data[1];
           } else {
               x[0] = value[0];
               x[1] = value[1];
@@ -2216,9 +2295,9 @@ export class TypedData extends Data {
       } else if (typeName === "vec3i") {
           const x = new Int32Array(this.buffer, offset, 3);
           if (value instanceof VectorData) {
-              x[0] = value.value[0];
-              x[1] = value.value[1];
-              x[2] = value.value[2];
+              x[0] = value.data[0];
+              x[1] = value.data[1];
+              x[2] = value.data[2];
           } else {
               x[0] = value[0];
               x[1] = value[1];
@@ -2228,10 +2307,10 @@ export class TypedData extends Data {
       } else if (typeName === "vec4i") {
           const x = new Int32Array(this.buffer, offset, 4);
           if (value instanceof VectorData) {
-              x[0] = value.value[0];
-              x[1] = value.value[1];
-              x[2] = value.value[2];
-              x[3] = value.value[3];
+              x[0] = value.data[0];
+              x[1] = value.data[1];
+              x[2] = value.data[2];
+              x[3] = value.data[3];
           } else {
               x[0] = value[0];
               x[1] = value[1];
@@ -2242,8 +2321,8 @@ export class TypedData extends Data {
       } else if (typeName === "vec2u") {
           const x = new Uint32Array(this.buffer, offset, 2);
           if (value instanceof VectorData) {
-              x[0] = value.value[0];
-              x[1] = value.value[1];
+              x[0] = value.data[0];
+              x[1] = value.data[1];
           } else {
               x[0] = value[0];
               x[1] = value[1];
@@ -2252,9 +2331,9 @@ export class TypedData extends Data {
       } else if (typeName === "vec3u") {
           const x = new Uint32Array(this.buffer, offset, 3);
           if (value instanceof VectorData) {
-              x[0] = value.value[0];
-              x[1] = value.value[1];
-              x[2] = value.value[2];
+              x[0] = value.data[0];
+              x[1] = value.data[1];
+              x[2] = value.data[2];
           } else {
               x[0] = value[0];
               x[1] = value[1];
@@ -2264,10 +2343,10 @@ export class TypedData extends Data {
       } else if (typeName === "vec4u") {
           const x = new Uint32Array(this.buffer, offset, 4);
           if (value instanceof VectorData) {
-              x[0] = value.value[0];
-              x[1] = value.value[1];
-              x[2] = value.value[2];
-              x[3] = value.value[3];
+              x[0] = value.data[0];
+              x[1] = value.data[1];
+              x[2] = value.data[2];
+              x[3] = value.data[3];
           } else {
               x[0] = value[0];
               x[1] = value[1];
@@ -2278,8 +2357,8 @@ export class TypedData extends Data {
       } else if (typeName === "vec2b") {
           const x = new Uint32Array(this.buffer, offset, 2);
           if (value instanceof VectorData) {
-              x[0] = value.value[0];
-              x[1] = value.value[1];
+              x[0] = value.data[0];
+              x[1] = value.data[1];
           } else {
               x[0] = value[0];
               x[1] = value[1];
@@ -2288,9 +2367,9 @@ export class TypedData extends Data {
       } else if (typeName === "vec3b") {
           const x = new Uint32Array(this.buffer, offset, 3);
           if (value instanceof VectorData) {
-              x[0] = value.value[0];
-              x[1] = value.value[1];
-              x[2] = value.value[2];
+              x[0] = value.data[0];
+              x[1] = value.data[1];
+              x[2] = value.data[2];
           } else {
               x[0] = value[0];
               x[1] = value[1];
@@ -2300,10 +2379,10 @@ export class TypedData extends Data {
       } else if (typeName === "vec4b") {
           const x = new Uint32Array(this.buffer, offset, 4);
           if (value instanceof VectorData) {
-              x[0] = value.value[0];
-              x[1] = value.value[1];
-              x[2] = value.value[2];
-              x[3] = value.value[3];
+              x[0] = value.data[0];
+              x[1] = value.data[1];
+              x[2] = value.data[2];
+              x[3] = value.data[3];
           } else {
               x[0] = value[0];
               x[1] = value[1];
@@ -2314,10 +2393,10 @@ export class TypedData extends Data {
       } else if (typeName === "mat2x2f" || typeName === "mat2x2h") {
           const x = new Float32Array(this.buffer, offset, 4);
           if (value instanceof MatrixData) {
-              x[0] = value.value[0];
-              x[1] = value.value[1];
-              x[2] = value.value[2];
-              x[3] = value.value[3];
+              x[0] = value.data[0];
+              x[1] = value.data[1];
+              x[2] = value.data[2];
+              x[3] = value.data[3];
           } else {
               x[0] = value[0];
               x[1] = value[1];
@@ -2328,12 +2407,12 @@ export class TypedData extends Data {
       } else if (typeName === "mat2x3f" || typeName === "mat2x3h") {
           const x = new Float32Array(this.buffer, offset, 6);
           if (value instanceof MatrixData) {
-              x[0] = value.value[0];
-              x[1] = value.value[1];
-              x[2] = value.value[2];
-              x[3] = value.value[3];
-              x[4] = value.value[4];
-              x[5] = value.value[5];
+              x[0] = value.data[0];
+              x[1] = value.data[1];
+              x[2] = value.data[2];
+              x[3] = value.data[3];
+              x[4] = value.data[4];
+              x[5] = value.data[5];
           } else {
               x[0] = value[0];
               x[1] = value[1];
@@ -2346,14 +2425,14 @@ export class TypedData extends Data {
       } else if (typeName === "mat2x4f" || typeName === "mat2x4h") {
           const x = new Float32Array(this.buffer, offset, 8);
           if (value instanceof MatrixData) {
-              x[0] = value.value[0];
-              x[1] = value.value[1];
-              x[2] = value.value[2];
-              x[3] = value.value[3];
-              x[4] = value.value[4];
-              x[5] = value.value[5];
-              x[6] = value.value[6];
-              x[7] = value.value[7];
+              x[0] = value.data[0];
+              x[1] = value.data[1];
+              x[2] = value.data[2];
+              x[3] = value.data[3];
+              x[4] = value.data[4];
+              x[5] = value.data[5];
+              x[6] = value.data[6];
+              x[7] = value.data[7];
           } else {
               x[0] = value[0];
               x[1] = value[1];
@@ -2368,12 +2447,12 @@ export class TypedData extends Data {
       } else if (typeName === "mat3x2f" || typeName === "mat3x2h") {
           const x = new Float32Array(this.buffer, offset, 6);
           if (value instanceof MatrixData) {
-              x[0] = value.value[0];
-              x[1] = value.value[1];
-              x[2] = value.value[2];
-              x[3] = value.value[3];
-              x[4] = value.value[4];
-              x[5] = value.value[5];
+              x[0] = value.data[0];
+              x[1] = value.data[1];
+              x[2] = value.data[2];
+              x[3] = value.data[3];
+              x[4] = value.data[4];
+              x[5] = value.data[5];
           } else {
               x[0] = value[0];
               x[1] = value[1];
@@ -2386,15 +2465,15 @@ export class TypedData extends Data {
       } else if (typeName === "mat3x3f" || typeName === "mat3x3h") {
           const x = new Float32Array(this.buffer, offset, 9);
           if (value instanceof MatrixData) {
-              x[0] = value.value[0];
-              x[1] = value.value[1];
-              x[2] = value.value[2];
-              x[3] = value.value[3];
-              x[4] = value.value[4];
-              x[5] = value.value[5];
-              x[6] = value.value[6];
-              x[7] = value.value[7];
-              x[8] = value.value[8];
+              x[0] = value.data[0];
+              x[1] = value.data[1];
+              x[2] = value.data[2];
+              x[3] = value.data[3];
+              x[4] = value.data[4];
+              x[5] = value.data[5];
+              x[6] = value.data[6];
+              x[7] = value.data[7];
+              x[8] = value.data[8];
           } else {
               x[0] = value[0];
               x[1] = value[1];
@@ -2410,18 +2489,18 @@ export class TypedData extends Data {
       } else if (typeName === "mat3x4f" || typeName === "mat3x4h") {
           const x = new Float32Array(this.buffer, offset, 12);
           if (value instanceof MatrixData) {
-              x[0] = value.value[0];
-              x[1] = value.value[1];
-              x[2] = value.value[2];
-              x[3] = value.value[3];
-              x[4] = value.value[4];
-              x[5] = value.value[5];
-              x[6] = value.value[6];
-              x[7] = value.value[7];
-              x[8] = value.value[8];
-              x[9] = value.value[9];
-              x[10] = value.value[10];
-              x[11] = value.value[11];
+              x[0] = value.data[0];
+              x[1] = value.data[1];
+              x[2] = value.data[2];
+              x[3] = value.data[3];
+              x[4] = value.data[4];
+              x[5] = value.data[5];
+              x[6] = value.data[6];
+              x[7] = value.data[7];
+              x[8] = value.data[8];
+              x[9] = value.data[9];
+              x[10] = value.data[10];
+              x[11] = value.data[11];
           } else {
               x[0] = value[0];
               x[1] = value[1];
@@ -2440,14 +2519,14 @@ export class TypedData extends Data {
       } else if (typeName === "mat4x2f" || typeName === "mat4x2h") {
           const x = new Float32Array(this.buffer, offset, 8);
           if (value instanceof MatrixData) {
-              x[0] = value.value[0];
-              x[1] = value.value[1];
-              x[2] = value.value[2];
-              x[3] = value.value[3];
-              x[4] = value.value[4];
-              x[5] = value.value[5];
-              x[6] = value.value[6];
-              x[7] = value.value[7];
+              x[0] = value.data[0];
+              x[1] = value.data[1];
+              x[2] = value.data[2];
+              x[3] = value.data[3];
+              x[4] = value.data[4];
+              x[5] = value.data[5];
+              x[6] = value.data[6];
+              x[7] = value.data[7];
           } else {
               x[0] = value[0];
               x[1] = value[1];
@@ -2462,18 +2541,18 @@ export class TypedData extends Data {
       } else if (typeName === "mat4x3f" || typeName === "mat4x3h") {
           const x = new Float32Array(this.buffer, offset, 12);
           if (value instanceof MatrixData) {
-              x[0] = value.value[0];
-              x[1] = value.value[1];
-              x[2] = value.value[2];
-              x[3] = value.value[3];
-              x[4] = value.value[4];
-              x[5] = value.value[5];
-              x[6] = value.value[6];
-              x[7] = value.value[7];
-              x[8] = value.value[8];
-              x[9] = value.value[9];
-              x[10] = value.value[10];
-              x[11] = value.value[11];
+              x[0] = value.data[0];
+              x[1] = value.data[1];
+              x[2] = value.data[2];
+              x[3] = value.data[3];
+              x[4] = value.data[4];
+              x[5] = value.data[5];
+              x[6] = value.data[6];
+              x[7] = value.data[7];
+              x[8] = value.data[8];
+              x[9] = value.data[9];
+              x[10] = value.data[10];
+              x[11] = value.data[11];
           } else {
               x[0] = value[0];
               x[1] = value[1];
@@ -2492,22 +2571,22 @@ export class TypedData extends Data {
       } else if (typeName === "mat4x4f" || typeName === "mat4x4h") {
           const x = new Float32Array(this.buffer, offset, 16);
           if (value instanceof MatrixData) {
-              x[0] = value.value[0];
-              x[1] = value.value[1];
-              x[2] = value.value[2];
-              x[3] = value.value[3];
-              x[4] = value.value[4];
-              x[5] = value.value[5];
-              x[6] = value.value[6];
-              x[7] = value.value[7];
-              x[8] = value.value[8];
-              x[9] = value.value[9];
-              x[10] = value.value[10];
-              x[11] = value.value[11];
-              x[12] = value.value[12];
-              x[13] = value.value[13];
-              x[14] = value.value[14];
-              x[15] = value.value[15];
+              x[0] = value.data[0];
+              x[1] = value.data[1];
+              x[2] = value.data[2];
+              x[3] = value.data[3];
+              x[4] = value.data[4];
+              x[5] = value.data[5];
+              x[6] = value.data[6];
+              x[7] = value.data[7];
+              x[8] = value.data[8];
+              x[9] = value.data[9];
+              x[10] = value.data[10];
+              x[11] = value.data[11];
+              x[12] = value.data[12];
+              x[13] = value.data[13];
+              x[14] = value.data[14];
+              x[15] = value.data[15];
           } else {
               x[0] = value[0];
               x[1] = value[1];
@@ -2535,7 +2614,7 @@ export class TypedData extends Data {
               x.set(new Uint8Array(value.buffer));
               return;
           } else {
-              console.error(`SetDataValue: Type mismatch`, typeName, exec.getTypeName(value.typeInfo));
+              console.error(`SetDataValue: Type mismatch`, typeName, value.typeInfo.getTypeName());
               return;
           }
       }
@@ -2560,12 +2639,12 @@ export class TypedData extends Data {
                 offset += i * typeInfo.stride;
                 typeInfo = typeInfo.format;
             } else {
-                const typeName = exec.getTypeName(typeInfo);
+                const typeName = typeInfo.getTypeName();
                 if (typeName === "mat4x4" || typeName === "mat4x4f" || typeName === "mat4x4h") {
                   offset += i * 16;
                   typeInfo = exec.getTypeInfo("vec4f");
                 } else {
-                    console.error(`getDataValue: Type ${exec.getTypeName(typeInfo)} is not an array`);
+                    console.error(`getDataValue: Type ${typeInfo.getTypeName()} is not an array`);
                 }
             }
           } else if (postfix instanceof StringExpr) {
@@ -2585,7 +2664,7 @@ export class TypedData extends Data {
                       return null;
                   }
               } else if (typeInfo instanceof TypeInfo) {
-                  const typeName = exec.getTypeName(typeInfo);
+                  const typeName = typeInfo.getTypeName();
                   if (typeName === "vec2f" || typeName === "vec3f" || typeName === "vec4f" ||
                       typeName === "vec2i" || typeName === "vec3i" || typeName === "vec4i" ||
                       typeName === "vec2u" || typeName === "vec3u" || typeName === "vec4u" ||
@@ -2682,7 +2761,7 @@ export class TypedData extends Data {
           postfix = postfix.postfix;
       }
 
-      const typeName = exec.getTypeName(typeInfo);
+      const typeName = typeInfo.getTypeName();
 
       if (typeName === "f32") {
           return new ScalarData(new Float32Array(this.buffer, offset, 1)[0], typeInfo);

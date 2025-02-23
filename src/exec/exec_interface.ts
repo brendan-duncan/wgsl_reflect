@@ -7,10 +7,6 @@ export class ExecInterface {
         return null;
     }
 
-    getTypeName(type: TypeInfo | Type): string {
-        return "";
-    }
-
     getTypeInfo(type: Type | string): TypeInfo | null {
         return null; 
     }

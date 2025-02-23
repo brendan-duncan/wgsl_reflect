@@ -367,6 +367,7 @@ export declare class Type extends Statement {
     static bool: Type;
     static _priority: Map<string, number>;
     static maxFormatType(x: Type[]): Type;
+    getTypeName(): string;
 }
 /**
  * @class StructType
@@ -392,6 +393,7 @@ export declare class TemplateType extends Type {
     access: string | null;
     constructor(name: string, format: Type | null, access: string | null);
     get astNodeType(): string;
+    getTypeName(): string;
     static vec2f: TemplateType;
     static vec3f: TemplateType;
     static vec4f: TemplateType;
@@ -552,7 +554,7 @@ export declare class LiteralExpr extends Expression {
     get isScalar(): boolean;
     get isVector(): boolean;
     get scalarValue(): number;
-    get vectorValue(): number[];
+    get vectorValue(): Float32Array | Int32Array | Uint32Array;
 }
 /**
  * @class BitcastExpr
@@ -737,22 +739,24 @@ export declare class PointerData extends Data {
     constructor(reference: Data);
 }
 export declare class ScalarData extends Data {
-    value: number;
-    constructor(value: number, typeInfo: TypeInfo);
+    data: Int32Array | Uint32Array | Float32Array;
+    constructor(value: number | Int32Array | Uint32Array | Float32Array, typeInfo: TypeInfo);
+    get value(): number;
+    set value(v: number);
     setDataValue(exec: ExecInterface, value: Data, postfix: Expression | null, context: ExecContext): void;
     getDataValue(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null;
     toString(): string;
 }
 export declare class VectorData extends Data {
-    value: number[];
+    data: Int32Array | Uint32Array | Float32Array;
     constructor(value: number[] | Float32Array | Uint32Array | Int32Array, typeInfo: TypeInfo);
     setDataValue(exec: ExecInterface, value: Data, postfix: Expression | null, context: ExecContext): void;
     getDataValue(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null;
     toString(): string;
 }
 export declare class MatrixData extends Data {
-    value: number[];
-    constructor(value: number[], typeInfo: TypeInfo);
+    data: Float32Array;
+    constructor(value: number[] | Float32Array, typeInfo: TypeInfo);
     setDataValue(exec: ExecInterface, value: Data, postfix: Expression | null, context: ExecContext): void;
     getDataValue(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null;
     toString(): string;

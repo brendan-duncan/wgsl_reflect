@@ -32,7 +32,7 @@ export declare class BuiltinFunctions {
     Degrees(node: CallExpr | Call, context: ExecContext): Data | null;
     Determinant(node: CallExpr | Call, context: ExecContext): Data | null;
     Distance(node: CallExpr | Call, context: ExecContext): Data | null;
-    _dot(e1: number[], e2: number[]): number;
+    _dot(e1: Int32Array | Uint32Array | Float32Array, e2: Int32Array | Uint32Array | Float32Array): number;
     Dot(node: CallExpr | Call, context: ExecContext): Data | null;
     Dot4U8Packed(node: CallExpr | Call, context: ExecContext): Data | null;
     Dot4I8Packed(node: CallExpr | Call, context: ExecContext): Data | null;

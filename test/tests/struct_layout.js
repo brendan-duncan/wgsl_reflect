@@ -2,7 +2,7 @@ import { test, group } from "../test.js";
 import { WgslReflect } from "../../../wgsl_reflect.module.js";
 
 export async function run() {
-  await group("struct_layout", function () {
+  await group("struct_layout", async function () {
     const shader = `
   struct A {                                     //             align(8)  size(32)
       u: f32,                                    // offset(0)   align(4)  size(4)
@@ -31,13 +31,13 @@ export async function run() {
 
     let reflect = null;
 
-    test("reflect", function (test) {
+    await test("reflect", function (test) {
       reflect = new WgslReflect(shader);
       test.equals(reflect.uniforms.length, 1);
       test.equals(reflect.structs.length, 2);
     });
 
-    test("getMemberInfo(B)", function (test) {
+    await test("getMemberInfo(B)", function (test) {
       test.equals(reflect.uniforms[0].align, 16);
       test.equals(reflect.uniforms[0].size, 208);
     });

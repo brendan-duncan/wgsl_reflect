@@ -19,7 +19,6 @@ export declare class WgslExec extends ExecInterface {
     execStatement(stmt: Node, context: ExecContext): Data | null;
     evalExpression(node: Node, context: ExecContext): Data | null;
     getTypeInfo(type: Type | string): TypeInfo | null;
-    getTypeName(type: TypeInfo | Type): string;
     _setOverrides(constants: Object, context: ExecContext): void;
     _dispatchWorkgroup(f: FunctionRef, workgroup_id: number[], context: ExecContext): void;
     _dispatchExec(f: FunctionRef, context: ExecContext): void;

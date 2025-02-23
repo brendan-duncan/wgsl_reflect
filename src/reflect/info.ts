@@ -22,6 +22,10 @@ export class TypeInfo {
   get isTemplate(): boolean {
     return false;
   }
+
+  getTypeName(): string {
+    return this.name;
+  }
 }
 
 export class MemberInfo {
@@ -128,6 +132,40 @@ export class TemplateInfo extends TypeInfo {
 
   get isTemplate(): boolean {
     return true;
+  }
+
+  getTypeName(): string {
+    let name = this.name;
+    if (this.format !== null) {
+      if (name === "vec2" || name === "vec3" || name === "vec4" ||
+          name === "mat2x2" || name === "mat2x3" || name === "mat2x4" ||
+          name === "mat3x2" || name === "mat3x3" || name === "mat3x4" ||
+          name === "mat4x2" || name === "mat4x3" || name === "mat4x4") {
+        if (this.format.name === "f32") {
+          name += "f";
+          return name;
+        } else if (this.format.name === "i32") {
+          name += "i";
+          return name;
+        } else if (this.format.name === "u32") {
+          name += "u";
+          return name;
+        } else if (this.format.name === "bool") {
+          name += "b";
+          return name;
+        } else if (this.format.name === "f16") {
+          name += "h";
+          return name;
+        }
+      }
+      name += `<${this.format.name}>`;
+    } else {
+      if (name === "vec2" || name === "vec3" || name === "vec4") {
+        return name;
+      }
+      //console.error("Template format is null.");
+    }
+    return name;
   }
 }
 

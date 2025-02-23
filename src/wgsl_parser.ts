@@ -1519,8 +1519,8 @@ export class WgslParser {
 
     if (_var.type !== null && _var.value instanceof AST.LiteralExpr) {
       if (_var.value.type.name !== "x32") {
-        const t1 = this._exec.getTypeName(_var.type);
-        const t2 = this._exec.getTypeName(_var.value.type);
+        const t1 = _var.type.getTypeName();
+        const t2 = _var.value.type.getTypeName();
         if (t1 !== t2) {
           throw this._error(this._peek(), `Invalid cast from ${_var.value.type.name} to ${_var.type.name}. Line:${this._currentLine}`);
         }
@@ -1601,8 +1601,8 @@ export class WgslParser {
 
     if (type !== null && value instanceof AST.LiteralExpr) {
       if (value.type.name !== "x32") {
-        const t1 = this._exec.getTypeName(type);
-        const t2 = this._exec.getTypeName(value.type);
+        const t1 = type.getTypeName();
+        const t2 = value.type.getTypeName();
         if (t1 !== t2) {
           throw this._error(this._peek(), `Invalid cast from ${value.type.name} to ${type.name}. Line:${this._currentLine}`);
         }
@@ -1655,8 +1655,8 @@ export class WgslParser {
     }
     if (type !== null && value instanceof AST.LiteralExpr) {
       if (value.type.name !== "x32") {
-        const t1 = this._exec.getTypeName(type);
-        const t2 = this._exec.getTypeName(value.type);
+        const t1 = type.getTypeName();
+        const t2 = value.type.getTypeName();
         if (t1 !== t2) {
           throw this._error(this._peek(), `Invalid cast from ${value.type.name} to ${type.name}. Line:${this._currentLine}`);
         }

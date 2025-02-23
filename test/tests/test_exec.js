@@ -21,10 +21,10 @@ export async function run() {
                 @group(0) @binding(0) var<storage,read_write> system: System;
 
                 @compute @workgroup_size(1)
-                fn main() {
+                fn main(@builtin(global_invocation_id) id: vec3u) {
                     // Form a pointer to a specific Particle in storage memory.
                     let active_particle: ptr<storage,Particle,read_write> =
-                        &system.particles[system.active_index];
+                        &system.particles[id.x];
 
                     let delta_position: vec3<f32> = (*active_particle).velocity * system.timestep;
                     let current_position: vec3<f32>  = (*active_particle).position;
@@ -34,20 +34,21 @@ export async function run() {
             // Verify the emulated dispatch has the same results as the WebGPU dispatch.
             const buffer = new Float32Array(32 * 100 + 8);
             buffer[0] = 0; // active_index
-            buffer[1] = 0.1; // timestep
-            for (let i = 0; i < 100; ++i) {
-                buffer[2 + i * 8 + 0] = i;
-                buffer[2 + i * 8 + 1] = i + 1;
-                buffer[2 + i * 8 + 2] = i + 2;
-                buffer[2 + i * 8 + 3] = i + 3;
-                buffer[2 + i * 8 + 4] = i + 4;
-                buffer[2 + i * 8 + 5] = i + 5;
-                buffer[2 + i * 8 + 6] = i + 6;
-                buffer[2 + i * 8 + 7] = i + 7;
+            buffer[1] = 1; // timestep
+            for (let i = 0, j = 2; i < 100; ++i, j += 8) {
+                buffer[j + 0] = i;
+                buffer[j + 1] = i + 1;
+                buffer[j + 2] = i + 2;
+                buffer[j + 3] = i + 3;
+
+                buffer[j + 4] = i + 4;
+                buffer[j + 5] = i + 5;
+                buffer[j + 6] = i + 6;
+                buffer[j + 7] = i + 7;
             }
             const bg = {0: {0: buffer}};
 
-            const _data = await webgpuDispatch(shader, "main", 4, bg);
+            const _data = await webgpuDispatch(shader, "main", 100, bg);
             const webgpuData = new Float32Array(_data);
 
             const wgsl = _newWgslExec(shader);

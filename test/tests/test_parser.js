@@ -2,8 +2,8 @@ import { test, group } from "../test.js";
 import { WgslParser } from "../../../wgsl_reflect.module.js";
 
 export async function run() {
-  await group("Parser", function () {
-    test("switch default selector", function (test) {
+  await group("Parser", async function () {
+    await test("switch default selector", function (test) {
       const shader = `
         const c = 2;
         fn foo(x: i32) -> i32 {
@@ -28,21 +28,21 @@ export async function run() {
         test.equals(t.length, 4);
     });
 
-    test("vec4f", function (test) {
+    await test("vec4f", function (test) {
       const shader = `const bitShift:vec4f = vec4f(1.0, 1.0/256.0, 1.0/(256.0*256.0), 1.0/(256.0*256.0*256.0));`
       const parser = new WgslParser();
       const t = parser.parse(shader);
       test.equals(t.length, 1);
     });
 
-    test("override reserved name", function (test) {
+    await test("override reserved name", function (test) {
       const shader = `override read = 123; @compute @workgroup_size(read) fn cs() { }`
       const parser = new WgslParser();
       const t = parser.parse(shader);
       test.equals(t.length, 2);
     });
 
-    test("const", function (test) {
+    await test("const", function (test) {
       const shader = `
       const a = 4; // i32 -- 4
       const b : i32 = 4; // i32 -- 4
@@ -79,14 +79,14 @@ export async function run() {
       test.equals(t[10].type?.name, "mat2x3", "k.type");
     });
 
-    test("diagnostic", function (test) {
+    await test("diagnostic", function (test) {
       const shader = `diagnostic(off, chromium.unreachable_code);`;
       const parser = new WgslParser();
       const t = parser.parse(shader);
       test.equals(t.length, 1);
     });
 
-    test("vec2 var", function (test) {
+    await test("vec2 var", function (test) {
       const shader = `var a = vec2<f32>(1.0, 2.0);`;
       const parser = new WgslParser();
       const t = parser.parse(shader);
@@ -94,7 +94,7 @@ export async function run() {
       test.notNull(t[0].value);
     });
 
-    test("type inference", function (test) {
+    await test("type inference", function (test) {
       const shader = `
 var u32_1 = 1u; // u32 - 0
 var i32_1 = 1i; // i32 - 1
@@ -117,9 +117,9 @@ let f32_promotion4 = ((2 + (3 + 1f)) + 4); // f32 - 17
 let some_i32 = 1; // i32 - 18
 let out_and_in_again = (0x1ffffffff / 8); // i32 - 19
 let out_of_range = (0x1ffffffff / 8u); // u32 - 20
-let ambiguous_clamp = clamp(1u, 0, 1i); // invalid, ambiguous types 
-let some_f32 : f32 = some_i32; // Type error: i32 cannot be assigned to f32
-let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
+//let ambiguous_clamp = clamp(1u, 0, 1i); // invalid, ambiguous types 
+//let some_f32 : f32 = some_i32; // Type error: i32 cannot be assigned to f32
+//let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
 //var u32_neg = -1u; // invalid: unary minus does not support u32
 //var i32_demotion : i32 = 1.0; // Invalid
 //var u32_from_expr = 1 + u32_1; // u32 (at runtime)
@@ -145,7 +145,7 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
       //test.equals(t[8].type.name, "i32");
     });
 
-    test("const2", function (test) {
+    await test("const2", function (test) {
       const shader = `const FOO = radians(90);
       const BAR = sin(FOO);
       const NUM_COLORS = u32(BAR + 3); // result 4
@@ -153,22 +153,23 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
       const parser = new WgslParser();
       const t = parser.parse(shader);
       test.equals(t.length, 4);
+      test.closeTo(t[0].value.value.value, 1.5707963705062866);
     });
 
-    test("override", function (test) {
+    await test("override", function (test) {
       const parser = new WgslParser();
       const t = parser.parse("const AP_DISTANCE_PER_SLICE = 4.0; override AP_INV_DISTANCE_PER_SLICE = 1.0 / AP_DISTANCE_PER_SLICE;");
       test.equals(t.length, 2);
       //const v = t[1].evaluate(parser._context);
     });
 
-    test("bar--;", function (test) {
+    await test("bar--;", function (test) {
       const parser = new WgslParser();
       const t = parser.parse("fn foo() { bar--; }");
       test.equals(t[0].body.length, 1);
     });
 
-    test(">=", function(test) {
+    await test(">=", function(test) {
       const parser = new WgslParser();
       const t = parser.parse(`fn foo() {
         var cEdgeBool : vec3<bool> = c3 >= vec3<f32>(1.0);
@@ -176,13 +177,13 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
       test.equals(t.length, 1);
     });
 
-    test("requires", function(test) {
+    await test("requires", function(test) {
       const parser = new WgslParser();
       const t = parser.parse(`requires readonly_and_readwrite_storage_textures;`);
       test.equals(t.length, 1);
     });
 
-    test("diagnostic if", function () {
+    await test("diagnostic if", function () {
       const parser = new WgslParser();
       const t = parser.parse(`fn helper() -> vec4<f32> {
         if (d < 0.5) @diagnostic(off,derivative_uniformity) {
@@ -192,7 +193,7 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
       }`);
     });
 
-    test("diagnostic block", function () {
+    await test("diagnostic block", function () {
       const parser = new WgslParser();
       const t = parser.parse(`fn helper() -> vec4<f32> {
         // The derivative_uniformity diagnostic is set to 'warning' severity.
@@ -202,26 +203,26 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
       }`);
     });
 
-    test("_", function (test) {
+    await test("_", function (test) {
       const parser = new WgslParser();
       const t = parser.parse("fn foo(_point : vec3<f32>) {}");
       test.equals(t.length, 1);
     });
 
-    test("empty", function (test) {
+    await test("empty", function (test) {
       const parser = new WgslParser();
       test.equals(parser.parse().length, 0);
       test.equals(parser.parse("").length, 0);
       test.equals(parser.parse([]).length, 0);
     });
 
-    test(";;;;", function (test) {
+    await test(";;;;", function (test) {
       const parser = new WgslParser();
       test.equals(parser.parse(";;;;").length, 0);
     });
 
     // enable:
-    test("enable foo;", function (test) {
+    await test("enable foo;", function (test) {
       const parser = new WgslParser();
       const t = parser.parse("enable foo;");
       test.validateObject(t, [
@@ -233,7 +234,7 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
     });
 
     // enable:
-    test("diagnostic", function (test) {
+    await test("diagnostic", function (test) {
       const parser = new WgslParser();
       const t = parser.parse("diagnostic(off, derivative_uniformity);");
       test.validateObject(t, [
@@ -246,7 +247,7 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
     });
 
     // alias:
-    test("alias", function (test) {
+    await test("alias", function (test) {
       const parser = new WgslParser();
       const t = parser.parse("alias foo = i32;");
       test.validateObject(t, [
@@ -258,7 +259,7 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
       ]);
     });
 
-    test("alias foo = vec3<f32>;", function (test) {
+    await test("alias foo = vec3<f32>;", function (test) {
       const parser = new WgslParser();
       const t = parser.parse("alias foo = vec3<f32>;");
       test.validateObject(t, [
@@ -275,7 +276,7 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
       ]);
     });
 
-    test("alias foo = array<f32, 5>;", function (test) {
+    await test("alias foo = array<f32, 5>;", function (test) {
       const parser = new WgslParser();
       const t = parser.parse("alias foo = array<f32, 5>;");
       test.validateObject(t, [
@@ -293,32 +294,32 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
       ]);
     });
 
-    test("alias foo = @stride(16) array<vec4<f32>>;", function (test) {
+    await test("alias foo = @stride(16) array<vec4<f32>>;", function (test) {
       const parser = new WgslParser();
       const t = parser.parse("alias foo = @stride(16) array<vec4<f32>>;");
       test.equals(t.length, 1);
     });
 
     // var
-    test("var<private> decibels: f32;", function (test) {
+    await test("var<private> decibels: f32;", function (test) {
       const parser = new WgslParser();
       const t = parser.parse("var<private> decibels: f32;");
       test.equals(t.length, 1);
     });
 
-    test("var<workgroup> worklist: array<i32,10>;", function (test) {
+    await test("var<workgroup> worklist: array<i32,10>;", function (test) {
       const parser = new WgslParser();
       const t = parser.parse("var<workgroup> worklist: array<i32,10>;");
       test.equals(t.length, 1);
     });
 
-    test("@group(0) @binding(2) var<uniform> param: Params;", function (test) {
+    await test("@group(0) @binding(2) var<uniform> param: Params;", function (test) {
       const parser = new WgslParser();
       const t = parser.parse("@group(0) @binding(2) var<uniform> param: Params;");
       test.equals(t.length, 1);
     });
 
-    test("@group(0) binding(0) var<storage,read_write> pbuf: PositionsBuffer;", function (test) {
+    await test("@group(0) binding(0) var<storage,read_write> pbuf: PositionsBuffer;", function (test) {
       const parser = new WgslParser();
       const t = parser.parse(
         "@group(0) @binding(0) var<storage,read_write> pbuf: PositionsBuffer;"
@@ -342,7 +343,7 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
     });
 
     // let
-    test("let golden: f32 = 1.61803398875;", function (test) {
+    await test("let golden: f32 = 1.61803398875;", function (test) {
       const parser = new WgslParser();
       const t = parser.parse("let golden: f32 = 1.61803398875;");
       test.validateObject(t, [
@@ -352,12 +353,12 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
           type: {
             name: "f32",
           },
-          value: { value: { value: 1.61803398875 } },
+          value: { value: { value: 1.6180340051651 } },
         },
       ]);
     });
 
-    test("let e2 = vec3<i32>(0,1,0);", function (test) {
+    await test("let e2 = vec3<i32>(0,1,0);", function (test) {
       const parser = new WgslParser();
       const t = parser.parse("let e2 = vec3<i32>(0,1,0);");
       test.validateObject(t, [
@@ -379,7 +380,7 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
 
     // struct
 
-    test("struct", function (test) {
+    await test("struct", function (test) {
       const parser = new WgslParser();
       const code = `
   struct S {
@@ -392,7 +393,7 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
     });
 
     // let
-    test("let x : i32 = 42;", function (test) {
+    await test("let x : i32 = 42;", function (test) {
       const parser = new WgslParser();
       const t = parser.parse("let x : i32 = 42;");
       test.validateObject(t, [
@@ -404,13 +405,13 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
     });
 
     // function
-    test("fn test() { let x : i32 = 42; }", function (test) {
+    await test("fn test() { let x : i32 = 42; }", function (test) {
       const parser = new WgslParser();
       const t = parser.parse("fn test() { let x : i32 = 42; }");
       test.equals(t.length, 1);
     });
 
-    test("@vertex fn vert_main() -> @builtin(position) vec4<f32> {}", function (test) {
+    await test("@vertex fn vert_main() -> @builtin(position) vec4<f32> {}", function (test) {
       const parser = new WgslParser();
       const t = parser.parse(
         "@vertex fn vert_main() -> @builtin(position) vec4<f32> {}"
@@ -418,7 +419,7 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
       test.equals(t.length, 1);
     });
 
-    test("var W_out_origX0X : texture_storage_2d<rgba16float, write>;", function (test) {
+    await test("var W_out_origX0X : texture_storage_2d<rgba16float, write>;", function (test) {
       const parser = new WgslParser();
       const t = parser.parse(
         "var W_out_origX0X : texture_storage_2d<rgba16float, write>;"
@@ -426,19 +427,19 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
       test.equals(t.length, 1);
     });
 
-    test("if (foo) { }", function (test) {
+    await test("if (foo) { }", function (test) {
       const parser = new WgslParser();
       const t = parser.parse("fn test() { if (foo) { } }");
       test.equals(t.length, 1);
     });
 
-    test("if foo { }", function (test) {
+    await test("if foo { }", function (test) {
       const parser = new WgslParser();
       const t = parser.parse("fn test() { if foo { } }");
       test.equals(t.length, 1);
     });
 
-    test("switch foo { case 0: {} default: {} }", function (test) {
+    await test("switch foo { case 0: {} default: {} }", function (test) {
       const parser = new WgslParser();
       const t = parser.parse(
         "fn test() { switch foo { case 0: {} default: {} } }"
@@ -446,19 +447,19 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
       test.equals(t.length, 1);
     });
 
-    test("switch foo { }", function (test) {
+    await test("switch foo { }", function (test) {
       const parser = new WgslParser();
       const t = parser.parse("fn test() { switch foo { default: { } } }");
       test.equals(t.length, 1);
     });
 
-    test("trailing_comma", function (test) {
+    await test("trailing_comma", function (test) {
       const parser = new WgslParser();
       const t = parser.parse("fn foo (a:i32,) {}");
       test.equals(t.length, 1);
     });
 
-    test("operators", function (test) {
+    await test("operators", function (test) {
       const parser = new WgslParser();
       const t = parser.parse(`fn foo() {
               var b = 1;
@@ -477,7 +478,7 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
       test.equals(t[0].body.length, 12);
     });
 
-    test("static_assert", function (test) {
+    await test("static_assert", function (test) {
       const parser = new WgslParser();
       const t = parser.parse(`fn foo() {
               const x = 1;
@@ -487,7 +488,7 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
           }`);
     });
 
-    test("for incrementer", function (test) {
+    await test("for incrementer", function (test) {
       const parser = new WgslParser();
       const t = parser.parse(`fn foo() {
               for (var i = 0; i < 10; i++) {
@@ -510,7 +511,7 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
       test.equals(t[0].body[3].increment.astNodeType, "call");
     });
 
-    test("inferred type arrays", function (test) {
+    await test("inferred type arrays", function (test) {
       const parser = new WgslParser();
       const t = parser.parse(`
         @vertex fn vs(@builtin(vertex_index) vertexIndex : u32) -> @builtin(position) vec4f {
@@ -526,7 +527,7 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
       test.equals(t[0].body.length, 2);
     });
 
-    test("if (foo < 0.33333) { } else if foo < 0.66667 {} else {}", function (test) {
+    await test("if (foo < 0.33333) { } else if foo < 0.66667 {} else {}", function (test) {
       const parser = new WgslParser();
       const t = parser.parse(
         "fn test() { if (foo < 0.33333) { } else if foo < 0.66667 {} else {} }"
@@ -541,7 +542,7 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
       test.equals(t1[0].body[0].elseif.length, 2);
     });
 
-    test("loop", function (test) {
+    await test("loop", function (test) {
       const parser = new WgslParser();
       const t = parser.parse(`fn test() {
           var i: i32 = 0;
@@ -558,7 +559,7 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
       test.equals(t[0].body[1].body[3].astNodeType, "continuing");
     });
 
-    test("module scope value constructor", function (test) {
+    await test("module scope value constructor", function (test) {
       const parser = new WgslParser();
       const t = parser.parse(`const v2 = vec2f(0.0f, 0.0f);
         const v3 = vec3f(0.0f, 0.0f, 0.0f);
@@ -594,7 +595,7 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
       //console.log(t);
     });
 
-    test("const switch", function (test) {
+    await test("const switch", function (test) {
       const parser = new WgslParser();
       const t = parser.parse(`alias material_type = u32;
         const MATERIAL_TYPE_LAMBERTIAN : material_type = 0;
@@ -608,7 +609,7 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
       //console.log(t);
     });
 
-    test("storage texture", function (test) {
+    await test("storage texture", function (test) {
       const parser = new WgslParser();
       const t = parser.parse(
         `var<storage> tex: texture_storage_2d<rgba8unorm, read_write>;`
@@ -619,7 +620,7 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
       test.equals(t[0].type.access, "read_write");
     });
 
-    test("post const array count", function (test) {
+    await test("post const array count", function (test) {
       const parser = new WgslParser();
       const t = parser.parse(`alias Arr = array<f32, SIZE>;
         const SIZE = 3u + FOO;
@@ -645,7 +646,7 @@ let overflow_u32 = (1 -2) + 1u; // u32, invalid, -1 is out of range of u32
         ]);
     });
 
-    test("create vs call [1]", function (test) {
+    await test("create vs call [1]", function (test) {
       const shader = `let a = vec2f(1.0, 2.0);
       let b = vec2<f32>(1.0, 2.0);`;
       const parser = new WgslParser();

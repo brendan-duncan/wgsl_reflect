@@ -77,10 +77,10 @@ export class WgslDebug {
             return v.value;
         }
         if (v instanceof AST.VectorData) {
-            return v.value;
+            return Array.from(v.data);
         }
         if (v instanceof AST.MatrixData) {
-            return v.value;
+            return Array.from(v.data);
         }
         console.error(`Unsupported return variable type ${v.typeInfo.name}`);
         return null;
@@ -644,9 +644,9 @@ export class WgslDebug {
                     if (v instanceof AST.ScalarData) {
                         workgroupSize[0] = v.value;
                     } else if (v instanceof AST.VectorData) {
-                        workgroupSize[0] = v.value[0];
-                        workgroupSize[1] = v.value.length > 1 ? v.value[1] : 1;
-                        workgroupSize[2] = v.value.length > 2 ? v.value[2] : 1;
+                        workgroupSize[0] = v.data[0];
+                        workgroupSize[1] = v.data.length > 1 ? v.data[1] : 1;
+                        workgroupSize[2] = v.data.length > 2 ? v.data[2] : 1;
                     } else {
                         workgroupSize[0] = parseInt(attr.value);
                     }

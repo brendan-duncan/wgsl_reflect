@@ -20,7 +20,7 @@ export class BuiltinFunctions {
         const value = this.exec.evalExpression(node.args[0], context);
         let isTrue = true;
         if (value instanceof VectorData) {
-            value.value.forEach((x: any) => { if (!x) isTrue = false; });
+            value.data.forEach((x: any) => { if (!x) isTrue = false; });
             return new ScalarData(isTrue ? 1 : 0, this.getTypeInfo("bool"));
         }
         throw new Error(`All() expects a vector argument. Line ${node.line}`);
@@ -29,7 +29,7 @@ export class BuiltinFunctions {
     Any(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            const res = value.value.some((v: any) => v);
+            const res = value.data.some((v: any) => v);
             return new ScalarData(res ? 1 : 0, this.getTypeInfo("bool"));
         }
         throw new Error(`Any() expects a vector argument. Line ${node.line}`);
@@ -68,7 +68,7 @@ export class BuiltinFunctions {
     Abs(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => Math.abs(v)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => Math.abs(v)), value.typeInfo);
         }
         const s = value as ScalarData;
         return new ScalarData(Math.abs(s.value), s.typeInfo);
@@ -77,7 +77,7 @@ export class BuiltinFunctions {
     Acos(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => Math.acos(v)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => Math.acos(v)), value.typeInfo);
         }
         const s = value as ScalarData;
         return new ScalarData(Math.acos(s.value), value.typeInfo);
@@ -86,7 +86,7 @@ export class BuiltinFunctions {
     Acosh(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => Math.acosh(v)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => Math.acosh(v)), value.typeInfo);
         }
         const s = value as ScalarData;
         return new ScalarData(Math.acosh(s.value), value.typeInfo);
@@ -95,7 +95,7 @@ export class BuiltinFunctions {
     Asin(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => Math.asin(v)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => Math.asin(v)), value.typeInfo);
         }
         const s = value as ScalarData;
         return new ScalarData(Math.asin(s.value), value.typeInfo);
@@ -104,7 +104,7 @@ export class BuiltinFunctions {
     Asinh(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => Math.asinh(v)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => Math.asinh(v)), value.typeInfo);
         }
         const s = value as ScalarData;
         return new ScalarData(Math.asinh(s.value), value.typeInfo);
@@ -113,7 +113,7 @@ export class BuiltinFunctions {
     Atan(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => Math.atan(v)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => Math.atan(v)), value.typeInfo);
         }
         const s = value as ScalarData;
         return new ScalarData(Math.atan(s.value), value.typeInfo);
@@ -122,7 +122,7 @@ export class BuiltinFunctions {
     Atanh(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => Math.atanh(v)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => Math.atanh(v)), value.typeInfo);
         }
         const s = value as ScalarData;
         return new ScalarData(Math.atanh(s.value), value.typeInfo);
@@ -132,7 +132,7 @@ export class BuiltinFunctions {
         const y = this.exec.evalExpression(node.args[0], context);
         const x = this.exec.evalExpression(node.args[1], context);
         if (y instanceof VectorData && x instanceof VectorData) {
-            return new VectorData(y.value.map((v: number, i: number) => Math.atan2(v, x.value[i])), y.typeInfo);
+            return new VectorData(y.data.map((v: number, i: number) => Math.atan2(v, x.data[i])), y.typeInfo);
         }
         const ys = y as ScalarData;
         const xs = x as ScalarData;
@@ -142,7 +142,7 @@ export class BuiltinFunctions {
     Ceil(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => Math.ceil(v)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => Math.ceil(v)), value.typeInfo);
         }
         const s = value as ScalarData;
         return new ScalarData(Math.ceil(s.value), value.typeInfo);
@@ -157,7 +157,7 @@ export class BuiltinFunctions {
         const min = this.exec.evalExpression(node.args[1], context);
         const max = this.exec.evalExpression(node.args[2], context);
         if (value instanceof VectorData && min instanceof VectorData && max instanceof VectorData) {
-            return new VectorData(value.value.map((v: number, i: number) => this._clamp(v, min.value[i], max.value[i])), value.typeInfo);
+            return new VectorData(value.data.map((v: number, i: number) => this._clamp(v, min.data[i], max.data[i])), value.typeInfo);
         }
         const s = value as ScalarData;
         const minS = min as ScalarData;
@@ -168,7 +168,7 @@ export class BuiltinFunctions {
     Cos(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => Math.cos(v)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => Math.cos(v)), value.typeInfo);
         }
         const s = value as ScalarData;
         return new ScalarData(Math.cos(s.value), value.typeInfo);
@@ -177,7 +177,7 @@ export class BuiltinFunctions {
     Cosh(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => Math.cosh(v)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => Math.cosh(v)), value.typeInfo);
         }
         const s = value as ScalarData;
         return new ScalarData(Math.cos(s.value), value.typeInfo);
@@ -186,7 +186,7 @@ export class BuiltinFunctions {
     CountLeadingZeros(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => Math.clz32(v)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => Math.clz32(v)), value.typeInfo);
         }
         const s = value as ScalarData;
         return new ScalarData(Math.clz32(s.value), value.typeInfo);
@@ -206,7 +206,7 @@ export class BuiltinFunctions {
     CountOneBits(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => this._countOneBits(v)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => this._countOneBits(v)), value.typeInfo);
         }
         const s = value as ScalarData;
         return new ScalarData(this._countOneBits(s.value), value.typeInfo);
@@ -227,7 +227,7 @@ export class BuiltinFunctions {
     CountTrailingZeros(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => this._countTrailingZeros(v)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => this._countTrailingZeros(v)), value.typeInfo);
         }
         const s = value as ScalarData;
         return new ScalarData(this._countTrailingZeros(s.value), value.typeInfo);
@@ -237,12 +237,12 @@ export class BuiltinFunctions {
         const l = this.exec.evalExpression(node.args[0], context);
         const r = this.exec.evalExpression(node.args[1], context);
         if (l instanceof VectorData && r instanceof VectorData) {
-            if (l.value.length !== 3 || r.value.length !== 3) {
+            if (l.data.length !== 3 || r.data.length !== 3) {
                 console.error(`Cross() expects 3D vectors. Line ${node.line}`);
                 return null;
             }
-            const lv = l.value;
-            const rv = r.value;
+            const lv = l.data;
+            const rv = r.data;
             return new VectorData([
                 lv[1] * rv[2] - rv[1] * lv[2],
                 lv[2] * rv[0] - rv[2] * lv[0],
@@ -257,17 +257,17 @@ export class BuiltinFunctions {
         const value = this.exec.evalExpression(node.args[0], context);
         const radToDeg = 180.0 / Math.PI;
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => v * radToDeg), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => v * radToDeg), value.typeInfo);
         }
         const s = value as ScalarData;
-        return new ScalarData(s.value * radToDeg, value.typeInfo);
+        return new ScalarData(s.value * radToDeg, this.getTypeInfo("f32"));
     }
 
     Determinant(node: CallExpr | Call, context: ExecContext): Data | null {
         const m = this.exec.evalExpression(node.args[0], context);
         if (m instanceof MatrixData) {
-            const mv = m.value;
-            const mt = this.exec.getTypeName(m.typeInfo);
+            const mv = m.data;
+            const mt = m.typeInfo.getTypeName();
             const isHalf = mt.endsWith("h");
             const formatType = isHalf ? this.getTypeInfo("f16") : this.getTypeInfo("f32");
             if (mt === "mat2x2" || mt === "mat2x2f" || mt === "mat2x2h") {
@@ -301,8 +301,8 @@ export class BuiltinFunctions {
         const r = this.exec.evalExpression(node.args[1], context);
         if (l instanceof VectorData && r instanceof VectorData) {
             let sum = 0;
-            for (let i = 0; i < l.value.length; ++i) {
-                sum += (l.value[i] - r.value[i]) * (l.value[i] - r.value[i]);
+            for (let i = 0; i < l.data.length; ++i) {
+                sum += (l.data[i] - r.data[i]) * (l.data[i] - r.data[i]);
             }
             return new ScalarData(Math.sqrt(sum), this.getTypeInfo("f32"));
         }
@@ -311,7 +311,7 @@ export class BuiltinFunctions {
         return new ScalarData(Math.abs(ls.value - rs.value), l.typeInfo);
     }
 
-    _dot(e1: number[], e2: number[]) {
+    _dot(e1: Int32Array | Uint32Array | Float32Array, e2: Int32Array | Uint32Array | Float32Array) {
         let dot = 0;
         for (let i = 0; i < e1.length; ++i) {
             dot += e2[i] * e1[i];
@@ -323,7 +323,7 @@ export class BuiltinFunctions {
         const l = this.exec.evalExpression(node.args[0], context);
         const r = this.exec.evalExpression(node.args[1], context);
         if (l instanceof VectorData && r instanceof VectorData) {
-            return new ScalarData(this._dot(l.value, r.value), this.getTypeInfo("f32"));
+            return new ScalarData(this._dot(l.data, r.data), this.getTypeInfo("f32"));
         }
         console.error(`Dot() expects vector arguments. Line ${node.line}`);
         return null;
@@ -342,7 +342,7 @@ export class BuiltinFunctions {
     Exp(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => Math.exp(v)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => Math.exp(v)), value.typeInfo);
         }
         const s = value as ScalarData;
         return new ScalarData(Math.exp(s.value), value.typeInfo);
@@ -351,7 +351,7 @@ export class BuiltinFunctions {
     Exp2(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => Math.pow(2, v)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => Math.pow(2, v)), value.typeInfo);
         }
         const s = value as ScalarData;
         return new ScalarData(Math.pow(2, s.value), value.typeInfo);
@@ -374,7 +374,7 @@ export class BuiltinFunctions {
         const c = (count as ScalarData).value;
 
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => (v >> o) & ((1 << c) - 1)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => (v >> o) & ((1 << c) - 1)), value.typeInfo);
         }
 
         if (value.typeInfo.name !== "i32" && value.typeInfo.name !== "x32") {
@@ -390,11 +390,11 @@ export class BuiltinFunctions {
         const e2 = this.exec.evalExpression(node.args[1], context);
         const n = this.exec.evalExpression(node.args[2], context);
         if (e1 instanceof VectorData && e2 instanceof VectorData && n instanceof VectorData) {
-            const dot = this._dot(e2.value, n.value);
+            const dot = this._dot(e2.data, n.data);
             if (dot < 0) {
-                return new VectorData(e1.value, e1.typeInfo);
+                return new VectorData(Array.from(e1.data), e1.typeInfo);
             }
-            return new VectorData(e1.value.map((v: number) => -v), e1.typeInfo);
+            return new VectorData(e1.data.map((v: number) => -v), e1.typeInfo);
         }
         console.error(`FaceForward() expects vector arguments. Line ${node.line}`);
         return null;
@@ -410,7 +410,7 @@ export class BuiltinFunctions {
     FirstLeadingBit(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => this._firstLeadingBit(v)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => this._firstLeadingBit(v)), value.typeInfo);
         }
         const s = value as ScalarData;
         return new ScalarData(this._firstLeadingBit(s.value), value.typeInfo);
@@ -426,7 +426,7 @@ export class BuiltinFunctions {
     FirstTrailingBit(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => this._firstTrailingBit(v)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => this._firstTrailingBit(v)), value.typeInfo);
         }
         const s = value as ScalarData;
         return new ScalarData(this._firstTrailingBit(s.value), value.typeInfo);
@@ -435,7 +435,7 @@ export class BuiltinFunctions {
     Floor(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => Math.floor(v)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => Math.floor(v)), value.typeInfo);
         }
         const s = value as ScalarData;
         return new ScalarData(Math.floor(s.value), value.typeInfo);
@@ -446,11 +446,11 @@ export class BuiltinFunctions {
         const b = this.exec.evalExpression(node.args[1], context);
         const c = this.exec.evalExpression(node.args[2], context);
         if (a instanceof VectorData && b instanceof VectorData && c instanceof VectorData) {
-            if (a.value.length !== b.value.length || a.value.length !== c.value.length) {
+            if (a.data.length !== b.data.length || a.data.length !== c.data.length) {
                 console.error(`Fma() expects vectors of the same length. Line ${node.line}`);
                 return null;
             }
-            return new VectorData(a.value.map((v: number, i: number) => v * b.value[i] + c.value[i]), a.typeInfo);
+            return new VectorData(a.data.map((v: number, i: number) => v * b.data[i] + c.data[i]), a.typeInfo);
         }
         const av = a as ScalarData;
         const bv = b as ScalarData;
@@ -461,7 +461,7 @@ export class BuiltinFunctions {
     Fract(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => v - Math.floor(v)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => v - Math.floor(v)), value.typeInfo);
         }
         const s = value as ScalarData;
         return new ScalarData(s.value - Math.floor(s.value), value.typeInfo);
@@ -489,8 +489,8 @@ export class BuiltinFunctions {
         const invMask = ~mask;
 
         if (value instanceof VectorData && insert instanceof VectorData) {
-            return new VectorData(value.value.map((v: number, i: number) => {
-                return (v & invMask) | ((insert.value[i] << o) & mask);
+            return new VectorData(value.data.map((v: number, i: number) => {
+                return (v & invMask) | ((insert.data[i] << o) & mask);
             }), value.typeInfo);
         }
         const v = (value as ScalarData).value;
@@ -501,7 +501,7 @@ export class BuiltinFunctions {
     InverseSqrt(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => 1 / Math.sqrt(v)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => 1 / Math.sqrt(v)), value.typeInfo);
         }
         const s = value as ScalarData;
         return new ScalarData(1 / Math.sqrt(s.value), value.typeInfo);
@@ -516,7 +516,7 @@ export class BuiltinFunctions {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             let sum = 0;
-            value.value.forEach((v: number) => { sum += v * v; });
+            value.data.forEach((v: number) => { sum += v * v; });
             return new ScalarData(Math.sqrt(sum), this.getTypeInfo("f32"));
         }
         const s = value as ScalarData;
@@ -526,7 +526,7 @@ export class BuiltinFunctions {
     Log(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => Math.log(v)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => Math.log(v)), value.typeInfo);
         }
         const s = value as ScalarData;
         return new ScalarData(Math.log(s.value), value.typeInfo);
@@ -535,7 +535,7 @@ export class BuiltinFunctions {
     Log2(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => Math.log2(v)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => Math.log2(v)), value.typeInfo);
         }
         const s = value as ScalarData
         return new ScalarData(Math.log2(s.value), value.typeInfo);
@@ -545,7 +545,7 @@ export class BuiltinFunctions {
         const l = this.exec.evalExpression(node.args[0], context);
         const r = this.exec.evalExpression(node.args[1], context);
         if (l instanceof VectorData && r instanceof VectorData) {
-            return new VectorData(l.value.map((v: number, i: number) => Math.max(v, r.value[i])), l.typeInfo);
+            return new VectorData(l.data.map((v: number, i: number) => Math.max(v, r.data[i])), l.typeInfo);
         }
         const ls = l as ScalarData;
         const rs = r as ScalarData;
@@ -556,7 +556,7 @@ export class BuiltinFunctions {
         const l = this.exec.evalExpression(node.args[0], context);
         const r = this.exec.evalExpression(node.args[1], context);
         if (l instanceof VectorData && r instanceof VectorData) {
-            return new VectorData(l.value.map((v: number, i: number) => Math.min(v, r.value[i])), l.typeInfo);
+            return new VectorData(l.data.map((v: number, i: number) => Math.min(v, r.data[i])), l.typeInfo);
         }
         const ls = l as ScalarData;
         const rs = r as ScalarData;
@@ -568,7 +568,7 @@ export class BuiltinFunctions {
         const y = this.exec.evalExpression(node.args[1], context);
         const a = this.exec.evalExpression(node.args[2], context);
         if (x instanceof VectorData && y instanceof VectorData && a instanceof VectorData) {
-            return new VectorData(x.value.map((v: number, i: number) => x.value[i] * (1 - a.value[i]) + y.value[i] * a.value[i]), x.typeInfo);
+            return new VectorData(x.data.map((v: number, i: number) => x.data[i] * (1 - a.data[i]) + y.data[i] * a.data[i]), x.typeInfo);
         }
         const xs = x as ScalarData;
         const ys = y as ScalarData;
@@ -580,7 +580,7 @@ export class BuiltinFunctions {
         const x = this.exec.evalExpression(node.args[0], context);
         const y = this.exec.evalExpression(node.args[1], context);
         if (x instanceof VectorData && y instanceof VectorData) {
-            return new VectorData(x.value.map((v: number, i: number) => v % y.value[i]), x.typeInfo);
+            return new VectorData(x.data.map((v: number, i: number) => v % y.data[i]), x.typeInfo);
         }
         const xs = x as ScalarData;
         const ys = y as ScalarData;
@@ -591,7 +591,7 @@ export class BuiltinFunctions {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
             const length = (this.Length(node, context) as ScalarData).value;
-            return new VectorData(value.value.map((v: number) => v / length), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => v / length), value.typeInfo);
         }
         console.error(`Normalize() expects a vector argument. Line ${node.line}`);
         return null;
@@ -601,7 +601,7 @@ export class BuiltinFunctions {
         const x = this.exec.evalExpression(node.args[0], context);
         const y = this.exec.evalExpression(node.args[1], context);
         if (x instanceof VectorData && y instanceof VectorData) {
-            return new VectorData(x.value.map((v: number, i: number) => Math.pow(v, y.value[i])), x.typeInfo);
+            return new VectorData(x.data.map((v: number, i: number) => Math.pow(v, y.data[i])), x.typeInfo);
         }
         const xs = x as ScalarData;
         const ys = y as ScalarData;
@@ -612,7 +612,7 @@ export class BuiltinFunctions {
         // TODO: actually quantize the f32 to f16
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => v), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => v), value.typeInfo);
         }
         const s = value as ScalarData;
         return new ScalarData(s.value, value.typeInfo);
@@ -621,10 +621,10 @@ export class BuiltinFunctions {
     Radians(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => v * Math.PI / 180), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => v * Math.PI / 180), value.typeInfo);
         }
         const s = value as ScalarData;
-        return new ScalarData(s.value * Math.PI / 180, value.typeInfo);
+        return new ScalarData(s.value * Math.PI / 180, this.getTypeInfo("f32"));
     }
 
     Reflect(node: CallExpr | Call, context: ExecContext): Data | null {
@@ -632,8 +632,8 @@ export class BuiltinFunctions {
         let e1 = this.exec.evalExpression(node.args[0], context);
         let e2 = this.exec.evalExpression(node.args[1], context);
         if (e1 instanceof VectorData && e2 instanceof VectorData) {
-            const dot = this._dot(e1.value, e2.value);
-            return new VectorData(e1.value.map((v: number, i: number) => v - 2 * dot * e2.value[i]), e1.typeInfo);
+            const dot = this._dot(e1.data, e2.data);
+            return new VectorData(e1.data.map((v: number, i: number) => v - 2 * dot * e2.data[i]), e1.typeInfo);
         }
         console.error(`Reflect() expects vector arguments. Line ${node.line}`);
         return null;
@@ -644,14 +644,14 @@ export class BuiltinFunctions {
         let e2 = this.exec.evalExpression(node.args[1], context);
         let e3 = this.exec.evalExpression(node.args[2], context);
         if (e1 instanceof VectorData && e2 instanceof VectorData && e3 instanceof ScalarData) {
-            const dot = this._dot(e2.value, e1.value);
-            return new VectorData(e1.value.map((v: number, i: number) => {
+            const dot = this._dot(e2.data, e1.data);
+            return new VectorData(e1.data.map((v: number, i: number) => {
                 const k = 1.0 - e3.value * e3.value * (1.0 - dot * dot);
                 if (k < 0) {
                     return 0;
                 }
                 const sqrtK = Math.sqrt(k);
-                return e3.value * v - (e3.value * dot + sqrtK) * e2.value[i];
+                return e3.value * v - (e3.value * dot + sqrtK) * e2.data[i];
             }), e1.typeInfo);
         }
 
@@ -667,7 +667,7 @@ export class BuiltinFunctions {
     Round(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => Math.round(v)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => Math.round(v)), value.typeInfo);
         }
         const s = value as ScalarData;
         return new ScalarData(Math.round(s.value), value.typeInfo);
@@ -676,7 +676,7 @@ export class BuiltinFunctions {
     Saturate(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => Math.min(Math.max(v, 0), 1)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => Math.min(Math.max(v, 0), 1)), value.typeInfo);
         }
         const s = value as ScalarData;
         return new ScalarData(Math.min(Math.max(s.value, 0), 1), value.typeInfo);
@@ -685,7 +685,7 @@ export class BuiltinFunctions {
     Sign(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => Math.sign(v)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => Math.sign(v)), value.typeInfo);
         }
         const s = value as ScalarData;
         return new ScalarData(Math.sign(s.value), value.typeInfo);
@@ -694,7 +694,7 @@ export class BuiltinFunctions {
     Sin(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => Math.sin(v)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => Math.sin(v)), value.typeInfo);
         }
         const s = value as ScalarData;
         return new ScalarData(Math.sin(s.value), value.typeInfo);
@@ -703,7 +703,7 @@ export class BuiltinFunctions {
     Sinh(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => Math.sinh(v)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => Math.sinh(v)), value.typeInfo);
         }
         const s = value as ScalarData;
         return new ScalarData(Math.sinh(s.value), value.typeInfo);
@@ -719,7 +719,7 @@ export class BuiltinFunctions {
         const edge1 = this.exec.evalExpression(node.args[1], context);
         const x = this.exec.evalExpression(node.args[2], context);
         if (x instanceof VectorData && edge0 instanceof VectorData && edge1 instanceof VectorData) {
-            return new VectorData(x.value.map((v: number, i: number) => this._smoothstep(edge0.value[i], edge1.value[i], v)), x.typeInfo);
+            return new VectorData(x.data.map((v: number, i: number) => this._smoothstep(edge0.data[i], edge1.data[i], v)), x.typeInfo);
         }
         const e0 = edge0 as ScalarData;
         const e1 = edge1 as ScalarData;
@@ -730,7 +730,7 @@ export class BuiltinFunctions {
     Sqrt(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => Math.sqrt(v)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => Math.sqrt(v)), value.typeInfo);
         }
         const s = value as ScalarData;
         return new ScalarData(Math.sqrt(s.value), value.typeInfo);
@@ -740,7 +740,7 @@ export class BuiltinFunctions {
         const edge = this.exec.evalExpression(node.args[0], context);
         const x = this.exec.evalExpression(node.args[1], context);
         if (x instanceof VectorData && edge instanceof VectorData) {
-            return new VectorData(x.value.map((v: number, i: number) => v < edge.value[i] ? 0 : 1), x.typeInfo);
+            return new VectorData(x.data.map((v: number, i: number) => v < edge.data[i] ? 0 : 1), x.typeInfo);
         }
         const e = edge as ScalarData;
         const s = x as ScalarData;
@@ -750,7 +750,7 @@ export class BuiltinFunctions {
     Tan(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => Math.tan(v)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => Math.tan(v)), value.typeInfo);
         }
         const s = value as ScalarData;
         return new ScalarData(Math.tan(s.value), value.typeInfo);
@@ -759,14 +759,14 @@ export class BuiltinFunctions {
     Tanh(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => Math.tanh(v)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => Math.tanh(v)), value.typeInfo);
         }
         const s = value as ScalarData;
         return new ScalarData(Math.tanh(s.value), value.typeInfo);
     }
 
     _getTransposeType(t: TypeInfo): TypeInfo {
-        const tname = this.exec.getTypeName(t);
+        const tname = t.getTypeName();
         if (tname === "mat2x2f" || tname === "mat2x2h") {
             return t;
         } else if (tname === "mat2x3f") {
@@ -813,31 +813,31 @@ export class BuiltinFunctions {
         const ttype = this._getTransposeType(m.typeInfo);
 
         if (m.typeInfo.name === "mat2x2" || m.typeInfo.name === "mat2x2f" || m.typeInfo.name === "mat2x2h") {
-            const mv = m.value;
+            const mv = m.data;
             return new MatrixData([mv[0], mv[2], mv[1], mv[3]], ttype);
         } else if (m.typeInfo.name === "mat2x3" || m.typeInfo.name === "mat2x3f" || m.typeInfo.name === "mat2x3h") {
-            const mv = m.value;
+            const mv = m.data;
             return new MatrixData([mv[0], mv[3], mv[6], mv[1], mv[4], mv[7]], ttype);
         } else if (m.typeInfo.name === "mat2x4" || m.typeInfo.name === "mat2x4f" || m.typeInfo.name === "mat2x4h") {
-            const mv = m.value;
+            const mv = m.data;
             return new MatrixData([mv[0], mv[4], mv[8], mv[12], mv[1], mv[5], mv[9], mv[13]], ttype);
         } else if (m.typeInfo.name === "mat3x2" || m.typeInfo.name === "mat3x2f" || m.typeInfo.name === "mat3x2h") {
-            const mv = m.value;
+            const mv = m.data;
             return new MatrixData([mv[0], mv[3], mv[1], mv[4], mv[2], mv[5]], ttype);
         } else if (m.typeInfo.name === "mat3x3" || m.typeInfo.name === "mat3x3f" || m.typeInfo.name === "mat3x3h") {
-            const mv = m.value;
+            const mv = m.data;
             return new MatrixData([mv[0], mv[3], mv[6], mv[1], mv[4], mv[7], mv[2], mv[5], mv[8]], ttype);
         } else if (m.typeInfo.name === "mat3x4" || m.typeInfo.name === "mat3x4f" || m.typeInfo.name === "mat3x4h") {
-            const mv = m.value;
+            const mv = m.data;
             return new MatrixData([mv[0], mv[4], mv[8], mv[12], mv[1], mv[5], mv[9], mv[13], mv[2], mv[6], mv[10], mv[14]], ttype);
         } else if (m.typeInfo.name === "mat4x2" || m.typeInfo.name === "mat4x2f" || m.typeInfo.name === "mat4x2h") {
-            const mv = m.value;
+            const mv = m.data;
             return new MatrixData([mv[0], mv[4], mv[1], mv[5], mv[2], mv[6]], ttype);
         } else if (m.typeInfo.name === "mat4x3" || m.typeInfo.name === "mat4x3f" || m.typeInfo.name === "mat4x3h") {
-            const mv = m.value;
+            const mv = m.data;
             return new MatrixData([mv[0], mv[4], mv[8], mv[1], mv[5], mv[9], mv[2], mv[6], mv[10]], ttype);
         } else if (m.typeInfo.name === "mat4x4" || m.typeInfo.name === "mat4x4f" || m.typeInfo.name === "mat4x4h") {
-            const mv = m.value;
+            const mv = m.data;
             return new MatrixData([mv[0], mv[4], mv[8], mv[12],
                                    mv[1], mv[5], mv[9], mv[13],
                                    mv[2], mv[6], mv[10], mv[14],
@@ -851,7 +851,7 @@ export class BuiltinFunctions {
     Trunc(node: CallExpr | Call, context: ExecContext): Data | null {
         const value = this.exec.evalExpression(node.args[0], context);
         if (value instanceof VectorData) {
-            return new VectorData(value.value.map((v: number) => Math.trunc(v)), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => Math.trunc(v)), value.typeInfo);
         }
         const s = value as ScalarData
         return new ScalarData(Math.trunc(s.value), value.typeInfo);
@@ -959,7 +959,7 @@ export class BuiltinFunctions {
         }
 
         // TODO: non-vec2 UVs, for non-2D textures
-        if (!(uv instanceof VectorData) || uv.value.length !== 2) {
+        if (!(uv instanceof VectorData) || uv.data.length !== 2) {
             console.error(`Invalid UV argument for textureLoad. Line ${node.line}`);
             return null;
         }
@@ -968,8 +968,8 @@ export class BuiltinFunctions {
             const textureName = (textureArg as VariableExpr).name;
             const texture = context.getVariableValue(textureName);
             if (texture instanceof TextureData) {
-                const x = Math.floor(uv.value[0]);
-                const y = Math.floor(uv.value[1]);
+                const x = Math.floor(uv.data[0]);
+                const y = Math.floor(uv.data[1]);
                 if (x < 0 || x >= texture.width || y < 0 || y >= texture.height) {
                     console.error(`Texture ${textureName} out of bounds. Line ${node.line}`);
                     return null;
@@ -1079,8 +1079,8 @@ export class BuiltinFunctions {
         const textureArg = node.args[0];
         const uv = this.exec.evalExpression(node.args[1], context);
         const index = (node.args.length === 4) ? (this.exec.evalExpression(node.args[2], context) as ScalarData).value : 0;
-        const value = (node.args.length === 4) ? (this.exec.evalExpression(node.args[3], context) as VectorData).value :
-            (this.exec.evalExpression(node.args[2], context) as VectorData).value;
+        const value = (node.args.length === 4) ? (this.exec.evalExpression(node.args[3], context) as VectorData).data :
+            (this.exec.evalExpression(node.args[2], context) as VectorData).data;
 
         if (value.length !== 4) {
             console.error(`Invalid value argument for textureStore. Line ${node.line}`);
@@ -1088,7 +1088,7 @@ export class BuiltinFunctions {
         }
 
         // TODO: non-vec2 UVs, for non-2D textures
-        if (!(uv instanceof VectorData) || uv.value.length !== 2) {
+        if (!(uv instanceof VectorData) || uv.data.length !== 2) {
             console.error(`Invalid UV argument for textureStore. Line ${node.line}`);
             return null;
         }
@@ -1098,14 +1098,14 @@ export class BuiltinFunctions {
             const texture = context.getVariableValue(textureName);
             if (texture instanceof TextureData) {
                 const textureSize = texture.getMipLevelSize(0);
-                const x = Math.floor(uv.value[0]);
-                const y = Math.floor(uv.value[1]);
+                const x = Math.floor(uv.data[0]);
+                const y = Math.floor(uv.data[1]);
                 if (x < 0 || x >= textureSize[0] || y < 0 || y >= textureSize[1]) {
                     console.error(`Texture ${textureName} out of bounds. Line ${node.line}`);
                     return null;
                 }
 
-                texture.setPixel(x, y, 0, index, value);
+                texture.setPixel(x, y, 0, index, Array.from(value));
 
                 return null;
             } else {

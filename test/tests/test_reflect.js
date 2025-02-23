@@ -2,8 +2,8 @@ import { test, group } from "../test.js";
 import { WgslReflect, ResourceType } from "../../../wgsl_reflect.module.js";
 
 export async function run() {
-  await group("Reflect", function () {
-    test("array_no_format", function (test) {
+  await group("Reflect", async function () {
+    await test("array_no_format", function (test) {
       const t = new WgslReflect(`
         @vertex fn vs() -> VertexData {
           let pos = array(
@@ -14,7 +14,7 @@ export async function run() {
         }`);
         test.equals(t.entry.vertex.length, 1);
     });
-    test("builtin", function (test) {
+    await test("builtin", function (test) {
       const reflect = new WgslReflect(`@compute @workgroup_size(64) fn compute(@builtin(global_invocation_id) id : vec3<u32>) {
         if (id.x > 1000.) { return; }
         let f = vec2(0.);
@@ -22,7 +22,7 @@ export async function run() {
       test.equals(reflect.entry.compute.length, 1);
     });
 
-    test("override", function (test) {
+    await test("override", function (test) {
       const reflect = new WgslReflect(`override red = 0.0;
         override green = 0.0;
         override blue = 0.0;
@@ -34,7 +34,7 @@ export async function run() {
         test.equals(reflect.entry.fragment[0].overrides.length, 3);
     });
 
-    test("f16", function (test) {
+    await test("f16", function (test) {
       const reflect = new WgslReflect(`
         @binding(0) @group(0) var<uniform> a1: f16;            // This is correctly sized at 2 bytes!
         @binding(0) @group(1) var<uniform> a2: vec2<f16>;      // This should be 4 bytes, not 8
@@ -67,7 +67,7 @@ export async function run() {
         test.equals(reflect.uniforms[12].size, 32);
     });
 
-    test("uniform index", function (test) {
+    await test("uniform index", function (test) {
       const reflect = new WgslReflect(`
         struct BatchIndex {
           index: u32,
@@ -85,7 +85,7 @@ export async function run() {
         test.equals(reflect.entry.vertex[0].resources[1].name, "batchIndex");
     });
 
-    test("enable", function (test) {
+    await test("enable", function (test) {
       const reflect = new WgslReflect(`enable chromium_experimental_subgroups;
         @compute @workgroup_size(64) fn main(
             @builtin(global_invocation_id) global_id : vec3u,
@@ -95,7 +95,7 @@ export async function run() {
       test.equals(reflect.functions.length, 1);
     });
 
-    test("requires", function(test) {
+    await test("requires", function(test) {
       const reflect = new WgslReflect(`requires readonly_and_readwrite_storage_textures;
         @group(0) @binding(0) var tex : texture_storage_2d<r32uint, read_write>;
         @compute @workgroup_size(1, 1)
@@ -107,7 +107,7 @@ export async function run() {
         test.equals(reflect.functions.length, 1);
     });
 
-    test("read_write storage buffer", function (test) {
+    await test("read_write storage buffer", function (test) {
       const reflect = new WgslReflect(`
         struct Particle {
           pos : vec2<f32>,
@@ -134,7 +134,7 @@ export async function run() {
       test.equals(reflect.functions[0].resources[1].name, "particlesB");
     });
 
-    test("unused structs", function (test) {
+    await test("unused structs", function (test) {
       const reflect = new WgslReflect(`
         struct A {
           a: u32,
@@ -189,7 +189,7 @@ export async function run() {
       test.equals(reflect.functions[3].calls.size, 1, "vertex_main calls"); // inUse
     });
 
-    test("uniform u32", function (test) {
+    await test("uniform u32", function (test) {
       const reflect = new WgslReflect(`
         @group(0) @binding(0) var<uniform> foo : u32;`);
       test.equals(reflect.uniforms.length, 1);
@@ -198,7 +198,7 @@ export async function run() {
       test.equals(reflect.uniforms[0].type.size, 4);
     });
 
-    test("uniform array<u32, 5>", function (test) {
+    await test("uniform array<u32, 5>", function (test) {
       const reflect = new WgslReflect(`
         @group(0) @binding(0) var<uniform> foo : array<u32, 5>;`);
       test.equals(reflect.uniforms.length, 1);
@@ -210,7 +210,7 @@ export async function run() {
       test.equals(reflect.uniforms[0].type.format.size, 4);
     });
 
-    test("uniform array<array<u32, 6>, 5>", function (test) {
+    await test("uniform array<array<u32, 6>, 5>", function (test) {
       const reflect = new WgslReflect(`
         @group(0) @binding(0) var<uniform> foo : array<array<u32, 6u>, 5>;`);
       test.equals(reflect.uniforms.length, 1);
@@ -224,7 +224,7 @@ export async function run() {
       test.equals(reflect.uniforms[0].type.format.stride, 4);
     });
 
-    test("struct", function (test) {
+    await test("struct", function (test) {
       const reflect = new WgslReflect(`
         struct Bar {
           a : u32,
@@ -252,7 +252,7 @@ export async function run() {
       test.equals(reflect.uniforms[0].type.members[2].size, 16);
     });
 
-    test("entry functions", function (test) {
+    await test("entry functions", function (test) {
       const reflect = new WgslReflect(`
         struct ViewUniforms {
             viewProjection: mat4x4<f32>
@@ -349,7 +349,7 @@ export async function run() {
       test.equals(bindGroups[1][1].resourceType, ResourceType.Texture);
     });
 
-    test("uniform buffer info", function (test) {
+    await test("uniform buffer info", function (test) {
       const reflect = new WgslReflect(`
         struct A {                                     //             align(8)  size(32)
             u: f32,                                    // offset(0)   align(4)  size(4)
@@ -392,7 +392,7 @@ export async function run() {
       test.equals(reflect.uniforms[0].members[4].size, 32);
     });
 
-    test("alias struct", function (test) {
+    await test("alias struct", function (test) {
       const shader = `alias foo = u32;
       alias bar = foo;
       struct Vehicle {
@@ -416,7 +416,7 @@ export async function run() {
       test.equals(reflect.uniforms[0].size, 64);
     });
 
-    test("const", function (test) {
+    await test("const", function (test) {
       const shader = `const NUM_COLORS = 10 + 2;
       @group(0) @binding(0) var<uniform> uni: array<vec4f, NUM_COLORS>;`;
       const reflect = new WgslReflect(shader);
@@ -424,7 +424,7 @@ export async function run() {
       test.equals(reflect.uniforms[0].size, 16 * 12);
     });
 
-    test("const2", function (test) {
+    await test("const2", function (test) {
       const shader = `const FOO = radians(90);
       const BAR = sin(FOO);
       const NUM_COLORS = u32(BAR + 3); // result 4
@@ -434,7 +434,7 @@ export async function run() {
       test.equals(reflect.uniforms[0].type.size, 16 * 4);
     });
 
-    test("alias", function (test) {
+    await test("alias", function (test) {
       const shader = `alias material_index = u32;
           alias color = vec3f;
           struct material {
@@ -447,7 +447,7 @@ export async function run() {
       test.equals(reflect.aliases.length, 2);
     });
 
-    test("nested-alias", function (test) {
+    await test("nested-alias", function (test) {
       const shader = `
             struct Foo {
               a: u32,
@@ -466,7 +466,7 @@ export async function run() {
       test.equals(reflect.storage[0].type.size, 8);
     });
 
-    test("nested-alias-array", function (test) {
+    await test("nested-alias-array", function (test) {
       const shader = `
           struct Foo {
             a: u32,
@@ -486,7 +486,7 @@ export async function run() {
       test.equals(reflect.storage[0].type.size, 80);
     });
 
-    test("typedef", function (test) {
+    await test("typedef", function (test) {
       const shader = `alias Arr_1 = array<vec4<f32>, 20u>;
 
           struct VGlobals {
@@ -575,7 +575,7 @@ export async function run() {
 
     const reflect = new WgslReflect(shader);
 
-    test("struct", function (test) {
+    await test("struct", function (test) {
       test.equals(reflect.structs.length, 4);
 
       const names = reflect.structs.map((s) => s.name);
@@ -585,13 +585,13 @@ export async function run() {
       test.true(names.includes("VertexOutput"));
     });
 
-    test("uniforms", function (test) {
+    await test("uniforms", function (test) {
       test.equals(reflect.uniforms.length, 2);
       test.equals(reflect.uniforms[0].name, "viewUniforms");
       test.equals(reflect.uniforms[0].type.name, "ViewUniforms");
     });
 
-    test("textures", function (test) {
+    await test("textures", function (test) {
       test.equals(reflect.textures.length, 1);
       test.equals(reflect.textures[0].name, "u_texture");
       test.equals(reflect.textures[0].type.name, "texture_2d");
@@ -600,7 +600,7 @@ export async function run() {
       test.equals(reflect.textures[0].binding, 3);
     });
 
-    test("samplers", function (test) {
+    await test("samplers", function (test) {
       test.equals(reflect.samplers.length, 1);
       test.equals(reflect.samplers[0].name, "u_sampler");
       test.equals(reflect.samplers[0].type.name, "sampler");
@@ -608,7 +608,7 @@ export async function run() {
       test.equals(reflect.samplers[0].binding, 2);
     });
 
-    test("uniformBufferInfo", function (test) {
+    await test("uniformBufferInfo", function (test) {
       test.equals(reflect.uniforms[1].type.name, "ModelUniforms", "buffer.type");
       test.equals(reflect.uniforms[1].size, 96, "buffer.size");
       test.equals(reflect.uniforms[1].group, 0, "buffer.group.value");
@@ -631,7 +631,7 @@ export async function run() {
       );
     });
 
-    test("getBindingGroups", function (test) {
+    await test("getBindingGroups", function (test) {
       const groups = reflect.getBindGroups();
       test.equals(groups.length, 1);
       test.equals(groups[0].length, 4);
@@ -643,13 +643,13 @@ export async function run() {
       test.equals(groups[0][3].type.format.name, "f32");
     });
 
-    test("entry", function (test) {
+    await test("entry", function (test) {
       test.equals(reflect.entry.vertex.length, 1);
       test.equals(reflect.entry.fragment.length, 1);
       test.equals(reflect.entry.compute.length, 3);
     });
 
-    test("vertexInputs", function (test) {
+    await test("vertexInputs", function (test) {
       const inputs = reflect.entry.vertex[0].inputs;
       test.equals(inputs.length, 4);
       test.validateObject(inputs[0], {
@@ -667,7 +667,7 @@ export async function run() {
       });
     });
 
-    test("storageBuffers", function (test) {
+    await test("storageBuffers", function (test) {
       const shader = `@group(0) @binding(0) var<storage, read> x : array<f32>;
           @group(0) @binding(1) var<storage, read> y : array<f32>;
           @group(0) @binding(2) var<storage, write> z : array<f32>;
@@ -699,7 +699,7 @@ export async function run() {
       test.equals(groups[0][2].type.format.name, "f32");
     });
 
-    test("nested structs", function (test) {
+    await test("nested structs", function (test) {
       const shader = `struct ViewUniforms {
               viewProjection: mat4x4<f32>
           };
@@ -769,7 +769,7 @@ export async function run() {
       test.equals(reflect.uniforms[2].size, 4);
     });
 
-    test("nested structs", function (test) {
+    await test("nested structs", function (test) {
       const shader = `
           struct SomeStruct {
               value: f32,
@@ -946,9 +946,9 @@ export async function run() {
     }
 
     //test('test f16', (test) => testType(test, 'f16'));
-    test("test f32", (test) => testType(test, "f32"));
-    test("test i32", (test) => testType(test, "i32"));
-    test("test u32", (test) => testType(test, "u32"));
+    await test("test f32", (test) => testType(test, "f32"));
+    await test("test i32", (test) => testType(test, "i32"));
+    await test("test u32", (test) => testType(test, "u32"));
 
     function testTypeAlias(test, suffix) {
       const shader = `
@@ -1005,11 +1005,11 @@ export async function run() {
     }
 
     //test('test h', (test) => testTypeAlias(test, 'h'));
-    test("test f", (test) => testTypeAlias(test, "f"));
-    test("test i", (test) => testTypeAlias(test, "i"));
-    test("test u", (test) => testTypeAlias(test, "u"));
+    await test("test f", (test) => testTypeAlias(test, "f"));
+    await test("test i", (test) => testTypeAlias(test, "i"));
+    await test("test u", (test) => testTypeAlias(test, "u"));
 
-    test("override", function (test) {
+    await test("override", function (test) {
       const shader = `
           @id(0) override workgroupSize: u32 = 42;
           @id(1) override PI: f32 = 3.14;
@@ -1031,7 +1031,7 @@ export async function run() {
       //test.equals(override.declaration.toString(), "3.14");
     });
 
-    test("texture_external", function (test) {
+    await test("texture_external", function (test) {
       const reflect = new WgslReflect(
         `@group(0) @binding(2) var myTexture: texture_external;`
       );
@@ -1043,7 +1043,7 @@ export async function run() {
       test.equals(reflect.textures[0].binding, 2);
     });
 
-    test("array of structs", function (test) {
+    await test("array of structs", function (test) {
       const reflect = new WgslReflect(`
       struct InnerUniforms {
           bar: u32,
@@ -1110,7 +1110,7 @@ export async function run() {
       });
     });
 
-    test("storage texture", function (test) {
+    await test("storage texture", function (test) {
       const reflect = new WgslReflect(
         `@binding(0) @group(0) var<storage> storage_tex: texture_storage_2d<rgba8unorm, read_write>;`
       );
@@ -1128,7 +1128,7 @@ export async function run() {
       test.equals(groups[0][0].type.access, "read_write");
     });
 
-    test("access mode", function (test) {
+    await test("access mode", function (test) {
       const reflect = new WgslReflect(`
       struct ReadonlyStorageBufferBlockName {
         a : f32,
@@ -1149,7 +1149,7 @@ export async function run() {
       test.equals(groups[3][2].access, "read_write");
     });
 
-    test("entry resources", function (test) {
+    await test("entry resources", function (test) {
       const reflect = new WgslReflect(`
         @group(0) @binding(0) var<uniform> u1: vec4f;
         @group(0) @binding(1) var<uniform> u2: vec4f;
@@ -1227,7 +1227,7 @@ export async function run() {
       test.equals(reflect.entry.vertex[5].resources[1].name, "u2");
     });
 
-    test("function arguments and return types", function (test) {
+    await test("function arguments and return types", function (test) {
       const reflect = new WgslReflect(`
         fn rotate(v: vec2<f32>, angle: f32) -> vec2f {
           let pos = vec2(

@@ -7,6 +7,7 @@ export declare class TypeInfo {
     get isArray(): boolean;
     get isStruct(): boolean;
     get isTemplate(): boolean;
+    getTypeName(): string;
 }
 export declare class MemberInfo {
     name: string;
@@ -45,6 +46,7 @@ export declare class TemplateInfo extends TypeInfo {
     access: string;
     constructor(name: string, format: TypeInfo | null, attributes: Attribute[] | null, access: string);
     get isTemplate(): boolean;
+    getTypeName(): string;
 }
 export declare enum ResourceType {
     Uniform = 0,

@@ -2,7 +2,7 @@ import { test, group } from "../test.js";
 import { WgslParser } from "../../../wgsl_reflect.module.js";
 
 export async function run() {
-  await group("struct", function () {
+  await group("struct", async function () {
     const shader = `
     struct S1 {
       a : i32,
@@ -64,7 +64,7 @@ export async function run() {
         );
     }`;
 
-    test("type_constructor", function (test) {
+    await test("type_constructor", function (test) {
       const parser = new WgslParser();
       const t = parser.parse(shader);
       test.true(t.length > 0);

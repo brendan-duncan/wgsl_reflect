@@ -66,10 +66,10 @@ export class WgslExec extends ExecInterface {
             return v.value;
         }
         if (v instanceof VectorData) {
-            return v.value;
+            return Array.from(v.data);
         }
         if (v instanceof MatrixData) {
-            return v.value;
+            return Array.from(v.data);
         }
         console.error(`Unsupported return variable type ${v.typeInfo.name}`);
         return null;
@@ -270,49 +270,6 @@ export class WgslExec extends ExecInterface {
         }
 
         return null;
-    }
-
-    getTypeName(type: TypeInfo | Type): string {
-        /*if (type instanceof Type) {
-            type = this.getTypeInfo(type);
-        }*/
-        if (type === null) {
-            console.error(`Type is null.`);
-            return "unknown";
-        }
-        let name = type.name;
-        if (type instanceof TemplateInfo || type instanceof TemplateType) {
-            if (type.format !== null) {
-                if (name === "vec2" || name === "vec3" || name === "vec4" ||
-                    name === "mat2x2" || name === "mat2x3" || name === "mat2x4" ||
-                    name === "mat3x2" || name === "mat3x3" || name === "mat3x4" ||
-                    name === "mat4x2" || name === "mat4x3" || name === "mat4x4") {
-                    if (type.format.name === "f32") {
-                        name += "f";
-                        return name;
-                    } else if (type.format.name === "i32") {
-                        name += "i";
-                        return name;
-                    } else if (type.format.name === "u32") {
-                        name += "u";
-                        return name;
-                    } else if (type.format.name === "bool") {
-                        name += "b";
-                        return name;
-                    } else if (type.format.name === "f16") {
-                        name += "h";
-                        return name;
-                    }
-                }
-                name += `<${type.format.name}>`;
-            } else {
-                if (name === "vec2" || name === "vec3" || name === "vec4") {
-                    return name;
-                }
-                //console.error("Template format is null.");
-            }
-        }
-        return name;
     }
 
     _setOverrides(constants: Object, context: ExecContext): void {
@@ -532,7 +489,7 @@ export class WgslExec extends ExecInterface {
             const currentValue = v.getDataValue(this, postfix, context);
 
             if (currentValue instanceof VectorData && value instanceof ScalarData) {
-                const cv = currentValue.value;
+                const cv = currentValue.data;
                 const v = value.value;
 
                 if (op === "+=") {
@@ -579,8 +536,8 @@ export class WgslExec extends ExecInterface {
                     console.error(`Invalid operator ${op}. Line ${node.line}`);
                 }
             } else if (currentValue instanceof VectorData && value instanceof VectorData) {
-                const cv = currentValue.value;
-                const v = value.value;
+                const cv = currentValue.data;
+                const v = value.data;
                 if (cv.length !== v.length) {
                     console.error(`Vector length mismatch. Line ${node.line}`);
                     return;
@@ -680,96 +637,96 @@ export class WgslExec extends ExecInterface {
 
                 if (v instanceof VectorData) {
                     if (value instanceof ScalarData) {
-                        v.value[idx] = value.value;
+                        v.data[idx] = value.value;
                     } else {
                         console.error(`Invalid assignment to ${name}. Line ${node.line}`);
                         return;
                     }
-                } else if (v.value instanceof MatrixData) {
+                } else if (v instanceof MatrixData) {
                     const idx = (this.evalExpression(postfix.index, context) as ScalarData).value;
                     if (idx < 0) {
                         console.error(`Invalid assignment to ${name}. Line ${node.line}`);
                         return;
                     }
                     if (value instanceof VectorData) {
-                        const typeName = this.getTypeName(v.typeInfo);
+                        const typeName = v.typeInfo.getTypeName();
                         if (typeName === "mat2x2" || typeName === "mat2x2f" || typeName === "mat2x2h") {
-                            if (idx < 2 && value.value.length === 2) {
-                                v.value[idx * 2] = value.value[0];
-                                v.value[idx * 2 + 1] = value.value[1];
+                            if (idx < 2 && value.data.length === 2) {
+                                v.data[idx * 2] = value.data[0];
+                                v.data[idx * 2 + 1] = value.data[1];
                             } else {
                                 console.error(`Invalid assignment to ${name}. Line ${node.line}`);
                                 return;
                             }
                         } else if (typeName === "mat2x3" || typeName === "mat2x3f" || typeName === "mat2x3h") {
-                            if (idx < 2 && value.value.length === 3) {
-                                v.value[idx * 3] = value.value[0];
-                                v.value[idx * 3 + 1] = value.value[1];
-                                v.value[idx * 3 + 2] = value.value[2];
+                            if (idx < 2 && value.data.length === 3) {
+                                v.data[idx * 3] = value.data[0];
+                                v.data[idx * 3 + 1] = value.data[1];
+                                v.data[idx * 3 + 2] = value.data[2];
                             } else {
                                 console.error(`Invalid assignment to ${name}. Line ${node.line}`);
                                 return;
                             }
                         } else if (typeName === "mat2x4" || typeName === "mat2x4f" || typeName === "mat2x4h") {
-                            if (idx < 2 && value.value.length === 4) {
-                                v.value[idx * 4] = value.value[0];
-                                v.value[idx * 4 + 1] = value.value[1];
-                                v.value[idx * 4 + 2] = value.value[2];
-                                v.value[idx * 4 + 3] = value.value[3];
+                            if (idx < 2 && value.data.length === 4) {
+                                v.data[idx * 4] = value.data[0];
+                                v.data[idx * 4 + 1] = value.data[1];
+                                v.data[idx * 4 + 2] = value.data[2];
+                                v.data[idx * 4 + 3] = value.data[3];
                             } else {
                                 console.error(`Invalid assignment to ${name}. Line ${node.line}`);
                                 return;
                             }
                         } else if (typeName === "mat3x2" || typeName === "mat3x2f" || typeName === "mat3x2h") {
-                            if (idx < 3 && value.value.length === 2) {
-                                v.value[idx * 2] = value.value[0];
-                                v.value[idx * 2 + 1] = value.value[1];
+                            if (idx < 3 && value.data.length === 2) {
+                                v.data[idx * 2] = value.data[0];
+                                v.data[idx * 2 + 1] = value.data[1];
                             } else {
                                 console.error(`Invalid assignment to ${name}. Line ${node.line}`);
                                 return;
                             }
                         } else if (typeName === "mat3x3" || typeName === "mat3x3f" || typeName === "mat3x3h") {
-                            if (idx < 3 && value.value.length === 3) {
-                                v.value[idx * 3] = value.value[0];
-                                v.value[idx * 3 + 1] = value.value[1];
-                                v.value[idx * 3 + 2] = value.value[2];
+                            if (idx < 3 && value.data.length === 3) {
+                                v.data[idx * 3] = value.data[0];
+                                v.data[idx * 3 + 1] = value.data[1];
+                                v.data[idx * 3 + 2] = value.data[2];
                             } else {
                                 console.error(`Invalid assignment to ${name}. Line ${node.line}`);
                                 return;
                             }
                         } else if (typeName === "mat3x4" || typeName === "mat3x4f" || typeName === "mat3x4h") {
-                            if (idx < 3 && value.value.length === 4) {
-                                v.value[idx * 4] = value.value[0];
-                                v.value[idx * 4 + 1] = value.value[1];
-                                v.value[idx * 4 + 2] = value.value[2];
-                                v.value[idx * 4 + 3] = value.value[3];
+                            if (idx < 3 && value.data.length === 4) {
+                                v.data[idx * 4] = value.data[0];
+                                v.data[idx * 4 + 1] = value.data[1];
+                                v.data[idx * 4 + 2] = value.data[2];
+                                v.data[idx * 4 + 3] = value.data[3];
                             } else {
                                 console.error(`Invalid assignment to ${name}. Line ${node.line}`);
                                 return;
                             }
                         } else if (typeName === "mat4x2" || typeName === "mat4x2f" || typeName === "mat4x2h") {
-                            if (idx < 4 && value.value.length === 2) {
-                                v.value[idx * 2] = value.value[0];
-                                v.value[idx * 2 + 1] = value.value[1];
+                            if (idx < 4 && value.data.length === 2) {
+                                v.data[idx * 2] = value.data[0];
+                                v.data[idx * 2 + 1] = value.data[1];
                             } else {
                                 console.error(`Invalid assignment to ${name}. Line ${node.line}`);
                                 return;
                             }
                         } else if (typeName === "mat4x3" || typeName === "mat4x3f" || typeName === "mat4x3h") {
-                            if (idx < 4 && value.value.length === 3) {
-                                v.value[idx * 3] = value.value[0];
-                                v.value[idx * 3 + 1] = value.value[1];
-                                v.value[idx * 3 + 2] = value.value[2];
+                            if (idx < 4 && value.data.length === 3) {
+                                v.data[idx * 3] = value.data[0];
+                                v.data[idx * 3 + 1] = value.data[1];
+                                v.data[idx * 3 + 2] = value.data[2];
                             } else {
                                 console.error(`Invalid assignment to ${name}. Line ${node.line}`);
                                 return;
                             }
                         } else if (typeName === "mat4x4" || typeName === "mat4x4f" || typeName === "mat4x4h") {
-                            if (idx < 4 && value.value.length === 4) {
-                                v.value[idx * 4] = value.value[0];
-                                v.value[idx * 4 + 1] = value.value[1];
-                                v.value[idx * 4 + 2] = value.value[2];
-                                v.value[idx * 4 + 3] = value.value[3];
+                            if (idx < 4 && value.data.length === 4) {
+                                v.data[idx * 4] = value.data[0];
+                                v.data[idx * 4 + 1] = value.data[1];
+                                v.data[idx * 4 + 2] = value.data[2];
+                                v.data[idx * 4 + 3] = value.data[3];
                             } else {
                                 console.error(`Invalid assignment to ${name}. Line ${node.line}`);
                                 return;
@@ -798,53 +755,53 @@ export class WgslExec extends ExecInterface {
                         return;
                     }
                     if (member === "x") {
-                        v.value[0] = value.value;
+                        v.data[0] = value.value;
                     } else if (member === "y") {
-                        if (v.value.length < 2) {
+                        if (v.data.length < 2) {
                             console.error(`Invalid assignment to ${member} for variable ${name}. Line ${node.line}`);
                             return;
                         }
-                        v.value[1] = value.value;
+                        v.data[1] = value.value;
                     } else if (member === "z") {
-                        if (v.value.length < 3) {
+                        if (v.data.length < 3) {
                             console.error(`Invalid assignment to ${member} for variable ${name}. Line ${node.line}`);
                             return;
                         }
-                        v.value[2] = value.value;
+                        v.data[2] = value.value;
                     } else if (member === "w") {
-                        if (v.value.length < 4) {
+                        if (v.data.length < 4) {
                             console.error(`Invalid assignment to ${member} for variable ${name}. Line ${node.line}`);
                             return;
                         }
-                        v.value[3] = value.value;
+                        v.data[3] = value.value;
                     }
                 } else if (value instanceof VectorData) {
-                    if (member.length !== value.value.length) {
+                    if (member.length !== value.data.length) {
                         console.error(`Invalid assignment to ${member} for variable ${name}. Line ${node.line}`);
                         return;
                     }
                     for (let i = 0; i < member.length; ++i) {
                         const m = member[i];
                         if (m === "x" || m === "r") {
-                            v.value[0] = value.value[i];
+                            v.data[0] = value.data[i];
                         } else if (m === "y" || m === "g") {
-                            if (value.value.length < 2) {
+                            if (value.data.length < 2) {
                                 console.error(`Invalid assignment to ${m} for variable ${name}. Line ${node.line}`);
                                 return;
                             }
-                            v.value[1] = value.value[i];
+                            v.data[1] = value.data[i];
                         } else if (m === "z" || m === "b") {
-                            if (value.value.length < 3) {
+                            if (value.data.length < 3) {
                                 console.error(`Invalid assignment to ${m} for variable ${name}. Line ${node.line}`);
                                 return;
                             }
-                            v.value[2] = value.value[i];
+                            v.data[2] = value.data[i];
                         } else if (m === "w" || m === "a") {
-                            if (value.value.length < 4) {
+                            if (value.data.length < 4) {
                                 console.error(`Invalid assignment to ${m} for variable ${name}. Line ${node.line}`);
                                 return;
                             }
-                            v.value[3] = value.value[i];
+                            v.data[3] = value.data[i];
                         } else {
                             console.error(`Invalid assignment to ${m} for variable ${name}. Line ${node.line}`);
                             return;
@@ -859,9 +816,9 @@ export class WgslExec extends ExecInterface {
             if (v instanceof ScalarData && value instanceof ScalarData) {
                 v.value = value.value;
             } else if (v instanceof VectorData && value instanceof VectorData) {
-                v.value = value.value;
+                v.data.set(value.data);
             } else if (v instanceof MatrixData && value instanceof MatrixData) {
-                v.value = value.value;
+                v.data.set(value.data);
             } else {
                 console.error(`Invalid assignment to ${name}. Line ${node.line}`);
             }
@@ -1072,7 +1029,7 @@ export class WgslExec extends ExecInterface {
         }
 
         if (value instanceof VectorData) {
-            const fromType = this.getTypeName(value.typeInfo);
+            const fromType = value.typeInfo.getTypeName();
             let fromCast = "";
             if (fromType.endsWith("f")) {
                 fromCast = "f32";
@@ -1089,7 +1046,7 @@ export class WgslExec extends ExecInterface {
                 return null;
             }
 
-            const toType = this.getTypeName(type);
+            const toType = type.getTypeName();
             let toCast = "";
             if (toType.endsWith("f")) {
                 toCast = "f32";
@@ -1106,7 +1063,7 @@ export class WgslExec extends ExecInterface {
                 return null;
             }
 
-            const v = castVector(value.value, fromCast, toCast);
+            const v = castVector(Array.from(value.data), fromCast, toCast);
             return new VectorData(v, this.getTypeInfo(type));
         }
 
@@ -1127,7 +1084,7 @@ export class WgslExec extends ExecInterface {
             return VoidData.void;
         }
 
-        const typeName = this.getTypeName(node.type);
+        const typeName = node.type.getTypeName();
 
         switch (typeName) {
             // Constructor Built-in Functions
@@ -1297,7 +1254,7 @@ export class WgslExec extends ExecInterface {
     _evalUnaryOp(node: UnaryOperator, context: ExecContext): Data | null {
         const _r = this.evalExpression(node.right, context);
         const r = _r instanceof ScalarData ? _r.value : 
-            _r instanceof VectorData ? _r.value : null;
+            _r instanceof VectorData ? Array.from(_r.data) : null;
 
         switch (node.operator) {
             case "+": {
@@ -1363,11 +1320,11 @@ export class WgslExec extends ExecInterface {
         const _r = this.evalExpression(node.right, context);
 
         const l = _l instanceof ScalarData ? _l.value : 
-            _l instanceof VectorData ? _l.value :
-            _l instanceof MatrixData ? _l.value : null;
+            _l instanceof VectorData ? Array.from(_l.data) :
+            _l instanceof MatrixData ? Array.from(_l.data) : null;
         const r = _r instanceof ScalarData ? _r.value : 
-            _r instanceof VectorData ? _r.value : 
-            _r instanceof MatrixData ? _r.value :
+            _r instanceof VectorData ? Array.from(_r.data) : 
+            _r instanceof MatrixData ? Array.from(_r.data) :
             null;
 
         switch (node.operator) {
@@ -2198,7 +2155,7 @@ export class WgslExec extends ExecInterface {
 
     _callConstructorVec(node: CreateExpr | LiteralExpr, context: ExecContext): Data | null {
         const typeInfo = this.getTypeInfo(node.type);
-        const typeName = this.getTypeName(node.type);
+        const typeName = node.type.getTypeName();
 
         const elementCounts = {
             "vec2": 2, "vec2f": 2, "vec2i": 2, "vec2u": 2, "vec2b": 2, "vec2h": 2,
@@ -2229,7 +2186,7 @@ export class WgslExec extends ExecInterface {
                 for (const arg of node.args) {
                     const argValue = this.evalExpression(arg, context) ;
                     if (argValue instanceof VectorData) {
-                        const vd = argValue.value;
+                        const vd = argValue.data;
                         for (let i = 0; i < vd.length; ++i) {
                             let e = vd[i];
                             if (isInt) {
@@ -2273,7 +2230,7 @@ export class WgslExec extends ExecInterface {
 
     _callConstructorMatrix(node: CreateExpr | LiteralExpr, context: ExecContext): Data | null {
         const typeInfo = this.getTypeInfo(node.type);
-        const typeName = this.getTypeName(node.type);
+        const typeName = node.type.getTypeName();
 
         const elementCounts = {
             "mat2x2": 4, "mat2x2f": 4, "mat2x2h": 4,
@@ -2308,14 +2265,11 @@ export class WgslExec extends ExecInterface {
                 for (const arg of node.args) {
                     const argValue = this.evalExpression(arg, context) ;
                     if (argValue instanceof VectorData) {
-                        const vd = argValue.value;
-                        for (let i = 0; i < vd.length; ++i) {
-                            values.push(vd[i]);
-                        }
+                        values.push(...argValue.data);
                     } else if (argValue instanceof ScalarData) {
                         values.push(argValue.value);
                     } else if (argValue instanceof MatrixData) {
-                        values.push(...argValue.value);
+                        values.push(...argValue.data);
                     }
                 }
             }
