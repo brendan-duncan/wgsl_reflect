@@ -32,10 +32,10 @@ export async function run() {
                 }`;
 
             // Verify the emulated dispatch has the same results as the WebGPU dispatch.
-            const buffer = new Float32Array(32 * 100 + 8);
+            const buffer = new Float32Array(32 * 100 + 4);
             buffer[0] = 0; // active_index
             buffer[1] = 1; // timestep
-            for (let i = 0, j = 2; i < 100; ++i, j += 8) {
+            for (let i = 0, j = 3; i < 100; ++i, j += 8) {
                 buffer[j + 0] = i;
                 buffer[j + 1] = i + 1;
                 buffer[j + 2] = i + 2;
@@ -48,11 +48,12 @@ export async function run() {
             }
             const bg = {0: {0: buffer}};
 
-            const _data = await webgpuDispatch(shader, "main", 100, bg);
+            const wgCount = 100;
+            const _data = await webgpuDispatch(shader, "main", wgCount, bg);
             const webgpuData = new Float32Array(_data);
 
             const wgsl = _newWgslExec(shader);
-            wgsl.dispatchWorkgroups("main", 4, bg);
+            wgsl.dispatchWorkgroups("main", wgCount, bg);
             test.closeTo(buffer, webgpuData);
         });
 
