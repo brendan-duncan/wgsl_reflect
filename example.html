@@ -175,6 +175,7 @@ fn main(input: VertexInput) -> VertexOutput {
             info += `<li><b>Group:</b> ${s.group}</li>`;
             info += `<li><b>Binding:</b> ${s.binding}</li>`;
             info += `<li><b>Format:</b> ${s.type?.format?.name ?? "<unknown>"}</li>`;
+            info += `<li><b>Access:</b> ${s.access}</li>`;
             info += "</ul>";
           }
           info += "</ul>";
@@ -201,6 +202,7 @@ fn main(input: VertexInput) -> VertexOutput {
             info += "<ul>";
             info += `<li><b>Group:</b> ${s.group}</li>`;
             info += `<li><b>Binding:</b> ${s.binding}</li>`;
+            info += `<li><b>Access:</b> ${s.access}</li>`;
             if (s.type.isStruct) {
               info += getStructInfo(s.type, 0);
             } else if (s.type.isArray) {

@@ -98,6 +98,9 @@ export class Reflect {
         const b = this._getAttributeNum(v.attributes, "binding", 0);
         const type = this.getTypeInfo(v.type!, v.attributes);
         const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, ResourceType.Uniform, v.access);
+        if (!varInfo.access) {
+          varInfo.access = "read";
+        }
         this.uniforms.push(varInfo);
         continue;
       }
@@ -109,6 +112,9 @@ export class Reflect {
         const type = this.getTypeInfo(v.type!, v.attributes);
         const isStorageTexture = this._isStorageTexture(type);
         const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, isStorageTexture ? ResourceType.StorageTexture : ResourceType.Storage, v.access);
+        if (!varInfo.access) {
+          varInfo.access = "read";
+        }
         this.storage.push(varInfo);
         continue;
       }
@@ -119,15 +125,11 @@ export class Reflect {
         const b = this._getAttributeNum(v.attributes, "binding", 0);
         const type = this.getTypeInfo(v.type!, v.attributes);
         const isStorageTexture = this._isStorageTexture(type);
-        const varInfo = new VariableInfo(
-          v.name,
-          type,
-          g,
-          b,
-          v.attributes,
-          isStorageTexture ? ResourceType.StorageTexture : ResourceType.Texture,
-          v.access
-        );
+        const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, 
+            isStorageTexture ? ResourceType.StorageTexture : ResourceType.Texture, v.access);
+        if (!varInfo.access) {
+          varInfo.access = "read";
+        }
         if (isStorageTexture) {
           this.storage.push(varInfo);
         } else {
