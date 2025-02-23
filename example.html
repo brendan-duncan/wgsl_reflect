@@ -60,6 +60,9 @@ fn main(input: VertexInput) -> VertexOutput {
       const shaderInfo = document.getElementById("shader_info");
 
       function getTypeName(type) {
+        if (type === null) {
+          return "i32";
+        }
         let name = type.name;
         if (type.format) {
           name += `&lt;${getTypeName(type.format)}&gt;`;
@@ -122,8 +125,6 @@ fn main(input: VertexInput) -> VertexOutput {
         }
         const t2 = performance.now();
 
-        info += `<b>TIME: ${t2 - t1}ms</b><br>`;
-
         info += "<b>Entry Points</b>";
         info += "<ul>";
         for (let s in reflect.entry) {
@@ -142,6 +143,28 @@ fn main(input: VertexInput) -> VertexOutput {
           }
         }
         info += "</ul>";
+
+        if (reflect.overrides.length) {
+          info += `<b>Overrides</b><p>`;
+          info += "<ul>";
+          for (const o of reflect.overrides) {
+            info += `<li><b>${o.name}</b>: <b>${getTypeName(o.type)}</b></li>`;
+            let first = true;
+            for (const f of reflect.functions) {
+              if (f.overrides.indexOf(o) !== -1) {
+                if (first) {
+                  info += `<ul><li><b>Functions</b></li><ul>`;
+                  first = false;
+                }
+                info += `<li><b>Function:</b> ${f.name}</li>`;
+              }
+            }
+            if (!first) {
+              info += "</ul></ul>";
+            }
+          }
+          info += "</ul>";
+        }
 
         if (reflect.textures.length) {
           info += `<b>Textures</b><p>`;

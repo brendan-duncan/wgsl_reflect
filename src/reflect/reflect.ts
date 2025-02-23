@@ -8,6 +8,7 @@ import { Type, Struct, Alias, Override, Var, Node, Function, VariableExpr, Creat
 import { FunctionInfo, VariableInfo, AliasInfo, OverrideInfo,
   StructInfo, TypeInfo, MemberInfo, ArrayInfo, TemplateInfo, OutputInfo,
   InputInfo, ArgumentInfo, ResourceType, EntryFunctions } from "./info.js";
+import { isArray } from "../utils/cast.js";
  
 class _FunctionResources {
   node: Function;
@@ -86,8 +87,7 @@ export class Reflect {
       if (node instanceof Override) {
         const v = node as Override;
         const id = this._getAttributeNum(v.attributes, "id", 0);
-        const type =
-          v.type != null ? this.getTypeInfo(v.type, v.attributes) : null;
+        const type = v.type != null ? this.getTypeInfo(v.type, v.attributes) : null;
         this.overrides.push(new OverrideInfo(v.name, type, v.attributes, id));
         continue;
       }
@@ -97,15 +97,7 @@ export class Reflect {
         const g = this._getAttributeNum(v.attributes, "group", 0);
         const b = this._getAttributeNum(v.attributes, "binding", 0);
         const type = this.getTypeInfo(v.type!, v.attributes);
-        const varInfo = new VariableInfo(
-          v.name,
-          type,
-          g,
-          b,
-          v.attributes,
-          ResourceType.Uniform,
-          v.access
-        );
+        const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, ResourceType.Uniform, v.access);
         this.uniforms.push(varInfo);
         continue;
       }
@@ -116,15 +108,7 @@ export class Reflect {
         const b = this._getAttributeNum(v.attributes, "binding", 0);
         const type = this.getTypeInfo(v.type!, v.attributes);
         const isStorageTexture = this._isStorageTexture(type);
-        const varInfo = new VariableInfo(
-          v.name,
-          type,
-          g,
-          b,
-          v.attributes,
-          isStorageTexture ? ResourceType.StorageTexture : ResourceType.Storage,
-          v.access
-        );
+        const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, isStorageTexture ? ResourceType.StorageTexture : ResourceType.Storage, v.access);
         this.storage.push(varInfo);
         continue;
       }
@@ -157,15 +141,7 @@ export class Reflect {
         const g = this._getAttributeNum(v.attributes, "group", 0);
         const b = this._getAttributeNum(v.attributes, "binding", 0);
         const type = this.getTypeInfo(v.type!, v.attributes);
-        const varInfo = new VariableInfo(
-          v.name,
-          type,
-          g,
-          b,
-          v.attributes,
-          ResourceType.Sampler,
-          v.access
-        );
+        const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, ResourceType.Sampler, v.access);
         this.samplers.push(varInfo);
         continue;
       }
@@ -193,17 +169,10 @@ export class Reflect {
         }
 
         fn.arguments = node.args.map(
-          (arg) =>
-            new ArgumentInfo(
-              arg.name,
-              this.getTypeInfo(arg.type, arg.attributes),
-              arg.attributes
-            )
+          (arg) => new ArgumentInfo(arg.name, this.getTypeInfo(arg.type, arg.attributes), arg.attributes)
         );
-        
-        fn.returnType = node.returnType
-          ? this.getTypeInfo(node.returnType, node.attributes)
-          : null;
+
+        fn.returnType = node.returnType ? this.getTypeInfo(node.returnType, node.attributes) : null;
 
         continue;
       }
@@ -218,10 +187,27 @@ export class Reflect {
 
     for (const fn of this._functions.values()) {
       fn.node.search((node) => {
-        if (node.astNodeType === "varExpr") {
-          const v = node as VariableExpr;
+        if (node instanceof Attribute) {
+          if (node.value) {
+            if (isArray(node.value)) {
+              for (const value of node.value) {
+                for (const override of this.overrides) {
+                  if (value === override.name) {
+                    fn.info?.overrides.push(override);
+                  }
+                }
+              }
+            } else {
+              for (const override of this.overrides) {
+                if (node.value === override.name) {
+                  fn.info?.overrides.push(override);
+                }
+              }
+            }
+          }
+        } else if (node instanceof VariableExpr) {
           for (const override of this.overrides) {
-            if (v.name == override.name) {
+            if (node.name === override.name) {
               fn.info?.overrides.push(override);
             }
           }
