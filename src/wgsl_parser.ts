@@ -1415,7 +1415,6 @@ export class WgslParser {
     const expr = this._short_circuit_or_expression();
     this._match(TokenTypes.tokens.paren_right);
     return expr;
-    //return this._updateNode(new AST.GroupingExpr([expr]));
   }
 
   _paren_expression(): AST.Expression {
@@ -1424,7 +1423,6 @@ export class WgslParser {
     const expr = this._short_circuit_or_expression();
     this._consume(TokenTypes.tokens.paren_right, "Expected ')'.");
     return expr;
-    //return this._updateNode(new AST.GroupingExpr([expr]));
   }
 
   _struct_decl(): AST.Struct | null {

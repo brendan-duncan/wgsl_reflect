@@ -118,8 +118,10 @@ export class Function extends Statement {
   }
 
   search(callback: (node: Node) => void): void {
-    for (const attr of this.attributes) {
-      callback(attr);
+    if (this.attributes) {
+      for (const attr of this.attributes) {
+        callback(attr);
+      }
     }
     this.searchBlock(this.body, callback);
   }
