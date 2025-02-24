@@ -7,6 +7,27 @@ function _newWgslExec(code) {
 
 export async function run() {
     await group("WgslExec", async function () {
+        await test("variable pointer", async function (test) {
+            const shader = `
+                var<private> x: f32;
+                fn f() -> i32 {
+                    var y: i32;
+                    let x_ptr: ptr<private,f32> = &x;
+                    let y_ptr: ptr<function,i32> = &y;
+                    *y_ptr = 3;
+                    var x: u32;
+                    let inner_x_ptr: ptr<function,u32> = &x;
+                    *inner_x_ptr = 5;
+                    *x_ptr = 8.0;
+                    return y;
+                }
+                let y = f();`;
+            const wgsl = _newWgslExec(shader);
+            wgsl.execute();
+            test.equals(wgsl.getVariableValue("x"), 8);
+            test.equals(wgsl.getVariableValue("y"), 3);
+        });
+
         await test("component reference from composite reference", async function (test) {
             const shader = `
                 struct S {
