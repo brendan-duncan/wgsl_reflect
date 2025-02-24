@@ -737,6 +737,8 @@ export declare class VoidData extends Data {
 export declare class PointerData extends Data {
     reference: Data;
     constructor(reference: Data);
+    setDataValue(exec: ExecInterface, value: Data, postfix: Expression | null, context: ExecContext): void;
+    getDataValue(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null;
 }
 export declare class ScalarData extends Data {
     data: Int32Array | Uint32Array | Float32Array;

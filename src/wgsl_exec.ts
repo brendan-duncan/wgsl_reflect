@@ -480,6 +480,10 @@ export class WgslExec extends ExecInterface {
             v = _var.value;
         }
 
+        if (v instanceof PointerData) {
+            v = v.reference;
+        }
+
         if (v === null) {
             console.error(`Variable ${name} not found. Line ${node.line}`);
             return;

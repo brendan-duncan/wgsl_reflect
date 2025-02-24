@@ -1749,6 +1749,14 @@ export class PointerData extends Data {
     super(new TypeInfo("pointer", null));
     this.reference = reference;
   }
+
+  setDataValue(exec: ExecInterface, value: Data, postfix: Expression | null, context: ExecContext): void {
+    this.reference.setDataValue(exec, value, postfix, context);
+  }
+
+  getDataValue(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null {
+    return this.reference.getDataValue(exec, postfix, context);
+  }
 }
 
 export class ScalarData extends Data {

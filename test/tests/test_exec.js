@@ -7,6 +7,54 @@ function _newWgslExec(code) {
 
 export async function run() {
     await group("WgslExec", async function () {
+        await test("component reference from composite reference", async function (test) {
+            const shader = `
+                struct S {
+                    age: i32,
+                    weight: f32
+                }
+                var<private> person: S;
+                var<private> uv: vec2<f32>;
+                var<private> m: mat3x2<f32>;
+
+                fn f() -> f32 {
+                    uv.x = 1.0;
+                    uv[1] = 2.0;
+
+                    let p_m_col2: vec2<f32> = m[2];
+
+                    var A: array<i32,5>;
+                    let A_4_value: i32 = A[4];
+
+                    let person_weight: f32 = person.weight;
+
+                    let uv_ptr = &uv;
+                    *uv_ptr = vec2f(3.0, 4.0);
+                    uv_ptr.x = 5.0;
+                    uv_ptr[1] = 6.0;
+
+                    let m_ptr = &m;
+                    m_ptr[2] = vec2f(7.0, 8.0);
+                    let p_m_col2: vec2<f32> = m_ptr[2];
+
+                    let A_Ptr = &A;
+                    let A_4_value: i32 = A_ptr[4];
+
+                    let person_ptr = &person;
+                    person_ptr.weight = 9.0;
+                    let person_weight: f32 = person_ptr.weight;
+
+                    return person_weight;
+                }
+
+                let person_weight = f();`;
+            const wgsl = _newWgslExec(shader);
+            wgsl.execute();
+            test.equals(wgsl.getVariableValue("uv"), [5, 6]);
+            test.equals(wgsl.getVariableValue("m"), [0, 0, 0, 0, 7, 8]);
+            test.equals(wgsl.getVariableValue("person_weight"), 9);
+        });
+
         await test("struct pointer", async function (test) {
             const shader = `
                 struct Particle {
