@@ -1,6 +1,6 @@
 import { Node, Type, TemplateType, Return, Break, Continue, Let, Var, Const,
-    If, For, While, Loop, Continuing, Assign, Increment, Struct, Override,
-    Call, Diagnostic, Alias, GroupingExpr, BinaryOperator, LiteralExpr, Expression,
+    If, For, While, Loop, Continuing, Assign, Increment, Struct, Override, ArrayType,
+    Call, Diagnostic, Alias, BinaryOperator, LiteralExpr, Expression,
     VariableExpr, CallExpr, CreateExpr, ConstExpr, BitcastExpr, UnaryOperator,
     ArrayIndex, StringExpr, Function, Switch, SwitchCase, Case, Default, DefaultSelector,
     Data, ScalarData, VectorData, MatrixData, TypedData, TextureData, VoidData, PointerData } from "./wgsl_ast.js";
@@ -70,6 +70,17 @@ export class WgslExec extends ExecInterface {
         }
         if (v instanceof MatrixData) {
             return Array.from(v.data);
+        }
+        if (v instanceof TypedData) {
+            if (v.typeInfo instanceof ArrayInfo) {
+                if (v.typeInfo.format.name === "u32") {
+                    return Array.from(new Uint32Array(v.buffer, v.offset, v.typeInfo.count));
+                } else if (v.typeInfo.format.name === "i32") {
+                    return Array.from(new Int32Array(v.buffer, v.offset, v.typeInfo.count));
+                } else if (v.typeInfo.format.name === "f32") {
+                    return Array.from(new Float32Array(v.buffer, v.offset, v.typeInfo.count));
+                }
+            }
         }
         console.error(`Unsupported return variable type ${v.typeInfo.name}`);
         return null;
@@ -165,8 +176,8 @@ export class WgslExec extends ExecInterface {
         }
     }
 
-    static _breakObj = new Data(new TypeInfo("BREAK", null));
-    static _continueObj = new Data(new TypeInfo("CONTINUE", null));
+    static _breakObj = new Data(new TypeInfo("BREAK", null), null);
+    static _continueObj = new Data(new TypeInfo("CONTINUE", null), null);
 
     execStatement(stmt: Node, context: ExecContext): Data | null {
         if (stmt instanceof Return) {
@@ -231,10 +242,6 @@ export class WgslExec extends ExecInterface {
     }
 
     evalExpression(node: Node, context: ExecContext): Data | null {
-        while (node instanceof GroupingExpr) {
-            node = node.contents[0];
-        }
-
         if (node instanceof BinaryOperator) {
             return this._evalBinaryOp(node, context);
         } else if (node instanceof LiteralExpr) {
@@ -377,6 +384,10 @@ export class WgslExec extends ExecInterface {
     }
 
     getVariableName(node: Node, context: ExecContext): string | null {
+        while (node instanceof UnaryOperator) {
+            node = node.right;
+        }
+
         if (node instanceof VariableExpr) {
             return (node as VariableExpr).name;
         } else {
@@ -448,11 +459,95 @@ export class WgslExec extends ExecInterface {
         }
     }
 
+    _getVariableData(node: Node, context: ExecContext): Data | null {
+        if (node instanceof VariableExpr) {
+            const name = this.getVariableName(node, context);
+            const _var = context.getVariable(name);
+            if (_var === null) {
+                console.error(`Variable ${name} not found. Line ${node.line}`);
+                return null;
+            }
+            return _var.value.getSubData(this, node.postfix, context);
+        }
+
+        if (node instanceof UnaryOperator) {
+            if (node.operator === "*") {
+                const refData = this._getVariableData(node.right, context);
+                if (!(refData instanceof PointerData)) {
+                    console.error(`Variable ${node.right} is not a pointer. Line ${node.line}`);
+                    return null;
+                }
+
+                return refData.reference.getSubData(this, node.postfix, context);
+            } else if (node.operator === "&") {
+                const refData = this._getVariableData(node.right, context);
+                return new PointerData(refData);
+            } 
+        }
+
+        return null;
+    }
+
     _assign(node: Assign, context: ExecContext): void {
         let v: Data | null = null;
         let name: string = "<var>";
 
         let postfix: Expression | null = null;
+
+        if (node.variable instanceof UnaryOperator) {
+            const varData = this._getVariableData(node.variable, context);
+            const assignValue = this.evalExpression(node.value, context);
+            const op = node.operator;
+
+            if (op === "=") {
+                if (varData instanceof ScalarData || varData instanceof VectorData || varData instanceof MatrixData) {
+                    if (assignValue instanceof ScalarData || assignValue instanceof VectorData || assignValue instanceof MatrixData &&
+                        varData.data.length === assignValue.data.length) {
+                        varData.data.set(assignValue.data);
+                        return;
+                    } else {
+                        console.error(`Invalid assignment. Line ${node.line}`);
+                    }
+                } else if (varData instanceof TypedData && assignValue instanceof TypedData) {
+                    if ((varData.buffer.byteLength - varData.offset) >= (assignValue.buffer.byteLength - assignValue.offset)) {
+                        if (varData.buffer.byteLength % 4 === 0) {
+                            new Uint32Array(varData.buffer, varData.offset, varData.typeInfo.size / 4).set(new Uint32Array(assignValue.buffer, assignValue.offset, assignValue.typeInfo.size / 4));
+                        } else {
+                            new Uint8Array(varData.buffer, varData.offset, varData.typeInfo.size).set(new Uint8Array(assignValue.buffer, assignValue.offset, assignValue.typeInfo.size));
+                        }
+                        return;
+                    }
+                }
+                console.error(`Invalid assignment. Line ${node.line}`);
+                return null;
+            } else if (op === "+=") {
+                if (varData instanceof ScalarData || varData instanceof VectorData || varData instanceof MatrixData) {
+                    if (assignValue instanceof ScalarData || assignValue instanceof VectorData || assignValue instanceof MatrixData) {
+                        varData.data.set(assignValue.data.map((v: number, i: number) => varData.data[i] + v));
+                        return;
+                    } else {
+                        console.error(`Invalid assignment . Line ${node.line}`);
+                        return;
+                    }
+                } else {
+                    console.error(`Invalid assignment. Line ${node.line}`);
+                    return;
+                }
+            } else if (op === "-=") {
+                if (varData instanceof ScalarData || varData instanceof VectorData || varData instanceof MatrixData) {
+                    if (assignValue instanceof ScalarData || assignValue instanceof VectorData || assignValue instanceof MatrixData) {
+                        varData.data.set(assignValue.data.map((v: number, i: number) => varData.data[i] - v));
+                        return;
+                    } else {
+                        console.error(`Invalid assignment. Line ${node.line}`);
+                        return;
+                    }
+                } else {
+                    console.error(`Invalid assignment. Line ${node.line}`);
+                    return;
+                }
+            }
+        }
 
         if (node.variable instanceof UnaryOperator) {
             if (node.variable.operator === "*") {
@@ -465,8 +560,19 @@ export class WgslExec extends ExecInterface {
                     return;
                 }
 
-                if (node.variable.postfix) {
-                    v = v.getDataValue(this, node.variable.postfix, context);
+                let postfix = node.variable.postfix;
+                if (!postfix) {
+                    let rNode = node.variable.right;
+                    while (rNode instanceof UnaryOperator) {
+                        if (rNode.postfix) {
+                            postfix = rNode.postfix;
+                            break;
+                        }
+                        rNode = rNode.right;
+                    }
+                }
+                if (postfix) {
+                    v = v.getSubData(this, postfix, context);
                 }
             }
         } else {
@@ -493,7 +599,7 @@ export class WgslExec extends ExecInterface {
 
         const op = node.operator;
         if (op !== "=") {
-            const currentValue = v.getDataValue(this, postfix, context);
+            const currentValue = v.getSubData(this, postfix, context);
 
             if (currentValue instanceof VectorData && value instanceof ScalarData) {
                 const cv = currentValue.data;
@@ -841,16 +947,46 @@ export class WgslExec extends ExecInterface {
 
     _const(node: Const, context: ExecContext): void {
         let value = null;
-        if (node.value != null) {
+        if (node.value !== null) {
             value = this.evalExpression(node.value, context);
         }
         context.createVariable(node.name, value, node);
     }
 
     _let(node: Let, context: ExecContext): void {
-        let value = null;
-        if (node.value != null) {
+        let value: Data | null = null;
+        if (node.value !== null) {
             value = this.evalExpression(node.value, context);
+            if (value === null) {
+                console.error(`Invalid value for variable ${node.name}. Line ${node.line}`);
+                return;
+            }
+            if (!(node.value instanceof UnaryOperator)) {
+                value = value.clone();
+            }
+        } else {
+            const typeName = node.type.name;
+            if (typeName === "f32" || typeName === "i32" || typeName === "u32" ||
+                typeName === "bool" || typeName === "f16" ||
+                typeName === "vec2" || typeName === "vec3" || typeName === "vec4" ||
+                typeName === "vec2f" || typeName === "vec3f" || typeName === "vec4f" ||
+                typeName === "vec2i" || typeName === "vec3i" || typeName === "vec4i" ||
+                typeName === "vec2u" || typeName === "vec3u" || typeName === "vec4u" ||
+                typeName === "vec2h" || typeName === "vec3h" || typeName === "vec4h" ||
+                typeName === "vec2b" || typeName === "vec3b" || typeName === "vec4b" ||
+                typeName === "mat2x2" || typeName === "mat2x3" || typeName === "mat2x4" ||
+                typeName === "mat3x2" || typeName === "mat3x3" || typeName === "mat3x4" ||
+                typeName === "mat4x2" || typeName === "mat4x3" || typeName === "mat4x4" ||
+                typeName === "mat2x2f" || typeName === "mat2x3f" || typeName === "mat2x4f" ||
+                typeName === "mat3x2f" || typeName === "mat3x3f" || typeName === "mat3x4f" ||
+                typeName === "mat4x2f" || typeName === "mat4x3f" || typeName === "mat4x4f" ||
+                typeName === "mat2x2h" || typeName === "mat2x3h" || typeName === "mat2x4h" ||
+                typeName === "mat3x2h" || typeName === "mat3x3h" || typeName === "mat3x4h" ||
+                typeName === "mat4x2h" || typeName === "mat4x3h" || typeName === "mat4x4h" ||
+                typeName === "array") {
+                const defType = new CreateExpr(node.type, []);
+                value = this._evalCreate(defType, context);
+            }
         }
         context.createVariable(node.name, value, node);
     }
@@ -859,33 +995,34 @@ export class WgslExec extends ExecInterface {
         let value = null;
         if (node.value !== null) {
             value = this.evalExpression(node.value, context);
+            if (!(node.value instanceof UnaryOperator)) {
+                value = value.clone();
+            }
         } else {
             if (node.type === null) {
                 console.error(`Variable ${node.name} has no type. Line ${node.line}`);
                 return;
             }
 
-            if (node.type.name === "f32" || node.type.name === "i32" || node.type.name === "u32" ||
-                node.type.name === "bool" || node.type.name === "f16" ||
-                node.type.name === "vec2" || node.type.name === "vec3" || node.type.name === "vec4" ||
-                node.type.name === "vec2f" || node.type.name === "vec3f" || node.type.name === "vec4f" ||
-                node.type.name === "vec2i" || node.type.name === "vec3i" || node.type.name === "vec4i" ||
-                node.type.name === "vec2u" || node.type.name === "vec3u" || node.type.name === "vec4u" ||
-                node.type.name === "vec2h" || node.type.name === "vec3h" || node.type.name === "vec4h" ||
-                node.type.name === "mat2x2" || node.type.name === "mat2x3" || node.type.name === "mat2x4" ||
-                node.type.name === "mat3x2" || node.type.name === "mat3x3" || node.type.name === "mat3x4" ||
-                node.type.name === "mat4x2" || node.type.name === "mat4x3" || node.type.name === "mat4x4" ||
-                node.type.name === "mat2x2f" || node.type.name === "mat2x3f" || node.type.name === "mat2x4f" ||
-                node.type.name === "mat3x2f" || node.type.name === "mat3x3f" || node.type.name === "mat3x4f" ||
-                node.type.name === "mat4x2f" || node.type.name === "mat4x3f" || node.type.name === "mat4x4f" ||
-                node.type.name === "mat2x2h" || node.type.name === "mat2x3h" || node.type.name === "mat2x4h" ||
-                node.type.name === "mat3x2h" || node.type.name === "mat3x3h" || node.type.name === "mat3x4h" ||
-                node.type.name === "mat4x2h" || node.type.name === "mat4x3h" || node.type.name === "mat4x4h") {
-                const defType = new CreateExpr(node.type, []);
-                value = this._evalCreate(defType, context);
-            }
-
-            if (node.type.name === "array") {
+            const typeName = node.type.name;
+            if (typeName === "f32" || typeName === "i32" || typeName === "u32" ||
+                typeName === "bool" || typeName === "f16" ||
+                typeName === "vec2" || typeName === "vec3" || typeName === "vec4" ||
+                typeName === "vec2f" || typeName === "vec3f" || typeName === "vec4f" ||
+                typeName === "vec2i" || typeName === "vec3i" || typeName === "vec4i" ||
+                typeName === "vec2u" || typeName === "vec3u" || typeName === "vec4u" ||
+                typeName === "vec2h" || typeName === "vec3h" || typeName === "vec4h" ||
+                typeName === "vec2b" || typeName === "vec3b" || typeName === "vec4b" ||
+                typeName === "mat2x2" || typeName === "mat2x3" || typeName === "mat2x4" ||
+                typeName === "mat3x2" || typeName === "mat3x3" || typeName === "mat3x4" ||
+                typeName === "mat4x2" || typeName === "mat4x3" || typeName === "mat4x4" ||
+                typeName === "mat2x2f" || typeName === "mat2x3f" || typeName === "mat2x4f" ||
+                typeName === "mat3x2f" || typeName === "mat3x3f" || typeName === "mat3x4f" ||
+                typeName === "mat4x2f" || typeName === "mat4x3f" || typeName === "mat4x4f" ||
+                typeName === "mat2x2h" || typeName === "mat2x3h" || typeName === "mat2x4h" ||
+                typeName === "mat3x2h" || typeName === "mat3x3h" || typeName === "mat3x4h" ||
+                typeName === "mat4x2h" || typeName === "mat4x3h" || typeName === "mat4x4h" ||
+                node.type instanceof ArrayType || node.type instanceof Struct || node.type instanceof TemplateType) {
                 const defType = new CreateExpr(node.type, []);
                 value = this._evalCreate(defType, context);
             }
@@ -1079,11 +1216,8 @@ export class WgslExec extends ExecInterface {
     }
 
     _evalConst(node: ConstExpr, context: ExecContext): Data | null {
-        const data = context.getVariableValue(node.name);
-        if (node.postfix) {
-            return data.getDataValue(this, node.postfix, context);
-        }
-        return data;
+        const data = context.getVariableValue(node.name).clone();
+        return data.getSubData(this, node.postfix, context);
     }
 
     _evalCreate(node: CreateExpr, context: ExecContext): Data | null {
@@ -1194,7 +1328,7 @@ export class WgslExec extends ExecInterface {
             console.error(`Unknown type "${typeName}". Line ${node.line}`);
         }
 
-        return data;
+        return data.getSubData(this, node.postfix, context);
     }
 
     _evalLiteral(node: LiteralExpr, context: ExecContext): Data | null {
@@ -1231,10 +1365,7 @@ export class WgslExec extends ExecInterface {
         if (value === null) {
             return value;
         }
-        if (node?.postfix) {
-            return value.getDataValue(this, node.postfix, context);
-        }
-        return value;
+        return value.getSubData(this, node.postfix, context);
     }
 
     static _priority = new Map<string, number>([["f32", 0], ["f16", 1], ["u32", 2], ["i32", 3], ["x32", 3]]);
@@ -1260,6 +1391,17 @@ export class WgslExec extends ExecInterface {
 
     _evalUnaryOp(node: UnaryOperator, context: ExecContext): Data | null {
         const _r = this.evalExpression(node.right, context);
+
+        if (node.operator === "&") { 
+            return new PointerData(_r);
+        } else if (node.operator === "*") {
+            if (_r instanceof PointerData) {
+                return _r.reference.getSubData(this, node.postfix, context);
+            }
+            console.error(`Invalid dereference. Line ${node.line}`);
+            return null;
+        }
+
         const r = _r instanceof ScalarData ? _r.value : 
             _r instanceof VectorData ? Array.from(_r.data) : null;
 
@@ -1303,19 +1445,6 @@ export class WgslExec extends ExecInterface {
                 const rn = r as number;
                 const t = this._maxFormatTypeInfo([_r.typeInfo, _r.typeInfo]);
                 return new ScalarData(~rn, t);
-            }
-            case "&": {
-                return new PointerData(_r);
-            }
-            case "*": {
-                if (_r instanceof PointerData) {
-                    if (node.postfix) {
-                        return _r.reference.getDataValue(this, node.postfix, context);
-                    }
-                    return _r.reference;
-                }
-                console.error(`Invalid dereference. Line ${node.line}`);
-                return null;
             }
         }
         console.error(`Invalid unary operator ${node.operator}. Line ${node.line}`);
@@ -2157,7 +2286,7 @@ export class WgslExec extends ExecInterface {
         }
         const v = this.evalExpression(node.args[0], context);
         v.typeInfo = this.getTypeInfo(node.type);
-        return v;
+        return v.getSubData(this, node.postfix, context).clone();
     }
 
     _callConstructorVec(node: CreateExpr | LiteralExpr, context: ExecContext): Data | null {
@@ -2218,7 +2347,7 @@ export class WgslExec extends ExecInterface {
 
         if (values.length === 0) {
             const values = new Array(count).fill(0);
-            return new VectorData(values, typeInfo);
+            return new VectorData(values, typeInfo).getSubData(this, node.postfix, context);
         }
 
         if (values.length === 1) {
@@ -2232,7 +2361,8 @@ export class WgslExec extends ExecInterface {
             return null;
         }
 
-        return new VectorData(values.length > count ? values.slice(0, count) : values, typeInfo);
+        const data = new VectorData(values.length > count ? values.slice(0, count) : values, typeInfo);
+        return data.getSubData(this, node.postfix, context);
     }
 
     _callConstructorMatrix(node: CreateExpr | LiteralExpr, context: ExecContext): Data | null {
@@ -2288,7 +2418,7 @@ export class WgslExec extends ExecInterface {
 
         if (values.length === 0) {
             const values = new Array(count).fill(0);
-            return new MatrixData(values, typeInfo);
+            return new MatrixData(values, typeInfo).getSubData(this, node.postfix, context);
         }
 
         if (values.length !== count) {
@@ -2296,6 +2426,6 @@ export class WgslExec extends ExecInterface {
             return null;
         }
 
-        return new MatrixData(values, typeInfo);
+        return new MatrixData(values, typeInfo).getSubData(this, node.postfix, context);
     }
 }

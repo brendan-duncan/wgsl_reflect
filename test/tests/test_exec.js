@@ -7,25 +7,67 @@ function _newWgslExec(code) {
 
 export async function run() {
     await group("WgslExec", async function () {
-        await test("variable pointer", async function (test) {
+        await test("pointer accessor", async function (test) {
             const shader = `
-                var<private> x: f32;
-                fn f() -> i32 {
-                    var y: i32;
-                    let x_ptr: ptr<private,f32> = &x;
-                    let y_ptr: ptr<function,i32> = &y;
-                    *y_ptr = 3;
-                    var x: u32;
-                    let inner_x_ptr: ptr<function,u32> = &x;
-                    *inner_x_ptr = 5;
-                    *x_ptr = 8.0;
-                    return y;
-                }
-                let y = f();`;
+            fn foo(p : ptr<function, array<u32, 4>>, i : i32) -> u32 {
+                let p1 = p;
+                var x = i;
+                let p2 = &((*p1)[x]);
+                x = 0;
+                *p2 = 6;
+                return (*p1)[x];
+            }
+
+            fn foo_for_analysis(p : ptr<function, array<u32, 4>>, i : i32) -> u32 {
+                var p_var = *p;
+                let p1 = &p_var;
+                var x = i;
+                let x_tmp1 = x;
+                let p2 = &(p_var[x_tmp1]);
+                x = 0;
+                *(&(p_var[x_tmp1])) = 5;
+                return (*(&p_var))[x + 1];
+            }
+
+            let a = array<u32, 4>(1, 2, 3, 4);
+            let b = foo(&a, 2);
+            let c = foo_for_analysis(&a, 1);`;
             const wgsl = _newWgslExec(shader);
             wgsl.execute();
-            test.equals(wgsl.getVariableValue("x"), 8);
-            test.equals(wgsl.getVariableValue("y"), 3);
+            test.equals(wgsl.getVariableValue("a"), [1, 5, 6, 4]);
+            test.equals(wgsl.getVariableValue("b"), 1);
+            test.equals(wgsl.getVariableValue("c"), 5);
+        });
+
+        await test("shadow variable", async function (test) {
+            const shader = `@group(0) @binding(0) var<storage, read_write> data: array<vec3f>;
+            @compute @workgroup_size(1) fn main(@builtin(global_invocation_id) id: vec3<u32>) {
+                let i = id.x;
+                let j = 2.0;
+                var k = f32(id.x);
+                let l = vec3f(j, j, j);
+                data[i].x = data[i].x * j;
+                {
+                    // Make sure variables defined in blocks shadow outer variables, and that
+                    // changes to non-shadowed variables are reflected in the outer scope.
+                    k = 3.0;
+                    let j = 3.0;
+                    data[i].y = data[i].y * 3.0;
+                    let l = 42.0;
+                }
+                data[i].z = k * j * l.x;
+            }`;
+
+            const buffer = new Float32Array([1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9, 0]);
+            const bg = {0: {0: buffer}};
+
+            const _data = await webgpuDispatch(shader, "main", 3, bg);
+            const webgpuData = new Float32Array(_data);
+
+            // Ensure we can dispatch a compute shader and get the expected results from the output buffer.
+            const wgsl = _newWgslExec(shader);
+            wgsl.dispatchWorkgroups("main", 3, bg);
+            test.equals(buffer, webgpuData);
         });
 
         await test("component reference from composite reference", async function (test) {
@@ -74,6 +116,55 @@ export async function run() {
             test.equals(wgsl.getVariableValue("uv"), [5, 6]);
             test.equals(wgsl.getVariableValue("m"), [0, 0, 0, 0, 7, 8]);
             test.equals(wgsl.getVariableValue("person_weight"), 9);
+        });
+
+        await test("matrix pointer", async function (test) {
+            const shader = `
+                var<private> m: mat3x2<f32>;
+                fn f() -> f32 {
+                    let m_ptr = &m;
+                    m_ptr[2] = vec2f(1.0, 2.0);
+                    return m[2].y;
+                }
+                let foo = f();`;
+            const wgsl = _newWgslExec(shader);
+            wgsl.execute();
+            test.equals(wgsl.getVariableValue("foo"), 2);
+        });
+
+        await test("pointer", async function (test) {
+            const shader = `
+            fn foo() -> f32 {
+                var x = 1.5;
+                let px = &x;  // Get a pointer to x
+                *px = 3.0;    // Update x through px.
+                return x;
+            }
+            var bar = foo();`;
+            const wgsl = _newWgslExec(shader);
+            wgsl.execute();
+            test.equals(wgsl.getVariableValue("bar"), 3);
+        });
+
+        await test("variable pointer", async function (test) {
+            const shader = `
+                var<private> x: f32;
+                fn f() -> i32 {
+                    var y: i32;
+                    let x_ptr: ptr<private,f32> = &x;
+                    let y_ptr: ptr<function,i32> = &y;
+                    *y_ptr = 3;
+                    var x: u32;
+                    let inner_x_ptr: ptr<function,u32> = &x;
+                    *inner_x_ptr = 5;
+                    *x_ptr = 8.0;
+                    return y;
+                }
+                let y = f();`;
+            const wgsl = _newWgslExec(shader);
+            wgsl.execute();
+            test.equals(wgsl.getVariableValue("x"), 8);
+            test.equals(wgsl.getVariableValue("y"), 3);
         });
 
         await test("struct pointer", async function (test) {
@@ -126,24 +217,6 @@ export async function run() {
             test.closeTo(buffer, webgpuData);
         });
 
-        await test("array struct member", function (test) {
-            const shader = `
-                struct Ray {
-                    origin: vec3f,
-                    direction: vec3f
-                }
-                fn foo() -> vec3f {
-                    let r = array<Ray, 2>();
-                    r[0].direction = vec3f(4.0, 5.0, 6.0);
-                    let foo = r[0].direction * 0.5;
-                    return foo;
-                }
-                let bar = foo();`;
-            const wgsl = _newWgslExec(shader);
-            wgsl.execute();
-            test.closeTo(wgsl.getVariableValue("bar"), [2, 2.5, 3]);
-        });
-
         await test("pointers", function (test) {
             const shader = `
                 fn f() -> f32 {
@@ -168,6 +241,58 @@ export async function run() {
             const wgsl = _newWgslExec(shader);
             wgsl.execute();
             test.equals(wgsl.getVariableValue("foo"), 19);
+        });
+
+        await test("default value", function (test) {
+            const shader = `var<private> foo: vec3f; var<private> bar: vec3f;
+            fn main()-> f32 { bar.y = 5.0; foo.x = bar.y; return foo.x; }
+            let bar2 = main();`;
+            const wgsl = _newWgslExec(shader);
+            wgsl.execute();
+            // Ensure the top-level instructions were executed and the global variable has the correct value.
+            test.equals(wgsl.getVariableValue("bar2"), 5);
+        });
+
+        await test("array struct member", function (test) {
+            const shader = `
+                struct Ray {
+                    origin: vec3f,
+                    direction: vec3f
+                }
+                fn foo() -> vec3f {
+                    let r = array<Ray, 2>();
+                    r[0].direction = vec3f(4.0, 5.0, 6.0);
+                    let foo = r[0].direction * 0.5;
+                    return foo;
+                }
+                let bar = foo();`;
+            const wgsl = _newWgslExec(shader);
+            wgsl.execute();
+            test.closeTo(wgsl.getVariableValue("bar"), [2, 2.5, 3]);
+        });
+
+        await test("mat array access", function (test) {
+            const shader = `const a = mat4x4f(1.0, 0.0, 0.0, 0.0,
+                                              0.0, 1.0, 0.0, 0.0,
+                                              0.0, 0.0, 1.0, 0.0,
+                                              0.0, 0.0, 0.0, 1.0);
+            const v4 = vec4f(a[1].xyz * vec3f(0.5), 0.5);
+            struct Foo { a: mat4x4f }
+            const foo = Foo(a);
+            const v4b = vec4f(foo.a[1].xyz * vec3f(0.5), 0.5);`;
+            const wgsl = _newWgslExec(shader);
+            wgsl.execute();
+            // Ensure the top-level instructions were executed and the global variable has the correct value.
+            test.equals(wgsl.getVariableValue("v4"), [0, 0.5, 0, 0.5]);
+            test.equals(wgsl.getVariableValue("v4b"), [0, 0.5, 0, 0.5]);
+        });
+
+        await test("vec component", function (test) {
+            const shader = `let foo = vec2f(1.0, 2.0).y;`;
+            const wgsl = _newWgslExec(shader);
+            wgsl.execute();
+            // Ensure the top-level instructions were executed and the global variable has the correct value.
+            test.equals(wgsl.getVariableValue("foo"), 2);
         });
 
         await test("any vec2", function (test) {
@@ -245,22 +370,6 @@ export async function run() {
             test.equals(wgsl.getVariableValue("frame"), 1.0);
         });
 
-        await test("mat array access", function (test) {
-            const shader = `const a = mat4x4f(1.0, 0.0, 0.0, 0.0,
-                                                0.0, 1.0, 0.0, 0.0,
-                                                0.0, 0.0, 1.0, 0.0,
-                                                0.0, 0.0, 0.0, 1.0);
-            const v4 = vec4f(a[1].xyz * vec3f(0.5), 0.5);
-            struct Foo { a: mat4x4f }
-            const foo = Foo(a);
-            const v4b = vec4f(foo.a[1].xyz * vec3f(0.5), 0.5);`;
-            const wgsl = _newWgslExec(shader);
-            wgsl.execute();
-            // Ensure the top-level instructions were executed and the global variable has the correct value.
-            test.equals(wgsl.getVariableValue("v4"), [0, 0.5, 0, 0.5]);
-            test.equals(wgsl.getVariableValue("v4b"), [0, 0.5, 0, 0.5]);
-        });
-
         await test("array construction", function (test) {
             const shader = `var<private> a: array<vec4f, 3u>;
             var<private> v4 = vec4f(vec2f().xy, a[0].zw);`;
@@ -333,16 +442,6 @@ export async function run() {
             wgsl.execute();
             // Ensure the top-level instructions were executed and the global variable has the correct value.
             test.equals(wgsl.getVariableValue("foo"), 1069547520);
-        });
-
-        await test("default value", function (test) {
-            const shader = `var<private> foo: vec3f; var<private> bar: vec3f;
-            fn main()-> f32 { bar.y = 5.0; foo.x = bar.y; return foo.x; }
-            let bar2 = main();`;
-            const wgsl = _newWgslExec(shader);
-            wgsl.execute();
-            // Ensure the top-level instructions were executed and the global variable has the correct value.
-            test.equals(wgsl.getVariableValue("bar2"), 5);
         });
 
         await test("call function", function (test) {
@@ -460,37 +559,6 @@ export async function run() {
             const _data = await webgpuDispatch(shader, "main", 3, bg);
             const webgpuData = new Float32Array(_data);
 
-            const wgsl = _newWgslExec(shader);
-            wgsl.dispatchWorkgroups("main", 3, bg);
-            test.equals(buffer, webgpuData);
-        });
-
-        await test("shadow variable", async function (test) {
-            const shader = `@group(0) @binding(0) var<storage, read_write> data: array<vec3f>;
-            @compute @workgroup_size(1) fn main(@builtin(global_invocation_id) id: vec3<u32>) {
-                let i = id.x;
-                let j = 2.0;
-                var k = f32(id.x);
-                let l = vec3f(j, j, j);
-                data[i].x = data[i].x * j;
-                {
-                    // Make sure variables defined in blocks shadow outer variables, and that
-                    // changes to non-shadowed variables are reflected in the outer scope.
-                    k = 3.0;
-                    let j = 3.0;
-                    data[i].y = data[i].y * 3.0;
-                    let l = 42.0;
-                }
-                data[i].z = k * j * l.x;
-            }`;
-
-            const buffer = new Float32Array([1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9, 0]);
-            const bg = {0: {0: buffer}};
-
-            const _data = await webgpuDispatch(shader, "main", 3, bg);
-            const webgpuData = new Float32Array(_data);
-
-            // Ensure we can dispatch a compute shader and get the expected results from the output buffer.
             const wgsl = _newWgslExec(shader);
             wgsl.dispatchWorkgroups("main", 3, bg);
             test.equals(buffer, webgpuData);
@@ -1029,5 +1097,5 @@ export async function run() {
             //const t4 = performance.now();
             //console.log("dbg time: ", t4 - t3);
         });
-    });
+    }, true);
 }

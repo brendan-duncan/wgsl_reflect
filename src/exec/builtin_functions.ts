@@ -1129,7 +1129,7 @@ export class BuiltinFunctions {
         const name = this.exec.getVariableName(l, context);
         const v = context.getVariable(name);
 
-        const currentValue = v.value.getDataValue(this.exec, l.postfix, context);
+        const currentValue = v.value.getSubData(this.exec, l.postfix, context);
         return currentValue;
     }
 
@@ -1146,7 +1146,7 @@ export class BuiltinFunctions {
         let r = node.args[1];
         const value = this.exec.evalExpression(r, context);
 
-        const currentValue = v.value.getDataValue(this.exec, l.postfix, context);
+        const currentValue = v.value.getSubData(this.exec, l.postfix, context);
 
         if (currentValue instanceof ScalarData && value instanceof ScalarData) {
             currentValue.value = value.value;
@@ -1172,7 +1172,7 @@ export class BuiltinFunctions {
         let r = node.args[1];
         const value = this.exec.evalExpression(r, context);
 
-        const currentValue = v.value.getDataValue(this.exec, l.postfix, context);
+        const currentValue = v.value.getSubData(this.exec, l.postfix, context);
 
         if (currentValue instanceof ScalarData && value instanceof ScalarData) {
             currentValue.value += value.value;
@@ -1198,7 +1198,7 @@ export class BuiltinFunctions {
         let r = node.args[1];
         const value = this.exec.evalExpression(r, context);
 
-        const currentValue = v.value.getDataValue(this.exec, l.postfix, context);
+        const currentValue = v.value.getSubData(this.exec, l.postfix, context);
 
         if (currentValue instanceof ScalarData && value instanceof ScalarData) {
             currentValue.value -= value.value;
@@ -1224,7 +1224,7 @@ export class BuiltinFunctions {
         let r = node.args[1];
         const value = this.exec.evalExpression(r, context);
 
-        const currentValue = v.value.getDataValue(this.exec, l.postfix, context);
+        const currentValue = v.value.getSubData(this.exec, l.postfix, context);
 
         const originalValue = new ScalarData((currentValue as ScalarData).value, currentValue.typeInfo);
 
@@ -1252,7 +1252,7 @@ export class BuiltinFunctions {
         let r = node.args[1];
         const value = this.exec.evalExpression(r, context);
 
-        const currentValue = v.value.getDataValue(this.exec, l.postfix, context);
+        const currentValue = v.value.getSubData(this.exec, l.postfix, context);
 
         const originalValue = new ScalarData((currentValue as ScalarData).value, currentValue.typeInfo);
 
@@ -1280,7 +1280,7 @@ export class BuiltinFunctions {
         let r = node.args[1];
         const value = this.exec.evalExpression(r, context);
 
-        const currentValue = v.value.getDataValue(this.exec, l.postfix, context);
+        const currentValue = v.value.getSubData(this.exec, l.postfix, context);
 
         const originalValue = new ScalarData((currentValue as ScalarData).value, currentValue.typeInfo);
 
@@ -1308,7 +1308,7 @@ export class BuiltinFunctions {
         let r = node.args[1];
         const value = this.exec.evalExpression(r, context);
 
-        const currentValue = v.value.getDataValue(this.exec, l.postfix, context);
+        const currentValue = v.value.getSubData(this.exec, l.postfix, context);
 
         const originalValue = new ScalarData((currentValue as ScalarData).value, currentValue.typeInfo);
 
@@ -1336,7 +1336,7 @@ export class BuiltinFunctions {
         let r = node.args[1];
         const value = this.exec.evalExpression(r, context);
 
-        const currentValue = v.value.getDataValue(this.exec, l.postfix, context);
+        const currentValue = v.value.getSubData(this.exec, l.postfix, context);
 
         const originalValue = new ScalarData((currentValue as ScalarData).value, currentValue.typeInfo);
 
@@ -1364,7 +1364,7 @@ export class BuiltinFunctions {
         let r = node.args[1];
         const value = this.exec.evalExpression(r, context);
 
-        const currentValue = v.value.getDataValue(this.exec, l.postfix, context);
+        const currentValue = v.value.getSubData(this.exec, l.postfix, context);
 
         const originalValue = new ScalarData((currentValue as ScalarData).value, currentValue.typeInfo);
 

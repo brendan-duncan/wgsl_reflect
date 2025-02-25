@@ -582,18 +582,6 @@ export declare class TypecastExpr extends Expression {
     search(callback: (node: Node) => void): void;
 }
 /**
- * @class GroupingExpr
- * @extends Expression
- * @category AST
- */
-export declare class GroupingExpr extends Expression {
-    contents: Expression[];
-    constructor(contents: Expression[]);
-    get astNodeType(): string;
-    constEvaluate(context: WgslExec, type?: Type[]): Data | null;
-    search(callback: (node: Node) => void): void;
-}
-/**
  * @class ArrayIndex
  * @extends Expression
  * @category AST
@@ -723,10 +711,14 @@ export declare class Attribute extends Node {
     get astNodeType(): string;
 }
 export declare class Data {
+    static _id: number;
     typeInfo: TypeInfo;
-    constructor(typeInfo: TypeInfo);
+    parent: Data | null;
+    id: number;
+    constructor(typeInfo: TypeInfo, parent: Data | null);
+    clone(): Data;
     setDataValue(exec: ExecInterface, value: Data, postfix: Expression | null, context: ExecContext): void;
-    getDataValue(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null;
+    getSubData(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null;
     toString(): string;
 }
 export declare class VoidData extends Data {
@@ -737,45 +729,51 @@ export declare class VoidData extends Data {
 export declare class PointerData extends Data {
     reference: Data;
     constructor(reference: Data);
+    clone(): Data;
     setDataValue(exec: ExecInterface, value: Data, postfix: Expression | null, context: ExecContext): void;
-    getDataValue(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null;
+    getSubData(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null;
 }
 export declare class ScalarData extends Data {
     data: Int32Array | Uint32Array | Float32Array;
-    constructor(value: number | Int32Array | Uint32Array | Float32Array, typeInfo: TypeInfo);
+    constructor(value: number | Int32Array | Uint32Array | Float32Array, typeInfo: TypeInfo, parent?: Data | null);
+    clone(): Data;
     get value(): number;
     set value(v: number);
     setDataValue(exec: ExecInterface, value: Data, postfix: Expression | null, context: ExecContext): void;
-    getDataValue(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null;
+    getSubData(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null;
     toString(): string;
 }
 export declare class VectorData extends Data {
     data: Int32Array | Uint32Array | Float32Array;
-    constructor(value: number[] | Float32Array | Uint32Array | Int32Array, typeInfo: TypeInfo);
+    constructor(value: number[] | Float32Array | Uint32Array | Int32Array, typeInfo: TypeInfo, parent?: Data | null);
+    clone(): Data;
     setDataValue(exec: ExecInterface, value: Data, postfix: Expression | null, context: ExecContext): void;
-    getDataValue(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null;
+    getSubData(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null;
     toString(): string;
 }
 export declare class MatrixData extends Data {
     data: Float32Array;
-    constructor(value: number[] | Float32Array, typeInfo: TypeInfo);
+    constructor(value: number[] | Float32Array, typeInfo: TypeInfo, parent?: Data | null);
+    clone(): Data;
     setDataValue(exec: ExecInterface, value: Data, postfix: Expression | null, context: ExecContext): void;
-    getDataValue(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null;
+    getSubData(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null;
     toString(): string;
 }
 export declare class TypedData extends Data {
     buffer: ArrayBuffer;
     offset: number;
-    constructor(data: ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array, typeInfo: TypeInfo, offset?: number);
+    constructor(data: ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array, typeInfo: TypeInfo, offset?: number, parent?: Data | null);
+    clone(): Data;
     setDataValue(exec: ExecInterface, value: Data, postfix: Expression | null, context: ExecContext): void;
     setData(exec: ExecInterface, value: Data, typeInfo: TypeInfo, offset: number, context: ExecContext): void;
-    getDataValue(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null;
+    getSubData(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null;
     toString(): string;
 }
 export declare class TextureData extends TypedData {
     descriptor: Object;
     view: Object | null;
     constructor(data: ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array, typeInfo: TypeInfo, offset: number, descriptor: Object, view: Object | null);
+    clone(): Data;
     get width(): number;
     get height(): number;
     get depthOrArrayLayers(): number;

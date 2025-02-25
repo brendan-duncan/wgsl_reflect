@@ -366,7 +366,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
           astNodeType: "let",
           name: "e2",
           value: {
-            astNodeType: "literalExpr",
+            astNodeType: "createExpr",
             type: {
               name: "vec3",
               format: {
@@ -651,8 +651,8 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
       let b = vec2<f32>(1.0, 2.0);`;
       const parser = new WgslParser();
       const t = parser.parse(shader);
-      test.equals(t[0].value.astNodeType, "literalExpr");
-      test.equals(t[1].value.astNodeType, "literalExpr");
+      test.equals(t[0].value.astNodeType, "createExpr");
+      test.equals(t[1].value.astNodeType, "createExpr");
     });
   });
 }

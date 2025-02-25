@@ -958,10 +958,6 @@ export class WgslDebug {
             this._collectFunctionCalls(node.right, functionCalls);
         } else if (node instanceof AST.UnaryOperator) {
             this._collectFunctionCalls(node.right, functionCalls);
-        } else if (node instanceof AST.GroupingExpr) {
-            for (const n of node.contents) {
-                this._collectFunctionCalls(n, functionCalls);
-            }
         } else if (node instanceof AST.CreateExpr) {
             if (node.args) {
                 for (const arg of node.args) {

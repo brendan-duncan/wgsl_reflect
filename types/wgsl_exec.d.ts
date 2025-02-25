@@ -26,6 +26,7 @@ export declare class WgslExec extends ExecInterface {
     _execStatements(statements: Node[], context: ExecContext): Data | null;
     _call(node: Call, context: ExecContext): void;
     _increment(node: Increment, context: ExecContext): void;
+    _getVariableData(node: Node, context: ExecContext): Data | null;
     _assign(node: Assign, context: ExecContext): void;
     _function(node: Function, context: ExecContext): void;
     _const(node: Const, context: ExecContext): void;

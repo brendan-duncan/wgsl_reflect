@@ -451,9 +451,6 @@ export class WgslParser {
         // break-if
         this._advance();
         breakStmt.condition = this._optional_paren_expression();
-        if (breakStmt.condition instanceof AST.GroupingExpr && breakStmt.condition.contents.length === 1) {
-          breakStmt.condition = breakStmt.condition.contents[0];
-        }
       }
     } else if (this._match(TokenTypes.keywords.continue)) {
       const continueStmt = this._updateNode(new AST.Continue());
@@ -1497,22 +1494,7 @@ export class WgslParser {
 
     if (this._match(TokenTypes.tokens.equal)) {
       const expr = this._const_expression();
-      const type = [AST.Type.f32];
-      try {
-        const value = expr.constEvaluate(this._exec, type);
-        _var.value = new AST.LiteralExpr(value, type[0]);
-        this._exec.context.setVariable(_var.name, value);
-      } catch (_) {
-        _var.value = expr;
-      }
-    } else {
-      // Default constructor
-      const createExpr = new AST.CreateExpr(_var.type, null);
-      const value = this._exec.evalExpression(createExpr, this._exec.context);
-      if (value !== null) {
-        _var.value = new AST.LiteralExpr(value, _var.type);
-        this._exec.context.setVariable(_var.name, value);
-      }
+      _var.value = expr;
     }
 
     if (_var.type !== null && _var.value instanceof AST.LiteralExpr) {
@@ -1571,10 +1553,15 @@ export class WgslParser {
     const valueExpr = this._short_circuit_or_expression();
     try {
       let type = [AST.Type.f32];
-      const constValue = valueExpr.constEvaluate(this._exec, type);
+      let constValue = valueExpr.constEvaluate(this._exec, type);
+      if (valueExpr.postfix) {
+        constValue = constValue.getSubData(this._exec, valueExpr.postfix, this._exec.context);
+      }
+
       if (constValue instanceof AST.ScalarData) {
         this._validateTypeRange(constValue.value, type[0]);
       }
+
       if (type[0] instanceof AST.TemplateType && type[0].format === null &&
         constValue.typeInfo instanceof TemplateInfo && constValue.typeInfo.format !== null) {
         if (constValue.typeInfo.format.name === "f16") {
@@ -1591,6 +1578,7 @@ export class WgslParser {
           console.error(`TODO: impelement template format type ${constValue.typeInfo.format.name}`);
         }
       }
+
       value = this._updateNode(new AST.LiteralExpr(constValue, type[0]));
       this._exec.context.setVariable(name.toString(), constValue);
     } catch {
@@ -1631,6 +1619,7 @@ export class WgslParser {
       TokenTypes.tokens.name,
       "Expected variable name"
     );
+
     let type: AST.Type | null = null;
     if (this._match(TokenTypes.tokens.colon)) {
       const attrs = this._attribute();
@@ -1639,18 +1628,12 @@ export class WgslParser {
         type.attributes = attrs;
       }
     }
+
     let value: AST.Expression | null = null;
     if (this._match(TokenTypes.tokens.equal)) {
       value = this._const_expression();
-      const type = [AST.Type.f32];
-      try {
-        const v = value!.constEvaluate(this._exec, type);
-        if (v !== null) {
-          value = new AST.LiteralExpr(v, type[0]);
-        }
-      } catch (_) {
-      }
     }
+
     if (type !== null && value instanceof AST.LiteralExpr) {
       if (value.type.name !== "x32") {
         const t1 = type.getTypeName();
@@ -1663,6 +1646,7 @@ export class WgslParser {
     } else if (type === null && value instanceof AST.LiteralExpr) {
       type = value.type.name === "x32" ? AST.Type.i32 : value.type;
     }
+
     if (value instanceof AST.LiteralExpr) {
       if (value.isScalar) {
         this._validateTypeRange(value.scalarValue, type);
@@ -1703,6 +1687,7 @@ export class WgslParser {
       TokenTypes.tokens.name,
       "Expected variable name"
     );
+
     let type: AST.Type | null = null;
     if (this._match(TokenTypes.tokens.colon)) {
       const attrs = this._attribute();
