@@ -7,6 +7,13 @@ function _newWgslExec(code) {
 
 export async function run() {
     await group("WgslExec", async function () {
+        await test("vec4 format", async function (test) {
+            const shader = `let lightViewPos = vec4(vec3f(1.0, 2.0, 3.0), 4.0);`;
+            const wgsl = _newWgslExec(shader);
+            wgsl.execute();
+            test.equals(wgsl.getVariableValue("lightViewPos"), [1, 2, 3, 4]);
+        });
+
         await test("pointer accessor", async function (test) {
             const shader = `
             fn foo(p : ptr<function, array<u32, 4>>, i : i32) -> u32 {
@@ -101,7 +108,7 @@ export async function run() {
                     let p_m_col2: vec2<f32> = m_ptr[2];
 
                     let A_Ptr = &A;
-                    let A_4_value: i32 = A_ptr[4];
+                    let A_4_value: i32 = A_Ptr[4];
 
                     let person_ptr = &person;
                     person_ptr.weight = 9.0;

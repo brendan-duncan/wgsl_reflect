@@ -1554,9 +1554,6 @@ export class WgslParser {
     try {
       let type = [AST.Type.f32];
       let constValue = valueExpr.constEvaluate(this._exec, type);
-      if (valueExpr.postfix) {
-        constValue = constValue.getSubData(this._exec, valueExpr.postfix, this._exec.context);
-      }
 
       if (constValue instanceof AST.ScalarData) {
         this._validateTypeRange(constValue.value, type[0]);

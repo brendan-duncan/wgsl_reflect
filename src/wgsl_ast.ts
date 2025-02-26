@@ -1821,7 +1821,7 @@ export class ScalarData extends Data {
 
   getSubData(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null {
     if (postfix) {
-      console.error(`GetDataValue: Scalar data does not support postfix`, postfix);
+      console.error(`getSubData: Scalar data does not support postfix`, postfix);
       return null;
     }
 
@@ -1845,7 +1845,7 @@ function _getVectorData(exec: ExecInterface, values: number[], formatName: strin
       } else if (formatName === "f16") {
           return new VectorData(new Float32Array(values), exec.getTypeInfo("vec2h"));
       } else {
-          console.error(`GetDataValue: Unknown format ${formatName}`);
+          console.error(`getSubData: Unknown format ${formatName}`);
       }
       return null;
   }
@@ -1860,7 +1860,7 @@ function _getVectorData(exec: ExecInterface, values: number[], formatName: strin
       } else if (formatName === "f16") {
           return new VectorData(new Float32Array(values), exec.getTypeInfo("vec3h"));
       } else {
-          console.error(`GetDataValue: Unknown format ${formatName}`);
+          console.error(`getSubData: Unknown format ${formatName}`);
       }
       return null;
   }
@@ -1875,11 +1875,11 @@ function _getVectorData(exec: ExecInterface, values: number[], formatName: strin
       } else if (formatName === "f16") {
           return new VectorData(new Float32Array(values), exec.getTypeInfo("vec4h"));
       }
-      console.error(`GetDataValue: Unknown format ${formatName}`);
+      console.error(`getSubData: Unknown format ${formatName}`);
       return null;
   }
 
-  console.error(`GetDataValue: Invalid vector size ${values.length}`);
+  console.error(`getSubData: Invalid vector size ${values.length}`);
   return null;
 }
 
