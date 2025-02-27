@@ -7,6 +7,32 @@ function _newWgslExec(code) {
 
 export async function run() {
     await group("WgslExec", async function () {
+        await test("atomic add struct", async function (test) {
+            const shader = `
+            struct Counter {
+                countX: atomic<u32>,
+                countY: atomic<u32>,
+                countZ: atomic<u32>,
+                countW: atomic<u32>,
+            };
+            @group(0) @binding(0) var<storage, read_write> data: Counter;
+            @compute @workgroup_size(1) fn main(@builtin(global_invocation_id) id: vec3<u32>) {
+                atomicAdd(&data.countX, 1u);
+                atomicAdd(&data.countY, 2u);
+                atomicAdd(&data.countZ, 3u);
+                atomicAdd(&data.countW, 4u);
+            }`;
+            const dataBuffer = new Uint32Array([1, 2, 3, 4]);
+            const bg = {0: {0: dataBuffer}};
+
+            const _data = await webgpuDispatch(shader, "main", 2, bg);
+            const webgpuData = new Uint32Array(_data);
+            // Ensure we can dispatch a compute shader and get the expected results from the output buffer.
+            const wgsl = _newWgslExec(shader);
+            wgsl.dispatchWorkgroups("main", 2, bg);
+            test.equals(dataBuffer, webgpuData);
+        });
+
         await test("vec4 format", async function (test) {
             const shader = `let lightViewPos = vec4(vec3f(1.0, 2.0, 3.0), 4.0);`;
             const wgsl = _newWgslExec(shader);
@@ -953,7 +979,7 @@ export async function run() {
                     let bin = min(u32(v * numBins), lastBinIndex);
                     let b = atomicLoad(&bins[bin][0]);
                     atomicStore(&bins[bin][0], b + 1u);
-                    //atomicAdd(&bins[bin][0], 1u);
+                    atomicAdd(&bins[bin][0], 1u);
                 }`;
 
             const numBins = 256;
