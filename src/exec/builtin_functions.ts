@@ -1122,7 +1122,6 @@ export class BuiltinFunctions {
     AtomicLoad(node: CallExpr | Call, context: ExecContext): Data | null {
         let l = node.args[0];
         if (l instanceof UnaryOperator) {
-            // TODO: handle & operator
             l = l.right;
         }
 
@@ -1136,7 +1135,6 @@ export class BuiltinFunctions {
     AtomicStore(node: CallExpr | Call, context: ExecContext): Data | null {
         let l = node.args[0];
         if (l instanceof UnaryOperator) {
-            // TODO: handle & operator
             l = l.right;
         }
 
@@ -1162,7 +1160,6 @@ export class BuiltinFunctions {
     AtomicAdd(node: CallExpr | Call, context: ExecContext): Data | null {
         let l = node.args[0];
         if (l instanceof UnaryOperator) {
-            // TODO: handle & operator
             l = l.right;
         }
 
@@ -1173,6 +1170,7 @@ export class BuiltinFunctions {
         const value = this.exec.evalExpression(r, context);
 
         const currentValue = v.value.getSubData(this.exec, l.postfix, context);
+        const originalValue = new ScalarData((currentValue as ScalarData).value, currentValue.typeInfo);
 
         if (currentValue instanceof ScalarData && value instanceof ScalarData) {
             currentValue.value += value.value;
@@ -1182,13 +1180,12 @@ export class BuiltinFunctions {
             v.value.setDataValue(this.exec, currentValue, l.postfix, context);
         }
 
-        return null;
+        return originalValue;
     }
 
     AtomicSub(node: CallExpr | Call, context: ExecContext): Data | null {
         let l = node.args[0];
         if (l instanceof UnaryOperator) {
-            // TODO: handle & operator
             l = l.right;
         }
 
@@ -1199,6 +1196,7 @@ export class BuiltinFunctions {
         const value = this.exec.evalExpression(r, context);
 
         const currentValue = v.value.getSubData(this.exec, l.postfix, context);
+        const originalValue = new ScalarData((currentValue as ScalarData).value, currentValue.typeInfo);
 
         if (currentValue instanceof ScalarData && value instanceof ScalarData) {
             currentValue.value -= value.value;
@@ -1208,13 +1206,12 @@ export class BuiltinFunctions {
             v.value.setDataValue(this.exec, currentValue, l.postfix, context);
         }
 
-        return null;
+        return originalValue;
     }
 
     AtomicMax(node: CallExpr | Call, context: ExecContext): Data | null {
         let l = node.args[0];
         if (l instanceof UnaryOperator) {
-            // TODO: handle & operator
             l = l.right;
         }
 
@@ -1242,7 +1239,6 @@ export class BuiltinFunctions {
     AtomicMin(node: CallExpr | Call, context: ExecContext): Data | null {
         let l = node.args[0];
         if (l instanceof UnaryOperator) {
-            // TODO: handle & operator
             l = l.right;
         }
 
@@ -1270,7 +1266,6 @@ export class BuiltinFunctions {
     AtomicAnd(node: CallExpr | Call, context: ExecContext): Data | null {
         let l = node.args[0];
         if (l instanceof UnaryOperator) {
-            // TODO: handle & operator
             l = l.right;
         }
 
@@ -1298,7 +1293,6 @@ export class BuiltinFunctions {
     AtomicOr(node: CallExpr | Call, context: ExecContext): Data | null {
         let l = node.args[0];
         if (l instanceof UnaryOperator) {
-            // TODO: handle & operator
             l = l.right;
         }
 
@@ -1326,7 +1320,6 @@ export class BuiltinFunctions {
     AtomicXor(node: CallExpr | Call, context: ExecContext): Data | null {
         let l = node.args[0];
         if (l instanceof UnaryOperator) {
-            // TODO: handle & operator
             l = l.right;
         }
 
@@ -1354,7 +1347,6 @@ export class BuiltinFunctions {
     AtomicExchange(node: CallExpr | Call, context: ExecContext): Data | null {
         let l = node.args[0];
         if (l instanceof UnaryOperator) {
-            // TODO: handle & operator
             l = l.right;
         }
 

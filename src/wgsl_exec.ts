@@ -995,6 +995,10 @@ export class WgslExec extends ExecInterface {
         let value = null;
         if (node.value !== null) {
             value = this.evalExpression(node.value, context);
+            if (value === null) {
+                console.error(`Invalid value for variable ${node.name}. Line ${node.line}`);
+                return;
+            }
             if (!(node.value instanceof UnaryOperator)) {
                 value = value.clone();
             }
