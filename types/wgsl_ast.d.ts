@@ -1,12 +1,7 @@
 import { WgslExec } from "./wgsl_exec.js";
 import { TypeInfo } from "./reflect/info.js";
-import { ExecInterface } from "./exec/exec_interface.js";
 import { ExecContext } from "./exec/exec_context.js";
-export declare class ParseContext {
-    constants: Map<string, Const>;
-    aliases: Map<string, Alias>;
-    structs: Map<string, Struct>;
-}
+import { ExecInterface } from "./exec/exec_interface.js";
 /**
  * @class Node
  * @category AST
@@ -19,10 +14,10 @@ export declare class Node {
     constructor();
     get isAstNode(): boolean;
     get astNodeType(): string;
-    constEvaluate(context: WgslExec, type?: Type[]): Data | null;
-    constEvaluateString(context: WgslExec): string;
     search(callback: (node: Node) => void): void;
     searchBlock(block: Node[] | null, callback: (node: Node) => void): void;
+    constEvaluate(context: WgslExec, type?: Type[]): Data | null;
+    constEvaluateString(context: WgslExec): string;
 }
 export declare class _BlockStart extends Node {
     static instance: _BlockStart;

@@ -1,16 +1,14 @@
-/**
- * @author Brendan Duncan / https://github.com/brendan-duncan
- */
 import { Token, TokenType } from "./wgsl_scanner.js";
 import * as AST from "./wgsl_ast.js";
 import { WgslExec } from "./wgsl_exec.js";
+import { ParseContext } from "./ast/parse_context.js";
 export declare class WgslParser {
     _tokens: Token[];
     _current: number;
     _currentLine: number;
     _deferArrayCountEval: Object[];
     _currentLoop: AST.Statement[];
-    _context: AST.ParseContext;
+    _context: ParseContext;
     _exec: WgslExec;
     parse(tokensOrCode: Token[] | string): AST.Statement[];
     _initialize(tokensOrCode: Token[] | string): void;

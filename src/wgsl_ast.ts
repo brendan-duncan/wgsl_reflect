@@ -1,15 +1,9 @@
 import { WgslExec } from "./wgsl_exec.js";
-import { TypeInfo, ArrayInfo, StructInfo, TemplateInfo } from "./reflect/info.js";
-import { ExecInterface } from "./exec/exec_interface.js";
+import { TypeInfo, TemplateInfo, ArrayInfo, StructInfo } from "./reflect/info.js";
 import { ExecContext } from "./exec/exec_context.js";
+import { ExecInterface } from "./exec/exec_interface.js";
+import { setTexturePixel, getTexturePixel } from "./utils/texture_sample.js";
 import { TextureFormatInfo } from "./utils/texture_format_info.js";
-import { getTexturePixel, setTexturePixel } from "./utils/texture_sample.js";
-
-export class ParseContext {
-  constants: Map<string, Const> = new Map();
-  aliases: Map<string, Alias> = new Map();
-  structs: Map<string, Struct> = new Map();
-}
 
 /**
  * @class Node
@@ -35,14 +29,6 @@ export class Node {
     return "";
   }
 
-  constEvaluate(context: WgslExec, type?: Type[]): Data | null {
-    throw new Error("Cannot evaluate node");
-  }
-
-  constEvaluateString(context: WgslExec): string {
-    return this.constEvaluate(context).toString();
-  }
-
   search(callback: (node: Node) => void): void {}
 
   searchBlock(block: Node[] | null, callback: (node: Node) => void): void {
@@ -58,6 +44,14 @@ export class Node {
       callback(_BlockEnd.instance);
     }
   }
+
+  constEvaluate(context: WgslExec, type?: Type[]): Data | null {
+    throw new Error("Cannot evaluate node");
+  }
+
+  constEvaluateString(context: WgslExec): string {
+    return this.constEvaluate(context).toString();
+  } 
 }
 
 // For internal use only
@@ -1683,6 +1677,8 @@ export class Attribute extends Node {
   }
 }
 
+
+
 export class Data {
   static _id = 0;
 
@@ -1837,13 +1833,13 @@ function _getVectorData(exec: ExecInterface, values: number[], formatName: strin
   const size = values.length;
   if (size === 2) {
       if (formatName === "f32") {
-          return new VectorData(new Float32Array(values), exec.getTypeInfo("vec2f"));
+          return new VectorData(new Float32Array(values), exec.getTypeInfo("vec2f")!);
       } else if (formatName === "i32" || formatName === "bool") {
-          return new VectorData(new Int32Array(values), exec.getTypeInfo("vec2i"));
+          return new VectorData(new Int32Array(values), exec.getTypeInfo("vec2i")!);
       } else if (formatName === "u32") {
-          return new VectorData(new Uint32Array(values), exec.getTypeInfo("vec2u"));
+          return new VectorData(new Uint32Array(values), exec.getTypeInfo("vec2u")!);
       } else if (formatName === "f16") {
-          return new VectorData(new Float32Array(values), exec.getTypeInfo("vec2h"));
+          return new VectorData(new Float32Array(values), exec.getTypeInfo("vec2h")!);
       } else {
           console.error(`getSubData: Unknown format ${formatName}`);
       }
@@ -1852,13 +1848,13 @@ function _getVectorData(exec: ExecInterface, values: number[], formatName: strin
 
   if (size === 3) {
       if (formatName === "f32") {
-          return new VectorData(new Float32Array(values), exec.getTypeInfo("vec3f"));
+          return new VectorData(new Float32Array(values), exec.getTypeInfo("vec3f")!);
       } else if (formatName === "i32" || formatName === "bool") {
-          return new VectorData(new Int32Array(values), exec.getTypeInfo("vec3i"));
+          return new VectorData(new Int32Array(values), exec.getTypeInfo("vec3i")!);
       } else if (formatName === "u32") {
-          return new VectorData(new Uint32Array(values), exec.getTypeInfo("vec3u"));
+          return new VectorData(new Uint32Array(values), exec.getTypeInfo("vec3u")!);
       } else if (formatName === "f16") {
-          return new VectorData(new Float32Array(values), exec.getTypeInfo("vec3h"));
+          return new VectorData(new Float32Array(values), exec.getTypeInfo("vec3h")!);
       } else {
           console.error(`getSubData: Unknown format ${formatName}`);
       }
@@ -1867,13 +1863,13 @@ function _getVectorData(exec: ExecInterface, values: number[], formatName: strin
 
   if (size === 4) {
       if (formatName === "f32") {
-          return new VectorData(new Float32Array(values), exec.getTypeInfo("vec4f"));
+          return new VectorData(new Float32Array(values), exec.getTypeInfo("vec4f")!);
       } else if (formatName === "i32" || formatName === "bool") {
-          return new VectorData(new Int32Array(values), exec.getTypeInfo("vec4i"));
+          return new VectorData(new Int32Array(values), exec.getTypeInfo("vec4i")!);
       } else if (formatName === "u32") {
-          return new VectorData(new Uint32Array(values), exec.getTypeInfo("vec4u"));
+          return new VectorData(new Uint32Array(values), exec.getTypeInfo("vec4u")!);
       } else if (formatName === "f16") {
-          return new VectorData(new Float32Array(values), exec.getTypeInfo("vec4h"));
+          return new VectorData(new Float32Array(values), exec.getTypeInfo("vec4h")!);
       }
       console.error(`getSubData: Unknown format ${formatName}`);
       return null;
@@ -1988,13 +1984,13 @@ export class VectorData extends Data {
 
         if (self.data instanceof Float32Array) {
           const d = new Float32Array(self.data.buffer, self.data.byteOffset + i * 4, 1);
-          return new ScalarData(d, format);
+          return new ScalarData(d, format!);
         } else if (self.data instanceof Int32Array) {
           const d = new Int32Array(self.data.buffer, self.data.byteOffset + i * 4, 1);
-          return new ScalarData(d, format);
+          return new ScalarData(d, format!);
         } else if (self.data instanceof Uint32Array) {
           const d = new Uint32Array(self.data.buffer, self.data.byteOffset + i * 4, 1);
-          return new ScalarData(d, format);
+          return new ScalarData(d, format!);
         }
 
         throw `GetSubData: Invalid data type`;
@@ -2017,17 +2013,17 @@ export class VectorData extends Data {
 
           if (this.data instanceof Float32Array) {
             let d = new Float32Array(this.data.buffer, this.data.byteOffset + i * 4, 1);
-            return new ScalarData(d, format, this);
+            return new ScalarData(d, format!, this);
           } else if (this.data instanceof Int32Array) {
             let d = new Int32Array(this.data.buffer, this.data.byteOffset + i * 4, 1);
-            return new ScalarData(d, format, this);
+            return new ScalarData(d, format!, this);
           } else if (this.data instanceof Uint32Array) {
             let d = new Uint32Array(this.data.buffer, this.data.byteOffset + i * 4, 1);
-            return new ScalarData(d, format, this);
+            return new ScalarData(d, format!, this);
           }
         }
 
-        const values = [];
+        const values: number[] = [];
         for (const m of member) {
           if (m === "x" || m === "r") {
             values.push(this.data[0]);
@@ -2042,7 +2038,7 @@ export class VectorData extends Data {
           }
         }
 
-        self = _getVectorData(exec, values, format.name);
+        self = _getVectorData(exec, values, format!.name);
       } else {
         console.error(`GetSubData: Unknown postfix`, postfix);
         return null;
@@ -2147,15 +2143,15 @@ export class MatrixData extends Data {
       if (typeName === "mat2x2" || typeName === "mat2x2f" || typeName === "mat2x2h" ||
           typeName === "mat3x2" || typeName === "mat3x2f" || typeName === "mat3x2h" ||
           typeName === "mat4x2" || typeName === "mat4x2f" || typeName === "mat4x2h") {
-        vectorData = new VectorData(new Float32Array(this.data.buffer, this.data.byteOffset + i * 2 * 4, 2), exec.getTypeInfo(`vec2${formatSuffix}`));
+        vectorData = new VectorData(new Float32Array(this.data.buffer, this.data.byteOffset + i * 2 * 4, 2), exec.getTypeInfo(`vec2${formatSuffix}`)!);
       } else if (typeName === "mat2x3" || typeName === "mat2x3f" || typeName === "mat2x3h" ||
                 typeName === "mat3x3" || typeName === "mat3x3f" || typeName === "mat3x3h" ||
                 typeName === "mat4x3" || typeName === "mat4x3f" || typeName === "mat4x3h") {
-        vectorData = new VectorData(new Float32Array(this.data.buffer, this.data.byteOffset + i * 3 * 4, 3), exec.getTypeInfo(`vec3${formatSuffix}`));
+        vectorData = new VectorData(new Float32Array(this.data.buffer, this.data.byteOffset + i * 3 * 4, 3), exec.getTypeInfo(`vec3${formatSuffix}`)!);
       } else if (typeName === "mat2x4" || typeName === "mat2x4f" || typeName === "mat2x4h" ||
                 typeName === "mat3x4" || typeName === "mat3x4f" || typeName === "mat3x4h" ||
                 typeName === "mat4x4" || typeName === "mat4x4f" || typeName === "mat4x4h") {
-        vectorData = new VectorData(new Float32Array(this.data.buffer, this.data.byteOffset + i * 4 * 4, 4), exec.getTypeInfo(`vec4${formatSuffix}`));
+        vectorData = new VectorData(new Float32Array(this.data.buffer, this.data.byteOffset + i * 4 * 4, 4), exec.getTypeInfo(`vec4${formatSuffix}`)!);
       } else {
         console.error(`GetDataValue: Unknown type ${typeName}`);
         return null;
@@ -2732,7 +2728,7 @@ export class TypedData extends Data {
           const typeName = typeInfo.getTypeName();
           if (typeName === "mat4x4" || typeName === "mat4x4f" || typeName === "mat4x4h") {
             offset += i * 16;
-            typeInfo = exec.getTypeInfo("vec4f");
+            typeInfo = exec.getTypeInfo("vec4f")!;
           } else {
             console.error(`getDataValue: Type ${typeInfo.getTypeName()} is not an array`);
           }
@@ -2765,7 +2761,7 @@ export class TypedData extends Data {
             if (member.length > 0 && member.length < 5) {
               let formatName = "f32";
               let formatSuffix = "f";
-              const value = [];
+              const value: number[] = [];
               for (let i = 0; i < member.length; ++i) {
                 const m = member[i].toLowerCase();
                 let element = 0;
@@ -2788,15 +2784,15 @@ export class TypedData extends Data {
                       console.log("Insufficient buffer data");
                       return null;
                     }
-                    return new ScalarData(new Float32Array(this.buffer, offset + element * 4, 1), exec.getTypeInfo("f32"), this);
+                    return new ScalarData(new Float32Array(this.buffer, offset + element * 4, 1), exec.getTypeInfo("f32")!, this);
                   } else if (typeName.endsWith("h")) {
-                    return new ScalarData(new Float32Array(this.buffer, offset + element * 4, 1), exec.getTypeInfo("f16"), this);
+                    return new ScalarData(new Float32Array(this.buffer, offset + element * 4, 1), exec.getTypeInfo("f16")!, this);
                   } else if (typeName.endsWith("i")) {
-                    return new ScalarData(new Int32Array(this.buffer, offset + element * 4, 1), exec.getTypeInfo("i32"), this);
+                    return new ScalarData(new Int32Array(this.buffer, offset + element * 4, 1), exec.getTypeInfo("i32")!, this);
                   } else if (typeName.endsWith("b")) {
-                    return new ScalarData(new Int32Array(this.buffer, offset + element * 4, 1), exec.getTypeInfo("bool"), this);
+                    return new ScalarData(new Int32Array(this.buffer, offset + element * 4, 1), exec.getTypeInfo("bool")!, this);
                   } else if (typeName.endsWith("u")) {
-                    return new ScalarData(new Uint32Array(this.buffer, offset + element * 4, 1), exec.getTypeInfo("i32"), this);
+                    return new ScalarData(new Uint32Array(this.buffer, offset + element * 4, 1), exec.getTypeInfo("i32")!, this);
                   }
                 }
 
@@ -2840,11 +2836,11 @@ export class TypedData extends Data {
               }
 
               if (value.length === 2) {
-                typeInfo = exec.getTypeInfo(`vec2${formatSuffix}`);
+                typeInfo = exec.getTypeInfo(`vec2${formatSuffix}`)!;
               } else if (value.length === 3) {
-                typeInfo = exec.getTypeInfo(`vec3${formatSuffix}`);
+                typeInfo = exec.getTypeInfo(`vec3${formatSuffix}`)!;
               } else if (value.length === 4) {
-                typeInfo = exec.getTypeInfo(`vec4${formatSuffix}`);
+                typeInfo = exec.getTypeInfo(`vec4${formatSuffix}`)!;
               } else {
                 console.error(`GetDataValue: Invalid vector length ${value.length}`);
               }
@@ -2896,12 +2892,12 @@ export class TypedData extends Data {
     }
 
     if (typeInfo instanceof TemplateInfo && typeInfo.name === "atomic") {
-      if (typeInfo.format.name === "u32") {
+      if (typeInfo.format?.name === "u32") {
         return new ScalarData(new Uint32Array(this.buffer, offset, 1)[0], typeInfo.format, this);
-      } else if (typeInfo.format.name === "i32") {
+      } else if (typeInfo.format?.name === "i32") {
         return new ScalarData(new Int32Array(this.buffer, offset, 1)[0], typeInfo.format, this);
       } else {
-        console.error(`GetDataValue: Invalid atomic format ${typeInfo.format.name}`);
+        console.error(`GetDataValue: Invalid atomic format ${typeInfo.format?.name}`);
         return null;
       }
     }

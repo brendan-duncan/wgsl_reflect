@@ -2,8 +2,8 @@ import { Node, Type, TemplateType, Return, Break, Continue, Let, Var, Const,
     If, For, While, Loop, Continuing, Assign, Increment, Struct, Override, ArrayType,
     Call, Diagnostic, Alias, BinaryOperator, LiteralExpr, Expression,
     VariableExpr, CallExpr, CreateExpr, ConstExpr, BitcastExpr, UnaryOperator,
-    ArrayIndex, StringExpr, Function, Switch, SwitchCase, Case, Default, DefaultSelector,
-    Data, ScalarData, VectorData, MatrixData, TypedData, TextureData, VoidData, PointerData } from "./wgsl_ast.js";
+    ArrayIndex, StringExpr, Function, Switch, SwitchCase, Case, Default, DefaultSelector } from "./wgsl_ast.js";
+import { Data, TypedData, TextureData, ScalarData, VectorData, MatrixData, PointerData, VoidData } from "./wgsl_ast.js";
 import { Reflect } from "./reflect/reflect.js";
 import { TypeInfo, StructInfo, ArrayInfo, TemplateInfo } from "./reflect/info.js";
 import { ExecContext, FunctionRef } from "./exec/exec_context.js";

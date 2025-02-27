@@ -1,6 +1,3 @@
-/**
- * @author Brendan Duncan / https://github.com/brendan-duncan
- */
 import { WgslParser } from "./wgsl_parser.js";
 import { Reflect } from "./reflect/reflect.js";
 

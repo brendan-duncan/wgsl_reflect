@@ -2,23 +2,8 @@ import * as AST from "./wgsl_ast.js";
 import { WgslExec } from "./wgsl_exec.js";
 import { ExecContext, FunctionRef } from "./exec/exec_context.js";
 import { Command } from "./exec/command.js";
-export declare class StackFrame {
-    parent: StackFrame | null;
-    context: ExecContext;
-    commands: Command[];
-    current: number;
-    parentCallExpr: AST.CallExpr | null;
-    constructor(context: ExecContext, parent?: StackFrame);
-    get isAtEnd(): boolean;
-    getNextCommand(): Command | null;
-    getCurrentCommand(): Command | null;
-}
-declare class ExecStack {
-    states: StackFrame[];
-    get isEmpty(): boolean;
-    get last(): StackFrame | null;
-    pop(): void;
-}
+import { StackFrame } from "./exec/stack_frame.js";
+import { ExecStack } from "./exec/exec_stack.js";
 type RuntimeStateCallbackType = () => void;
 export declare class WgslDebug {
     _code: string;

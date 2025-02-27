@@ -3,8 +3,8 @@
  */
 import { TokenTypes } from "../wgsl_scanner.js";
 import { Type, Struct, Alias, Override, Var, Node, Function, VariableExpr, CreateExpr,
-    Let, CallExpr, Call, Argument, Member, Attribute, ArrayType, SamplerType, TemplateType,
-    _BlockStart, _BlockEnd } from "../wgsl_ast.js";
+    Let, CallExpr, Call, Argument, Member, Attribute, ArrayType, SamplerType, TemplateType } from "../wgsl_ast.js";
+import { _BlockStart, _BlockEnd } from "../wgsl_ast.js";
 import { FunctionInfo, VariableInfo, AliasInfo, OverrideInfo,
   StructInfo, TypeInfo, MemberInfo, ArrayInfo, TemplateInfo, OutputInfo,
   InputInfo, ArgumentInfo, ResourceType, EntryFunctions } from "./info.js";
