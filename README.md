@@ -25,24 +25,25 @@ const reflect = new WgslReflect(shader_code);
 ## Documentation
 
 ```javascript
+// A collection of gathered information about the shader.
 class WgslReflect {
-  /// All top-level uniform vars in the shader.
+  // All top-level uniform vars in the shader.
   uniforms: Array<VariableInfo>;
-  /// All top-level storage vars in the shader, including storage buffers and textures.
+  // All top-level storage vars in the shader, including storage buffers and textures.
   storage: Array<VariableInfo>;
-  /// All top-level texture vars in the shader;
+  // All top-level texture vars in the shader;
   textures: Array<VariableInfo>;
   // All top-level sampler vars in the shader.
   samplers: Array<VariableInfo>;
-  /// All top-level type aliases in the shader.
+  // All top-level type aliases in the shader.
   aliases: Array<AliasInfo>;
-  /// All top-level overrides in the shader.
+  // All top-level overrides in the shader.
   overrides: Array<OverrideInfo> = [];
-  /// All top-level structs in the shader.
+  // All top-level structs in the shader.
   structs: Array<StructInfo>;
-  /// All entry functions in the shader: vertex, fragment, and/or compute.
+  // All entry functions in the shader: vertex, fragment, and/or compute.
   entry: EntryFunctions;
-  /// All functions in the shader, including entry functions.
+  // All functions in the shader, including entry functions.
   functions: Array<FunctionInfo>;
 
   // Find a resource by its group and binding.
@@ -52,125 +53,213 @@ class WgslReflect {
   getBindGroups(): Array<Array<VariableInfo>>;
 }
 
+// A variable can be a resource passed to the shader, of this type.
 enum ResourceType {
-  Uniform,
-  Storage,
-  Texture,
-  Sampler,
-  StorageTexture
+  Uniform, // Uniform buffer
+  Storage, // Storage buffer
+  Texture, // Texture
+  Sampler, // Sampler to sample a Texture
+  StorageTexture // StorageTexture
 }
 
+// Information about a resource variable. This will be a uniform buffer,
+// storage buffer, texture, sampler, or storageTexture.
 class VariableInfo {
-  name: string; // The name of the variable
-  type: TypeInfo; // The type of the variable
-  group: number; // The binding group of the variable
-  binding: number; // The binding index of the variable
-  resourceType: ResourceType; // The resource type of the variable
-  access: string; // "", read, write, read_write
-
-  get isArray(): boolean; // True if it's an array type
-  get isStruct(): boolean;  // True if it's a struct type
-  get isTemplate(): boolean; // True if it's a template type
-  get size(): number; // Size of the data, in bytes
-  get align(): number; // The alignment size if it's a struct, otherwise 0
-  get members(): Array<MemberInfo> | null; // The list of members if it's a struct, otherwise null
-  get format(): TypeInfo | null; // The format if it's a template or array, otherwise null
-  get count(): number; // The array size if it's an array, otherwise 0
-  get stride(): number; // The array stride if it's an array, otherwise 0
-}
-
-class TypeInfo {
+  // The name of the variable.
   name: string;
-  size: number; // Size of the data, in bytes
-
-  get isArray(): boolean;
-  get isStruct(): boolean;
-  get isTemplate(): boolean;
-}
-
-class StructInfo extends TypeInfo {
-  members: Array<MemberInfo>;
-  align: number;
-  startLine: number;
-  endLine: number;
-  inUse: boolean; // true if the struct is used by a uniform, storage, or directly or indirectly by an entry function.
-}
-
-class ArrayInfo extends TypeInfo {
-  format: TypeInfo;
-  count: number;
-  stride: number;
-}
-
-class TemplateInfo extends TypeInfo {
-  format: TypeInfo;
-  access: string; // "", read, write, read_write
-}
-
-class MemberInfo {
-  name: string;
+  // The type of the variable.
   type: TypeInfo;
-  offset: number;
-  size: number;
+  // The binding group of the variable.
+  group: number;
+  // The binding index of the variable.
+  binding: number;
+  // The resource type of the variable.
+  resourceType: ResourceType;
+  // The access mode of the variable, can be: "", "read", "write", or "read_write".
+  access: string;
 
+  // True if the type of the variable is an array.
   get isArray(): boolean;
+  // True if the type of the variable is a struct.
   get isStruct(): boolean;
+  // True if the type of the variable is a template.
   get isTemplate(): boolean;
+  // Size of the data pointed to by the variable, in bytes.
+  get size(): number;
+  // The alignment size if the variable type is a struct, otherwise 0.
   get align(): number;
+  // The list of members of the variable type if it's a struct, otherwise null.
   get members(): Array<MemberInfo> | null;
+  // The format if the type is a template or array, otherwise null.
   get format(): TypeInfo | null;
+  // The array size if it's an array, otherwise 0.
   get count(): number;
+  // The array stride if it's an array, otherwise 0.
   get stride(): number;
 }
 
-class AliasInfo {
+// Base class for variable types.
+class TypeInfo {
+  // The name of the type declaration.
   name: string;
+  // Size of the data used by this type, in bytes
+  size: number;
+
+  // True if this is an array type, can be cast to ArrayInfo.
+  get isArray(): boolean;
+  // True if this is a struct type, can be cast to StructInfo.
+  get isStruct(): boolean;
+  // True if this is a template type, can be cast to TemplateInfo.
+  get isTemplate(): boolean;
+}
+
+// Information about struct type declarations
+class StructInfo extends TypeInfo {
+  // The list of members of the struct.
+  members: Array<MemberInfo>;
+  // The alignment, in bytes, for the structs data.
+  align: number;
+  // The line in the shader code the type declaration starts at.
+  startLine: number;
+  // The line in the shader code the type declaration ends at.
+  endLine: number;
+  // True if the struct is used by a uniform, storage, or directly or indirectly by an entry function.
+  inUse: boolean;
+}
+
+// Information about array type declarations
+class ArrayInfo extends TypeInfo {
+  // The format for the data in the array
+  format: TypeInfo;
+  // The number of elements in the array
+  count: number;
+  // The stride, in bytes, of the array. This is the alignment of elements in the array data, including padding.
+  stride: number;
+}
+
+// Information about template type declarations
+class TemplateInfo extends TypeInfo {
+  // The format type of the template
+  format: TypeInfo;
+  // Access mode of the template, which can be: "", "read", "write", or "read_write"
+  access: string;
+}
+
+// Information about a struct member declaration.
+class MemberInfo {
+  // The name of the struct member.
+  name: string;
+  // The type of the struct member.
+  type: TypeInfo;
+  // The offset, in bytes, of the member from the start of the struct data.
+  offset: number;
+  // The size of the members data, in bytes.
+  size: number;
+
+  // True if the member type is an array and can be cast to ArrayInfo
+  get isArray(): boolean;
+  // True if the member type is a struct and can be cast to StructInfo.
+  get isStruct(): boolean;
+  // True if the member type is a template and can be cast to TemplateInfo.
+  get isTemplate(): boolean;
+  // If the member type is a struct, the alignment of the struct in bytes, otherwise 0.
+  get align(): number;
+  // If the member type is a struct, the members of the struct, otherwise null.
+  get members(): Array<MemberInfo> | null;
+  // If the member type is an array or template, the format of the type, otherwise null.
+  get format(): TypeInfo | null;
+  // If the member type is an array, the number of elements in the array, otherwise 0.
+  get count(): number;
+  // If the member type is an array, the stride of the array elements in bytes, otherwise 0.
+  get stride(): number;
+}
+
+// Information about type aliases declared in the shader.
+class AliasInfo {
+  // The name of the alias type.
+  name: string;
+  // The information of the type being aliased.
   type: TypeInfo;
 }
 
+// The lists of shader vertex, fragment, and/or compute entry functions.
 class EntryFunctions {
+  // Any vertex entry points in the shader.
   vertex: Array<FunctionInfo>;
+  // Any fragment entry points in the shader.
   fragment: Array<FunctionInfo>;
+  // Any compute entry points in the shader.
   compute: Array<FunctionInfo>;
 }
 
+// Information about a function in the shader.
 class FunctionInfo {
+  // The name of the function.
   name: string;
+  // If the function is an entry function, which stage is it for, either "vertex", "fragment", "compute", or null if none.
   stage: string | null;
+  // The list of shader inputs used by the function, which includes vertex and index buffers.
   inputs: Array<InputInfo>;
+  // The list of shader outputs updated by the function, such as inter-stage buffers.
   outputs: Array<OutputInfo>;
+  // The arguments of the function.
   arguments: Array<ArgumentInfo>;
+  // The return type of the function, or null if the function returns void.
   returnType: TypeInfo | null;
+  // The resources used by the function, including uniform buffers, storage buffers, textures,
+  // samplers, and storage textures.
   resources: Array<VariableInfo>;
+  // The line in the shader the function definition starts at.
   startLine: number;
+  // The line in the shader the function definition ends at.
   endLine: number;
-  inUse: boolean;  // true if called directly or indirectly by an entry function.
-  calls: Set<FunctionInfo>; // All custom functions called directly by this function.
+  // True if called directly or indirectly by an entry function.
+  inUse: boolean;
+  // All custom functions called directly by this function.
+  calls: Set<FunctionInfo>;
 }
 
+// Information about a shader inputs.
 class InputInfo {
+  // The name of the input variable
   name: string;
+  // The type of the input variable.
   type: TypeInfo | null;
+  // The location type of the input.
   locationType: string;
+  // The location index or built-in location name.
   location: number | string;
+  // The interpolation mode of the binding.
   interpolation: string | null;
 }
 
+// Information about a shader output.
 class OutputInfo {
+  // The name of the output variable.
   name: string;
+  // The type of the output variable.
   type: TypeInfo | null;
+  // The location type of the output.
   locationType: string;
+  // The location index or built-in location name.
   location: number | string;
 }
 
+// Information about override constants in the shader.
 class OverrideInfo {
+  // The name of the override constant.
   name: string;
+  // The type of the override constant.
   type: TypeInfo | null;
+  // A unique ID given to the override constant.
   id: number;
 }
 
+// Information about a function argument.
 class ArgumentInfo {
+  // Then ame of the argument variable.
   name: string;
+  // The type of the argument variable.
   type: TypeInfo;
 }
 ```
