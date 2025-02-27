@@ -3,6 +3,68 @@ import { WgslReflect, ResourceType } from "../../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Reflect", async function () {
+    await test("multi entry", function (test) {
+      const t = new WgslReflect(`
+          var<private> rand_seed : vec2f;
+
+          fn init_rand(invocation_id : u32, seed : vec4f) {
+            rand_seed = seed.xz;
+            rand_seed = fract(rand_seed * cos(35.456+f32(invocation_id) * seed.yw));
+            rand_seed = fract(rand_seed * cos(41.235+f32(invocation_id) * seed.xw));
+          }
+          struct RenderParams {
+            modelViewProjectionMatrix : mat4x4f,
+            right : vec3f,
+            up : vec3f
+          }
+          @binding(0) @group(0) var<uniform> render_params : RenderParams;
+
+          struct VertexInput {
+            @location(0) position : vec3f,
+            @location(1) color : vec4f,
+            @location(2) quad_pos : vec2f, // -1..+1
+          }
+          struct VertexOutput {
+            @builtin(position) position : vec4f,
+            @location(0) color : vec4f,
+            @location(1) quad_pos : vec2f, // -1..+1
+          }
+          @vertex
+          fn vs_main(in : VertexInput) -> VertexOutput {
+            var out : VertexOutput;
+            return out;
+          }
+          @fragment
+          fn fs_main(in : VertexOutput) -> @location(0) vec4f {
+            return in.color;
+          }
+          struct SimulationParams {
+            deltaTime : f32,
+            brightnessFactor : f32,
+            seed : vec4f,
+          }
+          struct Particle {
+            position : vec3f,
+            lifetime : f32,
+            color    : vec4f,
+            velocity : vec3f,
+          }
+          struct Particles {
+            particles : array<Particle>,
+          }
+          @binding(0) @group(0) var<uniform> sim_params : SimulationParams;
+          @binding(1) @group(0) var<storage, read_write> data : Particles;
+          @binding(2) @group(0) var texture : texture_2d<f32>;
+
+          @compute @workgroup_size(64)
+          fn simulate(@builtin(global_invocation_id) global_invocation_id : vec3u) {
+            init_rand(idx, sim_params.seed);
+          }`);
+          test.equals(t.entry.vertex.length, 1);
+          test.equals(t.entry.fragment.length, 1);
+          test.equals(t.entry.compute.length, 1);
+    });
+
     await test("array_no_format", function (test) {
       const t = new WgslReflect(`
         @vertex fn vs() -> VertexData {

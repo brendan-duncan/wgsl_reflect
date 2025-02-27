@@ -30,7 +30,7 @@ export declare class Reflect {
     getOverrideInfo(name: string): OverrideInfo | null;
     _markStructsInUse(type: TypeInfo): void;
     _addCalls(fn: Function, calls: Set<FunctionInfo>): void;
-    findResource(group: number, binding: number): VariableInfo;
+    findResource(group: number, binding: number, entry?: string): VariableInfo;
     _findResource(name: string): VariableInfo | null;
     _markStructsFromAST(type: Type): void;
     _findResources(fn: Node, isEntry: boolean): VariableInfo[];

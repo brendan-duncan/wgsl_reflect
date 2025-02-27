@@ -278,7 +278,39 @@ export class Reflect {
   }
 
   /// Find a resource by its group and binding.
-  findResource(group: number, binding: number) {
+  findResource(group: number, binding: number, entry?: string) {
+    if (entry) {
+      for (const fn of this.entry.compute) {
+        if (fn.name === entry) {
+          for (const r of fn.resources) {
+            if (r.group == group && r.binding == binding) {
+              return r;
+            }
+          }
+        }
+      }
+
+      for (const fn of this.entry.vertex) {
+        if (fn.name === entry) {
+          for (const r of fn.resources) {
+            if (r.group == group && r.binding == binding) {
+              return r;
+            }
+          }
+        }
+      }
+
+      for (const fn of this.entry.fragment) {
+        if (fn.name === entry) {
+          for (const r of fn.resources) {
+            if (r.group == group && r.binding == binding) {
+              return r;
+            }
+          }
+        }
+      }
+    }
+
     for (const u of this.uniforms) {
       if (u.group == group && u.binding == binding) {
         return u;
