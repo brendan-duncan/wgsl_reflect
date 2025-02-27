@@ -25,7 +25,7 @@ const reflect = new WgslReflect(shader_code);
 ## Documentation
 
 ```javascript
-// A collection of gathered information about the shader.
+// A collection of gathered reflection information about the shader.
 class WgslReflect {
   // All top-level uniform vars in the shader.
   uniforms: Array<VariableInfo>;
@@ -45,6 +45,12 @@ class WgslReflect {
   entry: EntryFunctions;
   // All functions in the shader, including entry functions.
   functions: Array<FunctionInfo>;
+
+  // Parse the given WGSL shader code, populating the info properties of this class.
+  constructor(shader?: string);
+
+  // Parse the given WGSL shader code, adding to the info properties of this class.
+  update(shader: string);
 
   // Find a resource by its group and binding.
   findResource(group: number, binding: number): VariableInfo | null;
