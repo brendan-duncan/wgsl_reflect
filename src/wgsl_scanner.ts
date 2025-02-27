@@ -435,6 +435,7 @@ export class TokenTypes {
 
   static readonly multisampled_texture_type = [
     this.keywords.texture_multisampled_2d,
+    this.keywords.texture_depth_multisampled_2d,
   ];
 
   static readonly storage_texture_type = [
@@ -448,8 +449,7 @@ export class TokenTypes {
     this.keywords.texture_depth_2d,
     this.keywords.texture_depth_2d_array,
     this.keywords.texture_depth_cube,
-    this.keywords.texture_depth_cube_array,
-    this.keywords.texture_depth_multisampled_2d,
+    this.keywords.texture_depth_cube_array
   ];
 
   static readonly texture_external_type = [this.keywords.texture_external];

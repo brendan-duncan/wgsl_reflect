@@ -3,6 +3,17 @@ import { WgslReflect, ResourceType } from "../../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Reflect", async function () {
+    await test("texture_depth_multisampled_2d", function (test) {
+      const t = new WgslReflect(`
+          @group(0) @binding(0) var msaaDepth: texture_multisampled_2d<f32>;
+          @group(0) @binding(0) var msaaDepth: texture_depth_multisampled_2d<f32>;
+          @compute @workgroup_size(8, 8)
+          fn main(@builtin(global_invocation_id) globalId : vec3<u32>) {
+            let sampleCount = textureNumSamples(msaaDepth);
+          }`);
+      test.equals(t.textures.length, 2);
+    });
+
     await test("multi entry", function (test) {
       const t = new WgslReflect(`
           var<private> rand_seed : vec2f;
