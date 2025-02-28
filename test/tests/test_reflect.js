@@ -5,13 +5,26 @@ export async function run() {
   await group("Reflect", async function () {
     await test("texture_depth_multisampled_2d", function (test) {
       const t = new WgslReflect(`
-          @group(0) @binding(0) var msaaDepth: texture_multisampled_2d<f32>;
-          @group(0) @binding(0) var msaaDepth: texture_depth_multisampled_2d<f32>;
+          @group(0) @binding(0) var msaaDepth: texture_2d<f32>;
+          @group(0) @binding(1) var msaaDepth: texture_2d_array<f32>;
+          @group(0) @binding(2) var msaaDepth: texture_cube<f32>;
+          @group(0) @binding(3) var msaaDepth: texture_cube_array<f32>;
+          @group(0) @binding(4) var msaaDepth: texture_multisampled_2d<f32>;
+          @group(0) @binding(5) var msaaDepth: texture_depth_2d;
+          @group(0) @binding(6) var msaaDepth: texture_depth_2d_array;
+          @group(0) @binding(7) var msaaDepth: texture_depth_cube;
+          @group(0) @binding(8) var msaaDepth: texture_depth_cube_array;
+          @group(0) @binding(9) var msaaDepth: texture_depth_multisampled_2d;
+          @group(0) @binding(10) var msaaDepth: texture_storage_2d<rgba8unorm, read_write>;
+          @group(0) @binding(11) var msaaDepth: texture_storage_2d_array<rgba8unorm, read_write>;
+          @group(0) @binding(12) var msaaDepth: texture_external;
+
           @compute @workgroup_size(8, 8)
           fn main(@builtin(global_invocation_id) globalId : vec3<u32>) {
             let sampleCount = textureNumSamples(msaaDepth);
           }`);
-      test.equals(t.textures.length, 2);
+      test.equals(t.textures.length, 11);
+      test.equals(t.storage.length, 2);
     });
 
     await test("multi entry", function (test) {
