@@ -150,7 +150,7 @@ export class WgslExec extends ExecInterface {
                         if (binding == b && set == s) {
                             if (entry.texture !== undefined && entry.descriptor !== undefined) {
                                 // Texture
-                                const textureData = new TextureData(entry.texture, this.getTypeInfo(node.type), 0, entry.descriptor,
+                                const textureData = new TextureData(entry.texture, this.getTypeInfo(node.type), entry.descriptor,
                                         entry.texture.view ?? null);
                                 v.value = textureData;
                             } else if (entry.uniform !== undefined) {
@@ -271,12 +271,13 @@ export class WgslExec extends ExecInterface {
             }
         }
 
-        const t = this.typeInfo[type as string] ?? null;
+        let t = this.typeInfo[type as string] ?? null;
         if (t !== null) {
             return t;
         }
 
-        return null;
+        t = this.reflection.getTypeInfoByName(type as string);
+        return t;
     }
 
     _setOverrides(constants: Object, context: ExecContext): void {
@@ -422,7 +423,14 @@ export class WgslExec extends ExecInterface {
 
         const f = context.getFunction(node.name);
         if (!f) {
-            this._callBuiltinFunction(node, subContext);
+            if (node.isBuiltin) {
+                this._callBuiltinFunction(node, subContext);
+            } else {
+                const typeInfo = this.getTypeInfo(node.name);
+                if (typeInfo) {
+                    this._evalCreate(node, context);
+                }
+            }
             return;
         }
 
@@ -1224,72 +1232,75 @@ export class WgslExec extends ExecInterface {
         return data.getSubData(this, node.postfix, context);
     }
 
-    _evalCreate(node: CreateExpr, context: ExecContext): Data | null {
-        if (node.type === null) {
-            return VoidData.void;
+    _evalCreate(node: CreateExpr | CallExpr | Call, context: ExecContext): Data | null {
+        if (node instanceof CreateExpr) {
+            if (node.type === null) {
+                return VoidData.void;
+            }
+
+            const typeName = node.type.getTypeName();
+
+            switch (typeName) {
+                // Constructor Built-in Functions
+                // Value Constructor Built-in Functions
+                case "bool":
+                case "i32":
+                case "u32":
+                case "f32":
+                case "f16":
+                    return this._callConstructorValue(node, context);
+                case "vec2":
+                case "vec3":
+                case "vec4":
+                case "vec2f":
+                case "vec3f":
+                case "vec4f":
+                case "vec2h":
+                case "vec3h":
+                case "vec4h":
+                case "vec2i":
+                case "vec3i":
+                case "vec4i":
+                case "vec2u":
+                case "vec3u":
+                case "vec4u":
+                case "vec2b":
+                case "vec3b":
+                case "vec4b":
+                    return this._callConstructorVec(node, context);
+                case "mat2x2":
+                case "mat2x2f":
+                case "mat2x2h":
+                case "mat2x3":
+                case "mat2x3f":
+                case "mat2x3h":
+                case "mat2x4":
+                case "mat2x4f":
+                case "mat2x4h":
+                case "mat3x2":
+                case "mat3x2f":
+                case "mat3x2h":
+                case "mat3x3":
+                case "mat3x3f":
+                case "mat3x3h":
+                case "mat3x4":
+                case "mat3x4f":
+                case "mat3x4h":
+                case "mat4x2":
+                case "mat4x2f":
+                case "mat4x2h":
+                case "mat4x3":
+                case "mat4x3f":
+                case "mat4x3h":
+                case "mat4x4":
+                case "mat4x4f":
+                case "mat4x4h":
+                    return this._callConstructorMatrix(node, context);
+            }
         }
 
-        const typeName = node.type.getTypeName();
-
-        switch (typeName) {
-            // Constructor Built-in Functions
-            // Value Constructor Built-in Functions
-            case "bool":
-            case "i32":
-            case "u32":
-            case "f32":
-            case "f16":
-                return this._callConstructorValue(node, context);
-            case "vec2":
-            case "vec3":
-            case "vec4":
-            case "vec2f":
-            case "vec3f":
-            case "vec4f":
-            case "vec2h":
-            case "vec3h":
-            case "vec4h":
-            case "vec2i":
-            case "vec3i":
-            case "vec4i":
-            case "vec2u":
-            case "vec3u":
-            case "vec4u":
-            case "vec2b":
-            case "vec3b":
-            case "vec4b":
-                return this._callConstructorVec(node, context);
-            case "mat2x2":
-            case "mat2x2f":
-            case "mat2x2h":
-            case "mat2x3":
-            case "mat2x3f":
-            case "mat2x3h":
-            case "mat2x4":
-            case "mat2x4f":
-            case "mat2x4h":
-            case "mat3x2":
-            case "mat3x2f":
-            case "mat3x2h":
-            case "mat3x3":
-            case "mat3x3f":
-            case "mat3x3h":
-            case "mat3x4":
-            case "mat3x4f":
-            case "mat3x4h":
-            case "mat4x2":
-            case "mat4x2f":
-            case "mat4x2h":
-            case "mat4x3":
-            case "mat4x3f":
-            case "mat4x3h":
-            case "mat4x4":
-            case "mat4x4f":
-            case "mat4x4h":
-                return this._callConstructorMatrix(node, context);
-        }
-
-        const typeInfo = this.getTypeInfo(node.type);
+        const typeName = (node instanceof CreateExpr) ? node.type.name : node.name;
+        const typeInfo = (node instanceof CreateExpr) ? this.getTypeInfo(node.type) : this.getTypeInfo(node.name);
         if (typeInfo === null) {
             console.error(`Unknown type ${typeName}. Line ${node.line}`);
             return null;
@@ -1332,7 +1343,11 @@ export class WgslExec extends ExecInterface {
             console.error(`Unknown type "${typeName}". Line ${node.line}`);
         }
 
-        return data.getSubData(this, node.postfix, context);
+        if (node instanceof CreateExpr) {
+            return data.getSubData(this, node.postfix, context);
+        }
+
+        return data;
     }
 
     _evalLiteral(node: LiteralExpr, context: ExecContext): Data | null {
@@ -1942,7 +1957,17 @@ export class WgslExec extends ExecInterface {
 
         const f = context.getFunction(node.name);
         if (!f) {
-            return this._callBuiltinFunction(node, subContext);
+            if (node.isBuiltin) {
+                return this._callBuiltinFunction(node, subContext);
+            }
+
+            const typeInfo = this.getTypeInfo(node.name);
+            if (typeInfo) {
+                return this._evalCreate(node, context);
+            }
+
+            console.error(`Unknown function "${node.name}". Line ${node.line}`);
+            return null;
         }
 
         for (let ai = 0; ai < f.node.args.length; ++ai) {

@@ -617,6 +617,20 @@ export class Reflect {
     return new AliasInfo(node.name, this.getTypeInfo(node.type!, null));
   }
 
+  getTypeInfoByName(name: string): TypeInfo | null {
+    for (const s of this.structs) {
+      if (s.name == name) {
+        return s;
+      }
+    }
+    for (const a of this.aliases) {
+      if (a.name == name) {
+        return a.type;
+      }
+    }
+    return null;
+  }
+
   getTypeInfo(
     type: Type,
     attributes: Attribute[] | null = null

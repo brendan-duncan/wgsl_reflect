@@ -3,6 +3,30 @@ import { WgslDebug } from "../../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Debug", async function () {
+    test("callexpr", function (test) {
+      const shader = `
+        let foo = photon();
+        fn photon() -> vec3f {
+          var ray = new_light_ray();
+          return ray.dir;
+        }
+        fn new_light_ray() -> Ray {
+          let center = vec3f(0.0, 0.0, 0.0);
+          let pos = center + vec3f(0.0, 0.1, 0.0);
+          var rc = vec3f(1.0, 2.0, 3.0);
+          var dir = rc.xzy;
+          dir.y = -dir.y;
+          return Ray(pos, dir);
+        }
+        struct Ray {
+          start : vec3f,
+          dir   : vec3f,
+        };`;
+      const dbg = new WgslDebug(shader);
+      while (dbg.stepNext());
+      test.equals(dbg.getVariableValue("foo"), [1, -3, 2]);
+    });
+
     test("switch default selector", function (test) {
         const shader = `
           const c = 2;

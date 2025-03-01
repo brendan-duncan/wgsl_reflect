@@ -41,7 +41,7 @@ export declare class WgslExec extends ExecInterface {
     _while(node: While, context: ExecContext): Data | null;
     _evalBitcast(node: BitcastExpr, context: ExecContext): Data | null;
     _evalConst(node: ConstExpr, context: ExecContext): Data | null;
-    _evalCreate(node: CreateExpr, context: ExecContext): Data | null;
+    _evalCreate(node: CreateExpr | CallExpr | Call, context: ExecContext): Data | null;
     _evalLiteral(node: LiteralExpr, context: ExecContext): Data | null;
     _evalVariable(node: VariableExpr, context: ExecContext): Data | null;
     static _priority: Map<string, number>;

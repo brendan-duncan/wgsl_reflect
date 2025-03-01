@@ -268,8 +268,8 @@ export class WgslDebug {
                         if (binding == b && set == s) {
                             if (entry.texture !== undefined && entry.descriptor !== undefined) {
                                 // Texture
-                                const textureData = new TextureData(entry.texture, this._exec.getTypeInfo(node.type), 0, entry.descriptor,
-                                                                        entry.texture.view ?? null);
+                                const textureData = new TextureData(entry.texture, this._exec.getTypeInfo(node.type), entry.descriptor,
+                                                                    entry.texture.view ?? null);
                                 v.value = textureData;
                             } else if (entry.uniform !== undefined) {
                                 // Uniform buffer

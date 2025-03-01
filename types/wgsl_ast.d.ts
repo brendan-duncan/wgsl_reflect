@@ -221,6 +221,7 @@ export declare class Call extends Statement {
     args: Expression[];
     constructor(name: string, args: Expression[]);
     get astNodeType(): string;
+    isBuiltin(): boolean;
     search(callback: (node: Node) => void): void;
 }
 /**
@@ -505,7 +506,6 @@ export declare class CallExpr extends Expression {
     constructor(name: string, args: Expression[] | null);
     get astNodeType(): string;
     setCachedReturnValue(value: any): void;
-    static builtinFunctionNames: Set<string>;
     get isBuiltin(): boolean;
     constEvaluate(context: WgslExec, type?: Type[]): Data;
     search(callback: (node: Node) => void): void;
@@ -764,10 +764,11 @@ export declare class TypedData extends Data {
     getSubData(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null;
     toString(): string;
 }
-export declare class TextureData extends TypedData {
+export declare class TextureData extends Data {
+    data: Array<ArrayBuffer>;
     descriptor: Object;
     view: Object | null;
-    constructor(data: ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array, typeInfo: TypeInfo, offset: number, descriptor: Object, view: Object | null);
+    constructor(data: Array<ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array>, typeInfo: TypeInfo, descriptor: Object, view: Object | null);
     clone(): Data;
     get width(): number;
     get height(): number;

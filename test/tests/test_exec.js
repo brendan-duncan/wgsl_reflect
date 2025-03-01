@@ -7,6 +7,30 @@ function _newWgslExec(code) {
 
 export async function run() {
     await group("WgslExec", async function () {
+        await test("callexpr", async function (test) {
+            const shader = `
+                fn photon() -> vec3f {
+                    var ray = new_light_ray();
+                    return ray.dir;
+                }
+                fn new_light_ray() -> Ray {
+                    let center = vec3f(0.0, 0.0, 0.0);
+                    let pos = center + vec3f(0.0, 0.1, 0.0);
+                    var rc = vec3f(1.0, 2.0, 3.0);
+                    var dir = rc.xzy;
+                    dir.y = -dir.y;
+                    return Ray(pos, dir);
+                }
+                struct Ray {
+                    start : vec3f,
+                    dir   : vec3f,
+                };
+                let foo = photon();`;
+            const wgsl = _newWgslExec(shader);
+            wgsl.execute();
+            test.equals(wgsl.getVariableValue("foo"), [1, -3, 2]);
+        });
+
         await test("atomic add struct", async function (test) {
             const shader = `
             struct Counter {
@@ -863,7 +887,7 @@ export async function run() {
 
             const bg = {0: {
                 0: chunks,
-                1: {texture: inTexture, descriptor},
+                1: {texture: [inTexture], descriptor},
             }};
 
             const _data = await webgpuDispatch(shader, "cs", 1, bg);
@@ -946,8 +970,8 @@ export async function run() {
 
                 const bg = {0: {
                     0: histogramBuffer,
-                    1: {texture: inTexture, descriptor},
-                    2: {texture: outTexture, descriptor: storageDescriptor}
+                    1: {texture: [inTexture], descriptor},
+                    2: {texture: [outTexture], descriptor: storageDescriptor}
                 }};
 
                 const _data = await webgpuDispatch(shader, "main", 1, bg);
@@ -1005,7 +1029,7 @@ export async function run() {
                 usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
             };
 
-            const bg = {0: {0: histogramBuffer, 1: {texture, descriptor}}};
+            const bg = {0: {0: histogramBuffer, 1: {texture: [texture], descriptor}}};
 
             const _data = await webgpuDispatch(shader, "main", 1, bg);
             const webgpuData = new Uint32Array(_data);

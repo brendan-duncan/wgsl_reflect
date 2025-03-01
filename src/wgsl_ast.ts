@@ -64,6 +64,155 @@ export class _BlockEnd extends Node {
   static instance = new _BlockEnd();
 }
 
+const BuiltinFunctionNames = new Set([
+  "all",
+  "all",
+  "any",
+  "select",
+  "arrayLength",
+  "abs",
+  "acos",
+  "acosh",
+  "asin",
+  "asinh",
+  "atan",
+  "atanh",
+  "atan2",
+  "ceil",
+  "clamp",
+  "cos",
+  "cosh",
+  "countLeadingZeros",
+  "countOneBits",
+  "countTrailingZeros",
+  "cross",
+  "degrees",
+  "determinant",
+  "distance",
+  "dot",
+  "dot4U8Packed",
+  "dot4I8Packed",
+  "exp",
+  "exp2",
+  "extractBits",
+  "faceForward",
+  "firstLeadingBit",
+  "firstTrailingBit",
+  "floor",
+  "fma",
+  "fract",
+  "frexp",
+  "insertBits",
+  "inverseSqrt",
+  "ldexp",
+  "length",
+  "log",
+  "log2",
+  "max",
+  "min",
+  "mix",
+  "modf",
+  "normalize",
+  "pow",
+  "quantizeToF16",
+  "radians",
+  "reflect",
+  "refract",
+  "reverseBits",
+  "round",
+  "saturate",
+  "sign",
+  "sin",
+  "sinh",
+  "smoothStep",
+  "sqrt",
+  "step",
+  "tan",
+  "tanh",
+  "transpose",
+  "trunc",
+  "dpdx",
+  "dpdxCoarse",
+  "dpdxFine",
+  "dpdy",
+  "dpdyCoarse",
+  "dpdyFine",
+  "fwidth",
+  "fwidthCoarse",
+  "fwidthFine",
+  "textureDimensions",
+  "textureGather",
+  "textureGatherCompare",
+  "textureLoad",
+  "textureNumLayers",
+  "textureNumLevels",
+  "textureNumSamples",
+  "textureSample",
+  "textureSampleBias",
+  "textureSampleCompare",
+  "textureSampleCompareLevel",
+  "textureSampleGrad",
+  "textureSampleLevel",
+  "textureSampleBaseClampToEdge",
+  "textureStore",
+  "atomicLoad",
+  "atomicStore",
+  "atomicAdd",
+  "atomicSub",
+  "atomicMax",
+  "atomicMin",
+  "atomicAnd",
+  "atomicOr",
+  "atomicXor",
+  "atomicExchange",
+  "atomicCompareExchangeWeak",
+  "pack4x8snorm",
+  "pack4x8unorm",
+  "pack4xI8",
+  "pack4xU8",
+  "pack4x8Clamp",
+  "pack4xU8Clamp",
+  "pack2x16snorm",
+  "pack2x16unorm",
+  "pack2x16float",
+  "unpack4x8snorm",
+  "unpack4x8unorm",
+  "unpack4xI8",
+  "unpack4xU8",
+  "unpack2x16snorm",
+  "unpack2x16unorm",
+  "unpack2x16float",
+  "storageBarrier",
+  "textureBarrier",
+  "workgroupBarrier",
+  "workgroupUniformLoad",
+  "subgroupAdd",
+  "subgroupExclusiveAdd",
+  "subgroupInclusiveAdd",
+  "subgroupAll",
+  "subgroupAnd",
+  "subgroupAny",
+  "subgroupBallot",
+  "subgroupBroadcast",
+  "subgroupBroadcastFirst",
+  "subgroupElect",
+  "subgroupMax",
+  "subgroupMin",
+  "subgroupMul",
+  "subgroupExclusiveMul",
+  "subgroupInclusiveMul",
+  "subgroupOr",
+  "subgroupShuffle",
+  "subgroupShuffleDown",
+  "subgroupShuffleUp",
+  "subgroupShuffleXor",
+  "subgroupXor",
+  "quadBroadcast",
+  "quadSwapDiagonal",
+  "quadSwapX",
+  "quadSwapY",
+]);
+
 /**
  * @class Statement
  * @extends Node
@@ -483,6 +632,10 @@ export class Call extends Statement {
 
   get astNodeType(): string {
     return "call";
+  }
+
+  isBuiltin(): boolean {
+    return BuiltinFunctionNames.has(this.name);
   }
 
   search(callback: (node: Node) => void): void {
@@ -1082,157 +1235,8 @@ export class CallExpr extends Expression {
     this.cachedReturnValue = value;
   }
 
-  static builtinFunctionNames = new Set([
-    "all",
-    "all",
-    "any",
-    "select",
-    "arrayLength",
-    "abs",
-    "acos",
-    "acosh",
-    "asin",
-    "asinh",
-    "atan",
-    "atanh",
-    "atan2",
-    "ceil",
-    "clamp",
-    "cos",
-    "cosh",
-    "countLeadingZeros",
-    "countOneBits",
-    "countTrailingZeros",
-    "cross",
-    "degrees",
-    "determinant",
-    "distance",
-    "dot",
-    "dot4U8Packed",
-    "dot4I8Packed",
-    "exp",
-    "exp2",
-    "extractBits",
-    "faceForward",
-    "firstLeadingBit",
-    "firstTrailingBit",
-    "floor",
-    "fma",
-    "fract",
-    "frexp",
-    "insertBits",
-    "inverseSqrt",
-    "ldexp",
-    "length",
-    "log",
-    "log2",
-    "max",
-    "min",
-    "mix",
-    "modf",
-    "normalize",
-    "pow",
-    "quantizeToF16",
-    "radians",
-    "reflect",
-    "refract",
-    "reverseBits",
-    "round",
-    "saturate",
-    "sign",
-    "sin",
-    "sinh",
-    "smoothStep",
-    "sqrt",
-    "step",
-    "tan",
-    "tanh",
-    "transpose",
-    "trunc",
-    "dpdx",
-    "dpdxCoarse",
-    "dpdxFine",
-    "dpdy",
-    "dpdyCoarse",
-    "dpdyFine",
-    "fwidth",
-    "fwidthCoarse",
-    "fwidthFine",
-    "textureDimensions",
-    "textureGather",
-    "textureGatherCompare",
-    "textureLoad",
-    "textureNumLayers",
-    "textureNumLevels",
-    "textureNumSamples",
-    "textureSample",
-    "textureSampleBias",
-    "textureSampleCompare",
-    "textureSampleCompareLevel",
-    "textureSampleGrad",
-    "textureSampleLevel",
-    "textureSampleBaseClampToEdge",
-    "textureStore",
-    "atomicLoad",
-    "atomicStore",
-    "atomicAdd",
-    "atomicSub",
-    "atomicMax",
-    "atomicMin",
-    "atomicAnd",
-    "atomicOr",
-    "atomicXor",
-    "atomicExchange",
-    "atomicCompareExchangeWeak",
-    "pack4x8snorm",
-    "pack4x8unorm",
-    "pack4xI8",
-    "pack4xU8",
-    "pack4x8Clamp",
-    "pack4xU8Clamp",
-    "pack2x16snorm",
-    "pack2x16unorm",
-    "pack2x16float",
-    "unpack4x8snorm",
-    "unpack4x8unorm",
-    "unpack4xI8",
-    "unpack4xU8",
-    "unpack2x16snorm",
-    "unpack2x16unorm",
-    "unpack2x16float",
-    "storageBarrier",
-    "textureBarrier",
-    "workgroupBarrier",
-    "workgroupUniformLoad",
-    "subgroupAdd",
-    "subgroupExclusiveAdd",
-    "subgroupInclusiveAdd",
-    "subgroupAll",
-    "subgroupAnd",
-    "subgroupAny",
-    "subgroupBallot",
-    "subgroupBroadcast",
-    "subgroupBroadcastFirst",
-    "subgroupElect",
-    "subgroupMax",
-    "subgroupMin",
-    "subgroupMul",
-    "subgroupExclusiveMul",
-    "subgroupInclusiveMul",
-    "subgroupOr",
-    "subgroupShuffle",
-    "subgroupShuffleDown",
-    "subgroupShuffleUp",
-    "subgroupShuffleXor",
-    "subgroupXor",
-    "quadBroadcast",
-    "quadSwapDiagonal",
-    "quadSwapX",
-    "quadSwapY",
-  ]);
-
   get isBuiltin(): boolean {
-    return CallExpr.builtinFunctionNames.has(this.name);
+    return BuiltinFunctionNames.has(this.name);
   }
 
   constEvaluate(context: WgslExec, type?: Type[]): Data {
@@ -2956,19 +2960,21 @@ export class TypedData extends Data {
   }
 }
 
-export class TextureData extends TypedData {
+export class TextureData extends Data {
+  data: Array<ArrayBuffer>;
   descriptor: Object;
   view: Object | null;
 
-  constructor(data: ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array,
-      typeInfo: TypeInfo, offset: number, descriptor: Object, view: Object | null) {
-      super(data, typeInfo, offset);
+  constructor(data: Array<ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array>,
+      typeInfo: TypeInfo, descriptor: Object, view: Object | null) {
+      super(typeInfo, null);
+      this.data = data;
       this.descriptor = descriptor;
       this.view = view;
   }
 
   clone(): Data {
-    return new TextureData(this.buffer, this.typeInfo, this.offset, this.descriptor, this.view);
+    return new TextureData(this.data, this.typeInfo, this.descriptor, this.view);
   }
 
   get width(): number {
@@ -3092,7 +3098,8 @@ export class TextureData extends TypedData {
     const texelByteSize = this.texelByteSize;
     const bytesPerRow = this.bytesPerRow;
     const height = this.height;
-    const imageData = new Uint8Array(this.buffer);
+    const buffer = this.data[mipLevel];
+    const imageData = new Uint8Array(buffer);
     return getTexturePixel(imageData, x, y, z, mipLevel, height, bytesPerRow, texelByteSize, this.format);
   }
 
@@ -3100,7 +3107,8 @@ export class TextureData extends TypedData {
     const texelByteSize = this.texelByteSize;
     const bytesPerRow = this.bytesPerRow;
     const height = this.height;
-    const imageData = new Uint8Array(this.buffer);
+    const buffer = this.data[mipLevel];
+    const imageData = new Uint8Array(buffer);
     setTexturePixel(imageData, x, y, z, mipLevel, height, bytesPerRow, texelByteSize, this.format, value);
   }
 }

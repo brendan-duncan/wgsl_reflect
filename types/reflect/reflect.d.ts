@@ -45,6 +45,7 @@ export declare class Reflect {
     _parseInt(s: string | string[]): number | string;
     _getAlias(name: string): TypeInfo | null;
     _getAliasInfo(node: Alias): AliasInfo;
+    getTypeInfoByName(name: string): TypeInfo | null;
     getTypeInfo(type: Type, attributes?: Attribute[] | null): TypeInfo;
     _updateTypeInfo(type: TypeInfo): void;
     _updateStructInfo(struct: StructInfo): void;

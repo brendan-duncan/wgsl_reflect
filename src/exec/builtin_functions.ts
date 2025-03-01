@@ -953,10 +953,6 @@ export class BuiltinFunctions {
         const textureArg = node.args[0];
         const uv = this.exec.evalExpression(node.args[1], context);
         const level = node.args.length > 2 ? (this.exec.evalExpression(node.args[2], context) as ScalarData).value : 0;
-        if (level > 0) {
-            console.error(`TODO: Mip levels. Line ${node.line}`);
-            return null;
-        }
 
         // TODO: non-vec2 UVs, for non-2D textures
         if (!(uv instanceof VectorData) || uv.data.length !== 2) {
