@@ -922,7 +922,7 @@ export class BuiltinFunctions {
 
                 if (dimension === "1d") {
                     return new ScalarData(textureSize[0], this.getTypeInfo("u32"));
-                } else if (dimension === "3d" || texture.depthOrArrayLayers > 1) {
+                } else if (dimension === "3d") {
                     return new VectorData(textureSize, this.getTypeInfo("vec3u"));
                 } else if (dimension === "2d") {
                     return new VectorData(textureSize.slice(0, 2), this.getTypeInfo("vec2u"));

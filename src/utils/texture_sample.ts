@@ -1,4 +1,4 @@
-import { float16ToFloat32, float10ToFloat32, float11ToFloat32 } from "./float.js";
+import { float16ToFloat32, float32ToFloat16, float10ToFloat32, float11ToFloat32 } from "./float.js";
 
 export function setTexturePixel(imageData: Uint8Array, x: number, y: number, z: number, mipLevel: number,
         height: number, bytesPerRow: number, texelByteSize: number, format: string, value: number[]): void {
@@ -393,28 +393,25 @@ function setPixelValue(imageData: Uint8Array, offset: number, format: string, nu
           offset++;
           break;
         case "16uint":
-          console.error("TODO: 16uint textures not supported for writing");
-          //value[i] = imageData[offset] | (imageData[offset + 1] << 8);
+          new Uint16Array(imageData.buffer, offset, 1)[0] = value[i];
           offset += 2;
           break;
         case "16sint":
-          console.error("TODO: 16sint textures not supported for writing");
-          //value[i] = (imageData[offset] | (imageData[offset + 1] << 8)) - 32768;
+          new Int16Array(imageData.buffer, offset, 1)[0] = value[i];
           offset += 2;
           break;
-        case "16float":
-          console.error("TODO: 16float textures not supported for writing");
-          //value[i] = float16ToFloat32(imageData[offset] | (imageData[offset + 1] << 8));
+        case "16float": {
+          const f16 = float32ToFloat16(value[i]);
+          new Uint16Array(imageData.buffer, offset, 1)[0] = f16;
           offset += 2;
           break;
+        }
         case "32uint":
-          console.error("TODO: 32uint textures not supported for writing");
-          //value[i] = imageData[offset] | (imageData[offset + 1] << 8) | (imageData[offset + 2] << 16) | (imageData[offset + 3] << 24);
+          new Uint32Array(imageData.buffer, offset, 1)[0] = value[i];
           offset += 4;
           break;
         case "32sint":
-          console.error("TODO: 32sint textures not supported for writing");
-          //value[i] = (imageData[offset] | (imageData[offset + 1] << 8) | (imageData[offset + 2] << 16) | (imageData[offset + 3] << 24)) | 0;
+          new Int32Array(imageData.buffer, offset, 1)[0] = value[i];
           offset += 4;
           break;
         case "32float":
