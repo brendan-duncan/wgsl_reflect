@@ -894,6 +894,8 @@ export class WgslDebug {
                 state.commands.push(new BreakCommand(statement.loopId, statement.condition, statement));
             } else if (statement instanceof AST.StaticAssert) {
                 state.commands.push(new StatementCommand(statement));
+            } else if (statement instanceof AST.Struct) {
+                // nothing to do
             } else {
                 console.error(`TODO: statement type ${statement.constructor.name}`);
             }

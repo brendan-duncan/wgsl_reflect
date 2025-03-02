@@ -7,6 +7,143 @@ function _newWgslExec(code) {
 
 export async function run() {
     await group("WgslExec", async function () {
+        await test("mat3x4 * mat4x3", async function (test) {
+            const shader = `
+                @group(0) @binding(0) var<storage, read_write> data: vec4f;
+                @compute @workgroup_size(1) fn main() {
+                    let m1 = mat3x4f(1.0, 0.0, 0.0,
+                                     0.0, 2.0, 0.0,
+                                     0.0, 0.0, 3.0,
+                                     0.0, 0.0, 0.0);
+                    let m2 = mat4x3f(3.0, 0.0, 0.0, 0.0,
+                                     0.0, 1.0, 0.0, 0.0,
+                                     0.0, 0.0, 2.0, 0.0);
+                    let m = m1 * m2;
+                    let v = vec4(vec3f(1.0, 1.0, 1.0), 1.0);
+                    data = v * m;
+                }`;
+            const dataBuffer = new Float32Array([0, 0, 0, 0]);
+            const bg = {0: {0: dataBuffer}};
+
+            const _data = await webgpuDispatch(shader, "main", 1, bg);
+            const webgpuData = new Float32Array(_data);
+            // Ensure we can dispatch a compute shader and get the expected results from the output buffer.
+            const wgsl = _newWgslExec(shader);
+            wgsl.dispatchWorkgroups("main", 1, bg);
+            test.equals(dataBuffer, webgpuData);
+        });
+
+        await test("mat3x2 * vec3", async function (test) {
+            const shader = `
+                @group(0) @binding(0) var<storage, read_write> data: vec2f;
+                @compute @workgroup_size(1) fn main() {
+                    let m = mat3x2f(1.0, 0.0, 0.0, 
+                                0.0, 2.0, 0.0, );
+                    let v = vec3f(1.0, 1.0, 1.0);
+                    data = m * v;
+                }`;
+            const dataBuffer = new Float32Array([0, 0]);
+            const bg = {0: {0: dataBuffer}};
+
+            const _data = await webgpuDispatch(shader, "main", 1, bg);
+            const webgpuData = new Float32Array(_data);
+            // Ensure we can dispatch a compute shader and get the expected results from the output buffer.
+            const wgsl = _newWgslExec(shader);
+            wgsl.dispatchWorkgroups("main", 1, bg);
+            test.equals(dataBuffer, webgpuData);
+        });
+
+        await test("vec3 * mat2x3", async function (test) {
+            const shader = `
+                @group(0) @binding(0) var<storage, read_write> data: vec3f;
+                @compute @workgroup_size(1) fn main() {
+                    let m = mat2x3f(1.0, 0.0, 0.0, 
+                                0.0, 2.0, 0.0, );
+                    let v = vec2f(1.0, 1.0);
+                    data = m * v;
+                }`;
+            const dataBuffer = new Float32Array([0, 0, 0]);
+            const bg = {0: {0: dataBuffer}};
+
+            const _data = await webgpuDispatch(shader, "main", 1, bg);
+            const webgpuData = new Float32Array(_data);
+            // Ensure we can dispatch a compute shader and get the expected results from the output buffer.
+            const wgsl = _newWgslExec(shader);
+            wgsl.dispatchWorkgroups("main", 1, bg);
+            test.equals(dataBuffer, webgpuData);
+        });
+
+        await test("mat4x4 * mat4x4", async function (test) {
+            const shader = `
+                @group(0) @binding(0) var<storage, read_write> data: vec4f;
+                @compute @workgroup_size(1) fn main() {
+                    let m1 = mat4x4f(1.0, 0.0, 0.0, 0.0,
+                                     0.0, 2.0, 0.0, 0.0,
+                                     0.0, 0.0, 3.0, 0.0,
+                                     0.0, 0.0, 0.0, 1.0);
+                    let m2 = mat4x4f(3.0, 0.0, 0.0, 0.0,
+                                     0.0, 1.0, 0.0, 0.0,
+                                     0.0, 0.0, 2.0, 0.0,
+                                     0.0, 0.0, 0.0, 1.0);
+                    let m = m1 * m2;
+                    let v = vec4(vec3f(1.0, 1.0, 1.0), 1.0);
+                    data = v * m;
+                }`;
+            const dataBuffer = new Float32Array([0, 0, 0, 0]);
+            const bg = {0: {0: dataBuffer}};
+
+            const _data = await webgpuDispatch(shader, "main", 1, bg);
+            const webgpuData = new Float32Array(_data);
+            // Ensure we can dispatch a compute shader and get the expected results from the output buffer.
+            const wgsl = _newWgslExec(shader);
+            wgsl.dispatchWorkgroups("main", 1, bg);
+            test.equals(dataBuffer, webgpuData);
+        });
+
+        await test("vec4 * mat4x4 ", async function (test) {
+            const shader = `
+                @group(0) @binding(0) var<storage, read_write> data: vec4f;
+                @compute @workgroup_size(1) fn main() {
+                    let m = mat4x4f(1.0, 0.0, 0.0, 0.0,
+                                0.0, 2.0, 0.0, 0.0,
+                                0.0, 0.0, 3.0, 0.0,
+                                0.0, 0.0, 0.0, 1.0);
+                    let v = vec4(vec3f(1.0, 1.0, 1.0), 1.0);
+                    data = v * m;
+                }`;
+            const dataBuffer = new Float32Array([0, 0, 0, 0]);
+            const bg = {0: {0: dataBuffer}};
+
+            const _data = await webgpuDispatch(shader, "main", 1, bg);
+            const webgpuData = new Float32Array(_data);
+            // Ensure we can dispatch a compute shader and get the expected results from the output buffer.
+            const wgsl = _newWgslExec(shader);
+            wgsl.dispatchWorkgroups("main", 1, bg);
+            test.equals(dataBuffer, webgpuData);
+        });
+
+        await test("mat4x4 * vec4", async function (test) {
+            const shader = `
+                @group(0) @binding(0) var<storage, read_write> data: vec4f;
+                @compute @workgroup_size(1) fn main() {
+                    let m = mat4x4f(1.0, 0.0, 0.0, 0.0,
+                                0.0, 2.0, 0.0, 0.0,
+                                0.0, 0.0, 3.0, 0.0,
+                                0.0, 0.0, 0.0, 1.0);
+                    let v = vec4(vec3f(1.0, 1.0, 1.0), 1.0);
+                    data = m * v;
+                }`;
+            const dataBuffer = new Float32Array([0, 0, 0, 0]);
+            const bg = {0: {0: dataBuffer}};
+
+            const _data = await webgpuDispatch(shader, "main", 1, bg);
+            const webgpuData = new Float32Array(_data);
+            // Ensure we can dispatch a compute shader and get the expected results from the output buffer.
+            const wgsl = _newWgslExec(shader);
+            wgsl.dispatchWorkgroups("main", 1, bg);
+            test.equals(dataBuffer, webgpuData);
+        });
+
         await test("callexpr", async function (test) {
             const shader = `
                 fn photon() -> vec3f {

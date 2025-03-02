@@ -10,6 +10,7 @@ import { ExecContext, FunctionRef } from "./exec/exec_context.js";
 import { ExecInterface } from "./exec/exec_interface.js";
 import { BuiltinFunctions } from "./exec/builtin_functions.js";
 import { isArray, castScalar, castVector } from "./utils/cast.js";
+import { matrixMultiply, matrixVectorMultiply, vectorMatrixMultiply, MatrixTypeSize, VectorTypeSize } from "./utils/matrix.js";
 
 export class WgslExec extends ExecInterface {
     ast: Node[];
@@ -1539,23 +1540,57 @@ export class WgslExec extends ExecInterface {
                 if (isArray(l) && isArray(r)) {
                     const la = l as number[];
                     const ra = r as number[];
-                    if (la.length !== ra.length) {
-                        console.error(`Vector length mismatch. Line ${node.line}.`);
-                        return null;
+
+                    if (_l instanceof MatrixData && _r instanceof MatrixData) {
+                        const result = matrixMultiply(la, _l.typeInfo, ra, _r.typeInfo);
+                        if (result === null) {
+                            console.error(`Matrix multiplication failed. Line ${node.line}.`);
+                            return null;
+                        }
+                        const colsB = MatrixTypeSize[_r.typeInfo.name][0];
+                        const rowsA = MatrixTypeSize[_l.typeInfo.name][1];
+                        const type = this.getTypeInfo(`mat${colsB}x${rowsA}f`);
+                        return new MatrixData(result, type);
+                    } else if (_l instanceof MatrixData && _r instanceof VectorData) {
+                        const result = matrixVectorMultiply(la, _l.typeInfo, ra, _r.typeInfo);
+                        if (result === null) {
+                            console.error(`Matrix vector multiplication failed. Line ${node.line}.`);
+                            return null;
+                        }
+                        return new VectorData(result, _r.typeInfo);
+                    } else if (_l instanceof VectorData && _r instanceof MatrixData) {
+                        const result = vectorMatrixMultiply(la, _l.typeInfo, ra, _r.typeInfo);
+                        if (result === null) {
+                            console.error(`Matrix vector multiplication failed. Line ${node.line}.`);
+                            return null;
+                        }
+                        return new VectorData(result, _l.typeInfo);
+                    } else {
+                        if (la.length !== ra.length) {
+                            console.error(`Vector length mismatch. Line ${node.line}.`);
+                            return null;
+                        }
+                        const result = la.map((x: number, i: number) => x * ra[i]);
+                        return new VectorData(result, _l.typeInfo);
                     }
-                    const result = la.map((x: number, i: number) => x * ra[i]);
-                    return new VectorData(result, _l.typeInfo);
                 } else if (isArray(l)) {
                     const la = l as number[];
                     const rn = r as number;
                     const result = la.map((x: number, i: number) => x * rn);
+                    if (_l instanceof MatrixData) {
+                        return new MatrixData(result, _l.typeInfo);
+                    }
                     return new VectorData(result, _l.typeInfo);
                 } else if (isArray(r)) {
                     const ln = l as number;
                     const ra = r as number[];
                     const result = ra.map((x: number, i: number) => ln * x);
+                    if (_r instanceof MatrixData) {
+                        return new MatrixData(result, _r.typeInfo);
+                    }
                     return new VectorData(result, _r.typeInfo);
                 }
+
                 const ln = l as number;
                 const rn = r as number;
                 const t = this._maxFormatTypeInfo([_l.typeInfo, _r.typeInfo]);
@@ -2322,19 +2357,11 @@ export class WgslExec extends ExecInterface {
         const typeInfo = this.getTypeInfo(node.type);
         const typeName = node.type.getTypeName();
 
-        const elementCounts = {
-            "vec2": 2, "vec2f": 2, "vec2i": 2, "vec2u": 2, "vec2b": 2, "vec2h": 2,
-            "vec3": 3, "vec3f": 3, "vec3i": 3, "vec3u": 3, "vec3b": 3, "vec3h": 3,
-            "vec4": 4, "vec4f": 4, "vec4i": 4, "vec4u": 4, "vec4b": 4, "vec4h": 4
-        };
-
-        const count = elementCounts[typeName];
+        const count = VectorTypeSize[typeName];
         if (count === undefined) {
             console.error(`Invalid vec constructor ${typeName}. Line ${node.line}`);
             return null;
         }
-
-        const isInt = typeName.endsWith("i") || typeName.endsWith("u");
 
         const values: number[] = [];
         if (node instanceof LiteralExpr) {
@@ -2354,16 +2381,10 @@ export class WgslExec extends ExecInterface {
                         const vd = argValue.data;
                         for (let i = 0; i < vd.length; ++i) {
                             let e = vd[i];
-                            if (isInt) {
-                                e = Math.floor(e);
-                            }
                             values.push(e);
                         }
                     } else if (argValue instanceof ScalarData) {
                         let v = argValue.value;
-                        if (isInt) {
-                            v = Math.floor(v);
-                        }
                         values.push(v);
                     }
                 }
@@ -2398,19 +2419,7 @@ export class WgslExec extends ExecInterface {
         const typeInfo = this.getTypeInfo(node.type);
         const typeName = node.type.getTypeName();
 
-        const elementCounts = {
-            "mat2x2": 4, "mat2x2f": 4, "mat2x2h": 4,
-            "mat2x3": 6, "mat2x3f": 6, "mat2x3h": 6,
-            "mat2x4": 8, "mat2x4f": 8, "mat2x4h": 8,
-            "mat3x2": 6, "mat3x2f": 6, "mat3x2h": 6,
-            "mat3x3": 9, "mat3x3f": 9, "mat3x3h": 9,
-            "mat3x4": 12, "mat3x4f": 12, "mat3x4h": 12,
-            "mat4x2": 8, "mat4x2f": 8, "mat4x2h": 8,
-            "mat4x3": 12, "mat4x3f": 12, "mat4x3h": 12,
-            "mat4x4": 16, "mat4x4f": 16, "mat4x4h": 16
-        };
-
-        const count = elementCounts[typeName];
+        const count = MatrixTypeSize[typeName];
         if (count === undefined) {
             console.error(`Invalid matrix constructor ${typeName}. Line ${node.line}`);
             return null;
@@ -2446,11 +2455,11 @@ export class WgslExec extends ExecInterface {
         }
 
         if (values.length === 0) {
-            const values = new Array(count).fill(0);
+            const values = new Array(count[2]).fill(0);
             return new MatrixData(values, typeInfo).getSubData(this, node.postfix, context);
         }
 
-        if (values.length !== count) {
+        if (values.length !== count[2]) {
             console.error(`Invalid matrix constructor. Line ${node.line}`);
             return null;
         }

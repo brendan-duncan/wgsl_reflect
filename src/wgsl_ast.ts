@@ -1942,7 +1942,7 @@ export class VectorData extends Data {
 
     let format = exec.getTypeInfo("f32");
     if (this.typeInfo instanceof TemplateInfo) {
-        format = this.typeInfo.format;
+        format = this.typeInfo.format || format;
     } else {
         const typeName = this.typeInfo.name;
         if (typeName === "vec2f" || typeName === "vec3f" || typeName === "vec4f") {
@@ -2042,7 +2042,7 @@ export class VectorData extends Data {
           }
         }
 
-        self = _getVectorData(exec, values, format!.name);
+        self = _getVectorData(exec, values, format.name);
       } else {
         console.error(`GetSubData: Unknown postfix`, postfix);
         return null;
