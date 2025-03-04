@@ -480,8 +480,9 @@ export class WgslParser {
     if (!this._match(TokenTypes.keywords.static_assert)) {
       return null;
     }
+    const line = this._currentLine;
     const expression = this._optional_paren_expression();
-    return this._updateNode(new AST.StaticAssert(expression));
+    return this._updateNode(new AST.StaticAssert(expression), line);
   }
 
   _while_statement(): AST.While | null {
@@ -511,8 +512,9 @@ export class WgslParser {
     if (!this._match(TokenTypes.keywords.continuing)) {
       return null;
     }
+    const line = this._currentLine;
     const block = this._compound_statement();
-    return this._updateNode(new AST.Continuing(block, loopId));
+    return this._updateNode(new AST.Continuing(block, loopId), line);
   }
 
   _for_statement(): AST.For | null {
@@ -577,6 +579,7 @@ export class WgslParser {
     // variable_decl equal short_circuit_or_expression
     // let (ident variable_ident_decl) equal short_circuit_or_expression
     // const (ident variable_ident_decl) equal short_circuit_or_expression
+    const line = this._currentLine;
     if (this._check(TokenTypes.keywords.var)) {
       const _var = this._variable_decl();
       if (_var === null) {
@@ -593,7 +596,7 @@ export class WgslParser {
         _var.storage,
         _var.access,
         value
-      ));
+      ), line);
     }
 
     if (this._match(TokenTypes.keywords.let)) {
@@ -611,7 +614,7 @@ export class WgslParser {
       }
       this._consume(TokenTypes.tokens.equal, "Expected '=' for let.");
       const value = this._short_circuit_or_expression();
-      return this._updateNode(new AST.Let(name, type, null, null, value));
+      return this._updateNode(new AST.Let(name, type, null, null, value), line);
     }
 
     if (this._match(TokenTypes.keywords.const)) {
@@ -632,7 +635,7 @@ export class WgslParser {
       if (type === null && value instanceof AST.LiteralExpr) {
         type = value.type;
       }
-      return this._updateNode(new AST.Const(name, type, null, null, value));
+      return this._updateNode(new AST.Const(name, type, null, null, value), line);
     }
 
     return null;
@@ -660,13 +663,13 @@ export class WgslParser {
       token.type === TokenTypes.tokens.plus_plus
         ? AST.IncrementOperator.increment
         : AST.IncrementOperator.decrement,
-      _var
-    ));
+      _var));
   }
 
   _assignment_statement(): AST.Assign | null {
     // (unary_expression underscore) equal short_circuit_or_expression
     let _var: AST.Expression | null = null;
+    const line = this._currentLine;
 
     if (this._check(TokenTypes.tokens.brace_right)) {
       return null;
@@ -683,16 +686,14 @@ export class WgslParser {
 
     const type = this._consume(
       TokenTypes.assignment_operators,
-      "Expected assignment operator."
-    );
+      "Expected assignment operator.");
 
     const value = this._short_circuit_or_expression();
 
     return this._updateNode(new AST.Assign(
       AST.AssignOperator.parse(type.lexeme),
       _var as AST.Expression,
-      value
-    ));
+      value), line);
   }
 
   _func_call_statement(): AST.Call | null {
@@ -700,6 +701,8 @@ export class WgslParser {
     if (!this._check(TokenTypes.tokens.ident)) {
       return null;
     }
+
+    const line = this._currentLine;
 
     const savedPos = this._current;
     const name = this._consume(
@@ -713,7 +716,7 @@ export class WgslParser {
       return null;
     }
 
-    return this._updateNode(new AST.Call(name.lexeme, args));
+    return this._updateNode(new AST.Call(name.lexeme, args), line);
   }
 
   _loop_statement(): AST.Loop | null {
@@ -814,17 +817,11 @@ export class WgslParser {
           attributes = this._attribute();
         }
 
-        this._consume(
-          TokenTypes.tokens.brace_left,
-          "Exected '{' for switch case."
-        );
+        this._consume(TokenTypes.tokens.brace_left, "Exected '{' for switch case.");
 
         const body = this._case_body();
 
-        this._consume(
-          TokenTypes.tokens.brace_right,
-          "Exected '}' for switch case."
-        );
+        this._consume(TokenTypes.tokens.brace_right, "Exected '}' for switch case.");
 
         cases.push(this._updateNode(new AST.Case(selectors, body)));
       }
@@ -840,17 +837,11 @@ export class WgslParser {
           attributes = this._attribute();
         }
 
-        this._consume(
-          TokenTypes.tokens.brace_left,
-          "Exected '{' for switch default."
-        );
+        this._consume(TokenTypes.tokens.brace_left, "Exected '{' for switch default.");
 
         const body = this._case_body();
 
-        this._consume(
-          TokenTypes.tokens.brace_right,
-          "Exected '}' for switch default."
-        );
+        this._consume(TokenTypes.tokens.brace_right, "Exected '}' for switch default.");
 
         cases.push(this._updateNode(new AST.Default(body)));
       }
@@ -1427,30 +1418,18 @@ export class WgslParser {
 
     const startLine = this._currentLine;
 
-    const name = this._consume(
-      TokenTypes.tokens.ident,
-      "Expected name for struct."
-    ).toString();
+    const name = this._consume(TokenTypes.tokens.ident, "Expected name for struct.").toString();
 
     // struct_body_decl: brace_left (struct_member comma)* struct_member comma? brace_right
-    this._consume(
-      TokenTypes.tokens.brace_left,
-      "Expected '{' for struct body."
-    );
+    this._consume(TokenTypes.tokens.brace_left, "Expected '{' for struct body.");
     const members: AST.Member[] = [];
     while (!this._check(TokenTypes.tokens.brace_right)) {
       // struct_member: attribute* variable_ident_decl
       const memberAttrs = this._attribute();
 
-      const memberName = this._consume(
-        TokenTypes.tokens.name,
-        "Expected variable name."
-      ).toString();
+      const memberName = this._consume(TokenTypes.tokens.name, "Expected variable name.").toString();
 
-      this._consume(
-        TokenTypes.tokens.colon,
-        "Expected ':' for struct member type."
-      );
+      this._consume(TokenTypes.tokens.colon, "Expected ':' for struct member type.");
 
       const typeAttrs = this._attribute();
       const memberType = this._type_decl();
@@ -1459,10 +1438,7 @@ export class WgslParser {
       }
 
       if (!this._check(TokenTypes.tokens.brace_right)) {
-        this._consume(
-          TokenTypes.tokens.comma,
-          "Expected ',' for struct member."
-        );
+        this._consume(TokenTypes.tokens.comma, "Expected ',' for struct member.");
       } else {
         this._match(TokenTypes.tokens.comma); // trailing comma optional.
       }
@@ -1470,10 +1446,7 @@ export class WgslParser {
       members.push(this._updateNode(new AST.Member(memberName, memberType, memberAttrs)));
     }
 
-    this._consume(
-      TokenTypes.tokens.brace_right,
-      "Expected '}' after struct body."
-    );
+    this._consume(TokenTypes.tokens.brace_right, "Expected '}' after struct body.");
 
     const endLine = this._currentLine;
 
@@ -1530,6 +1503,8 @@ export class WgslParser {
     if (!this._match(TokenTypes.keywords.const)) {
       return null;
     }
+
+    const line = this._currentLine;
 
     const name = this._consume(
       TokenTypes.tokens.name,
@@ -1598,7 +1573,7 @@ export class WgslParser {
       }
     }
 
-    const c = this._updateNode(new AST.Const(name.toString(), type, "", "", value));
+    const c = this._updateNode(new AST.Const(name.toString(), type, "", "", value), line);
     this._context.constants.set(c.name, c);
     return c;
   }
@@ -1608,6 +1583,8 @@ export class WgslParser {
     if (!this._match(TokenTypes.keywords.let)) {
       return null;
     }
+
+    const line = this._currentLine;
 
     const name = this._consume(
       TokenTypes.tokens.name,
@@ -1646,7 +1623,7 @@ export class WgslParser {
         this._validateTypeRange(value.scalarValue, type);
       }
     }
-    return this._updateNode(new AST.Let(name.toString(), type, "", "", value));
+    return this._updateNode(new AST.Let(name.toString(), type, "", "", value), line);
   }
 
   _const_expression(): AST.Expression {
@@ -1660,6 +1637,8 @@ export class WgslParser {
     if (!this._match(TokenTypes.keywords.var)) {
       return null;
     }
+
+    const line = this._currentLine;
 
     // variable_qualifier: less_than storage_class (comma access_mode)? greater_than
     let storage: string = "";
@@ -1691,7 +1670,7 @@ export class WgslParser {
       }
     }
 
-    return this._updateNode(new AST.Var(name.toString(), type, storage, access, null));
+    return this._updateNode(new AST.Var(name.toString(), type, storage, access, null), line);
   }
 
   _override_decl(): AST.Override | null {
