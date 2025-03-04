@@ -3,7 +3,80 @@ import { WgslParser } from "../../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Parser", async function () {
-    await test("switch default selector", function (test) {
+    await test("valid identifiers", async function (test) {
+      const parser = new WgslParser();
+      const t = parser.parse(`const Δέλτα: i32 = 5;
+        var réflexion: i32;
+        let Кызыл: i32;
+        var 𐰓𐰏𐰇: i32;
+        var 朝焼け: i32;
+        var سلام: i32;
+        var 검정: i32;
+        var שָׁלוֹם: i32;
+        var गुलाबी: i32;
+        var փիրուզ: i32;
+        var foo: i32;
+        var Foo: i32;
+        var FOO: i32;
+        var _0: i32;
+        var _foo0: i32;
+        var _0foo: i32;
+        var foo__0: i32;
+        // Builtin type identifiers:
+        var array: i32;
+        var atomic: i32;
+        var bool: i32;
+        var bf16: i32;
+        var bitcast: i32;
+        var f32: i32;
+        var f16: i32;
+        var f64: i32;
+        var i32: i32;
+        var i16: i32;
+        var i64: i32;
+        var i8: i32;
+        var mat2x2: i32;
+        var mat2x3: i32;
+        var mat2x4: i32;
+        var mat3x2: i32;
+        var mat3x3: i32;
+        var mat3x4: i32;
+        var mat4x2: i32;
+        var mat4x3: i32;
+        var mat4x4: i32;
+        var ptr: i32;
+        var quat: i32;
+        var sampler: i32;
+        var sampler_comparison: i32;
+        var signed: i32;
+        var texture_1d: i32;
+        var texture_2d: i32;
+        var texture_2d_array: i32;
+        var texture_3d: i32;
+        var texture_cube: i32;
+        var texture_cube_array: i32;
+        var texture_multisampled_2d: i32;
+        var texture_storage_1d: i32;
+        var texture_storage_2d: i32;
+        var texture_storage_2d_array: i32;
+        var texture_storage_3d: i32;
+        var texture_depth_2d: i32;
+        var texture_depth_2d_array: i32;
+        var texture_depth_cube: i32;
+        var texture_depth_cube_array: i32;
+        var texture_depth_multisampled_2d: i32;
+        var u32: i32;
+        var u16: i32;
+        var u64: i32;
+        var u8: i32;
+        var unsigned: i32;
+        var vec2: i32;
+        var vec3: i32;
+        var vec4: i32;`);
+      test.equals(t.length, 67);
+    });
+
+    await test("switch default selector", async function (test) {
       const shader = `
         const c = 2;
         fn foo(x: i32) -> i32 {
@@ -28,21 +101,21 @@ export async function run() {
         test.equals(t.length, 4);
     });
 
-    await test("vec4f", function (test) {
+    await test("vec4f", async function (test) {
       const shader = `const bitShift:vec4f = vec4f(1.0, 1.0/256.0, 1.0/(256.0*256.0), 1.0/(256.0*256.0*256.0));`
       const parser = new WgslParser();
       const t = parser.parse(shader);
       test.equals(t.length, 1);
     });
 
-    await test("override reserved name", function (test) {
+    await test("override reserved name", async function (test) {
       const shader = `override read = 123; @compute @workgroup_size(read) fn cs() { }`
       const parser = new WgslParser();
       const t = parser.parse(shader);
       test.equals(t.length, 2);
     });
 
-    await test("const", function (test) {
+    await test("const", async function (test) {
       const shader = `
       const a = 4; // i32 -- 4
       const b : i32 = 4; // i32 -- 4
@@ -79,14 +152,14 @@ export async function run() {
       test.equals(t[10].type?.name, "mat2x3", "k.type");
     });
 
-    await test("diagnostic", function (test) {
+    await test("diagnostic", async function (test) {
       const shader = `diagnostic(off, chromium.unreachable_code);`;
       const parser = new WgslParser();
       const t = parser.parse(shader);
       test.equals(t.length, 1);
     });
 
-    await test("vec2 var", function (test) {
+    await test("vec2 var", async function (test) {
       const shader = `var a = vec2<f32>(1.0, 2.0);`;
       const parser = new WgslParser();
       const t = parser.parse(shader);
@@ -94,7 +167,7 @@ export async function run() {
       test.notNull(t[0].value);
     });
 
-    await test("type inference", function (test) {
+    await test("type inference", async function (test) {
       const shader = `
 var u32_1 = 1u; // u32 - 0
 var i32_1 = 1i; // i32 - 1
@@ -145,7 +218,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
       //test.equals(t[8].type.name, "i32");
     });
 
-    await test("const2", function (test) {
+    await test("const2", async function (test) {
       const shader = `const FOO = radians(90);
       const BAR = sin(FOO);
       const NUM_COLORS = u32(BAR + 3); // result 4
@@ -156,20 +229,20 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
       test.closeTo(t[0].value.value.value, 1.5707963705062866);
     });
 
-    await test("override", function (test) {
+    await test("override", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse("const AP_DISTANCE_PER_SLICE = 4.0; override AP_INV_DISTANCE_PER_SLICE = 1.0 / AP_DISTANCE_PER_SLICE;");
       test.equals(t.length, 2);
       //const v = t[1].evaluate(parser._context);
     });
 
-    await test("bar--;", function (test) {
+    await test("bar--;", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse("fn foo() { bar--; }");
       test.equals(t[0].body.length, 1);
     });
 
-    await test(">=", function(test) {
+    await test(">=", async function(test) {
       const parser = new WgslParser();
       const t = parser.parse(`fn foo() {
         var cEdgeBool : vec3<bool> = c3 >= vec3<f32>(1.0);
@@ -177,13 +250,13 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
       test.equals(t.length, 1);
     });
 
-    await test("requires", function(test) {
+    await test("requires", async function(test) {
       const parser = new WgslParser();
       const t = parser.parse(`requires readonly_and_readwrite_storage_textures;`);
       test.equals(t.length, 1);
     });
 
-    await test("diagnostic if", function () {
+    await test("diagnostic if", async function () {
       const parser = new WgslParser();
       const t = parser.parse(`fn helper() -> vec4<f32> {
         if (d < 0.5) @diagnostic(off,derivative_uniformity) {
@@ -193,7 +266,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
       }`);
     });
 
-    await test("diagnostic block", function () {
+    await test("diagnostic block", async function () {
       const parser = new WgslParser();
       const t = parser.parse(`fn helper() -> vec4<f32> {
         // The derivative_uniformity diagnostic is set to 'warning' severity.
@@ -203,26 +276,26 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
       }`);
     });
 
-    await test("_", function (test) {
+    await test("_", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse("fn foo(_point : vec3<f32>) {}");
       test.equals(t.length, 1);
     });
 
-    await test("empty", function (test) {
+    await test("empty", async function (test) {
       const parser = new WgslParser();
       test.equals(parser.parse().length, 0);
       test.equals(parser.parse("").length, 0);
       test.equals(parser.parse([]).length, 0);
     });
 
-    await test(";;;;", function (test) {
+    await test(";;;;", async function (test) {
       const parser = new WgslParser();
       test.equals(parser.parse(";;;;").length, 0);
     });
 
     // enable:
-    await test("enable foo;", function (test) {
+    await test("enable foo;", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse("enable foo;");
       test.validateObject(t, [
@@ -234,7 +307,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
     });
 
     // enable:
-    await test("diagnostic", function (test) {
+    await test("diagnostic", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse("diagnostic(off, derivative_uniformity);");
       test.validateObject(t, [
@@ -247,7 +320,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
     });
 
     // alias:
-    await test("alias", function (test) {
+    await test("alias", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse("alias foo = i32;");
       test.validateObject(t, [
@@ -259,7 +332,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
       ]);
     });
 
-    await test("alias foo = vec3<f32>;", function (test) {
+    await test("alias foo = vec3<f32>;", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse("alias foo = vec3<f32>;");
       test.validateObject(t, [
@@ -276,7 +349,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
       ]);
     });
 
-    await test("alias foo = array<f32, 5>;", function (test) {
+    await test("alias foo = array<f32, 5>;", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse("alias foo = array<f32, 5>;");
       test.validateObject(t, [
@@ -294,32 +367,32 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
       ]);
     });
 
-    await test("alias foo = @stride(16) array<vec4<f32>>;", function (test) {
+    await test("alias foo = @stride(16) array<vec4<f32>>;", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse("alias foo = @stride(16) array<vec4<f32>>;");
       test.equals(t.length, 1);
     });
 
     // var
-    await test("var<private> decibels: f32;", function (test) {
+    await test("var<private> decibels: f32;", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse("var<private> decibels: f32;");
       test.equals(t.length, 1);
     });
 
-    await test("var<workgroup> worklist: array<i32,10>;", function (test) {
+    await test("var<workgroup> worklist: array<i32,10>;", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse("var<workgroup> worklist: array<i32,10>;");
       test.equals(t.length, 1);
     });
 
-    await test("@group(0) @binding(2) var<uniform> param: Params;", function (test) {
+    await test("@group(0) @binding(2) var<uniform> param: Params;", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse("@group(0) @binding(2) var<uniform> param: Params;");
       test.equals(t.length, 1);
     });
 
-    await test("@group(0) binding(0) var<storage,read_write> pbuf: PositionsBuffer;", function (test) {
+    await test("@group(0) binding(0) var<storage,read_write> pbuf: PositionsBuffer;", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse(
         "@group(0) @binding(0) var<storage,read_write> pbuf: PositionsBuffer;"
@@ -343,7 +416,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
     });
 
     // let
-    await test("let golden: f32 = 1.61803398875;", function (test) {
+    await test("let golden: f32 = 1.61803398875;", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse("let golden: f32 = 1.61803398875;");
       test.validateObject(t, [
@@ -358,7 +431,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
       ]);
     });
 
-    await test("let e2 = vec3<i32>(0,1,0);", function (test) {
+    await test("let e2 = vec3<i32>(0,1,0);", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse("let e2 = vec3<i32>(0,1,0);");
       test.validateObject(t, [
@@ -380,7 +453,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
 
     // struct
 
-    await test("struct", function (test) {
+    await test("struct", async function (test) {
       const parser = new WgslParser();
       const code = `
   struct S {
@@ -393,7 +466,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
     });
 
     // let
-    await test("let x : i32 = 42;", function (test) {
+    await test("let x : i32 = 42;", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse("let x : i32 = 42;");
       test.validateObject(t, [
@@ -405,13 +478,13 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
     });
 
     // function
-    await test("fn test() { let x : i32 = 42; }", function (test) {
+    await test("fn test() { let x : i32 = 42; }", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse("fn test() { let x : i32 = 42; }");
       test.equals(t.length, 1);
     });
 
-    await test("@vertex fn vert_main() -> @builtin(position) vec4<f32> {}", function (test) {
+    await test("@vertex fn vert_main() -> @builtin(position) vec4<f32> {}", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse(
         "@vertex fn vert_main() -> @builtin(position) vec4<f32> {}"
@@ -419,7 +492,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
       test.equals(t.length, 1);
     });
 
-    await test("var W_out_origX0X : texture_storage_2d<rgba16float, write>;", function (test) {
+    await test("var W_out_origX0X : texture_storage_2d<rgba16float, write>;", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse(
         "var W_out_origX0X : texture_storage_2d<rgba16float, write>;"
@@ -427,19 +500,19 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
       test.equals(t.length, 1);
     });
 
-    await test("if (foo) { }", function (test) {
+    await test("if (foo) { }", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse("fn test() { if (foo) { } }");
       test.equals(t.length, 1);
     });
 
-    await test("if foo { }", function (test) {
+    await test("if foo { }", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse("fn test() { if foo { } }");
       test.equals(t.length, 1);
     });
 
-    await test("switch foo { case 0: {} default: {} }", function (test) {
+    await test("switch foo { case 0: {} default: {} }", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse(
         "fn test() { switch foo { case 0: {} default: {} } }"
@@ -447,19 +520,19 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
       test.equals(t.length, 1);
     });
 
-    await test("switch foo { }", function (test) {
+    await test("switch foo { }", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse("fn test() { switch foo { default: { } } }");
       test.equals(t.length, 1);
     });
 
-    await test("trailing_comma", function (test) {
+    await test("trailing_comma", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse("fn foo (a:i32,) {}");
       test.equals(t.length, 1);
     });
 
-    await test("operators", function (test) {
+    await test("operators", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse(`fn foo() {
               var b = 1;
@@ -478,7 +551,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
       test.equals(t[0].body.length, 12);
     });
 
-    await test("static_assert", function (test) {
+    await test("static_assert", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse(`fn foo() {
               const x = 1;
@@ -488,7 +561,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
           }`);
     });
 
-    await test("for incrementer", function (test) {
+    await test("for incrementer", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse(`fn foo() {
               for (var i = 0; i < 10; i++) {
@@ -511,7 +584,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
       test.equals(t[0].body[3].increment.astNodeType, "call");
     });
 
-    await test("inferred type arrays", function (test) {
+    await test("inferred type arrays", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse(`
         @vertex fn vs(@builtin(vertex_index) vertexIndex : u32) -> @builtin(position) vec4f {
@@ -527,7 +600,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
       test.equals(t[0].body.length, 2);
     });
 
-    await test("if (foo < 0.33333) { } else if foo < 0.66667 {} else {}", function (test) {
+    await test("if (foo < 0.33333) { } else if foo < 0.66667 {} else {}", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse(
         "fn test() { if (foo < 0.33333) { } else if foo < 0.66667 {} else {} }"
@@ -542,7 +615,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
       test.equals(t1[0].body[0].elseif.length, 2);
     });
 
-    await test("loop", function (test) {
+    await test("loop", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse(`fn test() {
           var i: i32 = 0;
@@ -559,7 +632,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
       test.equals(t[0].body[1].body[3].astNodeType, "continuing");
     });
 
-    await test("module scope value constructor", function (test) {
+    await test("module scope value constructor", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse(`const v2 = vec2f(0.0f, 0.0f);
         const v3 = vec3f(0.0f, 0.0f, 0.0f);
@@ -595,7 +668,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
       //console.log(t);
     });
 
-    await test("const switch", function (test) {
+    await test("const switch", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse(`alias material_type = u32;
         const MATERIAL_TYPE_LAMBERTIAN : material_type = 0;
@@ -609,7 +682,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
       //console.log(t);
     });
 
-    await test("storage texture", function (test) {
+    await test("storage texture", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse(
         `var<storage> tex: texture_storage_2d<rgba8unorm, read_write>;`
@@ -620,7 +693,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
       test.equals(t[0].type.access, "read_write");
     });
 
-    await test("post const array count", function (test) {
+    await test("post const array count", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse(`alias Arr = array<f32, SIZE>;
         const SIZE = 3u + FOO;
@@ -646,7 +719,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
         ]);
     });
 
-    await test("create vs call [1]", function (test) {
+    await test("create vs call [1]", async function (test) {
       const shader = `let a = vec2f(1.0, 2.0);
       let b = vec2<f32>(1.0, 2.0);`;
       const parser = new WgslParser();

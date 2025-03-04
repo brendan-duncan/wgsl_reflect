@@ -301,6 +301,7 @@ export declare class WgslScanner {
     _match(lexeme: string, rule: RegExp): boolean;
     _isAtEnd(): boolean;
     _isAlpha(c: string): boolean;
+    _isNumeric(c: string): boolean;
     _isAlphaNumeric(c: string): boolean;
     _isWhitespace(c: string): boolean;
     _advance(amount?: number): string;

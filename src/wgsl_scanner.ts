@@ -283,7 +283,8 @@ export class TokenTypes {
       TokenClass.token,
       /0x[0-9a-fA-F]+u|0u|[1-9][0-9]*u/
     ),
-    name: new TokenType("name", TokenClass.token, /[_a-zA-Z][0-9a-zA-Z_]*/),
+    name: new TokenType("name", TokenClass.token,  /([_\p{XID_Start}][\p{XID_Continue}]+)|([\p{XID_Start}])/u),
+    //name: new TokenType("name", TokenClass.token, /[_a-zA-Z][0-9a-zA-Z_]*/),
     ident: new TokenType("ident", TokenClass.token, /[_a-zA-Z][0-9a-zA-Z_]*/),
     and: new TokenType("and", TokenClass.token, "&"),
     and_and: new TokenType("and_and", TokenClass.token, "&&"),
@@ -851,11 +852,20 @@ export class WgslScanner {
   }
 
   _isAlpha(c: string): boolean {
-    return (c >= "a" && c <= "z") || (c >= "A" && c <= "Z");
+    // To support UTF-8 characters, just allow anything other than whitespace, numbers, or operators
+    return !this._isNumeric(c) && !this._isWhitespace(c) && c !== "_" && c !== "." && c !== "(" && c !== ")" &&
+      c !== "[" && c !== "]" && c !== "{" && c !== "}" && c !== "," && c !== ";" && c !== ":" && c !== "=" &&
+      c !== "!" && c !== "<" && c !== ">" && c !== "+" && c !== "-" && c !== "*" && c !== "/" && c !== "%" &&
+      c !== "&" && c !== "|" && c !== "^" && c !== "~" && c !== "@" && c !== "#" && c !== "?" && c !== "'" &&
+      c !== "`" && c !== "\"" && c !== "\\" && c !== "\n" && c !== "\r" && c !== "\t" && c !== "\0";
+  }
+
+  _isNumeric(c: string): boolean {
+    return c >= "0" && c <= "9";
   }
 
   _isAlphaNumeric(c: string): boolean {
-    return (c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || c == "_" || (c >= "0" && c <= "9");
+    return this._isAlpha(c) || this._isNumeric(c) || c === "_";
   }
 
   _isWhitespace(c: string): boolean {
