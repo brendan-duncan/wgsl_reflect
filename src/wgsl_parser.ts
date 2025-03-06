@@ -9,7 +9,7 @@ import { ParseContext } from "./ast/parse_context.js";
 export class WgslParser {
   _tokens: Token[] = [];
   _current: number = 0;
-  _currentLine: number = 0;
+  _currentLine: number = 1;
   _deferArrayCountEval: Object[] = [];
   _currentLoop: AST.Statement[] = [];
   _context = new ParseContext();
@@ -424,13 +424,7 @@ export class WgslParser {
     let result: AST.Statement | null = null;
     if (this._check(TokenTypes.keywords.return)) {
       result = this._return_statement();
-    } else if (
-      this._check([
-        TokenTypes.keywords.var,
-        TokenTypes.keywords.let,
-        TokenTypes.keywords.const,
-      ])
-    ) {
+    } else if (this._check([TokenTypes.keywords.var, TokenTypes.keywords.let, TokenTypes.keywords.const])) {
       result = this._variable_statement();
     } else if (this._match(TokenTypes.keywords.discard)) {
       result = this._updateNode(new AST.Discard());
@@ -579,7 +573,6 @@ export class WgslParser {
     // variable_decl equal short_circuit_or_expression
     // let (ident variable_ident_decl) equal short_circuit_or_expression
     // const (ident variable_ident_decl) equal short_circuit_or_expression
-    const line = this._currentLine;
     if (this._check(TokenTypes.keywords.var)) {
       const _var = this._variable_decl();
       if (_var === null) {
@@ -596,10 +589,11 @@ export class WgslParser {
         _var.storage,
         _var.access,
         value
-      ), line);
+      ), _var.line);
     }
 
     if (this._match(TokenTypes.keywords.let)) {
+      const line = this._currentLine;
       const name = this._consume(
         TokenTypes.tokens.name,
         "Expected name for let."
@@ -618,6 +612,7 @@ export class WgslParser {
     }
 
     if (this._match(TokenTypes.keywords.const)) {
+      const line = this._currentLine;
       const name = this._consume(
         TokenTypes.tokens.name,
         "Expected name for const."
@@ -936,10 +931,8 @@ export class WgslParser {
   }
 
   _match_elseif(): boolean {
-    if (
-      this._tokens[this._current].type === TokenTypes.keywords.else &&
-      this._tokens[this._current + 1].type === TokenTypes.keywords.if
-    ) {
+    if (this._tokens[this._current].type === TokenTypes.keywords.else &&
+      this._tokens[this._current + 1].type === TokenTypes.keywords.if) {
       this._advance();
       this._advance();
 
@@ -1048,9 +1041,7 @@ export class WgslParser {
     // relational_expression equal_equal relational_expression
     // relational_expression not_equal relational_expression
     const expr = this._relational_expression();
-    if (
-      this._match([TokenTypes.tokens.equal_equal, TokenTypes.tokens.not_equal])
-    ) {
+    if (this._match([TokenTypes.tokens.equal_equal, TokenTypes.tokens.not_equal])) {
       return this._updateNode(new AST.BinaryOperator(
         this._previous().toString(),
         expr,
@@ -1067,14 +1058,12 @@ export class WgslParser {
     // relational_expression less_than_equal shift_expression
     // relational_expression greater_than_equal shift_expression
     let expr = this._shift_expression();
-    while (
-      this._match([
+    while (this._match([
         TokenTypes.tokens.less_than,
         TokenTypes.tokens.greater_than,
         TokenTypes.tokens.less_than_equal,
         TokenTypes.tokens.greater_than_equal,
-      ])
-    ) {
+      ])) {
       expr = this._updateNode(new AST.BinaryOperator(
         this._previous().toString(),
         expr,
@@ -1089,9 +1078,7 @@ export class WgslParser {
     // shift_expression shift_left additive_expression
     // shift_expression shift_right additive_expression
     let expr = this._additive_expression();
-    while (
-      this._match([TokenTypes.tokens.shift_left, TokenTypes.tokens.shift_right])
-    ) {
+    while (this._match([TokenTypes.tokens.shift_left, TokenTypes.tokens.shift_right])) {
       expr = this._updateNode(new AST.BinaryOperator(
         this._previous().toString(),
         expr,
@@ -1122,13 +1109,11 @@ export class WgslParser {
     // multiplicative_expression forward_slash unary_expression
     // multiplicative_expression modulo unary_expression
     let expr = this._unary_expression();
-    while (
-      this._match([
+    while (this._match([
         TokenTypes.tokens.star,
         TokenTypes.tokens.forward_slash,
         TokenTypes.tokens.modulo,
-      ])
-    ) {
+      ])) {
       expr = this._updateNode(new AST.BinaryOperator(
         this._previous().toString(),
         expr,
@@ -1145,15 +1130,13 @@ export class WgslParser {
     // tilde unary_expression
     // star unary_expression
     // and unary_expression
-    if (
-      this._match([
+    if (this._match([
         TokenTypes.tokens.minus,
         TokenTypes.tokens.bang,
         TokenTypes.tokens.tilde,
         TokenTypes.tokens.star,
         TokenTypes.tokens.and,
-      ])
-    ) {
+      ])) {
       return this._updateNode(new AST.UnaryOperator(
         this._previous().toString(),
         this._unary_expression()
@@ -1187,10 +1170,7 @@ export class WgslParser {
 
     // period ident postfix_expression?
     if (this._match(TokenTypes.tokens.period)) {
-      const name = this._consume(
-        TokenTypes.tokens.name,
-        "Expected member name."
-      );
+      const name = this._consume(TokenTypes.tokens.name, "Expected member name.");
       const p = this._postfix_expression();
       const expr = this._updateNode(new AST.StringExpr(name.lexeme));
       if (p) {
@@ -1504,12 +1484,13 @@ export class WgslParser {
       return null;
     }
 
-    const line = this._currentLine;
-
     const name = this._consume(
       TokenTypes.tokens.name,
       "Expected variable name"
     );
+
+    const line = this._currentLine;
+
     let type: AST.Type | null = null;
     if (this._match(TokenTypes.tokens.colon)) {
       const attrs = this._attribute();
@@ -1644,15 +1625,9 @@ export class WgslParser {
     let storage: string = "";
     let access: string = "";
     if (this._match(TokenTypes.tokens.less_than)) {
-      storage = this._consume(
-        TokenTypes.storage_class,
-        "Expected storage_class."
-      ).toString();
+      storage = this._consume(TokenTypes.storage_class, "Expected storage_class.").toString();
       if (this._match(TokenTypes.tokens.comma))
-        access = this._consume(
-          TokenTypes.access_mode,
-          "Expected access_mode."
-        ).toString();
+        access = this._consume(TokenTypes.access_mode, "Expected access_mode.").toString();
       this._consume(TokenTypes.tokens.greater_than, "Expected '>'.");
     }
 
@@ -1679,10 +1654,7 @@ export class WgslParser {
       return null;
     }
 
-    const name = this._consume(
-      TokenTypes.tokens.name,
-      "Expected variable name"
-    );
+    const name = this._consume(TokenTypes.tokens.name, "Expected variable name");
     let type: AST.Type | null = null;
     if (this._match(TokenTypes.tokens.colon)) {
       const attrs = this._attribute();
@@ -1778,16 +1750,14 @@ export class WgslParser {
     // array_type_decl
     // texture_sampler_types
 
-    if (
-      this._check([
+    if (this._check([
         TokenTypes.tokens.ident,
         ...TokenTypes.texel_format,
         TokenTypes.keywords.bool,
         TokenTypes.keywords.f32,
         TokenTypes.keywords.i32,
         TokenTypes.keywords.u32,
-      ])
-    ) {
+      ])) {
       const type = this._advance();
       const typeName = type.toString();
       if (this._context.structs.has(typeName)) {
@@ -1813,10 +1783,7 @@ export class WgslParser {
         format = this._type_decl();
         access = null;
         if (this._match(TokenTypes.tokens.comma)) {
-          access = this._consume(
-            TokenTypes.access_mode,
-            "Expected access_mode for pointer"
-          ).toString();
+          access = this._consume(TokenTypes.access_mode, "Expected access_mode for pointer").toString();
         }
         this._consume(TokenTypes.tokens.greater_than, "Expected '>' for type.");
       }
@@ -1827,23 +1794,14 @@ export class WgslParser {
     if (this._match(TokenTypes.keywords.ptr)) {
       let pointer = this._previous().toString();
       this._consume(TokenTypes.tokens.less_than, "Expected '<' for pointer.");
-      const storage = this._consume(
-        TokenTypes.storage_class,
-        "Expected storage_class for pointer"
-      );
+      const storage = this._consume(TokenTypes.storage_class, "Expected storage_class for pointer");
       this._consume(TokenTypes.tokens.comma, "Expected ',' for pointer.");
       const decl = this._type_decl();
       let access: string | null = null;
       if (this._match(TokenTypes.tokens.comma)) {
-        access = this._consume(
-          TokenTypes.access_mode,
-          "Expected access_mode for pointer"
-        ).toString();
+        access = this._consume(TokenTypes.access_mode, "Expected access_mode for pointer").toString();
       }
-      this._consume(
-        TokenTypes.tokens.greater_than,
-        "Expected '>' for pointer."
-      );
+      this._consume(TokenTypes.tokens.greater_than, "Expected '>' for pointer.");
       return this._updateNode(new AST.PointerType(pointer, storage.toString(), decl, access));
     }
 
@@ -1904,46 +1862,26 @@ export class WgslParser {
 
     // sampled_texture_type less_than type_decl greater_than
     // multisampled_texture_type less_than type_decl greater_than
-    if (
-      this._match(TokenTypes.sampled_texture_type) ||
-      this._match(TokenTypes.multisampled_texture_type)
-    ) {
+    if (this._match(TokenTypes.sampled_texture_type) ||
+      this._match(TokenTypes.multisampled_texture_type)) {
       const sampler = this._previous();
       this._consume(
         TokenTypes.tokens.less_than,
         "Expected '<' for sampler type."
       );
       const format = this._type_decl();
-      this._consume(
-        TokenTypes.tokens.greater_than,
-        "Expected '>' for sampler type."
-      );
+      this._consume(TokenTypes.tokens.greater_than, "Expected '>' for sampler type.");
       return this._updateNode(new AST.SamplerType(sampler.toString(), format, null));
     }
 
     // storage_texture_type less_than texel_format comma access_mode greater_than
     if (this._match(TokenTypes.storage_texture_type)) {
       const sampler = this._previous();
-      this._consume(
-        TokenTypes.tokens.less_than,
-        "Expected '<' for sampler type."
-      );
-      const format = this._consume(
-        TokenTypes.texel_format,
-        "Invalid texel format."
-      ).toString();
-      this._consume(
-        TokenTypes.tokens.comma,
-        "Expected ',' after texel format."
-      );
-      const access = this._consume(
-        TokenTypes.access_mode,
-        "Expected access mode for storage texture type."
-      ).toString();
-      this._consume(
-        TokenTypes.tokens.greater_than,
-        "Expected '>' for sampler type."
-      );
+      this._consume(TokenTypes.tokens.less_than, "Expected '<' for sampler type.");
+      const format = this._consume(TokenTypes.texel_format, "Invalid texel format.").toString();
+      this._consume(TokenTypes.tokens.comma, "Expected ',' after texel format.");
+      const access = this._consume(TokenTypes.access_mode, "Expected access mode for storage texture type.").toString();
+      this._consume(TokenTypes.tokens.greater_than, "Expected '>' for sampler type.");
       return this._updateNode(new AST.SamplerType(sampler.toString(), format, access));
     }
 
@@ -1964,17 +1902,11 @@ export class WgslParser {
       const attr = this._updateNode(new AST.Attribute(name.toString(), null));
       if (this._match(TokenTypes.tokens.paren_left)) {
         // literal_or_ident
-        attr.value = this._consume(
-          TokenTypes.literal_or_ident,
-          "Expected attribute value"
-        ).toString();
+        attr.value = this._consume(TokenTypes.literal_or_ident, "Expected attribute value").toString();
         if (this._check(TokenTypes.tokens.comma)) {
           this._advance();
           do {
-            const v = this._consume(
-              TokenTypes.literal_or_ident,
-              "Expected attribute value"
-            ).toString();
+            const v = this._consume(TokenTypes.literal_or_ident, "Expected attribute value").toString();
             if (!(attr.value instanceof Array)) {
               attr.value = [attr.value as string];
             }

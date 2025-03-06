@@ -282,7 +282,9 @@ export declare class Token {
     readonly type: TokenType;
     readonly lexeme: string;
     readonly line: number;
-    constructor(type: TokenType, lexeme: string, line: number);
+    readonly start: number;
+    readonly end: number;
+    constructor(type: TokenType, lexeme: string, line: number, start: number, end: number);
     toString(): string;
     isTemplateType(): boolean;
     isArrayType(): boolean;

@@ -48,9 +48,7 @@ export class WgslDebug {
 
     reset(): void {
         this._exec = new WgslExec(this._exec.ast);
-        this._execStack = new ExecStack();
-        const state = this._createState(this._exec.ast, this._exec.context);
-        this._execStack.states.push(state);
+        this.startDebug();
     }
 
     startDebug(): void {
@@ -300,7 +298,7 @@ export class WgslDebug {
         return found;
     }
 
-    _shouldExecuteNectCommand(): boolean {
+    _shouldExecuteNextCommand(): boolean {
         const command = this.currentCommand;
         if (command === null) {
             return false;
@@ -424,13 +422,13 @@ export class WgslDebug {
                 this._execStack.states.push(fnState);
                 fnState.context.currentFunctionName = fn.name;
 
-                if (this._shouldExecuteNectCommand()) {
+                if (this._shouldExecuteNextCommand()) {
                     continue;
                 }
                 return true;
             } else if (command instanceof StatementCommand) {
                 const node = command.node;
-                if (node instanceof AST.Call) {
+                if (stepInto && node instanceof AST.Call) {
                     const fn = state.context.getFunction(node.name);
                     // We want to step into custom functions, not directly execute them
                     if (fn) {
@@ -445,7 +443,7 @@ export class WgslDebug {
                         this._execStack.states.push(fnState);
                         fnState.context.currentFunctionName = fn.name;
 
-                        if (this._shouldExecuteNectCommand()) {
+                        if (this._shouldExecuteNextCommand()) {
                             continue;
                         }
                         return true;
@@ -466,7 +464,7 @@ export class WgslDebug {
                     if (s === null) {
                         console.error("Could not find CallExpr to store return value in");
                     }
-                    if (this._shouldExecuteNectCommand()) {
+                    if (this._shouldExecuteNextCommand()) {
                         continue;
                     }
                     return true;
@@ -506,7 +504,7 @@ export class WgslDebug {
                     }
                     // If the condition is false, then we should not the break.
                     if (!res.value) {
-                        if (this._shouldExecuteNectCommand()) {
+                        if (this._shouldExecuteNextCommand()) {
                             continue;
                         }
                         return true;
@@ -541,14 +539,14 @@ export class WgslDebug {
                     // If the GOTO condition value is true, then continue to the next command.
                     // Otherwise, jump to the specified position.
                     if (res.value) {
-                        if (this._shouldExecuteNectCommand()) {
+                        if (this._shouldExecuteNextCommand()) {
                             continue;
                         }
                         return true;
                     }
                 }
                 state.current = command.position;
-                if (this._shouldExecuteNectCommand()) {
+                if (this._shouldExecuteNextCommand()) {
                     continue;
                 }
                 return true;
@@ -565,7 +563,7 @@ export class WgslDebug {
                 }
             }
 
-            if (this._shouldExecuteNectCommand()) {
+            if (this._shouldExecuteNextCommand()) {
                 continue;
             }
             return true;

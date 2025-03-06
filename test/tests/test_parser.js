@@ -3,6 +3,18 @@ import { WgslParser } from "../../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Parser", async function () {
+    await test("function", async function (test) {
+      const parser = new WgslParser();
+      const t = parser.parse(`
+        fn init_rand(invocation_id : vec3u) {
+          const A = vec3(1741651 * 1009,
+                        140893  * 1609 * 13,
+                        6521    * 983  * 7 * 2);
+          rnd = (invocation_id * A) ^ common_uniforms.seed;
+        }`);
+        test.equals(t.length, 1);
+    });
+
     await test("valid identifiers", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse(`const Δέλτα: i32 = 5;

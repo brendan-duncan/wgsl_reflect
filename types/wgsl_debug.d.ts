@@ -27,7 +27,7 @@ export declare class WgslDebug {
     pause(): void;
     _setOverrides(constants: Object, context: ExecContext): void;
     debugWorkgroup(kernel: string, dispatchId: number[], dispatchCount: number | number[], bindGroups: Object, config?: Object): boolean;
-    _shouldExecuteNectCommand(): boolean;
+    _shouldExecuteNextCommand(): boolean;
     stepInto(): void;
     stepOver(): void;
     stepOut(): void;

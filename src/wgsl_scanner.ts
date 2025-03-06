@@ -569,14 +569,18 @@ export class TokenTypes {
 
 /// A token parsed by the WgslScanner.
 export class Token {
-  readonly type: TokenType;
-  readonly lexeme: string;
-  readonly line: number;
+  readonly type: TokenType; // The type of the token.
+  readonly lexeme: string; // The string of the token, as parsed from the source text.
+  readonly line: number; // The line number of the token in the source text.
+  readonly start: number; // The start position of the token in the source text.
+  readonly end: number; // The end position of the token in the source text.
 
-  constructor(type: TokenType, lexeme: string, line: number) {
+  constructor(type: TokenType, lexeme: string, line: number, start: number, end: number) {
     this.type = type;
     this.lexeme = lexeme;
     this.line = line;
+    this.start = start;
+    this.end = end;
   }
 
   toString(): string {
@@ -618,7 +622,8 @@ export class WgslScanner {
       }
     }
 
-    this._tokens.push(new Token(TokenTypes.eof, "", this._line));
+    this._tokens.push(new Token(TokenTypes.eof, "", this._line, this._current, this._current));
+
     return this._tokens;
   }
 
@@ -839,6 +844,7 @@ export class WgslScanner {
     if (type) {
       return type;
     }
+
     return TokenTypes.none;
   }
 
@@ -852,7 +858,7 @@ export class WgslScanner {
   }
 
   _isAlpha(c: string): boolean {
-    // To support UTF-8 characters, just allow anything other than whitespace, numbers, or operators
+    // To support UTF-8 characters, allow anything other than whitespace, numbers, or operators
     return !this._isNumeric(c) && !this._isWhitespace(c) && c !== "_" && c !== "." && c !== "(" && c !== ")" &&
       c !== "[" && c !== "]" && c !== "{" && c !== "}" && c !== "," && c !== ";" && c !== ":" && c !== "=" &&
       c !== "!" && c !== "<" && c !== ">" && c !== "+" && c !== "-" && c !== "*" && c !== "/" && c !== "%" &&
@@ -890,6 +896,6 @@ export class WgslScanner {
 
   _addToken(type: TokenType) {
     const text = this._source.substring(this._start, this._current);
-    this._tokens.push(new Token(type, text, this._line));
+    this._tokens.push(new Token(type, text, this._line, this._start, this._current));
   }
 }
