@@ -3,6 +3,28 @@ import { WgslReflect, ResourceType } from "../../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Reflect", async function () {
+    await test("deferred alias definition", async function (test) {
+      const t = new WgslReflect(`
+        struct Uniforms {
+            size: vec2<f32>,
+            light: LightAlias,
+            lights: LightArray
+        }
+        struct Light {
+            power: f32,
+            position: vec2<i32>
+        }
+        alias LightAlias = Light;
+        alias LightArray = array<Light, 3>;
+        struct X {
+          light: Light,
+          lights: array<Light, 3>
+        }
+        @group(0) @binding(0) var<uniform> uni: Uniforms;`);
+        test.equals(t.uniforms.length, 1);
+        test.equals(t.uniforms[0].type.size, 72);
+    });
+
     await test("deferred struct definition", async function (test) {
       const t = new WgslReflect(`
         struct Uniforms {
