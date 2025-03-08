@@ -361,9 +361,19 @@ export declare class Type extends Statement {
     static u32: Type;
     static f16: Type;
     static bool: Type;
+    static void: Type;
     static _priority: Map<string, number>;
     static maxFormatType(x: Type[]): Type;
     getTypeName(): string;
+}
+/**
+ * @class ForwardType
+ * @extends Type
+ * @category AST
+ * Internal type used as a placeholder for a type being used before it has been defined.
+ */
+export declare class ForwardType extends Type {
+    constructor(name: string);
 }
 /**
  * @class StructType
@@ -378,6 +388,7 @@ export declare class Struct extends Type {
     get astNodeType(): string;
     get isStruct(): boolean;
     getMemberIndex(name: string): number;
+    search(callback: (node: Node) => void): void;
 }
 /**
  * @class TemplateType
@@ -423,6 +434,24 @@ export declare class TemplateType extends Type {
     static mat4x2h: TemplateType;
     static mat4x3h: TemplateType;
     static mat4x4h: TemplateType;
+    static mat2x2i: TemplateType;
+    static mat2x3i: TemplateType;
+    static mat2x4i: TemplateType;
+    static mat3x2i: TemplateType;
+    static mat3x3i: TemplateType;
+    static mat3x4i: TemplateType;
+    static mat4x2i: TemplateType;
+    static mat4x3i: TemplateType;
+    static mat4x4i: TemplateType;
+    static mat2x2u: TemplateType;
+    static mat2x3u: TemplateType;
+    static mat2x4u: TemplateType;
+    static mat3x2u: TemplateType;
+    static mat3x3u: TemplateType;
+    static mat3x4u: TemplateType;
+    static mat4x2u: TemplateType;
+    static mat4x3u: TemplateType;
+    static mat4x4u: TemplateType;
 }
 /**
  * @class PointerType

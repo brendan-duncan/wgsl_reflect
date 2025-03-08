@@ -14,6 +14,7 @@ export class WgslParser {
   _currentLoop: AST.Statement[] = [];
   _context = new ParseContext();
   _exec = new WgslExec();
+  _forwardTypeCount: number = 0;;
 
   parse(tokensOrCode: Token[] | string): AST.Statement[] {
     this._initialize(tokensOrCode);
@@ -53,7 +54,37 @@ export class WgslParser {
       this._deferArrayCountEval.length = 0;
     }
 
+    if (this._forwardTypeCount > 0) {
+      for (const statement of statements) {
+        statement.search((node) => {
+          if (node instanceof AST.Member) {
+            node.type = this._forwardType(node.type);
+          } else if (node instanceof AST.PointerType) {
+            node.type = this._forwardType(node.type);
+          } else if (node instanceof AST.ArrayType) {
+            node.format = this._forwardType(node.format);
+          } else if (node instanceof AST.Var || node instanceof AST.Let || node instanceof AST.Const) {
+            node.type = this._forwardType(node.type);
+          } else if (node instanceof AST.Function) {
+            node.returnType = this._forwardType(node.returnType);
+          } else if (node instanceof AST.Argument) {
+            node.type = this._forwardType(node.type);
+          }
+        });
+      }
+    }
+
     return statements;
+  }
+
+  _forwardType(t: AST.Type | null): AST.Type | null {
+    if (t instanceof AST.ForwardType) {
+      const ft = this._getType(t.name);
+      if (ft) {
+        return ft;
+      }
+    }
+    return t;
   }
 
   _initialize(tokensOrCode: Token[] | string) {
@@ -1200,6 +1231,8 @@ export class WgslParser {
       return struct;
     }
     switch (name) {
+      case "void":
+        return AST.Type.void;
       case "bool":
         return AST.Type.bool;
       case "i32":
@@ -1270,6 +1303,44 @@ export class WgslParser {
         return AST.TemplateType.mat4x3h;
       case "mat4x4h":
         return AST.TemplateType.mat4x4h;
+
+      case "mat2x2i":
+        return AST.TemplateType.mat2x2i;
+      case "mat2x3i":
+        return AST.TemplateType.mat2x3i;
+      case "mat2x4i":
+        return AST.TemplateType.mat2x4i;
+      case "mat3x2i":
+        return AST.TemplateType.mat3x2i;
+      case "mat3x3i":
+        return AST.TemplateType.mat3x3i;
+      case "mat3x4i":
+        return AST.TemplateType.mat3x4i;
+      case "mat4x2i":
+        return AST.TemplateType.mat4x2i;
+      case "mat4x3i":
+        return AST.TemplateType.mat4x3i;
+      case "mat4x4i":
+        return AST.TemplateType.mat4x4i;
+
+      case "mat2x2u":
+        return AST.TemplateType.mat2x2u;
+      case "mat2x3u":
+        return AST.TemplateType.mat2x3u;
+      case "mat2x4u":
+        return AST.TemplateType.mat2x4u;
+      case "mat3x2u":
+        return AST.TemplateType.mat3x2u;
+      case "mat3x3u":
+        return AST.TemplateType.mat3x3u;
+      case "mat3x4u":
+        return AST.TemplateType.mat3x4u;
+      case "mat4x2u":
+        return AST.TemplateType.mat4x2u;
+      case "mat4x3u":
+        return AST.TemplateType.mat4x3u;
+      case "mat4x4u":
+        return AST.TemplateType.mat4x4u;
     }
     return null;
   }
@@ -1766,7 +1837,16 @@ export class WgslParser {
       if (this._context.aliases.has(typeName)) {
         return this._context.aliases.get(typeName).type;
       }
-      return this._updateNode(new AST.Type(type.toString()));
+
+      const t = this._getType(typeName);
+      // Don't "forward declare" built-in types
+      if (!t) {
+        const node = this._updateNode(new AST.ForwardType(typeName));
+        this._forwardTypeCount++;
+        return node;
+      }
+
+      return this._updateNode(new AST.Type(typeName));
     }
 
     // texture_sampler_types
@@ -1787,7 +1867,8 @@ export class WgslParser {
         }
         this._consume(TokenTypes.tokens.greater_than, "Expected '>' for type.");
       }
-      return this._updateNode(new AST.TemplateType(type, format, access));
+      const node = this._updateNode(new AST.TemplateType(type, format, access));
+      return node;
     }
 
     // pointer less_than storage_class comma type_decl (comma access_mode)? greater_than
@@ -1802,7 +1883,8 @@ export class WgslParser {
         access = this._consume(TokenTypes.access_mode, "Expected access_mode for pointer").toString();
       }
       this._consume(TokenTypes.tokens.greater_than, "Expected '>' for pointer.");
-      return this._updateNode(new AST.PointerType(pointer, storage.toString(), decl, access));
+      const node = this._updateNode(new AST.PointerType(pointer, storage.toString(), decl, access));
+      return node;
     }
 
     // The following type_decl's have an optional attribyte_list*
@@ -1833,10 +1915,7 @@ export class WgslParser {
             count = "1";
           }
         }
-        this._consume(
-          TokenTypes.tokens.greater_than,
-          "Expected '>' for array."
-        );
+        this._consume(TokenTypes.tokens.greater_than, "Expected '>' for array.");
         countInt = count ? parseInt(count) : 0;
       }
       const arrayType = this._updateNode(new AST.ArrayType(array.toString(), attrs, format, countInt));

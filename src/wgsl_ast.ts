@@ -29,7 +29,9 @@ export class Node {
     return "";
   }
 
-  search(callback: (node: Node) => void): void {}
+  search(callback: (node: Node) => void): void {
+    callback(this);
+  }
 
   searchBlock(block: Node[] | null, callback: (node: Node) => void): void {
     if (block) {
@@ -265,6 +267,10 @@ export class Function extends Statement {
       for (const attr of this.attributes) {
         callback(attr);
       }
+    }
+    callback(this);
+    for (const arg of this.args) {
+      callback(arg);
     }
     this.searchBlock(this.body, callback);
   }
@@ -902,6 +908,7 @@ export class Type extends Statement {
   static u32 = new Type("u32");
   static f16 = new Type("f16");
   static bool = new Type("bool");
+  static void = new Type("void");
 
   static _priority = new Map<string, number>([["f32", 0], ["f16", 1], ["u32", 2], ["i32", 3], ["x32", 3]]);
 
@@ -927,6 +934,18 @@ export class Type extends Statement {
 
   getTypeName(): string {
     return this.name;
+  }
+}
+
+/**
+ * @class ForwardType
+ * @extends Type
+ * @category AST
+ * Internal type used as a placeholder for a type being used before it has been defined.
+ */
+export class ForwardType extends Type {
+  constructor(name: string) {
+    super(name);
   }
 }
 
@@ -961,6 +980,12 @@ export class Struct extends Type {
       if (this.members[i].name == name) return i;
     }
     return -1;
+  }
+
+  search(callback: (node: Node) => void): void {
+    for (const member of this.members) {
+      callback(member);
+    }
   }
 }
 
@@ -1052,6 +1077,26 @@ export class TemplateType extends Type {
   static mat4x2h = new TemplateType("mat4x2", Type.f16, null);
   static mat4x3h = new TemplateType("mat4x3", Type.f16, null);
   static mat4x4h = new TemplateType("mat4x4", Type.f16, null);
+
+  static mat2x2i = new TemplateType("mat2x2", Type.i32, null);
+  static mat2x3i = new TemplateType("mat2x3", Type.i32, null);
+  static mat2x4i = new TemplateType("mat2x4", Type.i32, null);
+  static mat3x2i = new TemplateType("mat3x2", Type.i32, null);
+  static mat3x3i = new TemplateType("mat3x3", Type.i32, null);
+  static mat3x4i = new TemplateType("mat3x4", Type.i32, null);
+  static mat4x2i = new TemplateType("mat4x2", Type.i32, null);
+  static mat4x3i = new TemplateType("mat4x3", Type.i32, null);
+  static mat4x4i = new TemplateType("mat4x4", Type.i32, null);
+
+  static mat2x2u = new TemplateType("mat2x2", Type.u32, null);
+  static mat2x3u = new TemplateType("mat2x3", Type.u32, null);
+  static mat2x4u = new TemplateType("mat2x4", Type.u32, null);
+  static mat3x2u = new TemplateType("mat3x2", Type.u32, null);
+  static mat3x3u = new TemplateType("mat3x3", Type.u32, null);
+  static mat3x4u = new TemplateType("mat3x4", Type.u32, null);
+  static mat4x2u = new TemplateType("mat4x2", Type.u32, null);
+  static mat4x3u = new TemplateType("mat4x3", Type.u32, null);
+  static mat4x4u = new TemplateType("mat4x4", Type.u32, null);
 }
 
 /**

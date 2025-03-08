@@ -10,7 +10,9 @@ export declare class WgslParser {
     _currentLoop: AST.Statement[];
     _context: ParseContext;
     _exec: WgslExec;
+    _forwardTypeCount: number;
     parse(tokensOrCode: Token[] | string): AST.Statement[];
+    _forwardType(t: AST.Type | null): AST.Type | null;
     _initialize(tokensOrCode: Token[] | string): void;
     _updateNode<T extends AST.Node>(n: T, l?: number): T;
     _error(token: Token, message: string | null): Object;

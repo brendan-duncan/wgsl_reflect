@@ -3,6 +3,26 @@ import { WgslParser } from "../../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Parser", async function () {
+    await test("deferred struct definition", async function (test) {
+      const parser = new WgslParser();
+      const t = parser.parse(`
+        struct Uniforms {
+            size: vec2<f32>,
+            light: Light,
+            lights: array<Light,3>
+        }
+        struct Light {
+            power: f32,
+            position: vec2<i32>
+        }
+        struct X {
+          light: Light,
+          lights: array<Light, 3>
+        }
+        @group(0) @binding(0) var<uniform> uni: Uniforms;`);
+        test.equals(t.length, 4);
+    });
+
     await test("function", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse(`
