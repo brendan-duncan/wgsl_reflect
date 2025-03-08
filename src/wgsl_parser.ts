@@ -83,6 +83,10 @@ export class WgslParser {
       if (ft) {
         return ft;
       }
+    } else if (t instanceof AST.PointerType) {
+      t.type = this._forwardType(t.type);
+    } else if (t instanceof AST.ArrayType) {
+      t.format = this._forwardType(t.format);
     }
     return t;
   }
