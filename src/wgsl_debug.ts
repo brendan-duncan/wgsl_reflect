@@ -15,7 +15,7 @@ export class WgslDebug {
     _exec: WgslExec;
     _execStack: ExecStack;
     _dispatchId: number[];
-    _runTimer: number | null = null;
+    _runTimer: any = null;
     breakpoints: Set<number> = new Set();
     runStateCallback: RuntimeStateCallbackType | null = null;
 

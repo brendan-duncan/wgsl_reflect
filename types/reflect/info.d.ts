@@ -7,6 +7,7 @@ export declare class TypeInfo {
     get isArray(): boolean;
     get isStruct(): boolean;
     get isTemplate(): boolean;
+    get isPointer(): boolean;
     getTypeName(): string;
 }
 export declare class MemberInfo {
@@ -40,6 +41,13 @@ export declare class ArrayInfo extends TypeInfo {
     stride: number;
     constructor(name: string, attributes: Attribute[] | null);
     get isArray(): boolean;
+    getTypeName(): string;
+}
+export declare class PointerInfo extends TypeInfo {
+    format: TypeInfo;
+    constructor(name: string, format: TypeInfo, attributes: Attribute[] | null);
+    get isPointer(): boolean;
+    getTypeName(): string;
 }
 export declare class TemplateInfo extends TypeInfo {
     format: TypeInfo | null;

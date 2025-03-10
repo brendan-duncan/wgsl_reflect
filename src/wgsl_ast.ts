@@ -1,5 +1,5 @@
 import { WgslExec } from "./wgsl_exec.js";
-import { TypeInfo, TemplateInfo, ArrayInfo, StructInfo } from "./reflect/info.js";
+import { TypeInfo, PointerInfo, TemplateInfo, ArrayInfo, StructInfo } from "./reflect/info.js";
 import { ExecContext } from "./exec/exec_context.js";
 import { ExecInterface } from "./exec/exec_interface.js";
 import { setTexturePixel, getTexturePixel } from "./utils/texture_sample.js";
@@ -1755,7 +1755,7 @@ export class Data {
   }
 
   toString(): string {
-      return `<${this.typeInfo.name}>`;
+      return `<${this.typeInfo.getTypeName()}>`;
   }
 }
 
@@ -1775,7 +1775,7 @@ export class PointerData extends Data {
   reference: Data;
 
   constructor(reference: Data) {
-    super(new TypeInfo("pointer", null), null);
+    super(new PointerInfo("pointer", reference.typeInfo, null), null);
     this.reference = reference;
   }
 
@@ -1792,6 +1792,10 @@ export class PointerData extends Data {
       return this.reference.getSubData(exec, postfix, context);
     }
     return this;
+  }
+
+  toString() {
+    return `&${this.reference.toString()}`;
   }
 }
 
@@ -2763,10 +2767,12 @@ export class TypedData extends Data {
     while (postfix) {
       if (postfix instanceof ArrayIndex) {
         const idx = postfix.index;
-        const _i = exec.evalExpression(idx, context);
+        const _i = idx instanceof Expression ? exec.evalExpression(idx, context) : idx;
         let i = 0;
         if (_i instanceof ScalarData) {
           i = _i.value;
+        } else if (typeof _i === "number") {
+          i = _i;
         } else {
           console.error(`GetDataValue: Invalid index type`, idx);
         }

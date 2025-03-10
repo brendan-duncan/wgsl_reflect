@@ -5,12 +5,14 @@ export declare class VarRef {
     name: string;
     value: Data;
     node: ASTVarNode | null;
+    readonly id: number;
     constructor(n: string, v: Data, node: ASTVarNode | null);
     clone(): VarRef;
 }
 export declare class FunctionRef {
     name: string;
     node: Function;
+    readonly id: number;
     constructor(node: Function);
     clone(): FunctionRef;
 }
@@ -19,6 +21,7 @@ export declare class ExecContext {
     variables: Map<string, VarRef>;
     functions: Map<string, FunctionRef>;
     currentFunctionName: string;
+    readonly id: number;
     constructor(parent?: ExecContext);
     getVariable(name: string): VarRef | null;
     getFunction(name: string): FunctionRef | null;

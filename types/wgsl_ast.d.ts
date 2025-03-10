@@ -756,6 +756,7 @@ export declare class PointerData extends Data {
     clone(): Data;
     setDataValue(exec: ExecInterface, value: Data, postfix: Expression | null, context: ExecContext): void;
     getSubData(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null;
+    toString(): string;
 }
 export declare class ScalarData extends Data {
     data: Int32Array | Uint32Array | Float32Array;

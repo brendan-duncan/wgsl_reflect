@@ -23,6 +23,10 @@ export class TypeInfo {
     return false;
   }
 
+  get isPointer(): boolean {
+    return false;
+  }
+
   getTypeName(): string {
     return this.name;
   }
@@ -113,6 +117,26 @@ export class ArrayInfo extends TypeInfo {
 
   get isArray(): boolean {
     return true;
+  }
+
+  getTypeName(): string {
+    return `array<${this.format.getTypeName()}, ${this.count}>`;
+  }
+}
+
+export class PointerInfo extends TypeInfo {
+  format: TypeInfo;
+  constructor(name: string, format: TypeInfo, attributes: Attribute[] | null) {
+    super(name, attributes);
+    this.format = format;
+  }
+
+  get isPointer(): boolean {
+    return true;
+  }
+
+  getTypeName(): string {
+    return `&${this.format.getTypeName()}`;
   }
 }
 

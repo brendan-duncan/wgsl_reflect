@@ -3,9 +3,10 @@
  */
 import { TokenTypes } from "../wgsl_scanner.js";
 import { Type, Struct, Alias, Override, Var, Node, Function, VariableExpr, CreateExpr,
-    Let, CallExpr, Call, Argument, Member, Attribute, ArrayType, SamplerType, TemplateType } from "../wgsl_ast.js";
+    Let, CallExpr, Call, Argument, Member, Attribute, ArrayType, SamplerType, TemplateType, 
+    PointerType } from "../wgsl_ast.js";
 import { _BlockStart, _BlockEnd } from "../wgsl_ast.js";
-import { FunctionInfo, VariableInfo, AliasInfo, OverrideInfo,
+import { FunctionInfo, VariableInfo, AliasInfo, OverrideInfo, PointerInfo,
   StructInfo, TypeInfo, MemberInfo, ArrayInfo, TemplateInfo, OutputInfo,
   InputInfo, ArgumentInfo, ResourceType, EntryFunctions } from "./info.js";
 import { isArray } from "../utils/cast.js";
@@ -631,12 +632,17 @@ export class Reflect {
     return null;
   }
 
-  getTypeInfo(
-    type: Type,
-    attributes: Attribute[] | null = null
-  ): TypeInfo {
+  getTypeInfo(type: Type, attributes: Attribute[] | null = null): TypeInfo {
     if (this._types.has(type)) {
       return this._types.get(type)!;
+    }
+
+    if (type instanceof PointerType) {
+      const t = type.type ? this.getTypeInfo(type.type!, type.attributes) : null;
+      const info = new PointerInfo(type.name, t, attributes);
+      this._types.set(type, info);
+      this._updateTypeInfo(info);
+      return info;
     }
 
     if (type instanceof ArrayType) {
@@ -706,6 +712,10 @@ export class Reflect {
         type.stride = Math.max(formatInfo?.size ?? 0, formatInfo?.align ?? 0);
         this._updateTypeInfo(type["format"]);
       }
+    }
+
+    if (type instanceof PointerInfo) {
+      this._updateTypeInfo(type["format"]);
     }
 
     if (type instanceof StructInfo) {

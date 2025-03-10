@@ -3,10 +3,13 @@ import { Data } from "../wgsl_ast.js";
 
 type ASTVarNode = Let | Var | Argument;
 
+let _id = 0;
+
 export class VarRef {
     name: string;
     value: Data;
     node: ASTVarNode | null;
+    readonly id: number = _id++;
 
     constructor(n: string, v: Data, node: ASTVarNode | null) {
         this.name = n;
@@ -22,6 +25,7 @@ export class VarRef {
 export class FunctionRef {
     name: string;
     node: Function;
+    readonly id: number = _id++;
 
     constructor(node: Function) {
         this.name = node.name;
@@ -38,6 +42,7 @@ export class ExecContext {
     variables = new Map<string, VarRef>();
     functions = new Map<string, FunctionRef>();
     currentFunctionName = "";
+    readonly id: number = _id++;
 
     constructor(parent?: ExecContext) {
         if (parent) {

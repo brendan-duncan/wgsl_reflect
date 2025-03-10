@@ -10,7 +10,7 @@ export declare class WgslDebug {
     _exec: WgslExec;
     _execStack: ExecStack;
     _dispatchId: number[];
-    _runTimer: number | null;
+    _runTimer: any;
     breakpoints: Set<number>;
     runStateCallback: RuntimeStateCallbackType | null;
     constructor(code: string, runStateCallback?: RuntimeStateCallbackType);
