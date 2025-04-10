@@ -3,6 +3,23 @@ import { WgslReflect, ResourceType } from "../../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Reflect", async function () {
+    await test("deferred uniform usage", async function (test) {
+      const t = new WgslReflect(`
+        fn foo() {
+          let f = uni.x;
+        }
+        @vertex fn vsMain() {
+          foo();
+        }
+        @fragment fn fsMain() {
+          let f = uni.y;
+        }
+        @group(0) @binding(0) var<uniform> uni: vec4<f32>;`);
+      test.equals(t.uniforms.length, 1);
+      test.equals(t.entry.vertex[0].resources.length, 1);
+      test.equals(t.entry.fragment[0].resources.length, 1);
+    });
+
     await test("deferred alias definition", async function (test) {
       const t = new WgslReflect(`
         struct Uniforms {

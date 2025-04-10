@@ -148,7 +148,9 @@ export class Reflect {
         this.samplers.push(varInfo);
         continue;
       }
+    }
 
+    for (const node of ast) {
       if (node instanceof Function) {
         const vertexStage = this._getAttribute(node, "vertex");
         const fragmentStage = this._getAttribute(node, "fragment");
