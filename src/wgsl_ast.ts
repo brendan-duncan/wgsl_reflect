@@ -690,6 +690,13 @@ export class Switch extends Statement {
   get astNodeType(): string {
     return "switch";
   }
+
+  search(callback: (node: Node) => void): void {
+    callback(this);
+    for (const node of this.cases) {
+      node.search(callback);
+    }
+  }
 }
 
 /**
@@ -1579,6 +1586,11 @@ export class SwitchCase extends Node {
   constructor(body: Statement[]) {
     super();
     this.body = body;
+  }
+
+  search(callback: (node: Node) => void): void {
+    callback(this);
+    this.searchBlock(this.body, callback);
   }
 }
 

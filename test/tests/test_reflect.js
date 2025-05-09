@@ -3,6 +3,22 @@ import { WgslReflect, ResourceType } from "../../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Reflect", async function () {
+    await test("switch", async function (test) {
+      const t = new WgslReflect(`
+        @group(0) @binding(0) var<storage> buffer1: array<u32>;
+        @compute
+        fn main() {
+        let count = 0;
+          switch(count) {
+            case 0: {
+              let a = buffer1[0]; // issue here
+            }
+          }
+        }`);
+        test.equals(t.entry.compute.length, 1);
+        test.equals(t.entry.compute[0].resources.length, 1);
+    });
+
     await test("deferred uniform usage", async function (test) {
       const t = new WgslReflect(`
         fn foo() {

@@ -245,6 +245,7 @@ export declare class Switch extends Statement {
     cases: SwitchCase[];
     constructor(condition: Expression, cases: SwitchCase[]);
     get astNodeType(): string;
+    search(callback: (node: Node) => void): void;
 }
 /**
  * @class If
@@ -661,6 +662,7 @@ export declare class BinaryOperator extends Operator {
 export declare class SwitchCase extends Node {
     body: Statement[];
     constructor(body: Statement[]);
+    search(callback: (node: Node) => void): void;
 }
 export declare class DefaultSelector extends Expression {
     constructor();
