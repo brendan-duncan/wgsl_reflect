@@ -13,6 +13,7 @@
     "noFallthroughCasesInSwitch": false,
     "allowSyntheticDefaultImports": true,
     "sourceMap": true,
+    "inlineSources": true,
     "moduleResolution": "node",
     "declaration": true,
     "declarationDir": "./types"
