@@ -2152,7 +2152,7 @@ export class WgslExec extends ExecInterface {
                 return this.builtins.Sin(node, context);
             case "sinh":
                 return this.builtins.Sinh(node, context);
-            case "smoothStep":
+            case "smoothstep":
                 return this.builtins.SmoothStep(node, context);
             case "sqrt":
                 return this.builtins.Sqrt(node, context);
