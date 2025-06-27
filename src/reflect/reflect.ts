@@ -228,6 +228,15 @@ export class Reflect {
     }
   }
 
+  getFunctionInfo(name: string): FunctionInfo | null {
+    for (const fn of this.functions) {
+      if (fn.name == name) {
+        return fn;
+      }
+    }
+    return null;
+  }
+
   getStructInfo(name: string): StructInfo | null {
     for (const s of this.structs) {
       if (s.name == name) {

@@ -52,6 +52,15 @@ class WgslReflect {
   // Parse the given WGSL shader code, adding to the info properties of this class.
   update(shader: string);
 
+  // Find a function or entry point with the given name.
+  getFunctionInfo(name: string): FunctionInfo | null;
+
+  // Find a struct with the given tname.
+  getStructInfo(name: string): StructInfo | null;
+
+  // Find an override with the given name.
+  getOverrideInfo(name: string): OverrideInfo | null;
+
   // Find a resource by its group and binding.
   findResource(group: number, binding: number): VariableInfo | null;
 

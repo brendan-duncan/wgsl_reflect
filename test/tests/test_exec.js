@@ -7,6 +7,27 @@ function _newWgslExec(code) {
 
 export async function run() {
     await group("WgslExec", async function () {
+        await test("mat3x2 array index", async function (test) {
+            const shader = `
+                @group(0) @binding(0) var<storage, read_write> data: vec3f;
+                @compute @workgroup_size(1) fn main() {
+                    let m = mat3x3<f32>(2.0, 0.0, 0.0, 
+                                0.0, 2.0, 0.0,
+                                0.0, 0.0, 2.0, );
+                    let v = vec3f(1.0, 1.0, 1.0);
+                    data = m[0] * v;
+                }`;
+            const dataBuffer = new Float32Array([0, 0, 0]);
+            const bg = {0: {0: dataBuffer}};
+
+            const _data = await webgpuDispatch(shader, "main", 1, bg);
+            const webgpuData = new Float32Array(_data);
+            // Ensure we can dispatch a compute shader and get the expected results from the output buffer.
+            const wgsl = _newWgslExec(shader);
+            wgsl.dispatchWorkgroups("main", 1, bg);
+            test.equals(dataBuffer, webgpuData);
+        });
+
         await test("deferred const", async function (test) {
             const shader = `
                 @group(0) @binding(0) var<storage, read_write> data: vec4f;

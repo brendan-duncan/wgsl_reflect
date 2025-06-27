@@ -132,6 +132,11 @@ export class WgslExec extends ExecInterface {
         const vec3u = this.getTypeInfo("vec3u");
         context.setVariable("@num_workgroups", new VectorData(dispatchCount, vec3u));
 
+        const kernelRefl = this.reflection.getFunctionInfo(kernel);
+        if (kernelRefl === null) {
+            console.error(`Function ${kernel} not found in reflection data`);
+        }
+
         for (const set in bindGroups) {
             for (const binding in bindGroups[set]) {
                 const entry = bindGroups[set][binding];
@@ -149,17 +154,27 @@ export class WgslExec extends ExecInterface {
                             }
                         }
                         if (binding == b && set == s) {
-                            if (entry.texture !== undefined && entry.descriptor !== undefined) {
-                                // Texture
-                                const textureData = new TextureData(entry.texture, this.getTypeInfo(node.type), entry.descriptor,
-                                        entry.texture.view ?? null);
-                                v.value = textureData;
-                            } else if (entry.uniform !== undefined) {
-                                // Uniform buffer
-                                v.value = new TypedData(entry.uniform, this.getTypeInfo(node.type));
-                            } else {
-                                // Storage buffer
-                                v.value = new TypedData(entry, this.getTypeInfo(node.type));
+                            let found = false;
+                            for (const resource of kernelRefl.resources) {
+                                if (resource.name === v.name && resource.group === parseInt(set) && resource.binding === parseInt(binding)) {
+                                    found = true;
+                                    break;
+                                }
+                            }
+
+                            if (found) {
+                                if (entry.texture !== undefined && entry.descriptor !== undefined) {
+                                    // Texture
+                                    const textureData = new TextureData(entry.texture, this.getTypeInfo(node.type), entry.descriptor,
+                                            entry.texture.view ?? null);
+                                    v.value = textureData;
+                                } else if (entry.uniform !== undefined) {
+                                    // Uniform buffer
+                                    v.value = new TypedData(entry.uniform, this.getTypeInfo(node.type));
+                                } else {
+                                    // Storage buffer
+                                    v.value = new TypedData(entry, this.getTypeInfo(node.type));
+                                }
                             }
                         }
                     }

@@ -26,6 +26,7 @@ export declare class Reflect {
     _functions: Map<string, _FunctionResources>;
     _isStorageTexture(type: TypeInfo): boolean;
     updateAST(ast: Node[]): void;
+    getFunctionInfo(name: string): FunctionInfo | null;
     getStructInfo(name: string): StructInfo | null;
     getOverrideInfo(name: string): OverrideInfo | null;
     _markStructsInUse(type: TypeInfo): void;

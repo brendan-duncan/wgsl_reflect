@@ -221,11 +221,13 @@ export class WgslDebug {
         }*/
         this._exec._execStatements(this._exec.ast, context);
 
-        const f = context.getFunction(kernel);
-        if (!f) {
+        const kernelFn = context.getFunction(kernel);
+        if (!kernelFn) {
             console.error(`Function ${kernel} not found`);
             return false;
         }
+
+        const kernelRefl = this._exec.reflection.getFunctionInfo(kernel);
 
         if (typeof dispatchCount === "number") {
             dispatchCount = [dispatchCount, 1, 1];
@@ -264,17 +266,26 @@ export class WgslDebug {
                             }
                         }
                         if (binding == b && set == s) {
-                            if (entry.texture !== undefined && entry.descriptor !== undefined) {
-                                // Texture
-                                const textureData = new TextureData(entry.texture, this._exec.getTypeInfo(node.type), entry.descriptor,
-                                                                    entry.texture.view ?? null);
-                                v.value = textureData;
-                            } else if (entry.uniform !== undefined) {
-                                // Uniform buffer
-                                v.value = new TypedData(entry.uniform, this._exec.getTypeInfo(node.type));
-                            } else {
-                                // Storage buffer
-                                v.value = new TypedData(entry, this._exec.getTypeInfo(node.type));
+                            let found = false;
+                            for (const resource of kernelRefl.resources) {
+                                if (resource.name === v.name && resource.group === parseInt(set) && resource.binding === parseInt(binding)) {
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (found) {
+                                if (entry.texture !== undefined && entry.descriptor !== undefined) {
+                                    // Texture
+                                    const textureData = new TextureData(entry.texture, this._exec.getTypeInfo(node.type), entry.descriptor,
+                                                                        entry.texture.view ?? null);
+                                    v.value = textureData;
+                                } else if (entry.uniform !== undefined) {
+                                    // Uniform buffer
+                                    v.value = new TypedData(entry.uniform, this._exec.getTypeInfo(node.type));
+                                } else {
+                                    // Storage buffer
+                                    v.value = new TypedData(entry, this._exec.getTypeInfo(node.type));
+                                }
                             }
                         }
                     }
@@ -287,7 +298,7 @@ export class WgslDebug {
             for (let y = 0; y < height && !found; ++y) {
                 for (let x = 0; x < width && !found; ++x) {
                     context.setVariable("@workgroup_id", new VectorData([x, y, z], vec3u));
-                    if (this._dispatchWorkgroup(f, [x, y, z], context)) {
+                    if (this._dispatchWorkgroup(kernelFn, [x, y, z], context)) {
                         found = true;
                         break;
                     }
