@@ -19,6 +19,20 @@ export async function run() {
         test.equals(t.entry.compute[0].resources.length, 1);
     });
 
+    await test("loop", async function (test) {
+      const t = new WgslReflect(`
+        @group(0) @binding(0) var<storage> buffer1: array<u32>;
+        @compute
+        fn main() {
+        let count = 0;
+          loop {
+            let a = buffer1[0]; // issue here
+          }
+        }`);
+      test.equals(t.entry.compute.length, 1);
+      test.equals(t.entry.compute[0].resources.length, 1);
+    });
+
     await test("deferred uniform usage", async function (test) {
       const t = new WgslReflect(`
         fn foo() {
