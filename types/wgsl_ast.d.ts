@@ -234,6 +234,7 @@ export declare class Loop extends Statement {
     continuing: Continuing | null;
     constructor(body: Statement[], continuing: Continuing | null);
     get astNodeType(): string;
+    search(callback: (node: Node) => void): void;
 }
 /**
  * @class Switch
