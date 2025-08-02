@@ -3029,7 +3029,7 @@ export class TypedData extends Data {
 }
 
 export class TextureData extends Data {
-  data: Array<ArrayBuffer>;
+  data: Array<ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array>;
   descriptor: Object;
   view: Object | null;
 

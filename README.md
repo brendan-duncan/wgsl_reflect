@@ -92,6 +92,9 @@ class VariableInfo {
   resourceType: ResourceType;
   // The access mode of the variable, can be: "", "read", "write", or "read_write".
   access: string;
+  // Associated objects, for relating samplers to textures.
+  // For a call to textureSample(texture, sampler), texture.relations will include sampler, and sampler.relations will include texture.
+  relations: Array<VariableInfo> | null;
 
   // True if the type of the variable is an array.
   get isArray(): boolean;

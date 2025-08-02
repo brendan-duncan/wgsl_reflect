@@ -209,6 +209,7 @@ export class VariableInfo {
   binding: number;
   resourceType: ResourceType;
   access: string;
+  relations: Array<VariableInfo> | null = null;
 
   constructor(
     name: string,

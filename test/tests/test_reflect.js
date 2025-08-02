@@ -3,6 +3,33 @@ import { WgslReflect, ResourceType } from "../../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Reflect", async function () {
+    await test("sampler usage", async function (test) {
+      const t = new WgslReflect(`
+        struct VertexOutput {
+            @builtin(position) position: vec4<f32>,
+            @location(0) uv: vec2<f32>,
+        };
+        @vertex
+        fn vs_main(@location(0) in_position: vec2<f32>, @location(1) in_uv: vec2<f32>) -> VertexOutput {
+            var out: VertexOutput;
+            out.position = vec4<f32>(in_position, 0.0, 1.0);
+            out.uv = in_uv;
+            return out;
+        }
+        @group(0) @binding(0) var texture: texture_2d<f32>;
+        @group(0) @binding(1) var textureSampler: sampler;
+        @fragment
+        fn fs_main(in: VertexOutput) -> @location(0) vec4f {
+            let uv: vec2<f32> = vec2<f32>(in.uv.x, in.uv.y);
+            let color = textureSample(texture, textureSampler, uv);
+            return color;
+        }`);
+        test.equals(t.samplers.length, 1);
+        test.equals(t.textures.length, 1);
+        test.equals(t.samplers[0].relations[0], t.textures[0]);
+        test.equals(t.textures[0].relations[0], t.samplers[0]);
+    });
+
     await test("switch", async function (test) {
       const t = new WgslReflect(`
         @group(0) @binding(0) var<storage> buffer1: array<u32>;

@@ -432,6 +432,38 @@ export class Reflect {
           }
           resources.push(...callFn.resources);
         }
+        if (c.name === "textureSample") {
+          if (c.args.length >= 2) {
+            const textureArg = c.args[0];
+            let texture = null;
+            if (textureArg instanceof VariableExpr) {
+              const varInfo = self._findResource(textureArg.name);
+              if (varInfo && varInfo.resourceType === ResourceType.Texture) {
+                texture = varInfo;
+              }
+            }
+            const samplerArg = c.args[1];
+            let sampler = null;
+            if (samplerArg instanceof VariableExpr) {
+              const varInfo = self._findResource(samplerArg.name);
+              if (varInfo && varInfo.resourceType === ResourceType.Sampler) {
+                sampler = varInfo;
+              }
+            }
+
+            if (texture && sampler) {
+              if (texture.relations === null) {
+                texture.relations = [];
+              }
+              texture.relations.push(sampler);
+
+              if (sampler.relations === null) {
+                sampler.relations = [];
+              }
+              sampler.relations.push(texture);
+            }
+          }
+        }
       } else if (node instanceof Call) {
         const c = node as Call;
         const callFn = self._functions.get(c.name);

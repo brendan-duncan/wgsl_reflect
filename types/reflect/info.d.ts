@@ -71,6 +71,7 @@ export declare class VariableInfo {
     binding: number;
     resourceType: ResourceType;
     access: string;
+    relations: Array<VariableInfo> | null;
     constructor(name: string, type: TypeInfo, group: number, binding: number, attributes: Attribute[] | null, resourceType: ResourceType, access: string);
     get isArray(): boolean;
     get isStruct(): boolean;
