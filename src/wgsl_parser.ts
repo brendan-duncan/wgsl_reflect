@@ -1443,7 +1443,7 @@ export class WgslParser {
     } while (this._match(TokenTypes.tokens.comma));
     this._consume(
       TokenTypes.tokens.paren_right,
-      "Expected ')' for agument list"
+      "Expected ')' for argument list"
     );
 
     return args;
