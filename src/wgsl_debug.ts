@@ -6,7 +6,16 @@ import { Command, StatementCommand, CallExprCommand, GotoCommand, BlockCommand,
         ContinueTargetCommand, ContinueCommand, BreakCommand, BreakTargetCommand } from "./exec/command.js";
 import { StackFrame } from "./exec/stack_frame.js";
 import { ExecStack } from "./exec/exec_stack.js";
-import { ScalarData, VectorData, MatrixData, TextureData, TypedData, VoidData } from "./wgsl_ast.js";
+import {
+    ScalarData,
+    VectorData,
+    MatrixData,
+    TextureData,
+    TypedData,
+    VoidData,
+    ArrayType,
+    LiteralExpr
+} from "./wgsl_ast.js";
 
 type RuntimeStateCallbackType = () => void;
 
@@ -290,9 +299,9 @@ export class WgslDebug {
                                         // all other types
                                         // trashy, create an array size one and pull the first element, couldn't find a better way to support a ton of types.
                                         const arrayType = new ArrayType(`array<${node.type.name}>`, [], node.type, 1)
-                                        // noinspection TypeScriptValidateTypes
-                                        const index = new ArrayIndex(0);
-                                        v.value = new TypedData(entry, this._exec.getTypeInfo(arrayType)).getSubData(null, index, null);
+                                        let i32 = this._exec.getTypeInfo('i32');
+                                        const index = new AST.ArrayIndex(new AST.LiteralExpr(new ScalarData(new Int32Array([0]), i32), AST.Type.u32));
+                                        v.value = new TypedData(entry, this._exec.getTypeInfo(arrayType)).getSubData(new WgslExec(), index, null);
                                     }
                                 }
                             }

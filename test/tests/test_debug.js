@@ -211,7 +211,6 @@ export async function run() {
       const buffer = new Float32Array([6]);
       const bg = {0: {0: buffer}};
       const dbg = new WgslDebug(shader);
-      console.log('lol')
       dbg.debugWorkgroup("main", [1, 0, 0], 4, bg);
       while (dbg.stepNext());
       test.equals(buffer, [48]);
@@ -238,7 +237,7 @@ export async function run() {
       dbg.stepNext(); // LET: i = id.x;
       dbg.stepNext(); // CALL: scale(buffer[i], 2.0)
       dbg.stepNext(); // RETURN: x * y
-      dbg.stepNext(); // ASSIGN: buffer[i] = <value> 
+      dbg.stepNext(); // ASSIGN: buffer[i] = <value>
 
       // Test that we only executed the [1, 0, 0] global_invocation_id.
       test.equals(buffer, [1, 4, 6, 0]);
