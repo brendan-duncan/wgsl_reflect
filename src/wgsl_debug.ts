@@ -274,17 +274,26 @@ export class WgslDebug {
                                 }
                             }
                             if (found) {
+                                let typeInfo = this._exec.getTypeInfo(node.type);
                                 if (entry.texture !== undefined && entry.descriptor !== undefined) {
                                     // Texture
-                                    const textureData = new TextureData(entry.texture, this._exec.getTypeInfo(node.type), entry.descriptor,
-                                                                        entry.texture.view ?? null);
-                                    v.value = textureData;
+                                    v.value = new TextureData(entry.texture, typeInfo, entry.descriptor,
+                                        entry.texture.view ?? null);
                                 } else if (entry.uniform !== undefined) {
                                     // Uniform buffer
-                                    v.value = new TypedData(entry.uniform, this._exec.getTypeInfo(node.type));
+                                    v.value = new TypedData(entry.uniform, typeInfo);
                                 } else {
-                                    // Storage buffer
-                                    v.value = new TypedData(entry, this._exec.getTypeInfo(node.type));
+                                    if (typeInfo.isStruct || typeInfo.isArray) {
+                                        // Storage buffer
+                                        v.value = new TypedData(entry, typeInfo);
+                                    } else {
+                                        // all other types
+                                        // trashy, create an array size one and pull the first element, couldn't find a better way to support a ton of types.
+                                        const arrayType = new ArrayType(`array<${node.type.name}>`, [], node.type, 1)
+                                        // noinspection TypeScriptValidateTypes
+                                        const index = new ArrayIndex(0);
+                                        v.value = new TypedData(entry, this._exec.getTypeInfo(arrayType)).getSubData(null, index, null);
+                                    }
                                 }
                             }
                         }
