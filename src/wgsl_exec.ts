@@ -242,7 +242,11 @@ export class WgslExec extends ExecInterface {
         } else if (stmt instanceof Override) {
             const name = stmt.name;
             if (context.getVariable(name) === null) {
-                context.setVariable(name, new ScalarData(0, this.getTypeInfo("u32")));
+                let value:Data = new ScalarData(0, this.getTypeInfo("u32"))
+                if (stmt.value !== null) {
+                    value = this.evalExpression(stmt.value, context);
+                }
+                context.setVariable(name, value);
                 //console.error(`Override constant ${name} not found. Line ${stmt.line}`);
             }
         } else if (stmt instanceof Call) {
@@ -2482,3 +2486,4 @@ export class WgslExec extends ExecInterface {
         return new MatrixData(values, typeInfo).getSubData(this, node.postfix, context);
     }
 }
+
