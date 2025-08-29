@@ -217,6 +217,8 @@ export class WgslExec extends ExecInterface {
             this._var(stmt, context);
         } else if (stmt instanceof Const) {
             this._const(stmt, context);
+        } else if (stmt instanceof Override) {
+            this._override(stmt, context);
         } else if (stmt instanceof Function) {
             this._function(stmt, context);
         } else if (stmt instanceof If) {
@@ -975,6 +977,18 @@ export class WgslExec extends ExecInterface {
             value = this.evalExpression(node.value, context);
         }
         context.createVariable(node.name, value, node);
+    }
+
+    _override(node: Override, context: ExecContext): void {
+        // Only set override value if it hasn't been provided as a constant override
+        const v = context.getVariable(node.name);
+        if (v === null || v.value === null) {
+            let value = null;
+            if (node.value !== null) {
+                value = this.evalExpression(node.value, context);
+            }
+            context.createVariable(node.name, value, node);
+        }
     }
 
     _let(node: Let, context: ExecContext): void {

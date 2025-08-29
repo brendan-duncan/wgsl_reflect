@@ -696,6 +696,7 @@ export class WgslDebug {
             if (statement instanceof AST.Let ||
                 statement instanceof AST.Var ||
                 statement instanceof AST.Const ||
+                statement instanceof AST.Override ||
                 statement instanceof AST.Assign) {
                 const functionCalls = [];
                 this._collectFunctionCalls(statement.value, functionCalls);

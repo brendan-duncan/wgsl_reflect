@@ -3,7 +3,30 @@ import { WgslDebug } from "../../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Debug", async function () {
-    test("callexpr", function (test) {
+    await test("default value override", async function (test) {
+      const shader = `
+      override test_val = 64;
+      let bar = test_val;`;
+      const dbg = new WgslDebug(shader);
+      dbg.startDebug()
+      while (dbg.stepNext());
+      const v = dbg.getVariableValue("bar");
+      test.equals(v, 64);
+    });
+
+    await test("default value override actually overridden", async function (test) {
+      const shader = `
+      override test_val = 64;
+      let bar = test_val;`;
+      const dbg = new WgslDebug(shader);
+      dbg.startDebug()
+      dbg._setOverrides({test_val: 65}, dbg.context);
+      while (dbg.stepNext());
+      const v = dbg.getVariableValue("bar");
+      test.equals(v, 65);
+    });
+
+    await test("callexpr", function (test) {
       const shader = `
         let foo = photon();
         fn photon() -> vec3f {
@@ -27,7 +50,7 @@ export async function run() {
       test.equals(dbg.getVariableValue("foo"), [1, -3, 2]);
     });
 
-    test("switch default selector", function (test) {
+    await test("switch default selector", function (test) {
         const shader = `
           const c = 2;
           fn foo(x: i32) -> i32 {
