@@ -696,7 +696,8 @@ export class WgslDebug {
             if (statement instanceof AST.Let ||
                 statement instanceof AST.Var ||
                 statement instanceof AST.Const ||
-                statement instanceof AST.Assign) {
+                statement instanceof AST.Assign||
+                statement instanceof AST.Override) {
                 const functionCalls = [];
                 this._collectFunctionCalls(statement.value, functionCalls);
                 for (const call of functionCalls) {
@@ -946,3 +947,4 @@ export class WgslDebug {
         }
     }
 }
+
