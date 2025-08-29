@@ -72,7 +72,31 @@ export async function run() {
       const v = dbg.getVariableValue("bar");
       test.equals(v, 3);
     });
+    
+    await test("default value override", async function (test) {
+      const shader = `
+      override test_val = 64;
+      let bar = test_val;`;
+      const dbg = new WgslDebug(shader);
+      dbg.stepNext();
+      test.equals(dbg.getVariableValue("test_val"), 64);
+      dbg.stepNext();
+      const v = dbg.getVariableValue("bar");
+      test.equals(v, 64);
+    });
 
+    await test("default value override actually overridden", async function (test) {
+      const shader = `
+      override test_val = 64;
+      let bar = test_val;`;
+      const dbg = new WgslDebug(shader);
+      dbg.startDebug()
+      dbg._setOverrides({test_val: 65}, dbg.context);
+      while (dbg.stepNext());
+      const v = dbg.getVariableValue("bar");
+      test.equals(v, 65);
+    });
+    
     await test("vec2 operators", async function (test) {
       var shader = `let i = 2;
         var a = vec2<f32>(1.0, 2.0);
@@ -228,3 +252,4 @@ export async function run() {
     });
   }, true);
 }
+
