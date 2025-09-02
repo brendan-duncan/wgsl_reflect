@@ -295,6 +295,7 @@ export class WgslDebug {
                                         v.value = new TypedData(entry, this._exec.getTypeInfo(arrayType)).getSubData(new WgslExec(), index, null);
                                     }
                                 }
+                            }
                         }
                     }
                 });
