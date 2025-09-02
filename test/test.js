@@ -366,8 +366,12 @@ export async function webgpuDispatch(shader, module, dispatchCount, bindgroupDat
                 const texture = device.createTexture(data.descriptor);
 
                 // TODO: this is hard-coded to assume 4 bytes per pixel and no mips
-                device.queue.writeTexture({ texture }, data.texture[0], {bytesPerRow: data.descriptor.size[0] * 4},
-                    {width: data.descriptor.size[0], height: data.descriptor.size[1]});
+                device.queue.writeTexture({ texture }, data.texture[0], {bytesPerRow: data.descriptor.size[0] * 4,
+                    rowsPerImage:data.descriptor.size[1]},
+                    {width: data.descriptor.size[0], height: data.descriptor.size[1], depthOrArrayLayers:data.descriptor.size[2]});
+                if (bindGroups[group] === undefined) {
+                  bindGroups[group] = [];
+                }
 
                 bindGroups[group].push({ binding, resource: texture.createView() });
             }

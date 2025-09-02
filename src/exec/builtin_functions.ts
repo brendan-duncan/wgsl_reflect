@@ -950,9 +950,9 @@ export class BuiltinFunctions {
     }
 
     TextureLoad(node: CallExpr | Call, context: ExecContext): Data | null {
+        // https://www.w3.org/TR/WGSL/#textureload
         const textureArg = node.args[0];
         const uv = this.exec.evalExpression(node.args[1], context);
-        const level = node.args.length > 2 ? (this.exec.evalExpression(node.args[2], context) as ScalarData).value : 0;
 
         // TODO: non-vec2 UVs, for non-2D textures
         if (!(uv instanceof VectorData) || uv.data.length !== 2) {
@@ -964,14 +964,27 @@ export class BuiltinFunctions {
             const textureName = (textureArg as VariableExpr).name;
             const texture = context.getVariableValue(textureName);
             if (texture instanceof TextureData) {
+                let zVal = 0;
+                let mipLevel = 0;
+                if (["texture_storage_2d_array", "texture_2d_array", "texture_depth_2d_array"].indexOf(texture.typeInfo.name) > -1) {
+                    zVal = (this.exec.evalExpression(node.args[2], context)as ScalarData).value;
+                }
+                if (["texture_1d", "texture_2d", "texture_depth_2d", "texture_3d"].indexOf(texture.typeInfo.name) > -1) {
+                    mipLevel = (this.exec.evalExpression(node.args[2], context)as ScalarData).value;
+                }
+                if (["texture_2d_array", "texture_depth_2d_array"].indexOf(texture.typeInfo.name) > -1) {
+                    mipLevel = (this.exec.evalExpression(node.args[3], context)as ScalarData).value;
+                }
                 const x = Math.floor(uv.data[0]);
                 const y = Math.floor(uv.data[1]);
+                const z = Math.floor(zVal);
+                const level = Math.floor(mipLevel)
                 if (x < 0 || x >= texture.width || y < 0 || y >= texture.height) {
                     console.error(`Texture ${textureName} out of bounds. Line ${node.line}`);
                     return null;
                 }
 
-                const texel = texture.getPixel(x, y, 0, level);
+                const texel = texture.getPixel(x, y, z, level);
                 if (texel === null) {
                     console.error(`Invalid texture format for textureLoad. Line ${node.line}`);
                     return null;
