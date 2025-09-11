@@ -1,5 +1,5 @@
 import { test, group } from "../test.js";
-import { WgslDebug } from "../../../wgsl_reflect.module.js";
+import { WgslDebug } from "../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Debug", async function () {
@@ -222,7 +222,7 @@ export async function run() {
       // Test that we only executed the [1, 0, 0] global_invocation_id.
       test.equals(buffer, [1, 4, 6, 0]);
     });
-    
+
     await test("scalar binding", async function (test) {
       const shader = `
           @group(0) @binding(0) var<storage, read_write> buffer: f32;
@@ -238,7 +238,7 @@ export async function run() {
       while (dbg.stepNext());
       test.equals(buffer, [48]);
     });
-    
+
     await test("dispatch function call", async function (test) {
       const shader = `
           fn scale(x: f32, y: f32) -> f32 {
@@ -260,7 +260,7 @@ export async function run() {
       dbg.stepNext(); // LET: i = id.x;
       dbg.stepNext(); // CALL: scale(buffer[i], 2.0)
       dbg.stepNext(); // RETURN: x * y
-      dbg.stepNext(); // ASSIGN: buffer[i] = <value> 
+      dbg.stepNext(); // ASSIGN: buffer[i] = <value>
 
       // Test that we only executed the [1, 0, 0] global_invocation_id.
       test.equals(buffer, [1, 4, 6, 0]);

@@ -7,6 +7,7 @@
   "module": "wgsl_reflect.module.js",
   "main": "wgsl_reflect.node.js",
   "types": "types/index.d.ts",
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "https://github.com/brendan-duncan/wgsl_reflect"
@@ -46,7 +47,9 @@
     "rollup": "^2.60.0",
     "tslib": "^2.6.1",
     "@rollup/plugin-typescript": "^11.1.2",
-    "@rollup/plugin-terser": "^0.4.4"
+    "@rollup/plugin-terser": "^0.4.4",
+    "webgpu": "^0.3.0",
+    "jsdom": "^26.1.0"
   },
   "jspm": {
     "files": [
