@@ -1431,6 +1431,7 @@ export async function run() {
       test.equals(reflect.entry.vertex[5].resources.length, 2);
       test.equals(reflect.entry.vertex[5].resources[0].name, "u1");
       test.equals(reflect.entry.vertex[5].resources[1].name, "u2");
+      test.equals(reflect.functions.find(f=> f.name === "getU3").resources[0].name, "u3");
     });
 
     await test("function arguments and return types", function (test) {
@@ -1458,4 +1459,5 @@ export async function run() {
     });
   });
 }
+
 
