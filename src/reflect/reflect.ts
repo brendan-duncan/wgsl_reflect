@@ -427,9 +427,8 @@ export class Reflect {
             callFn.inUse = true;
           }
           (fn as Function).calls.add(callFn.node);
-          if (callFn.resources === null) {
-            callFn.resources = self._findResources(callFn.node, isEntry);
-          }
+          // force the recursion to mark the structures
+          callFn.resources = self._findResources(callFn.node, isEntry);
           resources.push(...callFn.resources);
         }
         if (c.name === "textureSample") {
@@ -472,9 +471,8 @@ export class Reflect {
             callFn.inUse = true;
           }
           (fn as Function).calls.add(callFn.node);
-          if (callFn.resources === null) {
-            callFn.resources = self._findResources(callFn.node, isEntry);
-          }
+          // force the recursion to mark the structures
+          callFn.resources = self._findResources(callFn.node, isEntry);
           resources.push(...callFn.resources);
         }
       }
@@ -1021,4 +1019,5 @@ export class Reflect {
     return t.name;
   });
 }
+
 
