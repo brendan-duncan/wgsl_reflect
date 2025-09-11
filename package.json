@@ -33,7 +33,8 @@
   "scripts": {
     "build": "rollup -c rollup.config.js",
     "watch": "npm run watch:js",
-    "watch:js": "rollup -c rollup.config.js --watch"
+    "watch:js": "rollup -c rollup.config.js --watch",
+    "test": "cd test; node test_node.js"
   },
   "keywords": [
     "wgsl_reflect",
