@@ -167,11 +167,11 @@ export class Reflect {
         if (stage) {
           this._functions.get(node.name)!.inUse = true;
           fn.inUse = true;
-          fn.resources = this._findResources(node, !!stage);
           fn.inputs = this._getInputs(node.args);
           fn.outputs = this._getOutputs(node.returnType);
           this.entry[stage.name].push(fn);
         }
+        fn.resources = this._findResources(node, !!stage);
 
         fn.arguments = node.args.map(
           (arg) => new ArgumentInfo(arg.name, this.getTypeInfo(arg.type, arg.attributes), arg.attributes)
@@ -1021,3 +1021,4 @@ export class Reflect {
     return t.name;
   });
 }
+
