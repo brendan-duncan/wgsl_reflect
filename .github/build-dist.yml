@@ -1,0 +1,46 @@
+name: Build & Commit Dist Files
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "types/**"
+      - "rollup.config.js"
+      - "package.json"
+  workflow_dispatch: {} # manual redeploy when needed
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # needed to push changes back
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build distribution
+        run: npm run build
+
+      - name: Commit built files
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add wgsl_reflect.node.js wgsl_reflect.module.js \
+                  wgsl_reflect.node.js.map wgsl_reflect.module.js.map
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "chore: auto-build dist after changes"
+            git push
+          fi
