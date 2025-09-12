@@ -167,11 +167,11 @@ export class Reflect {
         if (stage) {
           this._functions.get(node.name)!.inUse = true;
           fn.inUse = true;
-          fn.resources = this._findResources(node, !!stage);
           fn.inputs = this._getInputs(node.args);
           fn.outputs = this._getOutputs(node.returnType);
           this.entry[stage.name].push(fn);
         }
+        fn.resources = this._findResources(node, !!stage);
 
         fn.arguments = node.args.map(
           (arg) => new ArgumentInfo(arg.name, this.getTypeInfo(arg.type, arg.attributes), arg.attributes)
@@ -427,9 +427,8 @@ export class Reflect {
             callFn.inUse = true;
           }
           (fn as Function).calls.add(callFn.node);
-          if (callFn.resources === null) {
-            callFn.resources = self._findResources(callFn.node, isEntry);
-          }
+          // force the recursion to mark the structures
+          callFn.resources = self._findResources(callFn.node, isEntry);
           resources.push(...callFn.resources);
         }
         if (c.name === "textureSample") {
@@ -472,9 +471,8 @@ export class Reflect {
             callFn.inUse = true;
           }
           (fn as Function).calls.add(callFn.node);
-          if (callFn.resources === null) {
-            callFn.resources = self._findResources(callFn.node, isEntry);
-          }
+          // force the recursion to mark the structures
+          callFn.resources = self._findResources(callFn.node, isEntry);
           resources.push(...callFn.resources);
         }
       }
@@ -1021,3 +1019,5 @@ export class Reflect {
     return t.name;
   });
 }
+
+
