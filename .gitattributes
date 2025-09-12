@@ -1,0 +1,2 @@
+# For all files in the repo, default to LF line endings
+* text=auto eol=lf

@@ -348,8 +348,12 @@ export async function run() {
           c: u32,
         };
         fn notInUse() -> void { }
-        fn inUse2() -> void {
+        fn inUse3() -> vec4f {
           let b = B(1);
+          return vec4f(0);
+        }
+        fn inUse2() {
+          let v = inUse3();
         }
         fn inUse() -> void { inUse2(); }
         @group(0) @binding(0) var<uniform> foo : A;
@@ -358,7 +362,7 @@ export async function run() {
           inUse();
         }`);
       test.equals(reflect.structs.length, 3);
-      
+
       test.equals(reflect.structs[0].startLine, 2);
       test.equals(reflect.structs[0].endLine, 4);
 
@@ -369,26 +373,26 @@ export async function run() {
       test.equals(reflect.structs[2].endLine, 10);
 
       test.equals(reflect.entry.vertex.length, 1);
-      test.equals(reflect.entry.vertex[0].startLine, 18);
-      test.equals(reflect.entry.vertex[0].endLine, 20);
+      test.equals(reflect.entry.vertex[0].startLine, 22);
+      test.equals(reflect.entry.vertex[0].endLine, 24);
 
       test.equals(reflect.structs[0].inUse, true, "A inUse"); // A, used by uniform
       test.equals(reflect.structs[1].inUse, true, "B inUse"); // B, used by inUse2
       test.equals(reflect.structs[2].inUse, false, "C inUse"); // C is not used
 
-      test.equals(reflect.functions.length, 4);
+      test.equals(reflect.functions.length, 5);
       test.equals(reflect.functions[0].name, "notInUse");
       test.equals(reflect.functions[0].inUse, false, "notInUse");
       test.equals(reflect.functions[0].calls.size, 0, "notInUse calls");
-      test.equals(reflect.functions[1].name, "inUse2");
-      test.equals(reflect.functions[1].inUse, true, "inUse2");
+      test.equals(reflect.functions[1].name, "inUse3");
+      test.equals(reflect.functions[1].inUse, true, "inUse3");
       test.equals(reflect.functions[1].calls.size, 0, "inUse2 calls");
-      test.equals(reflect.functions[2].name, "inUse");
-      test.equals(reflect.functions[2].inUse, true, "inUse");
-      test.equals(reflect.functions[2].calls.size, 1, "inUse calls"); // inUse2
-      test.equals(reflect.functions[3].name, "vertex_main");
-      test.equals(reflect.functions[3].inUse, true, "vertex_main");
-      test.equals(reflect.functions[3].calls.size, 1, "vertex_main calls"); // inUse
+      test.equals(reflect.functions[2].name, "inUse2");
+      test.equals(reflect.functions[2].inUse, true, "inUse2");
+      test.equals(reflect.functions[2].calls.size, 1, "inUse calls");
+      test.equals(reflect.functions[3].name, "inUse");
+      test.equals(reflect.functions[3].inUse, true, "inUse");
+      test.equals(reflect.functions[3].calls.size, 1, "inUse calls");
     });
 
     await test("uniform u32", function (test) {
@@ -1401,7 +1405,7 @@ export async function run() {
         }
         `);
       test.equals(reflect.entry.vertex.length, 6);
-      
+
       test.equals(reflect.entry.vertex[0].resources.length, 1);
       test.equals(reflect.entry.vertex[0].resources[0].name, "u1");
       test.equals(reflect.entry.vertex[0].resources[0].type.name, "vec4f");
@@ -1427,6 +1431,7 @@ export async function run() {
       test.equals(reflect.entry.vertex[5].resources.length, 2);
       test.equals(reflect.entry.vertex[5].resources[0].name, "u1");
       test.equals(reflect.entry.vertex[5].resources[1].name, "u2");
+      test.equals(reflect.functions.find(f=> f.name === "getU3").resources[0].name, "u3");
     });
 
     await test("function arguments and return types", function (test) {
