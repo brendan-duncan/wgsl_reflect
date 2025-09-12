@@ -1,5 +1,5 @@
 import { test, group } from "../test.js";
-import { WgslReflect, ResourceType } from "../../../wgsl_reflect.module.js";
+import { WgslReflect, ResourceType } from "../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Reflect", async function () {
@@ -1405,7 +1405,7 @@ export async function run() {
         }
         `);
       test.equals(reflect.entry.vertex.length, 6);
-      
+
       test.equals(reflect.entry.vertex[0].resources.length, 1);
       test.equals(reflect.entry.vertex[0].resources[0].name, "u1");
       test.equals(reflect.entry.vertex[0].resources[0].type.name, "vec4f");
@@ -1459,5 +1459,3 @@ export async function run() {
     });
   });
 }
-
-

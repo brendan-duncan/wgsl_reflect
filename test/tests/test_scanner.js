@@ -1,5 +1,5 @@
 import { test, group } from "../test.js";
-import { WgslScanner, TokenTypes } from "../../../wgsl_reflect.module.js";
+import { WgslScanner, TokenTypes } from "../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Scanner", async function () {

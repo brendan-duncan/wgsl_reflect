@@ -316,6 +316,14 @@ async function getWebGPUDevice() {
     return __device;
 }
 
+export async function shutdownDevice() {
+    const dev = __device;
+    if (dev !== null) {
+        dev.destroy();
+        __device = null;
+    }
+}
+
 export async function webgpuDispatch(shader, module, dispatchCount, bindgroupData, options) {
     const device = await getWebGPUDevice();
 
@@ -443,7 +451,7 @@ export async function webgpuDispatch(shader, module, dispatchCount, bindgroupDat
 export async function group(name, f, skipCatchError) {
     let div = document.createElement("div");
     div.className = "test_group";
-    div.innerText = name;
+    div.textContent = name;
     document.body.append(div);
 
     const group = {
@@ -463,7 +471,7 @@ export async function group(name, f, skipCatchError) {
         } catch (error) {
             div = document.createElement("div");
             div.className = "test_status_fail";
-            div.innerText = `${error}`;
+            div.textContent = `${error}`;
             document.body.appendChild(div);
         }
     }
@@ -473,7 +481,7 @@ export async function group(name, f, skipCatchError) {
 
     const numPassed = group.numTests - group.testsFailed;
     div.className = (group.testsFailed > 0) ? "test_status_fail" : "test_status_pass";
-    div.innerText = `Tests: ${numPassed} / ${group.numTests}`;
+    div.textContent = `Tests: ${numPassed} / ${group.numTests}`;
 
     __test.totalTests += group.numTests;
     __test.totalFailed += group.testsFailed;
@@ -514,9 +522,9 @@ export async function test(name, func, skipCatchError) {
                 stack = ` ${error.stack}`;
             }
             if (error.fileName !== undefined) {
-                div.innerText = `${name} FAILED: ${error.fileName}:${error.lineNumber}: ${error} ${stack}`;
+                div.textContent = `${name} FAILED: ${error.fileName}:${error.lineNumber}: ${error} ${stack}`;
             } else {
-                div.innerText = `${name} FAILED: ${error} ${stack}`;
+                div.textContent = `${name} FAILED: ${error} ${stack}`;
             }
 
             if (group.group !== undefined) {
@@ -541,7 +549,7 @@ export async function test(name, func, skipCatchError) {
 
     const div = document.createElement("div");
     div.className = t.state ? "test_pass" : "test_fail";
-    div.innerText = `${name} ${t.state ? "PASSED" : "FAILED"}: ${msg}`;
+    div.textContent = `${name} ${t.state ? "PASSED" : "FAILED"}: ${msg}`;
 
     if (group.group != undefined) {
         group.group.appendChild(div);

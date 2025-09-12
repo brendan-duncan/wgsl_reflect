@@ -1,5 +1,5 @@
 import { test, group } from "../test.js";
-import { WgslReflect } from "../../../wgsl_reflect.module.js";
+import { WgslReflect } from "../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("struct_layout", async function () {
