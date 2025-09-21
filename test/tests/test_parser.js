@@ -1,5 +1,5 @@
 import { test, group } from "../test.js";
-import { WgslParser } from "../../../wgsl_reflect.module.js";
+import { WgslParser } from "../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Parser", async function () {

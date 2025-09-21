@@ -7,6 +7,9 @@
     <body>
         <div class="test_title">wgsl_reflect Tests</div>
         <hr>
-        <script type="module" src="./test_all.js"></script>
+        <script type="module">
+          import { runTests } from "./test_all.js";
+          await runTests();
+        </script>
     </body>
 </html>
