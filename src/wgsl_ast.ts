@@ -2801,6 +2801,45 @@ export class TypedData extends Data {
           if (typeName === "mat4x4" || typeName === "mat4x4f" || typeName === "mat4x4h") {
             offset += i * 16;
             typeInfo = exec.getTypeInfo("vec4f")!;
+          } else if (typeName === "mat4x3" || typeName === "mat4x3f" || typeName === "mat4x3h") {
+            offset += i * 12;
+            typeInfo = exec.getTypeInfo("vec3f")!;
+          } else if (typeName === "mat4x2" || typeName === "mat4x2f" || typeName === "mat4x2h") {
+            offset += i * 8;
+            typeInfo = exec.getTypeInfo("vec2f")!;
+          } else if (typeName === "mat3x4" || typeName === "mat3x4f" || typeName === "mat3x4h") {
+            offset += i * 12;
+            typeInfo = exec.getTypeInfo("vec4f")!;
+          } else if (typeName === "mat3x3" || typeName === "mat3x3f" || typeName === "mat3x3h") {
+            offset += i * 9;
+            typeInfo = exec.getTypeInfo("vec3f")!;
+          } else if (typeName === "mat3x2" || typeName === "mat3x2f" || typeName === "mat3x2h") {
+            offset += i * 6;
+            typeInfo = exec.getTypeInfo("vec2f")!;
+          } else if (typeName === "mat2x4" || typeName === "mat2x4f" || typeName === "mat2x4h") {
+            offset += i * 8;
+            typeInfo = exec.getTypeInfo("vec4f")!;
+          } else if (typeName === "mat2x3" || typeName === "mat2x3f" || typeName === "mat2x3h") {
+            offset += i * 6;
+            typeInfo = exec.getTypeInfo("vec3f")!;
+          } else if (typeName === "mat2x2" || typeName === "mat2x2f" || typeName === "mat2x2h") {
+            offset += i * 4;
+            typeInfo = exec.getTypeInfo("vec2f")!;
+          } else if (typeName === "vec2f" || typeName === "vec3f" || typeName === "vec4f") {
+            offset += i * 4;
+            typeInfo = exec.getTypeInfo("f32")!;
+          } else if (typeName === "vec2h" || typeName === "vec3h" || typeName === "vec4h") {
+            offset += i * 2;
+            typeInfo = exec.getTypeInfo("f16")!;
+          } else if (typeName === "vec2b" || typeName === "vec3b" || typeName === "vec4b") {
+            offset += i * 1;
+            typeInfo = exec.getTypeInfo("bool")!;
+          } else if (typeName === "vec2i" || typeName === "vec3i" || typeName === "vec4i") {
+            offset += i * 4;
+            typeInfo = exec.getTypeInfo("i32")!;
+          } else if (typeName === "vec2u" || typeName === "vec3u" || typeName === "vec4u") {
+            offset += i * 4;
+            typeInfo = exec.getTypeInfo("u32")!;
           } else {
             console.error(`getDataValue: Type ${typeInfo.getTypeName()} is not an array`);
           }

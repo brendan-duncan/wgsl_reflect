@@ -9,13 +9,16 @@ export async function run() {
     await group("WgslExec", async function () {
         await test("mat3x2 array index", async function (test) {
             const shader = `
+                struct S {
+                    v4: vec4f,
+                };
                 @group(0) @binding(0) var<storage, read_write> data: vec3f;
                 @compute @workgroup_size(1) fn main() {
                     let m = mat3x3<f32>(2.0, 0.0, 0.0, 
                                 0.0, 2.0, 0.0,
                                 0.0, 0.0, 2.0, );
-                    let v = vec3f(1.0, 1.0, 1.0);
-                    data = m[0] * v;
+                    let v = S(vec4f(vec3f(1.0, 4.0, 8.0), 10.0));
+                    data = m[0] * v.v4.xyz * v.v4[1];
                 }`;
             const dataBuffer = new Float32Array([0, 0, 0]);
             const bg = {0: {0: dataBuffer}};
