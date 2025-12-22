@@ -3,6 +3,19 @@ import { WgslReflect, ResourceType } from "../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Reflect", async function () {
+    await test("texture access", async function (test) {
+      const t = new WgslReflect(`
+        @group(0) @binding(1) var x_Crest_ResultInit_origX0X : texture_storage_2d_array<rgba32float, write>;
+        @compute @workgroup_size(8,8,1)
+        fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
+          let color = vec4f(1.0, 0.0, 0.0, 1.0);
+          textureStore(x_Crest_ResultInit_origX0X, vec2i(global_id.xy), i32(global_id.z), color);
+        }
+      `);
+      test.equals(t.storage.length, 1);
+      test.equals(t.storage[0].access, 'write');
+    });
+
     await test("sampler usage", async function (test) {
       const t = new WgslReflect(`
         struct VertexOutput {

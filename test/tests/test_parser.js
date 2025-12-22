@@ -530,6 +530,10 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
         "var W_out_origX0X : texture_storage_2d<rgba16float, write>;"
       );
       test.equals(t.length, 1);
+      test.equals(t[0].name, "W_out_origX0X");
+      test.equals(t[0].type?.name, "texture_storage_2d");
+      test.equals(t[0].type?.format, "rgba16float");
+      test.equals(t[0].type?.access, "write");
     });
 
     await test("if (foo) { }", async function (test) {

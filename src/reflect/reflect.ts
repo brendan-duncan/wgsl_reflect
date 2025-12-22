@@ -126,8 +126,9 @@ export class Reflect {
         const b = this._getAttributeNum(v.attributes, "binding", 0);
         const type = this.getTypeInfo(v.type!, v.attributes);
         const isStorageTexture = this._isStorageTexture(type);
+        const access = isStorageTexture ? (type as TemplateInfo).access : v.access;
         const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, 
-            isStorageTexture ? ResourceType.StorageTexture : ResourceType.Texture, v.access);
+            isStorageTexture ? ResourceType.StorageTexture : ResourceType.Texture, access || v.access);
         if (!varInfo.access) {
           varInfo.access = "read";
         }
