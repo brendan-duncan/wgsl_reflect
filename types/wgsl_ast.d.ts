@@ -795,6 +795,7 @@ export declare class TypedData extends Data {
     setDataValue(exec: ExecInterface, value: Data, postfix: Expression | null, context: ExecContext): void;
     setData(exec: ExecInterface, value: Data, typeInfo: TypeInfo, offset: number, context: ExecContext): void;
     getSubData(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null;
+    toArray(): number[] | Float32Array | Int32Array | Uint32Array | null;
     toString(): string;
 }
 export declare class TextureData extends Data {

@@ -3016,6 +3016,64 @@ export class TypedData extends Data {
     return new TypedData(this.buffer, typeInfo, offset, this);
   }
 
+  toArray(): number[] | Float32Array | Int32Array | Uint32Array | null {
+    const typeName = this.typeInfo.getTypeName();
+
+    if (typeName === "f32" || typeName === "f16") {
+      return new Float32Array(this.buffer, this.offset, 1);
+    } else if (typeName === "i32" || typeName === "atomic<i32>" || typeName === "x32") {
+      return new Int32Array(this.buffer, this.offset, 1);
+    } else if (typeName === "u32" || typeName === "atomic<u32>") {
+      return new Uint32Array(this.buffer, this.offset, 1);
+    } else if (typeName === "bool") {
+      return new Int32Array(this.buffer, this.offset, 1);
+    } else if (typeName === "vec2f" || typeName === "vec2h") {
+      return new Float32Array(this.buffer, this.offset, 2);
+    } else if (typeName === "vec3f" || typeName === "vec3h") {
+      return new Float32Array(this.buffer, this.offset, 3);
+    } else if (typeName === "vec4f" || typeName === "vec4h") {
+      return new Float32Array(this.buffer, this.offset, 4);
+    } else if (typeName === "vec2i") {
+      return new Int32Array(this.buffer, this.offset, 2);
+    } else if (typeName === "vec3i") {
+      return new Int32Array(this.buffer, this.offset, 3);
+    } else if (typeName === "vec4i") {
+      return new Int32Array(this.buffer, this.offset, 4);
+    } else if (typeName === "vec2u") {
+      return new Uint32Array(this.buffer, this.offset, 2);
+    } else if (typeName === "vec3u") {
+      return new Uint32Array(this.buffer, this.offset, 3);
+    } else if (typeName === "vec4u") {
+      return new Uint32Array(this.buffer, this.offset, 4);
+    } else if (typeName === "vec2b") {
+      return new Uint32Array(this.buffer, this.offset, 2);
+    } else if (typeName === "vec3b") {
+      return new Uint32Array(this.buffer, this.offset, 3);
+    } else if (typeName === "vec4b") {
+      return new Uint32Array(this.buffer, this.offset, 4);
+    } else if (typeName === "mat2x2f" || typeName === "mat2x2h") {
+      return new Float32Array(this.buffer, this.offset, 4);
+    } else if (typeName === "mat2x3f" || typeName === "mat2x3h") {
+      return new Float32Array(this.buffer, this.offset, 6);
+    } else if (typeName === "mat2x4f" || typeName === "mat2x4h") {
+      return new Float32Array(this.buffer, this.offset, 8);
+    } else if (typeName === "mat3x2f" || typeName === "mat3x2h") {
+      return new Float32Array(this.buffer, this.offset, 6);
+    } else if (typeName === "mat3x3f" || typeName === "mat3x3h") {
+      return new Float32Array(this.buffer, this.offset, 9);
+    } else if (typeName === "mat3x4f" || typeName === "mat3x4h") {
+      return new Float32Array(this.buffer, this.offset, 12);
+    } else if (typeName === "mat4x2f" || typeName === "mat4x2h") {
+      return new Float32Array(this.buffer, this.offset, 8);
+    } else if (typeName === "mat4x3f" || typeName === "mat4x3h") {
+      return new Float32Array(this.buffer, this.offset, 12);
+    } else if (typeName === "mat4x4f" || typeName === "mat4x4h") {
+      return new Float32Array(this.buffer, this.offset, 16);
+    }
+
+    return null;
+  }
+
   toString(): string {
     let s = "";
     if (this.typeInfo instanceof ArrayInfo) {

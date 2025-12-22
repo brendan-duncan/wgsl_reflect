@@ -1500,16 +1500,29 @@ export class WgslExec extends ExecInterface {
         return null;
     }
 
+    _isMatrixType(data: Data): boolean {
+        const typeName = data.typeInfo.getTypeName();
+        return typeName.startsWith("mat");
+    }
+
+    _isVectorType(data: Data): boolean {
+        const typeName = data.typeInfo.getTypeName();
+        return typeName.startsWith("vec");
+    }
+
     _evalBinaryOp(node: BinaryOperator, context: ExecContext): Data | null {
         const _l = this.evalExpression(node.left, context);
         const _r = this.evalExpression(node.right, context);
 
         const l = _l instanceof ScalarData ? _l.value : 
             _l instanceof VectorData ? Array.from(_l.data) :
-            _l instanceof MatrixData ? Array.from(_l.data) : null;
+            _l instanceof MatrixData ? Array.from(_l.data) : 
+            _l instanceof TypedData ? _l.toArray() :
+            null;
         const r = _r instanceof ScalarData ? _r.value : 
             _r instanceof VectorData ? Array.from(_r.data) : 
             _r instanceof MatrixData ? Array.from(_r.data) :
+            _r instanceof TypedData ? _r.toArray() :
             null;
 
         switch (node.operator) {
@@ -1569,8 +1582,7 @@ export class WgslExec extends ExecInterface {
                 if (isArray(l) && isArray(r)) {
                     const la = l as number[];
                     const ra = r as number[];
-
-                    if (_l instanceof MatrixData && _r instanceof MatrixData) {
+                    if (this._isMatrixType(_l) && this._isMatrixType(_r)) {
                         const result = matrixMultiply(la, _l.typeInfo, ra, _r.typeInfo);
                         if (result === null) {
                             console.error(`Matrix multiplication failed. Line ${node.line}.`);
@@ -1580,14 +1592,14 @@ export class WgslExec extends ExecInterface {
                         const rowsA = MatrixTypeSize[_l.typeInfo.name][1];
                         const type = this.getTypeInfo(`mat${colsB}x${rowsA}f`);
                         return new MatrixData(result, type);
-                    } else if (_l instanceof MatrixData && _r instanceof VectorData) {
+                    } else if (this._isMatrixType(_l) && this._isVectorType(_r)) {
                         const result = matrixVectorMultiply(la, _l.typeInfo, ra, _r.typeInfo);
                         if (result === null) {
                             console.error(`Matrix vector multiplication failed. Line ${node.line}.`);
                             return null;
                         }
                         return new VectorData(result, _r.typeInfo);
-                    } else if (_l instanceof VectorData && _r instanceof MatrixData) {
+                    } else if (this._isVectorType(_l) && this._isMatrixType(_r)) {
                         const result = vectorMatrixMultiply(la, _l.typeInfo, ra, _r.typeInfo);
                         if (result === null) {
                             console.error(`Matrix vector multiplication failed. Line ${node.line}.`);
@@ -1606,7 +1618,7 @@ export class WgslExec extends ExecInterface {
                     const la = l as number[];
                     const rn = r as number;
                     const result = la.map((x: number, i: number) => x * rn);
-                    if (_l instanceof MatrixData) {
+                    if (this._isMatrixType(_l)) {
                         return new MatrixData(result, _l.typeInfo);
                     }
                     return new VectorData(result, _l.typeInfo);

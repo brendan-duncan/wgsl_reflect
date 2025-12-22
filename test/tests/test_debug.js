@@ -3,6 +3,60 @@ import { WgslDebug } from "../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Debug", async function () {
+    await test("mat4x4 uniform multiply", async function (test) {
+      const shader = `
+          @group(0) @binding(0) var<storage, read_write> mat: mat4x4<f32>;
+          @group(0) @binding(1) var<storage, read_write> vec: vec4<f32>;
+          fn foo(m: mat4x4<f32>, v: vec4<f32>) -> vec4<f32> {
+            return m * v;
+          }
+          @compute @workgroup_size(1)
+          fn main(@builtin(global_invocation_id) id: vec3<u32>) {
+              vec = foo(mat, vec);
+          }`;
+
+      // Verify the emulated dispatch has the same results as the WebGPU dispatch.
+      const mat = new Float32Array([2.0, 0.0, 0.0, 0.0,
+                                       0.0, 2.0, 0.0, 0.0,
+                                       0.0, 0.0, 2.0, 0.0,
+                                       0.0, 0.0, 0.0, 1.0]);
+                                        
+      const vec = new Float32Array([1.0, 2.0, 3.0, 1.0]);
+      const bg = {0: {0: mat, 1: vec}};
+      const dbg = new WgslDebug(shader);
+      dbg.debugWorkgroup("main", [1, 0, 0], 4, bg);
+      while (dbg.stepNext());
+      test.equals(vec, [2.0, 4.0, 6.0, 1.0]);
+    });
+
+    await test("mat4x4 multiply", async function (test) {
+        const shader = `
+          let a = mat4x4<f32>(
+                      2.0, 0.0, 0.0, 0.0,
+                      0.0, 2.0, 0.0, 0.0,
+                      0.0, 0.0, 2.0, 0.0,
+                      0.0, 0.0, 0.0, 1.0);
+          let b = mat4x4<f32>(
+                      2.0, 0.0, 0.0, 0.0,
+                      0.0, 2.0, 0.0, 0.0,
+                      0.0, 0.0, 2.0, 0.0,
+                      0.0, 0.0, 0.0, 1.0 );
+          let m = foo(a * b);
+          fn foo(m: mat4x4<f32>) -> mat4x4<f32> {
+            return m;
+          }
+        `;
+        const dbg = new WgslDebug(shader);
+        dbg.startDebug()
+        dbg.stepNext(); // LET a
+        dbg.stepNext(); // LET b
+        dbg.stepNext(); // LET m
+        const m = dbg.context.getVariable("m")?.value;
+        const mStr = m?.toString();
+        console.log(mStr);
+        test.equals(mStr, "4, 0, 0, 0, 0, 4, 0, 0, 0, 0, 4, 0, 0, 0, 0, 1");
+    });
+
     await test("default value override", async function (test) {
       const shader = `
       override test_val = 64;
