@@ -1451,9 +1451,12 @@ export class WgslParser {
 
   _optional_paren_expression(): AST.Expression {
     // [paren_left] short_circuit_or_expression [paren_right]
-    this._match(TokenTypes.tokens.paren_left);
+    let hasParen = this._match(TokenTypes.tokens.paren_left);
     const expr = this._short_circuit_or_expression();
-    this._match(TokenTypes.tokens.paren_right);
+    expr.hasParen = hasParen;
+    if (hasParen) {
+        this._consume(TokenTypes.tokens.paren_right, "Expected ')'.");
+    }
     return expr;
   }
 
@@ -1462,6 +1465,7 @@ export class WgslParser {
     this._consume(TokenTypes.tokens.paren_left, "Expected '('.");
     const expr = this._short_circuit_or_expression();
     this._consume(TokenTypes.tokens.paren_right, "Expected ')'.");
+    expr.hasParen = true;
     return expr;
   }
 

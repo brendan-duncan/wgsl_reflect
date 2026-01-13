@@ -1,2 +1,12372 @@
-Object.defineProperty(exports,'__esModule',{value:!0});class e{constructor(e,t){this.name=e,this.attributes=t,this.size=0}get isArray(){return!1}get isStruct(){return!1}get isTemplate(){return!1}get isPointer(){return!1}getTypeName(){return this.name}}class t{constructor(e,t,n){this.name=e,this.type=t,this.attributes=n,this.offset=0,this.size=0}get isArray(){return this.type.isArray}get isStruct(){return this.type.isStruct}get isTemplate(){return this.type.isTemplate}get align(){return this.type.isStruct?this.type.align:0}get members(){return this.type.isStruct?this.type.members:null}get format(){return this.type.isArray||this.type.isTemplate?this.type.format:null}get count(){return this.type.isArray?this.type.count:0}get stride(){return this.type.isArray?this.type.stride:this.size}}class n extends e{constructor(e,t){super(e,t),this.members=[],this.align=0,this.startLine=-1,this.endLine=-1,this.inUse=!1}get isStruct(){return!0}}class s extends e{constructor(e,t){super(e,t),this.count=0,this.stride=0}get isArray(){return!0}getTypeName(){return`array<${this.format.getTypeName()}, ${this.count}>`}}class r extends e{constructor(e,t,n){super(e,n),this.format=t}get isPointer(){return!0}getTypeName(){return`&${this.format.getTypeName()}`}}class a extends e{constructor(e,t,n,s){super(e,n),this.format=t,this.access=s}get isTemplate(){return!0}getTypeName(){let e=this.name;if(null!==this.format){if('vec2'===e||'vec3'===e||'vec4'===e||'mat2x2'===e||'mat2x3'===e||'mat2x4'===e||'mat3x2'===e||'mat3x3'===e||'mat3x4'===e||'mat4x2'===e||'mat4x3'===e||'mat4x4'===e){if('f32'===this.format.name)return e+='f',e;if('i32'===this.format.name)return e+='i',e;if('u32'===this.format.name)return e+='u',e;if('bool'===this.format.name)return e+='b',e;if('f16'===this.format.name)return e+='h',e}e+=`<${this.format.name}>`}else if('vec2'===e||'vec3'===e||'vec4'===e)return e;return e}}var o;exports.ResourceType=void 0,(o=exports.ResourceType||(exports.ResourceType={}))[o.Uniform=0]='Uniform',o[o.Storage=1]='Storage',o[o.Texture=2]='Texture',o[o.Sampler=3]='Sampler',o[o.StorageTexture=4]='StorageTexture';class i{constructor(e,t,n,s,r,a,o){this.relations=null,this.name=e,this.type=t,this.group=n,this.binding=s,this.attributes=r,this.resourceType=a,this.access=o}get isArray(){return this.type.isArray}get isStruct(){return this.type.isStruct}get isTemplate(){return this.type.isTemplate}get size(){return this.type.size}get align(){return this.type.isStruct?this.type.align:0}get members(){return this.type.isStruct?this.type.members:null}get format(){return this.type.isArray||this.type.isTemplate?this.type.format:null}get count(){return this.type.isArray?this.type.count:0}get stride(){return this.type.isArray?this.type.stride:this.size}}class l{constructor(e,t){this.name=e,this.type=t}}class c{constructor(e,t,n,s){this.name=e,this.type=t,this.locationType=n,this.location=s,this.interpolation=null}}class u{constructor(e,t,n,s){this.name=e,this.type=t,this.locationType=n,this.location=s}}class h{constructor(e,t,n,s){this.name=e,this.type=t,this.attributes=n,this.id=s}}class f{constructor(e,t,n){this.name=e,this.type=t,this.attributes=n}}class p{constructor(e,t=null,n){this.stage=null,this.inputs=[],this.outputs=[],this.arguments=[],this.returnType=null,this.resources=[],this.overrides=[],this.startLine=-1,this.endLine=-1,this.inUse=!1,this.calls=new Set,this.name=e,this.stage=t,this.attributes=n}}class d{constructor(){this.vertex=[],this.fragment=[],this.compute=[]}}function m(e){var t=(32768&e)>>15,n=(31744&e)>>10,s=1023&e;return 0==n?(t?-1:1)*Math.pow(2,-14)*(s/Math.pow(2,10)):31==n?s?NaN:1/0*(t?-1:1):(t?-1:1)*Math.pow(2,n-15)*(1+s/Math.pow(2,10))}const x=new Float32Array(1),g=new Int32Array(x.buffer),_=new Uint16Array(1);function y(e){x[0]=e;const t=g[0],n=t>>31&1;let s=t>>23&255,r=8388607&t;if(255===s)return _[0]=n<<15|31744|(0!==r?512:0),_[0];if(0===s){if(0===r)return _[0]=n<<15,_[0];r|=8388608;let e=113;for(;!(8388608&r);)r<<=1,e--;return s=127-e,r&=8388607,s>0?(r=(r>>126-s)+(r>>127-s&1),_[0]=n<<15|s<<10|r>>13,_[0]):(_[0]=n<<15,_[0])}return s=s-127+15,s>=31?(_[0]=n<<15|31744,_[0]):s<=0?s<-10?(_[0]=n<<15,_[0]):(r=(8388608|r)>>1-s,_[0]=n<<15|r>>13,_[0]):(r>>=13,_[0]=n<<15|s<<10|r,_[0])}const b=new Uint32Array(1),v=new Float32Array(b.buffer,0,1);function k(e){const t=112+(e>>6&31)<<23|(63&e)<<17;return b[0]=t,v[0]}function w(e,t,n,s,r,a,o,i,l){const c=s*(o>>=r)*(a>>=r)+n*o+t*i;switch(l){case'r8unorm':return[T(e,c,'8unorm',1)[0]];case'r8snorm':return[T(e,c,'8snorm',1)[0]];case'r8uint':return[T(e,c,'8uint',1)[0]];case'r8sint':return[T(e,c,'8sint',1)[0]];case'rg8unorm':{const t=T(e,c,'8unorm',2);return[t[0],t[1]]}case'rg8snorm':{const t=T(e,c,'8snorm',2);return[t[0],t[1]]}case'rg8uint':{const t=T(e,c,'8uint',2);return[t[0],t[1]]}case'rg8sint':{const t=T(e,c,'8sint',2);return[t[0],t[1]]}case'rgba8unorm-srgb':case'rgba8unorm':{const t=T(e,c,'8unorm',4);return[t[0],t[1],t[2],t[3]]}case'rgba8snorm':{const t=T(e,c,'8snorm',4);return[t[0],t[1],t[2],t[3]]}case'rgba8uint':{const t=T(e,c,'8uint',4);return[t[0],t[1],t[2],t[3]]}case'rgba8sint':{const t=T(e,c,'8sint',4);return[t[0],t[1],t[2],t[3]]}case'bgra8unorm-srgb':case'bgra8unorm':{const t=T(e,c,'8unorm',4);return[t[2],t[1],t[0],t[3]]}case'r16uint':return[T(e,c,'16uint',1)[0]];case'r16sint':return[T(e,c,'16sint',1)[0]];case'r16float':return[T(e,c,'16float',1)[0]];case'rg16uint':{const t=T(e,c,'16uint',2);return[t[0],t[1]]}case'rg16sint':{const t=T(e,c,'16sint',2);return[t[0],t[1]]}case'rg16float':{const t=T(e,c,'16float',2);return[t[0],t[1]]}case'rgba16uint':{const t=T(e,c,'16uint',4);return[t[0],t[1],t[2],t[3]]}case'rgba16sint':{const t=T(e,c,'16sint',4);return[t[0],t[1],t[2],t[3]]}case'rgba16float':{const t=T(e,c,'16float',4);return[t[0],t[1],t[2],t[3]]}case'r32uint':return[T(e,c,'32uint',1)[0]];case'r32sint':return[T(e,c,'32sint',1)[0]];case'depth16unorm':case'depth24plus':case'depth24plus-stencil8':case'depth32float':case'depth32float-stencil8':case'r32float':return[T(e,c,'32float',1)[0]];case'rg32uint':{const t=T(e,c,'32uint',2);return[t[0],t[1]]}case'rg32sint':{const t=T(e,c,'32sint',2);return[t[0],t[1]]}case'rg32float':{const t=T(e,c,'32float',2);return[t[0],t[1]]}case'rgba32uint':{const t=T(e,c,'32uint',4);return[t[0],t[1],t[2],t[3]]}case'rgba32sint':{const t=T(e,c,'32sint',4);return[t[0],t[1],t[2],t[3]]}case'rgba32float':{const t=T(e,c,'32float',4);return[t[0],t[1],t[2],t[3]]}case'rg11b10ufloat':{const t=new Uint32Array(e.buffer,c,1)[0],n=(4192256&t)>>11,s=(4290772992&t)>>22;return[k(2047&t),k(n),function(e){const t=112+(e>>5&31)<<23|(31&e)<<18;return b[0]=t,v[0]}(s),1]}}return null}function T(e,t,n,s){const r=[0,0,0,0];for(let a=0;a<s;++a)switch(n){case'8unorm':r[a]=e[t]/255,t++;break;case'8snorm':r[a]=e[t]/255*2-1,t++;break;case'8uint':r[a]=e[t],t++;break;case'8sint':r[a]=e[t]-127,t++;break;case'16uint':r[a]=e[t]|e[t+1]<<8,t+=2;break;case'16sint':r[a]=(e[t]|e[t+1]<<8)-32768,t+=2;break;case'16float':r[a]=m(e[t]|e[t+1]<<8),t+=2;break;case'32uint':case'32sint':r[a]=e[t]|e[t+1]<<8|e[t+2]<<16|e[t+3]<<24,t+=4;break;case'32float':r[a]=new Float32Array(e.buffer,t,1)[0],t+=4}return r}function I(e,t,n,s,r){for(let a=0;a<s;++a)switch(n){case'8unorm':e[t]=255*r[a],t++;break;case'8snorm':e[t]=.5*(r[a]+1)*255,t++;break;case'8uint':e[t]=r[a],t++;break;case'8sint':e[t]=r[a]+127,t++;break;case'16uint':new Uint16Array(e.buffer,t,1)[0]=r[a],t+=2;break;case'16sint':new Int16Array(e.buffer,t,1)[0]=r[a],t+=2;break;case'16float':{const n=y(r[a]);new Uint16Array(e.buffer,t,1)[0]=n,t+=2;break}case'32uint':new Uint32Array(e.buffer,t,1)[0]=r[a],t+=4;break;case'32sint':new Int32Array(e.buffer,t,1)[0]=r[a],t+=4;break;case'32float':new Float32Array(e.buffer,t,1)[0]=r[a],t+=4}return r}const S={r8unorm:{bytesPerBlock:1,blockWidth:1,blockHeight:1,isCompressed:!1,channels:1},r8snorm:{bytesPerBlock:1,blockWidth:1,blockHeight:1,isCompressed:!1,channels:1},r8uint:{bytesPerBlock:1,blockWidth:1,blockHeight:1,isCompressed:!1,channels:1},r8sint:{bytesPerBlock:1,blockWidth:1,blockHeight:1,isCompressed:!1,channels:1},rg8unorm:{bytesPerBlock:2,blockWidth:1,blockHeight:1,isCompressed:!1,channels:2},rg8snorm:{bytesPerBlock:2,blockWidth:1,blockHeight:1,isCompressed:!1,channels:2},rg8uint:{bytesPerBlock:2,blockWidth:1,blockHeight:1,isCompressed:!1,channels:2},rg8sint:{bytesPerBlock:2,blockWidth:1,blockHeight:1,isCompressed:!1,channels:2},rgba8unorm:{bytesPerBlock:4,blockWidth:1,blockHeight:1,isCompressed:!1,channels:4},'rgba8unorm-srgb':{bytesPerBlock:4,blockWidth:1,blockHeight:1,isCompressed:!1,channels:4},rgba8snorm:{bytesPerBlock:4,blockWidth:1,blockHeight:1,isCompressed:!1,channels:4},rgba8uint:{bytesPerBlock:4,blockWidth:1,blockHeight:1,isCompressed:!1,channels:4},rgba8sint:{bytesPerBlock:4,blockWidth:1,blockHeight:1,isCompressed:!1,channels:4},bgra8unorm:{bytesPerBlock:4,blockWidth:1,blockHeight:1,isCompressed:!1,channels:4},'bgra8unorm-srgb':{bytesPerBlock:4,blockWidth:1,blockHeight:1,isCompressed:!1,channels:4},r16uint:{bytesPerBlock:2,blockWidth:1,blockHeight:1,isCompressed:!1,channels:1},r16sint:{bytesPerBlock:2,blockWidth:1,blockHeight:1,isCompressed:!1,channels:1},r16float:{bytesPerBlock:2,blockWidth:1,blockHeight:1,isCompressed:!1,channels:1},rg16uint:{bytesPerBlock:4,blockWidth:1,blockHeight:1,isCompressed:!1,channels:2},rg16sint:{bytesPerBlock:4,blockWidth:1,blockHeight:1,isCompressed:!1,channels:2},rg16float:{bytesPerBlock:4,blockWidth:1,blockHeight:1,isCompressed:!1,channels:2},rgba16uint:{bytesPerBlock:8,blockWidth:1,blockHeight:1,isCompressed:!1,channels:4},rgba16sint:{bytesPerBlock:8,blockWidth:1,blockHeight:1,isCompressed:!1,channels:4},rgba16float:{bytesPerBlock:8,blockWidth:1,blockHeight:1,isCompressed:!1,channels:4},r32uint:{bytesPerBlock:4,blockWidth:1,blockHeight:1,isCompressed:!1,channels:1},r32sint:{bytesPerBlock:4,blockWidth:1,blockHeight:1,isCompressed:!1,channels:1},r32float:{bytesPerBlock:4,blockWidth:1,blockHeight:1,isCompressed:!1,channels:1},rg32uint:{bytesPerBlock:8,blockWidth:1,blockHeight:1,isCompressed:!1,channels:2},rg32sint:{bytesPerBlock:8,blockWidth:1,blockHeight:1,isCompressed:!1,channels:2},rg32float:{bytesPerBlock:8,blockWidth:1,blockHeight:1,isCompressed:!1,channels:2},rgba32uint:{bytesPerBlock:16,blockWidth:1,blockHeight:1,isCompressed:!1,channels:4},rgba32sint:{bytesPerBlock:16,blockWidth:1,blockHeight:1,isCompressed:!1,channels:4},rgba32float:{bytesPerBlock:16,blockWidth:1,blockHeight:1,isCompressed:!1,channels:4},rgb10a2uint:{bytesPerBlock:4,blockWidth:1,blockHeight:1,isCompressed:!1,channels:4},rgb10a2unorm:{bytesPerBlock:4,blockWidth:1,blockHeight:1,isCompressed:!1,channels:4},rg11b10ufloat:{bytesPerBlock:4,blockWidth:1,blockHeight:1,isCompressed:!1,channels:4},stencil8:{bytesPerBlock:1,blockWidth:1,blockHeight:1,isCompressed:!1,isDepthStencil:!0,hasDepth:!1,hasStencil:!0,channels:1},depth16unorm:{bytesPerBlock:2,blockWidth:1,blockHeight:1,isCompressed:!1,isDepthStencil:!0,hasDepth:!0,hasStencil:!1,channels:1},depth24plus:{bytesPerBlock:4,blockWidth:1,blockHeight:1,isCompressed:!1,isDepthStencil:!0,hasDepth:!0,hasStencil:!1,depthOnlyFormat:'depth32float',channels:1},'depth24plus-stencil8':{bytesPerBlock:8,blockWidth:1,blockHeight:1,isCompressed:!1,isDepthStencil:!0,hasDepth:!0,hasStencil:!0,depthOnlyFormat:'depth32float',channels:1},depth32float:{bytesPerBlock:4,blockWidth:1,blockHeight:1,isCompressed:!1,isDepthStencil:!0,hasDepth:!0,hasStencil:!1,channels:1},'depth32float-stencil8':{bytesPerBlock:8,blockWidth:1,blockHeight:1,isCompressed:!1,isDepthStencil:!0,hasDepth:!0,hasStencil:!0,stencilOnlyFormat:'depth32float',channels:1},rgb9e5ufloat:{bytesPerBlock:4,blockWidth:1,blockHeight:1,isCompressed:!1,channels:4},'bc1-rgba-unorm':{bytesPerBlock:8,blockWidth:4,blockHeight:4,isCompressed:!0,channels:4},'bc1-rgba-unorm-srgb':{bytesPerBlock:8,blockWidth:4,blockHeight:4,isCompressed:!0,channels:4},'bc2-rgba-unorm':{bytesPerBlock:16,blockWidth:4,blockHeight:4,isCompressed:!0,channels:4},'bc2-rgba-unorm-srgb':{bytesPerBlock:16,blockWidth:4,blockHeight:4,isCompressed:!0,channels:4},'bc3-rgba-unorm':{bytesPerBlock:16,blockWidth:4,blockHeight:4,isCompressed:!0,channels:4},'bc3-rgba-unorm-srgb':{bytesPerBlock:16,blockWidth:4,blockHeight:4,isCompressed:!0,channels:4},'bc4-r-unorm':{bytesPerBlock:8,blockWidth:4,blockHeight:4,isCompressed:!0,channels:1},'bc4-r-snorm':{bytesPerBlock:8,blockWidth:4,blockHeight:4,isCompressed:!0,channels:1},'bc5-rg-unorm':{bytesPerBlock:16,blockWidth:4,blockHeight:4,isCompressed:!0,channels:2},'bc5-rg-snorm':{bytesPerBlock:16,blockWidth:4,blockHeight:4,isCompressed:!0,channels:2},'bc6h-rgb-ufloat':{bytesPerBlock:16,blockWidth:4,blockHeight:4,isCompressed:!0,channels:4},'bc6h-rgb-float':{bytesPerBlock:16,blockWidth:4,blockHeight:4,isCompressed:!0,channels:4},'bc7-rgba-unorm':{bytesPerBlock:16,blockWidth:4,blockHeight:4,isCompressed:!0,channels:4},'bc7-rgba-unorm-srgb':{bytesPerBlock:16,blockWidth:4,blockHeight:4,isCompressed:!0,channels:4},'etc2-rgb8unorm':{bytesPerBlock:8,blockWidth:4,blockHeight:4,isCompressed:!0,channels:4},'etc2-rgb8unorm-srgb':{bytesPerBlock:8,blockWidth:4,blockHeight:4,isCompressed:!0,channels:4},'etc2-rgb8a1unorm':{bytesPerBlock:8,blockWidth:4,blockHeight:4,isCompressed:!0,channels:4},'etc2-rgb8a1unorm-srgb':{bytesPerBlock:8,blockWidth:4,blockHeight:4,isCompressed:!0,channels:4},'etc2-rgba8unorm':{bytesPerBlock:16,blockWidth:4,blockHeight:4,isCompressed:!0,channels:4},'etc2-rgba8unorm-srgb':{bytesPerBlock:16,blockWidth:4,blockHeight:4,isCompressed:!0,channels:4},'eac-r11unorm':{bytesPerBlock:8,blockWidth:1,blockHeight:1,isCompressed:!0,channels:1},'eac-r11snorm':{bytesPerBlock:8,blockWidth:1,blockHeight:1,isCompressed:!0,channels:1},'eac-rg11unorm':{bytesPerBlock:16,blockWidth:1,blockHeight:1,isCompressed:!0,channels:2},'eac-rg11snorm':{bytesPerBlock:16,blockWidth:1,blockHeight:1,isCompressed:!0,channels:2},'astc-4x4-unorm':{bytesPerBlock:16,blockWidth:4,blockHeight:4,isCompressed:!0,channels:4},'astc-4x4-unorm-srgb':{bytesPerBlock:16,blockWidth:4,blockHeight:4,isCompressed:!0,channels:4},'astc-5x4-unorm':{bytesPerBlock:16,blockWidth:5,blockHeight:4,isCompressed:!0,channels:4},'astc-5x4-unorm-srgb':{bytesPerBlock:16,blockWidth:5,blockHeight:4,isCompressed:!0,channels:4},'astc-5x5-unorm':{bytesPerBlock:16,blockWidth:5,blockHeight:5,isCompressed:!0,channels:4},'astc-5x5-unorm-srgb':{bytesPerBlock:16,blockWidth:5,blockHeight:5,isCompressed:!0,channels:4},'astc-6x5-unorm':{bytesPerBlock:16,blockWidth:6,blockHeight:5,isCompressed:!0,channels:4},'astc-6x5-unorm-srgb':{bytesPerBlock:16,blockWidth:6,blockHeight:5,isCompressed:!0,channels:4},'astc-6x6-unorm':{bytesPerBlock:16,blockWidth:6,blockHeight:6,isCompressed:!0,channels:4},'astc-6x6-unorm-srgb':{bytesPerBlock:16,blockWidth:6,blockHeight:6,isCompressed:!0,channels:4},'astc-8x5-unorm':{bytesPerBlock:16,blockWidth:8,blockHeight:5,isCompressed:!0,channels:4},'astc-8x5-unorm-srgb':{bytesPerBlock:16,blockWidth:8,blockHeight:5,isCompressed:!0,channels:4},'astc-8x6-unorm':{bytesPerBlock:16,blockWidth:8,blockHeight:6,isCompressed:!0,channels:4},'astc-8x6-unorm-srgb':{bytesPerBlock:16,blockWidth:8,blockHeight:6,isCompressed:!0,channels:4},'astc-8x8-unorm':{bytesPerBlock:16,blockWidth:8,blockHeight:8,isCompressed:!0,channels:4},'astc-8x8-unorm-srgb':{bytesPerBlock:16,blockWidth:8,blockHeight:8,isCompressed:!0,channels:4},'astc-10x5-unorm':{bytesPerBlock:16,blockWidth:10,blockHeight:5,isCompressed:!0,channels:4},'astc-10x5-unorm-srgb':{bytesPerBlock:16,blockWidth:10,blockHeight:5,isCompressed:!0,channels:4},'astc-10x6-unorm':{bytesPerBlock:16,blockWidth:10,blockHeight:6,isCompressed:!0,channels:4},'astc-10x6-unorm-srgb':{bytesPerBlock:16,blockWidth:10,blockHeight:6,isCompressed:!0,channels:4},'astc-10x8-unorm':{bytesPerBlock:16,blockWidth:10,blockHeight:8,isCompressed:!0,channels:4},'astc-10x8-unorm-srgb':{bytesPerBlock:16,blockWidth:10,blockHeight:8,isCompressed:!0,channels:4},'astc-10x10-unorm':{bytesPerBlock:16,blockWidth:10,blockHeight:10,isCompressed:!0,channels:4},'astc-10x10-unorm-srgb':{bytesPerBlock:16,blockWidth:10,blockHeight:10,isCompressed:!0,channels:4},'astc-12x10-unorm':{bytesPerBlock:16,blockWidth:12,blockHeight:10,isCompressed:!0,channels:4},'astc-12x10-unorm-srgb':{bytesPerBlock:16,blockWidth:12,blockHeight:10,isCompressed:!0,channels:4},'astc-12x12-unorm':{bytesPerBlock:16,blockWidth:12,blockHeight:12,isCompressed:!0,channels:4},'astc-12x12-unorm-srgb':{bytesPerBlock:16,blockWidth:12,blockHeight:12,isCompressed:!0,channels:4}};class C{constructor(){this.id=C._id++,this.line=0}get isAstNode(){return!0}get astNodeType(){return''}search(e){e(this)}searchBlock(e,t){if(e){t(A.instance);for(const n of e)n instanceof Array?this.searchBlock(n,t):n.search(t);t(E.instance)}}constEvaluate(e,t){throw new Error('Cannot evaluate node')}constEvaluateString(e){return this.constEvaluate(e).toString()}}C._id=0;class A extends C{}A.instance=new A;class E extends C{}E.instance=new E;const $=new Set(['all','all','any','select','arrayLength','abs','acos','acosh','asin','asinh','atan','atanh','atan2','ceil','clamp','cos','cosh','countLeadingZeros','countOneBits','countTrailingZeros','cross','degrees','determinant','distance','dot','dot4U8Packed','dot4I8Packed','exp','exp2','extractBits','faceForward','firstLeadingBit','firstTrailingBit','floor','fma','fract','frexp','insertBits','inverseSqrt','ldexp','length','log','log2','max','min','mix','modf','normalize','pow','quantizeToF16','radians','reflect','refract','reverseBits','round','saturate','sign','sin','sinh','smoothStep','sqrt','step','tan','tanh','transpose','trunc','dpdx','dpdxCoarse','dpdxFine','dpdy','dpdyCoarse','dpdyFine','fwidth','fwidthCoarse','fwidthFine','textureDimensions','textureGather','textureGatherCompare','textureLoad','textureNumLayers','textureNumLevels','textureNumSamples','textureSample','textureSampleBias','textureSampleCompare','textureSampleCompareLevel','textureSampleGrad','textureSampleLevel','textureSampleBaseClampToEdge','textureStore','atomicLoad','atomicStore','atomicAdd','atomicSub','atomicMax','atomicMin','atomicAnd','atomicOr','atomicXor','atomicExchange','atomicCompareExchangeWeak','pack4x8snorm','pack4x8unorm','pack4xI8','pack4xU8','pack4x8Clamp','pack4xU8Clamp','pack2x16snorm','pack2x16unorm','pack2x16float','unpack4x8snorm','unpack4x8unorm','unpack4xI8','unpack4xU8','unpack2x16snorm','unpack2x16unorm','unpack2x16float','storageBarrier','textureBarrier','workgroupBarrier','workgroupUniformLoad','subgroupAdd','subgroupExclusiveAdd','subgroupInclusiveAdd','subgroupAll','subgroupAnd','subgroupAny','subgroupBallot','subgroupBroadcast','subgroupBroadcastFirst','subgroupElect','subgroupMax','subgroupMin','subgroupMul','subgroupExclusiveMul','subgroupInclusiveMul','subgroupOr','subgroupShuffle','subgroupShuffleDown','subgroupShuffleUp','subgroupShuffleXor','subgroupXor','quadBroadcast','quadSwapDiagonal','quadSwapX','quadSwapY']);class L extends C{constructor(){super()}}class D extends L{constructor(e,t,n,s,r,a){super(),this.calls=new Set,this.name=e,this.args=t,this.returnType=n,this.body=s,this.startLine=r,this.endLine=a}get astNodeType(){return'function'}search(e){if(this.attributes)for(const t of this.attributes)e(t);e(this);for(const t of this.args)e(t);this.searchBlock(this.body,e)}}class O extends L{constructor(e){super(),this.expression=e}get astNodeType(){return'staticAssert'}search(e){this.expression.search(e)}}class N extends L{constructor(e,t){super(),this.condition=e,this.body=t}get astNodeType(){return'while'}search(e){this.condition.search(e),this.searchBlock(this.body,e)}}class V extends L{constructor(e,t){super(),this.body=e,this.loopId=t}get astNodeType(){return'continuing'}search(e){this.searchBlock(this.body,e)}}class B extends L{constructor(e,t,n,s){super(),this.init=e,this.condition=t,this.increment=n,this.body=s}get astNodeType(){return'for'}search(e){var t,n,s;null===(t=this.init)||void 0===t||t.search(e),null===(n=this.condition)||void 0===n||n.search(e),null===(s=this.increment)||void 0===s||s.search(e),this.searchBlock(this.body,e)}}class F extends L{constructor(e,t,n,s,r){super(),this.attributes=null,this.name=e,this.type=t,this.storage=n,this.access=s,this.value=r}get astNodeType(){return'var'}search(e){var t;e(this),null===(t=this.value)||void 0===t||t.search(e)}}class M extends L{constructor(e,t,n){super(),this.attributes=null,this.name=e,this.type=t,this.value=n}get astNodeType(){return'override'}search(e){var t;null===(t=this.value)||void 0===t||t.search(e)}}class U extends L{constructor(e,t,n,s,r){super(),this.attributes=null,this.name=e,this.type=t,this.storage=n,this.access=s,this.value=r}get astNodeType(){return'let'}search(e){var t;e(this),null===(t=this.value)||void 0===t||t.search(e)}}class W extends L{constructor(e,t,n,s,r){super(),this.attributes=null,this.name=e,this.type=t,this.storage=n,this.access=s,this.value=r}get astNodeType(){return'const'}constEvaluate(e,t){return this.value.constEvaluate(e,t)}search(e){var t;e(this),null===(t=this.value)||void 0===t||t.search(e)}}var P,q,H,z;exports.IncrementOperator=void 0,(P=exports.IncrementOperator||(exports.IncrementOperator={})).increment='++',P.decrement='--',(e=>{e.parse=function(t){const n=t;if('parse'==n)throw new Error('Invalid value for IncrementOperator');return e[n]}})(exports.IncrementOperator||(exports.IncrementOperator={}));class R extends L{constructor(e,t){super(),this.operator=e,this.variable=t}get astNodeType(){return'increment'}search(e){this.variable.search(e)}}exports.AssignOperator=void 0,(q=exports.AssignOperator||(exports.AssignOperator={})).assign='=',q.addAssign='+=',q.subtractAssin='-=',q.multiplyAssign='*=',q.divideAssign='/=',q.moduloAssign='%=',q.andAssign='&=',q.orAssign='|=',q.xorAssign='^=',q.shiftLeftAssign='<<=',q.shiftRightAssign='>>=',(exports.AssignOperator||(exports.AssignOperator={})).parse=e=>{const t=e;if('parse'==t)throw new Error('Invalid value for AssignOperator');return t};class G extends L{constructor(e,t,n){super(),this.operator=e,this.variable=t,this.value=n}get astNodeType(){return'assign'}search(e){this.variable.search(e),this.value.search(e)}}class X extends L{constructor(e,t){super(),this.name=e,this.args=t}get astNodeType(){return'call'}isBuiltin(){return $.has(this.name)}search(e){for(const t of this.args)t.search(e);e(this)}}class j extends L{constructor(e,t){super(),this.body=e,this.continuing=t}get astNodeType(){return'loop'}search(e){var t;this.searchBlock(this.body,e),null===(t=this.continuing)||void 0===t||t.search(e)}}class Z extends L{constructor(e,t){super(),this.condition=e,this.cases=t}get astNodeType(){return'switch'}search(e){e(this);for(const t of this.cases)t.search(e)}}class Q extends L{constructor(e,t,n,s){super(),this.condition=e,this.body=t,this.elseif=n,this.else=s}get astNodeType(){return'if'}search(e){this.condition.search(e),this.searchBlock(this.body,e),this.searchBlock(this.elseif,e),this.searchBlock(this.else,e)}}class Y extends L{constructor(e){super(),this.value=e}get astNodeType(){return'return'}search(e){var t;null===(t=this.value)||void 0===t||t.search(e)}}class K extends L{constructor(e){super(),this.name=e}get astNodeType(){return'enable'}}class J extends L{constructor(e){super(),this.extensions=e}get astNodeType(){return'requires'}}class ee extends L{constructor(e,t){super(),this.severity=e,this.rule=t}get astNodeType(){return'diagnostic'}}class te extends L{constructor(e,t){super(),this.name=e,this.type=t}get astNodeType(){return'alias'}}class ne extends L{constructor(){super()}get astNodeType(){return'discard'}}class se extends L{constructor(){super(),this.condition=null,this.loopId=-1}get astNodeType(){return'break'}}class re extends L{constructor(){super(),this.loopId=-1}get astNodeType(){return'continue'}}class ae extends L{constructor(e){super(),this.attributes=null,this.name=e}get astNodeType(){return'type'}get isStruct(){return!1}get isArray(){return!1}static maxFormatType(e){let t=e[0];if('f32'===t.name)return t;for(let n=1;n<e.length;++n){const s=ae._priority.get(t.name);ae._priority.get(e[n].name)<s&&(t=e[n])}return'x32'===t.name?ae.i32:t}getTypeName(){return this.name}}ae.x32=new ae('x32'),ae.f32=new ae('f32'),ae.i32=new ae('i32'),ae.u32=new ae('u32'),ae.f16=new ae('f16'),ae.bool=new ae('bool'),ae.void=new ae('void'),ae._priority=new Map([['f32',0],['f16',1],['u32',2],['i32',3],['x32',3]]);class oe extends ae{constructor(e){super(e)}}class ie extends ae{constructor(e,t,n,s){super(e),this.members=t,this.startLine=n,this.endLine=s}get astNodeType(){return'struct'}get isStruct(){return!0}getMemberIndex(e){for(let t=0;t<this.members.length;t++)if(this.members[t].name==e)return t;return-1}search(e){for(const t of this.members)e(t)}}class le extends ae{constructor(e,t,n){super(e),this.format=t,this.access=n}get astNodeType(){return'template'}getTypeName(){let e=this.name;if(null!==this.format){if('vec2'===e||'vec3'===e||'vec4'===e||'mat2x2'===e||'mat2x3'===e||'mat2x4'===e||'mat3x2'===e||'mat3x3'===e||'mat3x4'===e||'mat4x2'===e||'mat4x3'===e||'mat4x4'===e){if('f32'===this.format.name)return e+='f',e;if('i32'===this.format.name)return e+='i',e;if('u32'===this.format.name)return e+='u',e;if('bool'===this.format.name)return e+='b',e;if('f16'===this.format.name)return e+='h',e}e+=`<${this.format.name}>`}else if('vec2'===e||'vec3'===e||'vec4'===e)return e;return e}}le.vec2f=new le('vec2',ae.f32,null),le.vec3f=new le('vec3',ae.f32,null),le.vec4f=new le('vec4',ae.f32,null),le.vec2i=new le('vec2',ae.i32,null),le.vec3i=new le('vec3',ae.i32,null),le.vec4i=new le('vec4',ae.i32,null),le.vec2u=new le('vec2',ae.u32,null),le.vec3u=new le('vec3',ae.u32,null),le.vec4u=new le('vec4',ae.u32,null),le.vec2h=new le('vec2',ae.f16,null),le.vec3h=new le('vec3',ae.f16,null),le.vec4h=new le('vec4',ae.f16,null),le.vec2b=new le('vec2',ae.bool,null),le.vec3b=new le('vec3',ae.bool,null),le.vec4b=new le('vec4',ae.bool,null),le.mat2x2f=new le('mat2x2',ae.f32,null),le.mat2x3f=new le('mat2x3',ae.f32,null),le.mat2x4f=new le('mat2x4',ae.f32,null),le.mat3x2f=new le('mat3x2',ae.f32,null),le.mat3x3f=new le('mat3x3',ae.f32,null),le.mat3x4f=new le('mat3x4',ae.f32,null),le.mat4x2f=new le('mat4x2',ae.f32,null),le.mat4x3f=new le('mat4x3',ae.f32,null),le.mat4x4f=new le('mat4x4',ae.f32,null),le.mat2x2h=new le('mat2x2',ae.f16,null),le.mat2x3h=new le('mat2x3',ae.f16,null),le.mat2x4h=new le('mat2x4',ae.f16,null),le.mat3x2h=new le('mat3x2',ae.f16,null),le.mat3x3h=new le('mat3x3',ae.f16,null),le.mat3x4h=new le('mat3x4',ae.f16,null),le.mat4x2h=new le('mat4x2',ae.f16,null),le.mat4x3h=new le('mat4x3',ae.f16,null),le.mat4x4h=new le('mat4x4',ae.f16,null),le.mat2x2i=new le('mat2x2',ae.i32,null),le.mat2x3i=new le('mat2x3',ae.i32,null),le.mat2x4i=new le('mat2x4',ae.i32,null),le.mat3x2i=new le('mat3x2',ae.i32,null),le.mat3x3i=new le('mat3x3',ae.i32,null),le.mat3x4i=new le('mat3x4',ae.i32,null),le.mat4x2i=new le('mat4x2',ae.i32,null),le.mat4x3i=new le('mat4x3',ae.i32,null),le.mat4x4i=new le('mat4x4',ae.i32,null),le.mat2x2u=new le('mat2x2',ae.u32,null),le.mat2x3u=new le('mat2x3',ae.u32,null),le.mat2x4u=new le('mat2x4',ae.u32,null),le.mat3x2u=new le('mat3x2',ae.u32,null),le.mat3x3u=new le('mat3x3',ae.u32,null),le.mat3x4u=new le('mat3x4',ae.u32,null),le.mat4x2u=new le('mat4x2',ae.u32,null),le.mat4x3u=new le('mat4x3',ae.u32,null),le.mat4x4u=new le('mat4x4',ae.u32,null);class ce extends ae{constructor(e,t,n,s){super(e),this.storage=t,this.type=n,this.access=s}get astNodeType(){return'pointer'}}class ue extends ae{constructor(e,t,n,s){super(e),this.attributes=t,this.format=n,this.count=s}get astNodeType(){return'array'}get isArray(){return!0}}class he extends ae{constructor(e,t,n){super(e),this.format=t,this.access=n}get astNodeType(){return'sampler'}}class fe extends C{constructor(){super(),this.postfix=null}}class pe extends fe{constructor(e){super(),this.value=e}get astNodeType(){return'stringExpr'}toString(){return this.value}constEvaluateString(){return this.value}}class de extends fe{constructor(e,t){super(),this.type=e,this.args=t}get astNodeType(){return'createExpr'}search(e){if(e(this),this.args)for(const t of this.args)t.search(e)}constEvaluate(e,t){return t&&(t[0]=this.type),e.evalExpression(this,e.context)}}class me extends fe{constructor(e,t){super(),this.cachedReturnValue=null,this.name=e,this.args=t}get astNodeType(){return'callExpr'}setCachedReturnValue(e){this.cachedReturnValue=e}get isBuiltin(){return $.has(this.name)}constEvaluate(e,t){return e.evalExpression(this,e.context)}search(e){for(const t of this.args)t.search(e);e(this)}}class xe extends fe{constructor(e){super(),this.name=e}get astNodeType(){return'varExpr'}search(e){e(this),this.postfix&&this.postfix.search(e)}constEvaluate(e,t){return e.evalExpression(this,e.context)}}class ge extends fe{constructor(e,t){super(),this.name=e,this.initializer=t}get astNodeType(){return'constExpr'}constEvaluate(e,t){if(this.initializer){const t=e.evalExpression(this.initializer,e.context);return null!==t&&this.postfix?t.getSubData(e,this.postfix,e.context):t}return null}search(e){this.initializer.search(e)}}class _e extends fe{constructor(e,t){super(),this.value=e,this.type=t}get astNodeType(){return'literalExpr'}constEvaluate(e,t){return void 0!==t&&(t[0]=this.type),this.value}get isScalar(){return this.value instanceof Ve}get isVector(){return this.value instanceof Fe||this.value instanceof Me}get scalarValue(){return this.value instanceof Ve?this.value.value:(console.error('Value is not scalar.'),0)}get vectorValue(){return this.value instanceof Fe||this.value instanceof Me?this.value.data:(console.error('Value is not a vector or matrix.'),new Float32Array(0))}}class ye extends fe{constructor(e,t){super(),this.type=e,this.value=t}get astNodeType(){return'bitcastExpr'}search(e){this.value.search(e)}}class be extends fe{constructor(e){super(),this.index=e}search(e){this.index.search(e)}}class ve extends fe{constructor(){super()}}class ke extends ve{constructor(e,t){super(),this.operator=e,this.right=t}get astNodeType(){return'unaryOp'}constEvaluate(e,t){return e.evalExpression(this,e.context)}search(e){this.right.search(e)}}class we extends ve{constructor(e,t,n){super(),this.operator=e,this.left=t,this.right=n}get astNodeType(){return'binaryOp'}_getPromotedType(e,t){return e.name===t.name?e:'f32'===e.name||'f32'===t.name?ae.f32:'u32'===e.name||'u32'===t.name?ae.u32:ae.i32}constEvaluate(e,t){return e.evalExpression(this,e.context)}search(e){this.left.search(e),this.right.search(e)}}class Te extends C{constructor(e){super(),this.body=e}search(e){e(this),this.searchBlock(this.body,e)}}class Ie extends fe{constructor(){super()}get astNodeType(){return'default'}}class Se extends Te{constructor(e,t){super(t),this.selectors=e}get astNodeType(){return'case'}search(e){this.searchBlock(this.body,e)}}class Ce extends Te{constructor(e){super(e)}get astNodeType(){return'default'}search(e){this.searchBlock(this.body,e)}}class Ae extends C{constructor(e,t,n){super(),this.name=e,this.type=t,this.attributes=n}get astNodeType(){return'argument'}}class Ee extends C{constructor(e,t){super(),this.condition=e,this.body=t}get astNodeType(){return'elseif'}search(e){this.condition.search(e),this.searchBlock(this.body,e)}}class $e extends C{constructor(e,t,n){super(),this.name=e,this.type=t,this.attributes=n}get astNodeType(){return'member'}}class Le extends C{constructor(e,t){super(),this.name=e,this.value=t}get astNodeType(){return'attribute'}}class De{constructor(e,t){this.parent=null,this.typeInfo=e,this.parent=t,this.id=De._id++}clone(){throw`Clone: Not implemented for ${this.constructor.name}`}setDataValue(e,t,n,s){console.error(`SetDataValue: Not implemented for ${this.constructor.name}`)}getSubData(e,t,n){return console.error(`GetDataValue: Not implemented for ${this.constructor.name}`),null}toString(){return`<${this.typeInfo.getTypeName()}>`}}De._id=0;class Oe extends De{constructor(){super(new e('void',null),null)}toString(){return'void'}}Oe.void=new Oe;class Ne extends De{constructor(e){super(new r('pointer',e.typeInfo,null),null),this.reference=e}clone(){return this}setDataValue(e,t,n,s){this.reference.setDataValue(e,t,n,s)}getSubData(e,t,n){return t?this.reference.getSubData(e,t,n):this}toString(){return`&${this.reference.toString()}`}}class Ve extends De{constructor(e,t,n=null){super(t,n),e instanceof Int32Array||e instanceof Uint32Array||e instanceof Float32Array?this.data=e:'x32'===this.typeInfo.name?e-Math.floor(e)!==0?this.data=new Float32Array([e]):this.data=e>=0?new Uint32Array([e]):new Int32Array([e]):'i32'===this.typeInfo.name||'bool'===this.typeInfo.name?this.data=new Int32Array([e]):'u32'===this.typeInfo.name?this.data=new Uint32Array([e]):'f32'===this.typeInfo.name||'f16'===this.typeInfo.name?this.data=new Float32Array([e]):console.error('ScalarData2: Invalid type',t)}clone(){if(this.data instanceof Float32Array)return new Ve(new Float32Array(this.data),this.typeInfo,null);if(this.data instanceof Int32Array)return new Ve(new Int32Array(this.data),this.typeInfo,null);if(this.data instanceof Uint32Array)return new Ve(new Uint32Array(this.data),this.typeInfo,null);throw'ScalarData: Invalid data type'}get value(){return this.data[0]}set value(e){this.data[0]=e}setDataValue(e,t,n,s){if(n)return void console.error('SetDataValue: Scalar data does not support postfix',n);if(!(t instanceof Ve))return void console.error('SetDataValue: Invalid value',t);let r=t.data[0];'i32'===this.typeInfo.name||'u32'===this.typeInfo.name?r=Math.floor(r):'bool'===this.typeInfo.name&&(r=r?1:0),this.data[0]=r}getSubData(e,t,n){return t?(console.error('getSubData: Scalar data does not support postfix',t),null):this}toString(){return`${this.value}`}}function Be(e,t,n){const s=t.length;return 2===s?'f32'===n?new Fe(new Float32Array(t),e.getTypeInfo('vec2f')):'i32'===n||'bool'===n?new Fe(new Int32Array(t),e.getTypeInfo('vec2i')):'u32'===n?new Fe(new Uint32Array(t),e.getTypeInfo('vec2u')):'f16'===n?new Fe(new Float32Array(t),e.getTypeInfo('vec2h')):(console.error(`getSubData: Unknown format ${n}`),null):3===s?'f32'===n?new Fe(new Float32Array(t),e.getTypeInfo('vec3f')):'i32'===n||'bool'===n?new Fe(new Int32Array(t),e.getTypeInfo('vec3i')):'u32'===n?new Fe(new Uint32Array(t),e.getTypeInfo('vec3u')):'f16'===n?new Fe(new Float32Array(t),e.getTypeInfo('vec3h')):(console.error(`getSubData: Unknown format ${n}`),null):4===s?'f32'===n?new Fe(new Float32Array(t),e.getTypeInfo('vec4f')):'i32'===n||'bool'===n?new Fe(new Int32Array(t),e.getTypeInfo('vec4i')):'u32'===n?new Fe(new Uint32Array(t),e.getTypeInfo('vec4u')):'f16'===n?new Fe(new Float32Array(t),e.getTypeInfo('vec4h')):(console.error(`getSubData: Unknown format ${n}`),null):(console.error(`getSubData: Invalid vector size ${t.length}`),null)}class Fe extends De{constructor(e,t,n=null){if(super(t,n),e instanceof Float32Array||e instanceof Uint32Array||e instanceof Int32Array)this.data=e;else{const t=this.typeInfo.name;'vec2f'===t||'vec3f'===t||'vec4f'===t?this.data=new Float32Array(e):'vec2i'===t||'vec3i'===t||'vec4i'===t?this.data=new Int32Array(e):'vec2u'===t||'vec3u'===t||'vec4u'===t?this.data=new Uint32Array(e):'vec2h'===t||'vec3h'===t||'vec4h'===t?this.data=new Float32Array(e):'vec2b'===t||'vec3b'===t||'vec4b'===t?this.data=new Int32Array(e):'vec2'===t||'vec3'===t||'vec4'===t?this.data=new Float32Array(e):console.error(`VectorData: Invalid type ${t}`)}}clone(){if(this.data instanceof Float32Array)return new Fe(new Float32Array(this.data),this.typeInfo,null);if(this.data instanceof Int32Array)return new Fe(new Int32Array(this.data),this.typeInfo,null);if(this.data instanceof Uint32Array)return new Fe(new Uint32Array(this.data),this.typeInfo,null);throw'VectorData: Invalid data type'}setDataValue(e,t,n,s){n instanceof pe?console.error('TODO: Set vector postfix'):t instanceof Fe?this.data=t.data:console.error('SetDataValue: Invalid value',t)}getSubData(e,t,n){if(null===t)return this;let s=e.getTypeInfo('f32');if(this.typeInfo instanceof a)s=this.typeInfo.format||s;else{const t=this.typeInfo.name;'vec2f'===t||'vec3f'===t||'vec4f'===t?s=e.getTypeInfo('f32'):'vec2i'===t||'vec3i'===t||'vec4i'===t?s=e.getTypeInfo('i32'):'vec2b'===t||'vec3b'===t||'vec4b'===t?s=e.getTypeInfo('bool'):'vec2u'===t||'vec3u'===t||'vec4u'===t?s=e.getTypeInfo('u32'):'vec2h'===t||'vec3h'===t||'vec4h'===t?s=e.getTypeInfo('f16'):console.error(`GetSubData: Unknown type ${t}`)}let r=this;for(;null!==t&&null!==r;){if(t instanceof be){const a=t.index;let o=-1;if(a instanceof _e){if(!(a.value instanceof Ve))return console.error(`GetSubData: Invalid array index ${a.value}`),null;o=a.value.value}else{const t=e.evalExpression(a,n);if(!(t instanceof Ve))return console.error('GetSubData: Unknown index type',a),null;o=t.value}if(o<0||o>=r.data.length)return console.error('GetSubData: Index out of range',o),null;if(r.data instanceof Float32Array){const e=new Float32Array(r.data.buffer,r.data.byteOffset+4*o,1);return new Ve(e,s)}if(r.data instanceof Int32Array){const e=new Int32Array(r.data.buffer,r.data.byteOffset+4*o,1);return new Ve(e,s)}if(r.data instanceof Uint32Array){const e=new Uint32Array(r.data.buffer,r.data.byteOffset+4*o,1);return new Ve(e,s)}throw'GetSubData: Invalid data type'}if(!(t instanceof pe))return console.error('GetSubData: Unknown postfix',t),null;{const n=t.value.toLowerCase();if(1===n.length){let e=0;if('x'===n||'r'===n)e=0;else if('y'===n||'g'===n)e=1;else if('z'===n||'b'===n)e=2;else{if('w'!==n&&'a'!==n)return console.error(`GetSubData: Unknown member ${n}`),null;e=3}if(this.data instanceof Float32Array){let t=new Float32Array(this.data.buffer,this.data.byteOffset+4*e,1);return new Ve(t,s,this)}if(this.data instanceof Int32Array){let t=new Int32Array(this.data.buffer,this.data.byteOffset+4*e,1);return new Ve(t,s,this)}if(this.data instanceof Uint32Array){let t=new Uint32Array(this.data.buffer,this.data.byteOffset+4*e,1);return new Ve(t,s,this)}}const a=[];for(const e of n)'x'===e||'r'===e?a.push(this.data[0]):'y'===e||'g'===e?a.push(this.data[1]):'z'===e||'b'===e?a.push(this.data[2]):'w'===e||'a'===e?a.push(this.data[3]):console.error(`GetDataValue: Unknown member ${e}`);r=Be(e,a,s.name)}t=t.postfix}return r}toString(){let e=`${this.data[0]}`;for(let t=1;t<this.data.length;++t)e+=`, ${this.data[t]}`;return e}}class Me extends De{constructor(e,t,n=null){super(t,n),e instanceof Float32Array?this.data=e:this.data=new Float32Array(e)}clone(){return new Me(new Float32Array(this.data),this.typeInfo,null)}setDataValue(e,t,n,s){n instanceof pe?console.error('TODO: Set matrix postfix'):t instanceof Me?this.data=t.data:console.error('SetDataValue: Invalid value',t)}getSubData(e,t,n){if(null===t)return this;const s=this.typeInfo.name;if(e.getTypeInfo('f32'),this.typeInfo instanceof a)this.typeInfo.format;else if(s.endsWith('f'))e.getTypeInfo('f32');else if(s.endsWith('i'))e.getTypeInfo('i32');else if(s.endsWith('u'))e.getTypeInfo('u32');else{if(!s.endsWith('h'))return console.error(`GetDataValue: Unknown type ${s}`),null;e.getTypeInfo('f16')}if(t instanceof be){const r=t.index;let a=-1;if(r instanceof _e){if(!(r.value instanceof Ve))return console.error(`GetDataValue: Invalid array index ${r.value}`),null;a=r.value.value}else{const t=e.evalExpression(r,n);if(!(t instanceof Ve))return console.error('GetDataValue: Unknown index type',r),null;a=t.value}if(a<0||a>=this.data.length)return console.error('GetDataValue: Index out of range',a),null;const o=s.endsWith('h')?'h':'f';let i;if('mat2x2'===s||'mat2x2f'===s||'mat2x2h'===s||'mat3x2'===s||'mat3x2f'===s||'mat3x2h'===s||'mat4x2'===s||'mat4x2f'===s||'mat4x2h'===s)i=new Fe(new Float32Array(this.data.buffer,this.data.byteOffset+2*a*4,2),e.getTypeInfo(`vec2${o}`));else if('mat2x3'===s||'mat2x3f'===s||'mat2x3h'===s||'mat3x3'===s||'mat3x3f'===s||'mat3x3h'===s||'mat4x3'===s||'mat4x3f'===s||'mat4x3h'===s)i=new Fe(new Float32Array(this.data.buffer,this.data.byteOffset+3*a*4,3),e.getTypeInfo(`vec3${o}`));else{if('mat2x4'!==s&&'mat2x4f'!==s&&'mat2x4h'!==s&&'mat3x4'!==s&&'mat3x4f'!==s&&'mat3x4h'!==s&&'mat4x4'!==s&&'mat4x4f'!==s&&'mat4x4h'!==s)return console.error(`GetDataValue: Unknown type ${s}`),null;i=new Fe(new Float32Array(this.data.buffer,this.data.byteOffset+4*a*4,4),e.getTypeInfo(`vec4${o}`))}return t.postfix?i.getSubData(e,t.postfix,n):i}return console.error('GetDataValue: Invalid postfix',t),null}toString(){let e=`${this.data[0]}`;for(let t=1;t<this.data.length;++t)e+=`, ${this.data[t]}`;return e}}class Ue extends De{constructor(e,t,n=0,s=null){super(t,s),this.buffer=e instanceof ArrayBuffer?e:e.buffer,this.offset=n}clone(){const e=new Uint8Array(new Uint8Array(this.buffer,this.offset,this.typeInfo.size));return new Ue(e.buffer,this.typeInfo,0,null)}setDataValue(t,r,a,o){if(null===r)return void console.log('setDataValue: NULL data.');let i=this.offset,l=this.typeInfo;for(;a;){if(a instanceof be)if(l instanceof s){const e=a.index;if(e instanceof _e){if(!(e.value instanceof Ve))return void console.error(`SetDataValue: Invalid index type ${e.value}`);i+=e.value.value*l.stride}else{const n=t.evalExpression(e,o);if(!(n instanceof Ve))return void console.error('SetDataValue: Unknown index type',e);i+=n.value*l.stride}l=l.format}else console.error(`SetDataValue: Type ${l.getTypeName()} is not an array`);else{if(!(a instanceof pe))return void console.error('SetDataValue: Unknown postfix type',a);{const t=a.value;if(l instanceof n){let e=!1;for(const n of l.members)if(n.name===t){i+=n.offset,l=n.type,e=!0;break}if(!e)return void console.error(`SetDataValue: Member ${t} not found`)}else if(l instanceof e){const e=l.getTypeName();let n=0;if('x'===t||'r'===t)n=0;else if('y'===t||'g'===t)n=1;else if('z'===t||'b'===t)n=2;else{if('w'!==t&&'a'!==t)return void console.error(`SetDataValue: Unknown member ${t}`);n=3}if(!(r instanceof Ve))return void console.error('SetDataValue: Invalid value',r);const s=r.value;return'vec2f'===e?void(new Float32Array(this.buffer,i,2)[n]=s):'vec3f'===e?void(new Float32Array(this.buffer,i,3)[n]=s):'vec4f'===e?void(new Float32Array(this.buffer,i,4)[n]=s):'vec2i'===e?void(new Int32Array(this.buffer,i,2)[n]=s):'vec3i'===e?void(new Int32Array(this.buffer,i,3)[n]=s):'vec4i'===e?void(new Int32Array(this.buffer,i,4)[n]=s):'vec2u'===e?void(new Uint32Array(this.buffer,i,2)[n]=s):'vec3u'===e?void(new Uint32Array(this.buffer,i,3)[n]=s):'vec4u'===e?void(new Uint32Array(this.buffer,i,4)[n]=s):void console.error(`SetDataValue: Type ${e} is not a struct`)}}}a=a.postfix}this.setData(t,r,l,i,o)}setData(e,t,n,s,r){const a=n.getTypeName();if('f32'!==a&&'f16'!==a)if('i32'!==a&&'atomic<i32>'!==a&&'x32'!==a)if('u32'!==a&&'atomic<u32>'!==a)if('bool'!==a){if('vec2f'===a||'vec2h'===a){const e=new Float32Array(this.buffer,s,2);return void(t instanceof Fe?(e[0]=t.data[0],e[1]=t.data[1]):(e[0]=t[0],e[1]=t[1]))}if('vec3f'===a||'vec3h'===a){const e=new Float32Array(this.buffer,s,3);return void(t instanceof Fe?(e[0]=t.data[0],e[1]=t.data[1],e[2]=t.data[2]):(e[0]=t[0],e[1]=t[1],e[2]=t[2]))}if('vec4f'===a||'vec4h'===a){const e=new Float32Array(this.buffer,s,4);return void(t instanceof Fe?(e[0]=t.data[0],e[1]=t.data[1],e[2]=t.data[2],e[3]=t.data[3]):(e[0]=t[0],e[1]=t[1],e[2]=t[2],e[3]=t[3]))}if('vec2i'===a){const e=new Int32Array(this.buffer,s,2);return void(t instanceof Fe?(e[0]=t.data[0],e[1]=t.data[1]):(e[0]=t[0],e[1]=t[1]))}if('vec3i'===a){const e=new Int32Array(this.buffer,s,3);return void(t instanceof Fe?(e[0]=t.data[0],e[1]=t.data[1],e[2]=t.data[2]):(e[0]=t[0],e[1]=t[1],e[2]=t[2]))}if('vec4i'===a){const e=new Int32Array(this.buffer,s,4);return void(t instanceof Fe?(e[0]=t.data[0],e[1]=t.data[1],e[2]=t.data[2],e[3]=t.data[3]):(e[0]=t[0],e[1]=t[1],e[2]=t[2],e[3]=t[3]))}if('vec2u'===a){const e=new Uint32Array(this.buffer,s,2);return void(t instanceof Fe?(e[0]=t.data[0],e[1]=t.data[1]):(e[0]=t[0],e[1]=t[1]))}if('vec3u'===a){const e=new Uint32Array(this.buffer,s,3);return void(t instanceof Fe?(e[0]=t.data[0],e[1]=t.data[1],e[2]=t.data[2]):(e[0]=t[0],e[1]=t[1],e[2]=t[2]))}if('vec4u'===a){const e=new Uint32Array(this.buffer,s,4);return void(t instanceof Fe?(e[0]=t.data[0],e[1]=t.data[1],e[2]=t.data[2],e[3]=t.data[3]):(e[0]=t[0],e[1]=t[1],e[2]=t[2],e[3]=t[3]))}if('vec2b'===a){const e=new Uint32Array(this.buffer,s,2);return void(t instanceof Fe?(e[0]=t.data[0],e[1]=t.data[1]):(e[0]=t[0],e[1]=t[1]))}if('vec3b'===a){const e=new Uint32Array(this.buffer,s,3);return void(t instanceof Fe?(e[0]=t.data[0],e[1]=t.data[1],e[2]=t.data[2]):(e[0]=t[0],e[1]=t[1],e[2]=t[2]))}if('vec4b'===a){const e=new Uint32Array(this.buffer,s,4);return void(t instanceof Fe?(e[0]=t.data[0],e[1]=t.data[1],e[2]=t.data[2],e[3]=t.data[3]):(e[0]=t[0],e[1]=t[1],e[2]=t[2],e[3]=t[3]))}if('mat2x2f'===a||'mat2x2h'===a){const e=new Float32Array(this.buffer,s,4);return void(t instanceof Me?(e[0]=t.data[0],e[1]=t.data[1],e[2]=t.data[2],e[3]=t.data[3]):(e[0]=t[0],e[1]=t[1],e[2]=t[2],e[3]=t[3]))}if('mat2x3f'===a||'mat2x3h'===a){const e=new Float32Array(this.buffer,s,6);return void(t instanceof Me?(e[0]=t.data[0],e[1]=t.data[1],e[2]=t.data[2],e[3]=t.data[3],e[4]=t.data[4],e[5]=t.data[5]):(e[0]=t[0],e[1]=t[1],e[2]=t[2],e[3]=t[3],e[4]=t[4],e[5]=t[5]))}if('mat2x4f'===a||'mat2x4h'===a){const e=new Float32Array(this.buffer,s,8);return void(t instanceof Me?(e[0]=t.data[0],e[1]=t.data[1],e[2]=t.data[2],e[3]=t.data[3],e[4]=t.data[4],e[5]=t.data[5],e[6]=t.data[6],e[7]=t.data[7]):(e[0]=t[0],e[1]=t[1],e[2]=t[2],e[3]=t[3],e[4]=t[4],e[5]=t[5],e[6]=t[6],e[7]=t[7]))}if('mat3x2f'===a||'mat3x2h'===a){const e=new Float32Array(this.buffer,s,6);return void(t instanceof Me?(e[0]=t.data[0],e[1]=t.data[1],e[2]=t.data[2],e[3]=t.data[3],e[4]=t.data[4],e[5]=t.data[5]):(e[0]=t[0],e[1]=t[1],e[2]=t[2],e[3]=t[3],e[4]=t[4],e[5]=t[5]))}if('mat3x3f'===a||'mat3x3h'===a){const e=new Float32Array(this.buffer,s,9);return void(t instanceof Me?(e[0]=t.data[0],e[1]=t.data[1],e[2]=t.data[2],e[3]=t.data[3],e[4]=t.data[4],e[5]=t.data[5],e[6]=t.data[6],e[7]=t.data[7],e[8]=t.data[8]):(e[0]=t[0],e[1]=t[1],e[2]=t[2],e[3]=t[3],e[4]=t[4],e[5]=t[5],e[6]=t[6],e[7]=t[7],e[8]=t[8]))}if('mat3x4f'===a||'mat3x4h'===a){const e=new Float32Array(this.buffer,s,12);return void(t instanceof Me?(e[0]=t.data[0],e[1]=t.data[1],e[2]=t.data[2],e[3]=t.data[3],e[4]=t.data[4],e[5]=t.data[5],e[6]=t.data[6],e[7]=t.data[7],e[8]=t.data[8],e[9]=t.data[9],e[10]=t.data[10],e[11]=t.data[11]):(e[0]=t[0],e[1]=t[1],e[2]=t[2],e[3]=t[3],e[4]=t[4],e[5]=t[5],e[6]=t[6],e[7]=t[7],e[8]=t[8],e[9]=t[9],e[10]=t[10],e[11]=t[11]))}if('mat4x2f'===a||'mat4x2h'===a){const e=new Float32Array(this.buffer,s,8);return void(t instanceof Me?(e[0]=t.data[0],e[1]=t.data[1],e[2]=t.data[2],e[3]=t.data[3],e[4]=t.data[4],e[5]=t.data[5],e[6]=t.data[6],e[7]=t.data[7]):(e[0]=t[0],e[1]=t[1],e[2]=t[2],e[3]=t[3],e[4]=t[4],e[5]=t[5],e[6]=t[6],e[7]=t[7]))}if('mat4x3f'===a||'mat4x3h'===a){const e=new Float32Array(this.buffer,s,12);return void(t instanceof Me?(e[0]=t.data[0],e[1]=t.data[1],e[2]=t.data[2],e[3]=t.data[3],e[4]=t.data[4],e[5]=t.data[5],e[6]=t.data[6],e[7]=t.data[7],e[8]=t.data[8],e[9]=t.data[9],e[10]=t.data[10],e[11]=t.data[11]):(e[0]=t[0],e[1]=t[1],e[2]=t[2],e[3]=t[3],e[4]=t[4],e[5]=t[5],e[6]=t[6],e[7]=t[7],e[8]=t[8],e[9]=t[9],e[10]=t[10],e[11]=t[11]))}if('mat4x4f'===a||'mat4x4h'===a){const e=new Float32Array(this.buffer,s,16);return void(t instanceof Me?(e[0]=t.data[0],e[1]=t.data[1],e[2]=t.data[2],e[3]=t.data[3],e[4]=t.data[4],e[5]=t.data[5],e[6]=t.data[6],e[7]=t.data[7],e[8]=t.data[8],e[9]=t.data[9],e[10]=t.data[10],e[11]=t.data[11],e[12]=t.data[12],e[13]=t.data[13],e[14]=t.data[14],e[15]=t.data[15]):(e[0]=t[0],e[1]=t[1],e[2]=t[2],e[3]=t[3],e[4]=t[4],e[5]=t[5],e[6]=t[6],e[7]=t[7],e[8]=t[8],e[9]=t[9],e[10]=t[10],e[11]=t[11],e[12]=t[12],e[13]=t[13],e[14]=t[14],e[15]=t[15]))}if(t instanceof Ue){if(n===t.typeInfo){return void new Uint8Array(this.buffer,s,t.buffer.byteLength).set(new Uint8Array(t.buffer))}console.error('SetDataValue: Type mismatch',a,t.typeInfo.getTypeName())}else console.error(`SetData: Unknown type ${a}`)}else t instanceof Ve&&(new Int32Array(this.buffer,s,1)[0]=t.value);else t instanceof Ve&&(new Uint32Array(this.buffer,s,1)[0]=t.value);else t instanceof Ve&&(new Int32Array(this.buffer,s,1)[0]=t.value);else t instanceof Ve&&(new Float32Array(this.buffer,s,1)[0]=t.value)}getSubData(t,r,o){var i,l,c;if(null===r)return this;let u=this.offset,h=this.typeInfo;for(;r;){if(r instanceof be){const e=r.index,n=e instanceof fe?t.evalExpression(e,o):e;let a=0;if(n instanceof Ve?a=n.value:'number'==typeof n?a=n:console.error('GetDataValue: Invalid index type',e),h instanceof s)u+=a*h.stride,h=h.format;else{const e=h.getTypeName();'mat4x4'===e||'mat4x4f'===e||'mat4x4h'===e?(u+=16*a,h=t.getTypeInfo('vec4f')):'mat4x3'===e||'mat4x3f'===e||'mat4x3h'===e?(u+=12*a,h=t.getTypeInfo('vec3f')):'mat4x2'===e||'mat4x2f'===e||'mat4x2h'===e?(u+=8*a,h=t.getTypeInfo('vec2f')):'mat3x4'===e||'mat3x4f'===e||'mat3x4h'===e?(u+=12*a,h=t.getTypeInfo('vec4f')):'mat3x3'===e||'mat3x3f'===e||'mat3x3h'===e?(u+=9*a,h=t.getTypeInfo('vec3f')):'mat3x2'===e||'mat3x2f'===e||'mat3x2h'===e?(u+=6*a,h=t.getTypeInfo('vec2f')):'mat2x4'===e||'mat2x4f'===e||'mat2x4h'===e?(u+=8*a,h=t.getTypeInfo('vec4f')):'mat2x3'===e||'mat2x3f'===e||'mat2x3h'===e?(u+=6*a,h=t.getTypeInfo('vec3f')):'mat2x2'===e||'mat2x2f'===e||'mat2x2h'===e?(u+=4*a,h=t.getTypeInfo('vec2f')):'vec2f'===e||'vec3f'===e||'vec4f'===e?(u+=4*a,h=t.getTypeInfo('f32')):'vec2h'===e||'vec3h'===e||'vec4h'===e?(u+=2*a,h=t.getTypeInfo('f16')):'vec2b'===e||'vec3b'===e||'vec4b'===e?(u+=1*a,h=t.getTypeInfo('bool')):'vec2i'===e||'vec3i'===e||'vec4i'===e?(u+=4*a,h=t.getTypeInfo('i32')):'vec2u'===e||'vec3u'===e||'vec4u'===e?(u+=4*a,h=t.getTypeInfo('u32')):console.error(`getDataValue: Type ${h.getTypeName()} is not an array`)}}else{if(!(r instanceof pe))return console.error('GetDataValue: Unknown postfix type',r),null;{const s=r.value;if(h instanceof n){let e=!1;for(const t of h.members)if(t.name===s){u+=t.offset,h=t.type,e=!0;break}if(!e)return console.error(`GetDataValue: Member ${s} not found`),null}else if(h instanceof e){const e=h.getTypeName();if('vec2f'===e||'vec3f'===e||'vec4f'===e||'vec2i'===e||'vec3i'===e||'vec4i'===e||'vec2u'===e||'vec3u'===e||'vec4u'===e||'vec2b'===e||'vec3b'===e||'vec4b'===e||'vec2h'===e||'vec3h'===e||'vec4h'===e||'vec2'===e||'vec3'===e||'vec4'===e){if(s.length>0&&s.length<5){let n='f';const r=[];for(let a=0;a<s.length;++a){const o=s[a].toLowerCase();let i=0;if('x'===o||'r'===o)i=0;else if('y'===o||'g'===o)i=1;else if('z'===o||'b'===o)i=2;else{if('w'!==o&&'a'!==o)return console.error(`Unknown member ${s}`),null;i=3}if(1===s.length){if(e.endsWith('f'))return this.buffer.byteLength<u+4*i+4?(console.log('Insufficient buffer data'),null):new Ve(new Float32Array(this.buffer,u+4*i,1),t.getTypeInfo('f32'),this);if(e.endsWith('h'))return new Ve(new Float32Array(this.buffer,u+4*i,1),t.getTypeInfo('f16'),this);if(e.endsWith('i'))return new Ve(new Int32Array(this.buffer,u+4*i,1),t.getTypeInfo('i32'),this);if(e.endsWith('b'))return new Ve(new Int32Array(this.buffer,u+4*i,1),t.getTypeInfo('bool'),this);if(e.endsWith('u'))return new Ve(new Uint32Array(this.buffer,u+4*i,1),t.getTypeInfo('i32'),this)}if('vec2f'===e)r.push(new Float32Array(this.buffer,u,2)[i]);else if('vec3f'===e){if(u+12>=this.buffer.byteLength)return console.log('Insufficient buffer data'),null;const e=new Float32Array(this.buffer,u,3);r.push(e[i])}else if('vec4f'===e)r.push(new Float32Array(this.buffer,u,4)[i]);else if('vec2i'===e)n='i',r.push(new Int32Array(this.buffer,u,2)[i]);else if('vec3i'===e)n='i',r.push(new Int32Array(this.buffer,u,3)[i]);else if('vec4i'===e)n='i',r.push(new Int32Array(this.buffer,u,4)[i]);else if('vec2u'===e){n='u';const e=new Uint32Array(this.buffer,u,2);r.push(e[i])}else'vec3u'===e?(n='u',r.push(new Uint32Array(this.buffer,u,3)[i])):'vec4u'===e&&(n='u',r.push(new Uint32Array(this.buffer,u,4)[i]))}return 2===r.length?h=t.getTypeInfo(`vec2${n}`):3===r.length?h=t.getTypeInfo(`vec3${n}`):4===r.length?h=t.getTypeInfo(`vec4${n}`):console.error(`GetDataValue: Invalid vector length ${r.length}`),new Fe(r,h,null)}return console.error(`GetDataValue: Unknown member ${s}`),null}return console.error(`GetDataValue: Type ${e} is not a struct`),null}}}r=r.postfix}const f=h.getTypeName();return'f32'===f?new Ve(new Float32Array(this.buffer,u,1),h,this):'i32'===f?new Ve(new Int32Array(this.buffer,u,1),h,this):'u32'===f?new Ve(new Uint32Array(this.buffer,u,1),h,this):'vec2f'===f?new Fe(new Float32Array(this.buffer,u,2),h,this):'vec3f'===f?new Fe(new Float32Array(this.buffer,u,3),h,this):'vec4f'===f?new Fe(new Float32Array(this.buffer,u,4),h,this):'vec2i'===f?new Fe(new Int32Array(this.buffer,u,2),h,this):'vec3i'===f?new Fe(new Int32Array(this.buffer,u,3),h,this):'vec4i'===f?new Fe(new Int32Array(this.buffer,u,4),h,this):'vec2u'===f?new Fe(new Uint32Array(this.buffer,u,2),h,this):'vec3u'===f?new Fe(new Uint32Array(this.buffer,u,3),h,this):'vec4u'===f?new Fe(new Uint32Array(this.buffer,u,4),h,this):h instanceof a&&'atomic'===h.name?'u32'===(null===(i=h.format)||void 0===i?void 0:i.name)?new Ve(new Uint32Array(this.buffer,u,1)[0],h.format,this):'i32'===(null===(l=h.format)||void 0===l?void 0:l.name)?new Ve(new Int32Array(this.buffer,u,1)[0],h.format,this):(console.error(`GetDataValue: Invalid atomic format ${null===(c=h.format)||void 0===c?void 0:c.name}`),null):new Ue(this.buffer,h,u,this)}toArray(){const e=this.typeInfo.getTypeName();return'f32'===e||'f16'===e?new Float32Array(this.buffer,this.offset,1):'i32'===e||'atomic<i32>'===e||'x32'===e?new Int32Array(this.buffer,this.offset,1):'u32'===e||'atomic<u32>'===e?new Uint32Array(this.buffer,this.offset,1):'bool'===e?new Int32Array(this.buffer,this.offset,1):'vec2f'===e||'vec2h'===e?new Float32Array(this.buffer,this.offset,2):'vec3f'===e||'vec3h'===e?new Float32Array(this.buffer,this.offset,3):'vec4f'===e||'vec4h'===e?new Float32Array(this.buffer,this.offset,4):'vec2i'===e?new Int32Array(this.buffer,this.offset,2):'vec3i'===e?new Int32Array(this.buffer,this.offset,3):'vec4i'===e?new Int32Array(this.buffer,this.offset,4):'vec2u'===e?new Uint32Array(this.buffer,this.offset,2):'vec3u'===e?new Uint32Array(this.buffer,this.offset,3):'vec4u'===e?new Uint32Array(this.buffer,this.offset,4):'vec2b'===e?new Uint32Array(this.buffer,this.offset,2):'vec3b'===e?new Uint32Array(this.buffer,this.offset,3):'vec4b'===e?new Uint32Array(this.buffer,this.offset,4):'mat2x2f'===e||'mat2x2h'===e?new Float32Array(this.buffer,this.offset,4):'mat2x3f'===e||'mat2x3h'===e?new Float32Array(this.buffer,this.offset,6):'mat2x4f'===e||'mat2x4h'===e?new Float32Array(this.buffer,this.offset,8):'mat3x2f'===e||'mat3x2h'===e?new Float32Array(this.buffer,this.offset,6):'mat3x3f'===e||'mat3x3h'===e?new Float32Array(this.buffer,this.offset,9):'mat3x4f'===e||'mat3x4h'===e?new Float32Array(this.buffer,this.offset,12):'mat4x2f'===e||'mat4x2h'===e?new Float32Array(this.buffer,this.offset,8):'mat4x3f'===e||'mat4x3h'===e?new Float32Array(this.buffer,this.offset,12):'mat4x4f'===e||'mat4x4h'===e?new Float32Array(this.buffer,this.offset,16):null}toString(){let e='';if(this.typeInfo instanceof s)if('f32'===this.typeInfo.format.name){const t=new Float32Array(this.buffer,this.offset);e=`[${t[0]}`;for(let n=1;n<t.length;++n)e+=`, ${t[n]}`}else if('i32'===this.typeInfo.format.name){const t=new Int32Array(this.buffer,this.offset);e=`[${t[0]}`;for(let n=1;n<t.length;++n)e+=`, ${t[n]}`}else if('u32'===this.typeInfo.format.name){const t=new Uint32Array(this.buffer,this.offset);e=`[${t[0]}`;for(let n=1;n<t.length;++n)e+=`, ${t[n]}`}else if('vec2f'===this.typeInfo.format.name){const t=new Float32Array(this.buffer,this.offset);e=`[${t[0]}, ${t[1]}]`;for(let n=1;n<t.length/2;++n)e+=`, [${t[2*n]}, ${t[2*n+1]}]`}else if('vec3f'===this.typeInfo.format.name){const t=new Float32Array(this.buffer,this.offset);e=`[${t[0]}, ${t[1]}, ${t[2]}]`;for(let n=4;n<t.length;n+=4)e+=`, [${t[n]}, ${t[n+1]}, ${t[n+2]}]`}else if('vec4f'===this.typeInfo.format.name){const t=new Float32Array(this.buffer,this.offset);e=`[${t[0]}, ${t[1]}, ${t[2]}, ${t[3]}]`;for(let n=4;n<t.length;n+=4)e+=`, [${t[n]}, ${t[n+1]}, ${t[n+2]}, ${t[n+3]}]`}else e='[...]';else this.typeInfo instanceof n?e+='{...}':e='[...]';return e}}class We extends De{constructor(e,t,n,s){super(t,null),this.data=e,this.descriptor=n,this.view=s}clone(){return new We(this.data,this.typeInfo,this.descriptor,this.view)}get width(){var e,t;const n=this.descriptor.size;return n instanceof Array&&n.length>0?null!==(e=n[0])&&void 0!==e?e:0:n instanceof Object&&null!==(t=n.width)&&void 0!==t?t:0}get height(){var e,t;const n=this.descriptor.size;return n instanceof Array&&n.length>1?null!==(e=n[1])&&void 0!==e?e:0:n instanceof Object&&null!==(t=n.height)&&void 0!==t?t:0}get depthOrArrayLayers(){var e,t;const n=this.descriptor.size;return n instanceof Array&&n.length>2?null!==(e=n[2])&&void 0!==e?e:0:n instanceof Object&&null!==(t=n.depthOrArrayLayers)&&void 0!==t?t:0}get format(){var e;return this.descriptor&&null!==(e=this.descriptor.format)&&void 0!==e?e:'rgba8unorm'}get sampleCount(){var e;return this.descriptor&&null!==(e=this.descriptor.sampleCount)&&void 0!==e?e:1}get mipLevelCount(){var e;return this.descriptor&&null!==(e=this.descriptor.mipLevelCount)&&void 0!==e?e:1}get dimension(){var e;return this.descriptor&&null!==(e=this.descriptor.dimension)&&void 0!==e?e:'2d'}getMipLevelSize(e){if(e>=this.mipLevelCount)return[0,0,0];const t=[this.width,this.height,this.depthOrArrayLayers];for(let n=0;n<t.length;++n)t[n]=Math.max(1,t[n]>>e);return t}get texelByteSize(){const e=this.format,t=S[e];return t?t.isDepthStencil?4:t.bytesPerBlock:0}get bytesPerRow(){return this.width*this.texelByteSize}get isDepthStencil(){const e=this.format,t=S[e];return!!t&&t.isDepthStencil}getGpuSize(){const e=this.format,t=S[e],n=this.width;if(!e||n<=0||!t)return-1;const s=this.height,r=this.depthOrArrayLayers,a=this.dimension;return n/t.blockWidth*('1d'===a?1:s/t.blockHeight)*t.bytesPerBlock*r}getPixel(e,t,n=0,s=0){const r=this.texelByteSize,a=this.bytesPerRow,o=this.height,i=this.data[s];return w(new Uint8Array(i),e,t,n,s,o,a,r,this.format)}setPixel(e,t,n,s,r){const a=this.texelByteSize,o=this.bytesPerRow,i=this.height,l=this.data[s];!function(e,t,n,s,r,a,o,i,l,c){const u=s*(o>>=r)*(a>>=r)+n*o+t*i;switch(l){case'r8unorm':return void I(e,u,'8unorm',1,c);case'r8snorm':return void I(e,u,'8snorm',1,c);case'r8uint':return void I(e,u,'8uint',1,c);case'r8sint':return void I(e,u,'8sint',1,c);case'rg8unorm':return void I(e,u,'8unorm',2,c);case'rg8snorm':return void I(e,u,'8snorm',2,c);case'rg8uint':return void I(e,u,'8uint',2,c);case'rg8sint':return void I(e,u,'8sint',2,c);case'rgba8unorm-srgb':case'rgba8unorm':case'bgra8unorm-srgb':case'bgra8unorm':return void I(e,u,'8unorm',4,c);case'rgba8snorm':return void I(e,u,'8snorm',4,c);case'rgba8uint':return void I(e,u,'8uint',4,c);case'rgba8sint':return void I(e,u,'8sint',4,c);case'r16uint':return void I(e,u,'16uint',1,c);case'r16sint':return void I(e,u,'16sint',1,c);case'r16float':return void I(e,u,'16float',1,c);case'rg16uint':return void I(e,u,'16uint',2,c);case'rg16sint':return void I(e,u,'16sint',2,c);case'rg16float':return void I(e,u,'16float',2,c);case'rgba16uint':return void I(e,u,'16uint',4,c);case'rgba16sint':return void I(e,u,'16sint',4,c);case'rgba16float':return void I(e,u,'16float',4,c);case'r32uint':return void I(e,u,'32uint',1,c);case'r32sint':return void I(e,u,'32sint',1,c);case'depth16unorm':case'depth24plus':case'depth24plus-stencil8':case'depth32float':case'depth32float-stencil8':case'r32float':return void I(e,u,'32float',1,c);case'rg32uint':return void I(e,u,'32uint',2,c);case'rg32sint':return void I(e,u,'32sint',2,c);case'rg32float':return void I(e,u,'32float',2,c);case'rgba32uint':return void I(e,u,'32uint',4,c);case'rgba32sint':return void I(e,u,'32sint',4,c);case'rgba32float':return void I(e,u,'32float',4,c);case'rg11b10ufloat':console.error('TODO: rg11b10ufloat not supported for writing')}}(new Uint8Array(l),e,t,n,s,i,o,a,this.format,r)}}exports.TokenClass=void 0,(z=exports.TokenClass||(exports.TokenClass={}))[z.token=0]='token',z[z.keyword=1]='keyword',z[z.reserved=2]='reserved';class Pe{constructor(e,t,n){this.name=e,this.type=t,this.rule=n}toString(){return this.name}}class qe{}H=qe,qe.none=new Pe('',exports.TokenClass.reserved,''),qe.eof=new Pe('EOF',exports.TokenClass.token,''),qe.reserved={asm:new Pe('asm',exports.TokenClass.reserved,'asm'),bf16:new Pe('bf16',exports.TokenClass.reserved,'bf16'),do:new Pe('do',exports.TokenClass.reserved,'do'),enum:new Pe('enum',exports.TokenClass.reserved,'enum'),f16:new Pe('f16',exports.TokenClass.reserved,'f16'),f64:new Pe('f64',exports.TokenClass.reserved,'f64'),handle:new Pe('handle',exports.TokenClass.reserved,'handle'),i8:new Pe('i8',exports.TokenClass.reserved,'i8'),i16:new Pe('i16',exports.TokenClass.reserved,'i16'),i64:new Pe('i64',exports.TokenClass.reserved,'i64'),mat:new Pe('mat',exports.TokenClass.reserved,'mat'),premerge:new Pe('premerge',exports.TokenClass.reserved,'premerge'),regardless:new Pe('regardless',exports.TokenClass.reserved,'regardless'),typedef:new Pe('typedef',exports.TokenClass.reserved,'typedef'),u8:new Pe('u8',exports.TokenClass.reserved,'u8'),u16:new Pe('u16',exports.TokenClass.reserved,'u16'),u64:new Pe('u64',exports.TokenClass.reserved,'u64'),unless:new Pe('unless',exports.TokenClass.reserved,'unless'),using:new Pe('using',exports.TokenClass.reserved,'using'),vec:new Pe('vec',exports.TokenClass.reserved,'vec'),void:new Pe('void',exports.TokenClass.reserved,'void')},qe.keywords={array:new Pe('array',exports.TokenClass.keyword,'array'),atomic:new Pe('atomic',exports.TokenClass.keyword,'atomic'),bool:new Pe('bool',exports.TokenClass.keyword,'bool'),f32:new Pe('f32',exports.TokenClass.keyword,'f32'),i32:new Pe('i32',exports.TokenClass.keyword,'i32'),mat2x2:new Pe('mat2x2',exports.TokenClass.keyword,'mat2x2'),mat2x3:new Pe('mat2x3',exports.TokenClass.keyword,'mat2x3'),mat2x4:new Pe('mat2x4',exports.TokenClass.keyword,'mat2x4'),mat3x2:new Pe('mat3x2',exports.TokenClass.keyword,'mat3x2'),mat3x3:new Pe('mat3x3',exports.TokenClass.keyword,'mat3x3'),mat3x4:new Pe('mat3x4',exports.TokenClass.keyword,'mat3x4'),mat4x2:new Pe('mat4x2',exports.TokenClass.keyword,'mat4x2'),mat4x3:new Pe('mat4x3',exports.TokenClass.keyword,'mat4x3'),mat4x4:new Pe('mat4x4',exports.TokenClass.keyword,'mat4x4'),ptr:new Pe('ptr',exports.TokenClass.keyword,'ptr'),sampler:new Pe('sampler',exports.TokenClass.keyword,'sampler'),sampler_comparison:new Pe('sampler_comparison',exports.TokenClass.keyword,'sampler_comparison'),struct:new Pe('struct',exports.TokenClass.keyword,'struct'),texture_1d:new Pe('texture_1d',exports.TokenClass.keyword,'texture_1d'),texture_2d:new Pe('texture_2d',exports.TokenClass.keyword,'texture_2d'),texture_2d_array:new Pe('texture_2d_array',exports.TokenClass.keyword,'texture_2d_array'),texture_3d:new Pe('texture_3d',exports.TokenClass.keyword,'texture_3d'),texture_cube:new Pe('texture_cube',exports.TokenClass.keyword,'texture_cube'),texture_cube_array:new Pe('texture_cube_array',exports.TokenClass.keyword,'texture_cube_array'),texture_multisampled_2d:new Pe('texture_multisampled_2d',exports.TokenClass.keyword,'texture_multisampled_2d'),texture_storage_1d:new Pe('texture_storage_1d',exports.TokenClass.keyword,'texture_storage_1d'),texture_storage_2d:new Pe('texture_storage_2d',exports.TokenClass.keyword,'texture_storage_2d'),texture_storage_2d_array:new Pe('texture_storage_2d_array',exports.TokenClass.keyword,'texture_storage_2d_array'),texture_storage_3d:new Pe('texture_storage_3d',exports.TokenClass.keyword,'texture_storage_3d'),texture_depth_2d:new Pe('texture_depth_2d',exports.TokenClass.keyword,'texture_depth_2d'),texture_depth_2d_array:new Pe('texture_depth_2d_array',exports.TokenClass.keyword,'texture_depth_2d_array'),texture_depth_cube:new Pe('texture_depth_cube',exports.TokenClass.keyword,'texture_depth_cube'),texture_depth_cube_array:new Pe('texture_depth_cube_array',exports.TokenClass.keyword,'texture_depth_cube_array'),texture_depth_multisampled_2d:new Pe('texture_depth_multisampled_2d',exports.TokenClass.keyword,'texture_depth_multisampled_2d'),texture_external:new Pe('texture_external',exports.TokenClass.keyword,'texture_external'),u32:new Pe('u32',exports.TokenClass.keyword,'u32'),vec2:new Pe('vec2',exports.TokenClass.keyword,'vec2'),vec3:new Pe('vec3',exports.TokenClass.keyword,'vec3'),vec4:new Pe('vec4',exports.TokenClass.keyword,'vec4'),bitcast:new Pe('bitcast',exports.TokenClass.keyword,'bitcast'),block:new Pe('block',exports.TokenClass.keyword,'block'),break:new Pe('break',exports.TokenClass.keyword,'break'),case:new Pe('case',exports.TokenClass.keyword,'case'),continue:new Pe('continue',exports.TokenClass.keyword,'continue'),continuing:new Pe('continuing',exports.TokenClass.keyword,'continuing'),default:new Pe('default',exports.TokenClass.keyword,'default'),diagnostic:new Pe('diagnostic',exports.TokenClass.keyword,'diagnostic'),discard:new Pe('discard',exports.TokenClass.keyword,'discard'),else:new Pe('else',exports.TokenClass.keyword,'else'),enable:new Pe('enable',exports.TokenClass.keyword,'enable'),fallthrough:new Pe('fallthrough',exports.TokenClass.keyword,'fallthrough'),false:new Pe('false',exports.TokenClass.keyword,'false'),fn:new Pe('fn',exports.TokenClass.keyword,'fn'),for:new Pe('for',exports.TokenClass.keyword,'for'),function:new Pe('function',exports.TokenClass.keyword,'function'),if:new Pe('if',exports.TokenClass.keyword,'if'),let:new Pe('let',exports.TokenClass.keyword,'let'),const:new Pe('const',exports.TokenClass.keyword,'const'),loop:new Pe('loop',exports.TokenClass.keyword,'loop'),while:new Pe('while',exports.TokenClass.keyword,'while'),private:new Pe('private',exports.TokenClass.keyword,'private'),read:new Pe('read',exports.TokenClass.keyword,'read'),read_write:new Pe('read_write',exports.TokenClass.keyword,'read_write'),return:new Pe('return',exports.TokenClass.keyword,'return'),requires:new Pe('requires',exports.TokenClass.keyword,'requires'),storage:new Pe('storage',exports.TokenClass.keyword,'storage'),switch:new Pe('switch',exports.TokenClass.keyword,'switch'),true:new Pe('true',exports.TokenClass.keyword,'true'),alias:new Pe('alias',exports.TokenClass.keyword,'alias'),type:new Pe('type',exports.TokenClass.keyword,'type'),uniform:new Pe('uniform',exports.TokenClass.keyword,'uniform'),var:new Pe('var',exports.TokenClass.keyword,'var'),override:new Pe('override',exports.TokenClass.keyword,'override'),workgroup:new Pe('workgroup',exports.TokenClass.keyword,'workgroup'),write:new Pe('write',exports.TokenClass.keyword,'write'),r8unorm:new Pe('r8unorm',exports.TokenClass.keyword,'r8unorm'),r8snorm:new Pe('r8snorm',exports.TokenClass.keyword,'r8snorm'),r8uint:new Pe('r8uint',exports.TokenClass.keyword,'r8uint'),r8sint:new Pe('r8sint',exports.TokenClass.keyword,'r8sint'),r16uint:new Pe('r16uint',exports.TokenClass.keyword,'r16uint'),r16sint:new Pe('r16sint',exports.TokenClass.keyword,'r16sint'),r16float:new Pe('r16float',exports.TokenClass.keyword,'r16float'),rg8unorm:new Pe('rg8unorm',exports.TokenClass.keyword,'rg8unorm'),rg8snorm:new Pe('rg8snorm',exports.TokenClass.keyword,'rg8snorm'),rg8uint:new Pe('rg8uint',exports.TokenClass.keyword,'rg8uint'),rg8sint:new Pe('rg8sint',exports.TokenClass.keyword,'rg8sint'),r32uint:new Pe('r32uint',exports.TokenClass.keyword,'r32uint'),r32sint:new Pe('r32sint',exports.TokenClass.keyword,'r32sint'),r32float:new Pe('r32float',exports.TokenClass.keyword,'r32float'),rg16uint:new Pe('rg16uint',exports.TokenClass.keyword,'rg16uint'),rg16sint:new Pe('rg16sint',exports.TokenClass.keyword,'rg16sint'),rg16float:new Pe('rg16float',exports.TokenClass.keyword,'rg16float'),rgba8unorm:new Pe('rgba8unorm',exports.TokenClass.keyword,'rgba8unorm'),rgba8unorm_srgb:new Pe('rgba8unorm_srgb',exports.TokenClass.keyword,'rgba8unorm_srgb'),rgba8snorm:new Pe('rgba8snorm',exports.TokenClass.keyword,'rgba8snorm'),rgba8uint:new Pe('rgba8uint',exports.TokenClass.keyword,'rgba8uint'),rgba8sint:new Pe('rgba8sint',exports.TokenClass.keyword,'rgba8sint'),bgra8unorm:new Pe('bgra8unorm',exports.TokenClass.keyword,'bgra8unorm'),bgra8unorm_srgb:new Pe('bgra8unorm_srgb',exports.TokenClass.keyword,'bgra8unorm_srgb'),rgb10a2unorm:new Pe('rgb10a2unorm',exports.TokenClass.keyword,'rgb10a2unorm'),rg11b10float:new Pe('rg11b10float',exports.TokenClass.keyword,'rg11b10float'),rg32uint:new Pe('rg32uint',exports.TokenClass.keyword,'rg32uint'),rg32sint:new Pe('rg32sint',exports.TokenClass.keyword,'rg32sint'),rg32float:new Pe('rg32float',exports.TokenClass.keyword,'rg32float'),rgba16uint:new Pe('rgba16uint',exports.TokenClass.keyword,'rgba16uint'),rgba16sint:new Pe('rgba16sint',exports.TokenClass.keyword,'rgba16sint'),rgba16float:new Pe('rgba16float',exports.TokenClass.keyword,'rgba16float'),rgba32uint:new Pe('rgba32uint',exports.TokenClass.keyword,'rgba32uint'),rgba32sint:new Pe('rgba32sint',exports.TokenClass.keyword,'rgba32sint'),rgba32float:new Pe('rgba32float',exports.TokenClass.keyword,'rgba32float'),static_assert:new Pe('static_assert',exports.TokenClass.keyword,'static_assert')},qe.tokens={decimal_float_literal:new Pe('decimal_float_literal',exports.TokenClass.token,/((-?[0-9]*\.[0-9]+|-?[0-9]+\.[0-9]*)((e|E)(\+|-)?[0-9]+)?[fh]?)|(-?[0-9]+(e|E)(\+|-)?[0-9]+[fh]?)|(-?[0-9]+[fh])/),hex_float_literal:new Pe('hex_float_literal',exports.TokenClass.token,/-?0x((([0-9a-fA-F]*\.[0-9a-fA-F]+|[0-9a-fA-F]+\.[0-9a-fA-F]*)((p|P)(\+|-)?[0-9]+[fh]?)?)|([0-9a-fA-F]+(p|P)(\+|-)?[0-9]+[fh]?))/),int_literal:new Pe('int_literal',exports.TokenClass.token,/-?0x[0-9a-fA-F]+|0i?|-?[1-9][0-9]*i?/),uint_literal:new Pe('uint_literal',exports.TokenClass.token,/0x[0-9a-fA-F]+u|0u|[1-9][0-9]*u/),name:new Pe('name',exports.TokenClass.token,/([_\p{XID_Start}][\p{XID_Continue}]+)|([\p{XID_Start}])/u),ident:new Pe('ident',exports.TokenClass.token,/[_a-zA-Z][0-9a-zA-Z_]*/),and:new Pe('and',exports.TokenClass.token,'&'),and_and:new Pe('and_and',exports.TokenClass.token,'&&'),arrow:new Pe('arrow ',exports.TokenClass.token,'->'),attr:new Pe('attr',exports.TokenClass.token,'@'),forward_slash:new Pe('forward_slash',exports.TokenClass.token,'/'),bang:new Pe('bang',exports.TokenClass.token,'!'),bracket_left:new Pe('bracket_left',exports.TokenClass.token,'['),bracket_right:new Pe('bracket_right',exports.TokenClass.token,']'),brace_left:new Pe('brace_left',exports.TokenClass.token,'{'),brace_right:new Pe('brace_right',exports.TokenClass.token,'}'),colon:new Pe('colon',exports.TokenClass.token,':'),comma:new Pe('comma',exports.TokenClass.token,','),equal:new Pe('equal',exports.TokenClass.token,'='),equal_equal:new Pe('equal_equal',exports.TokenClass.token,'=='),not_equal:new Pe('not_equal',exports.TokenClass.token,'!='),greater_than:new Pe('greater_than',exports.TokenClass.token,'>'),greater_than_equal:new Pe('greater_than_equal',exports.TokenClass.token,'>='),shift_right:new Pe('shift_right',exports.TokenClass.token,'>>'),less_than:new Pe('less_than',exports.TokenClass.token,'<'),less_than_equal:new Pe('less_than_equal',exports.TokenClass.token,'<='),shift_left:new Pe('shift_left',exports.TokenClass.token,'<<'),modulo:new Pe('modulo',exports.TokenClass.token,'%'),minus:new Pe('minus',exports.TokenClass.token,'-'),minus_minus:new Pe('minus_minus',exports.TokenClass.token,'--'),period:new Pe('period',exports.TokenClass.token,'.'),plus:new Pe('plus',exports.TokenClass.token,'+'),plus_plus:new Pe('plus_plus',exports.TokenClass.token,'++'),or:new Pe('or',exports.TokenClass.token,'|'),or_or:new Pe('or_or',exports.TokenClass.token,'||'),paren_left:new Pe('paren_left',exports.TokenClass.token,'('),paren_right:new Pe('paren_right',exports.TokenClass.token,')'),semicolon:new Pe('semicolon',exports.TokenClass.token,';'),star:new Pe('star',exports.TokenClass.token,'*'),tilde:new Pe('tilde',exports.TokenClass.token,'~'),underscore:new Pe('underscore',exports.TokenClass.token,'_'),xor:new Pe('xor',exports.TokenClass.token,'^'),plus_equal:new Pe('plus_equal',exports.TokenClass.token,'+='),minus_equal:new Pe('minus_equal',exports.TokenClass.token,'-='),times_equal:new Pe('times_equal',exports.TokenClass.token,'*='),division_equal:new Pe('division_equal',exports.TokenClass.token,'/='),modulo_equal:new Pe('modulo_equal',exports.TokenClass.token,'%='),and_equal:new Pe('and_equal',exports.TokenClass.token,'&='),or_equal:new Pe('or_equal',exports.TokenClass.token,'|='),xor_equal:new Pe('xor_equal',exports.TokenClass.token,'^='),shift_right_equal:new Pe('shift_right_equal',exports.TokenClass.token,'>>='),shift_left_equal:new Pe('shift_left_equal',exports.TokenClass.token,'<<=')},qe.simpleTokens={'@':H.tokens.attr,'{':H.tokens.brace_left,'}':H.tokens.brace_right,':':H.tokens.colon,',':H.tokens.comma,'(':H.tokens.paren_left,')':H.tokens.paren_right,';':H.tokens.semicolon},qe.literalTokens={'&':H.tokens.and,'&&':H.tokens.and_and,'->':H.tokens.arrow,'/':H.tokens.forward_slash,'!':H.tokens.bang,'[':H.tokens.bracket_left,']':H.tokens.bracket_right,'=':H.tokens.equal,'==':H.tokens.equal_equal,'!=':H.tokens.not_equal,'>':H.tokens.greater_than,'>=':H.tokens.greater_than_equal,'>>':H.tokens.shift_right,'<':H.tokens.less_than,'<=':H.tokens.less_than_equal,'<<':H.tokens.shift_left,'%':H.tokens.modulo,'-':H.tokens.minus,'--':H.tokens.minus_minus,'.':H.tokens.period,'+':H.tokens.plus,'++':H.tokens.plus_plus,'|':H.tokens.or,'||':H.tokens.or_or,'*':H.tokens.star,'~':H.tokens.tilde,_:H.tokens.underscore,'^':H.tokens.xor,'+=':H.tokens.plus_equal,'-=':H.tokens.minus_equal,'*=':H.tokens.times_equal,'/=':H.tokens.division_equal,'%=':H.tokens.modulo_equal,'&=':H.tokens.and_equal,'|=':H.tokens.or_equal,'^=':H.tokens.xor_equal,'>>=':H.tokens.shift_right_equal,'<<=':H.tokens.shift_left_equal},qe.regexTokens={decimal_float_literal:H.tokens.decimal_float_literal,hex_float_literal:H.tokens.hex_float_literal,int_literal:H.tokens.int_literal,uint_literal:H.tokens.uint_literal,ident:H.tokens.ident},qe.storage_class=[H.keywords.function,H.keywords.private,H.keywords.workgroup,H.keywords.uniform,H.keywords.storage],qe.access_mode=[H.keywords.read,H.keywords.write,H.keywords.read_write],qe.sampler_type=[H.keywords.sampler,H.keywords.sampler_comparison],qe.sampled_texture_type=[H.keywords.texture_1d,H.keywords.texture_2d,H.keywords.texture_2d_array,H.keywords.texture_3d,H.keywords.texture_cube,H.keywords.texture_cube_array],qe.multisampled_texture_type=[H.keywords.texture_multisampled_2d],qe.storage_texture_type=[H.keywords.texture_storage_1d,H.keywords.texture_storage_2d,H.keywords.texture_storage_2d_array,H.keywords.texture_storage_3d],qe.depth_texture_type=[H.keywords.texture_depth_2d,H.keywords.texture_depth_2d_array,H.keywords.texture_depth_cube,H.keywords.texture_depth_cube_array,H.keywords.texture_depth_multisampled_2d],qe.texture_external_type=[H.keywords.texture_external],qe.any_texture_type=[...H.sampled_texture_type,...H.multisampled_texture_type,...H.storage_texture_type,...H.depth_texture_type,...H.texture_external_type],qe.texel_format=[H.keywords.r8unorm,H.keywords.r8snorm,H.keywords.r8uint,H.keywords.r8sint,H.keywords.r16uint,H.keywords.r16sint,H.keywords.r16float,H.keywords.rg8unorm,H.keywords.rg8snorm,H.keywords.rg8uint,H.keywords.rg8sint,H.keywords.r32uint,H.keywords.r32sint,H.keywords.r32float,H.keywords.rg16uint,H.keywords.rg16sint,H.keywords.rg16float,H.keywords.rgba8unorm,H.keywords.rgba8unorm_srgb,H.keywords.rgba8snorm,H.keywords.rgba8uint,H.keywords.rgba8sint,H.keywords.bgra8unorm,H.keywords.bgra8unorm_srgb,H.keywords.rgb10a2unorm,H.keywords.rg11b10float,H.keywords.rg32uint,H.keywords.rg32sint,H.keywords.rg32float,H.keywords.rgba16uint,H.keywords.rgba16sint,H.keywords.rgba16float,H.keywords.rgba32uint,H.keywords.rgba32sint,H.keywords.rgba32float],qe.const_literal=[H.tokens.int_literal,H.tokens.uint_literal,H.tokens.decimal_float_literal,H.tokens.hex_float_literal,H.keywords.true,H.keywords.false],qe.literal_or_ident=[H.tokens.ident,H.tokens.int_literal,H.tokens.uint_literal,H.tokens.decimal_float_literal,H.tokens.hex_float_literal,H.tokens.name],qe.element_count_expression=[H.tokens.int_literal,H.tokens.uint_literal,H.tokens.ident],qe.template_types=[H.keywords.vec2,H.keywords.vec3,H.keywords.vec4,H.keywords.mat2x2,H.keywords.mat2x3,H.keywords.mat2x4,H.keywords.mat3x2,H.keywords.mat3x3,H.keywords.mat3x4,H.keywords.mat4x2,H.keywords.mat4x3,H.keywords.mat4x4,H.keywords.atomic,H.keywords.bitcast,...H.any_texture_type],qe.attribute_name=[H.tokens.ident,H.keywords.block,H.keywords.diagnostic],qe.assignment_operators=[H.tokens.equal,H.tokens.plus_equal,H.tokens.minus_equal,H.tokens.times_equal,H.tokens.division_equal,H.tokens.modulo_equal,H.tokens.and_equal,H.tokens.or_equal,H.tokens.xor_equal,H.tokens.shift_right_equal,H.tokens.shift_left_equal],qe.increment_operators=[H.tokens.plus_plus,H.tokens.minus_minus];class He{constructor(e,t,n,s,r){this.type=e,this.lexeme=t,this.line=n,this.start=s,this.end=r}toString(){return this.lexeme}isTemplateType(){return-1!=qe.template_types.indexOf(this.type)}isArrayType(){return this.type==qe.keywords.array}isArrayOrTemplateType(){return this.isArrayType()||this.isTemplateType()}}class ze{constructor(e){this._tokens=[],this._start=0,this._current=0,this._line=1,this._source=null!=e?e:''}scanTokens(){for(;!this._isAtEnd();)if(this._start=this._current,!this.scanToken())throw`Invalid syntax at line ${this._line}`;return this._tokens.push(new He(qe.eof,'',this._line,this._current,this._current)),this._tokens}scanToken(){let e=this._advance();if('\n'==e)return this._line++,!0;if(this._isWhitespace(e))return!0;if('/'==e){if('/'==this._peekAhead()){for(;'\n'!=e;){if(this._isAtEnd())return!0;e=this._advance()}return this._line++,!0}if('*'==this._peekAhead()){this._advance();let t=1;for(;t>0;){if(this._isAtEnd())return!0;if(e=this._advance(),'\n'==e)this._line++;else if('*'==e){if('/'==this._peekAhead()&&(this._advance(),t--,0==t))return!0}else'/'==e&&'*'==this._peekAhead()&&(this._advance(),t++)}return!0}}const t=qe.simpleTokens[e];if(t)return this._addToken(t),!0;let n=qe.none;const s=this._isAlpha(e),r='_'===e;if(this._isAlphaNumeric(e)){let t=this._peekAhead();for(;this._isAlphaNumeric(t);)e+=this._advance(),t=this._peekAhead()}if(s){const t=qe.keywords[e];if(t)return this._addToken(t),!0}if(s||r)return this._addToken(qe.tokens.ident),!0;for(;;){let t=this._findType(e);const s=this._peekAhead();if('-'==e&&this._tokens.length>0){if('='==s)return this._current++,e+=s,this._addToken(qe.tokens.minus_equal),!0;if('-'==s)return this._current++,e+=s,this._addToken(qe.tokens.minus_minus),!0;const n=this._tokens.length-1;if((-1!=qe.literal_or_ident.indexOf(this._tokens[n].type)||this._tokens[n].type==qe.tokens.paren_right)&&'>'!=s)return this._addToken(t),!0}if('>'==e&&('>'==s||'='==s)){let e=!1,n=this._tokens.length-1;for(let t=0;t<5&&n>=0&&-1===qe.assignment_operators.indexOf(this._tokens[n].type);++t,--n)if(this._tokens[n].type===qe.tokens.less_than){n>0&&this._tokens[n-1].isArrayOrTemplateType()&&(e=!0);break}if(e)return this._addToken(t),!0}if(t===qe.none){let s=e,r=0;const a=2;for(let e=0;e<a;++e)if(s+=this._peekAhead(e),t=this._findType(s),t!==qe.none){r=e;break}if(t===qe.none)return n!==qe.none&&(this._current--,this._addToken(n),!0);e=s,this._current+=r+1}if(n=t,this._isAtEnd())break;e+=this._advance()}return n!==qe.none&&(this._addToken(n),!0)}_findType(e){for(const t in qe.regexTokens){const n=qe.regexTokens[t];if(this._match(e,n.rule))return n}const t=qe.literalTokens[e];return t||qe.none}_match(e,t){const n=t.exec(e);return n&&0==n.index&&n[0]==e}_isAtEnd(){return this._current>=this._source.length}_isAlpha(e){return!this._isNumeric(e)&&!this._isWhitespace(e)&&'_'!==e&&'.'!==e&&'('!==e&&')'!==e&&'['!==e&&']'!==e&&'{'!==e&&'}'!==e&&','!==e&&';'!==e&&':'!==e&&'='!==e&&'!'!==e&&'<'!==e&&'>'!==e&&'+'!==e&&'-'!==e&&'*'!==e&&'/'!==e&&'%'!==e&&'&'!==e&&'|'!==e&&'^'!==e&&'~'!==e&&'@'!==e&&'#'!==e&&'?'!==e&&'\''!==e&&'`'!==e&&'"'!==e&&'\\'!==e&&'\n'!==e&&'\r'!==e&&'\t'!==e&&'\0'!==e}_isNumeric(e){return e>='0'&&e<='9'}_isAlphaNumeric(e){return this._isAlpha(e)||this._isNumeric(e)||'_'===e}_isWhitespace(e){return' '==e||'\t'==e||'\r'==e}_advance(e=0){let t=this._source[this._current];return e=e||0,e++,this._current+=e,t}_peekAhead(e=0){return e=e||0,this._current+e>=this._source.length?'\0':this._source[this._current+e]}_addToken(e){const t=this._source.substring(this._start,this._current);this._tokens.push(new He(e,t,this._line,this._start,this._current))}}function Re(e){return Array.isArray(e)||(null==e?void 0:e.buffer)instanceof ArrayBuffer}const Ge=new Float32Array(1),Xe=new Uint32Array(Ge.buffer),je=new Uint32Array(Ge.buffer),Ze=new Int32Array(1),Qe=new Float32Array(Ze.buffer),Ye=new Uint32Array(Ze.buffer),Ke=new Uint32Array(1),Je=new Float32Array(Ke.buffer),et=new Int32Array(Ke.buffer);function tt(e,t,n){if(t===n)return e;if('f32'===t){if('i32'===n||'x32'===n)return Ge[0]=e,Xe[0];if('u32'===n)return Ge[0]=e,je[0]}else if('i32'===t||'x32'===t){if('f32'===n)return Ze[0]=e,Qe[0];if('u32'===n)return Ze[0]=e,Ye[0]}else if('u32'===t){if('f32'===n)return Ke[0]=e,Je[0];if('i32'===n||'x32'===n)return Ke[0]=e,et[0]}return console.error(`Unsupported cast from ${t} to ${n}`),e}class nt{constructor(e){this.resources=null,this.inUse=!1,this.info=null,this.node=e}}class st{constructor(e,t){this.align=e,this.size=t}}class rt{constructor(){this.uniforms=[],this.storage=[],this.textures=[],this.samplers=[],this.aliases=[],this.overrides=[],this.structs=[],this.entry=new d,this.functions=[],this._types=new Map,this._functions=new Map}_isStorageTexture(e){return'texture_storage_1d'==e.name||'texture_storage_2d'==e.name||'texture_storage_2d_array'==e.name||'texture_storage_3d'==e.name}updateAST(e){for(const t of e)t instanceof D&&this._functions.set(t.name,new nt(t));for(const t of e)if(t instanceof ie){const e=this.getTypeInfo(t,null);e instanceof n&&this.structs.push(e)}for(const t of e)if(t instanceof te)this.aliases.push(this._getAliasInfo(t));else{if(t instanceof M){const e=t,n=this._getAttributeNum(e.attributes,'id',0),s=null!=e.type?this.getTypeInfo(e.type,e.attributes):null;this.overrides.push(new h(e.name,s,e.attributes,n));continue}if(this._isUniformVar(t)){const e=t,n=this._getAttributeNum(e.attributes,'group',0),s=this._getAttributeNum(e.attributes,'binding',0),r=this.getTypeInfo(e.type,e.attributes),a=new i(e.name,r,n,s,e.attributes,exports.ResourceType.Uniform,e.access);a.access||(a.access='read'),this.uniforms.push(a);continue}if(this._isStorageVar(t)){const e=t,n=this._getAttributeNum(e.attributes,'group',0),s=this._getAttributeNum(e.attributes,'binding',0),r=this.getTypeInfo(e.type,e.attributes),a=this._isStorageTexture(r),o=new i(e.name,r,n,s,e.attributes,a?exports.ResourceType.StorageTexture:exports.ResourceType.Storage,e.access);o.access||(o.access='read'),this.storage.push(o);continue}if(this._isTextureVar(t)){const e=t,n=this._getAttributeNum(e.attributes,'group',0),s=this._getAttributeNum(e.attributes,'binding',0),r=this.getTypeInfo(e.type,e.attributes),a=this._isStorageTexture(r),o=a?r.access:e.access,l=new i(e.name,r,n,s,e.attributes,a?exports.ResourceType.StorageTexture:exports.ResourceType.Texture,o||e.access);l.access||(l.access='read'),a?this.storage.push(l):this.textures.push(l);continue}if(this._isSamplerVar(t)){const e=t,n=this._getAttributeNum(e.attributes,'group',0),s=this._getAttributeNum(e.attributes,'binding',0),r=this.getTypeInfo(e.type,e.attributes),a=new i(e.name,r,n,s,e.attributes,exports.ResourceType.Sampler,e.access);this.samplers.push(a);continue}}for(const t of e)if(t instanceof D){const e=this._getAttribute(t,'vertex'),n=this._getAttribute(t,'fragment'),s=this._getAttribute(t,'compute'),r=e||n||s,a=new p(t.name,null==r?void 0:r.name,t.attributes);a.attributes=t.attributes,a.startLine=t.startLine,a.endLine=t.endLine,this.functions.push(a),this._functions.get(t.name).info=a,r&&(this._functions.get(t.name).inUse=!0,a.inUse=!0,a.inputs=this._getInputs(t.args),a.outputs=this._getOutputs(t.returnType),this.entry[r.name].push(a)),a.resources=this._findResources(t,!!r),a.arguments=t.args.map(e=>new f(e.name,this.getTypeInfo(e.type,e.attributes),e.attributes)),a.returnType=t.returnType?this.getTypeInfo(t.returnType,t.attributes):null;continue}for(const e of this._functions.values())e.info&&(e.info.inUse=e.inUse,this._addCalls(e.node,e.info.calls));for(const e of this._functions.values())e.node.search(t=>{var n,s,r;if(t instanceof Le){if(t.value)if(Re(t.value))for(const s of t.value)for(const t of this.overrides)s===t.name&&(null===(n=e.info)||void 0===n||n.overrides.push(t));else for(const n of this.overrides)t.value===n.name&&(null===(s=e.info)||void 0===s||s.overrides.push(n))}else if(t instanceof xe)for(const n of this.overrides)t.name===n.name&&(null===(r=e.info)||void 0===r||r.overrides.push(n))});for(const e of this.uniforms)this._markStructsInUse(e.type);for(const e of this.storage)this._markStructsInUse(e.type)}getFunctionInfo(e){for(const t of this.functions)if(t.name==e)return t;return null}getStructInfo(e){for(const t of this.structs)if(t.name==e)return t;return null}getOverrideInfo(e){for(const t of this.overrides)if(t.name==e)return t;return null}_markStructsInUse(e){if(e)if(e.isStruct){if(e.inUse=!0,e.members)for(const t of e.members)this._markStructsInUse(t.type)}else if(e.isArray)this._markStructsInUse(e.format);else if(e.isTemplate)e.format&&this._markStructsInUse(e.format);else{const t=this._getAlias(e.name);t&&this._markStructsInUse(t)}}_addCalls(e,t){var n;for(const s of e.calls){const e=null===(n=this._functions.get(s.name))||void 0===n?void 0:n.info;e&&t.add(e)}}findResource(e,t,n){if(n){for(const s of this.entry.compute)if(s.name===n)for(const n of s.resources)if(n.group==e&&n.binding==t)return n;for(const s of this.entry.vertex)if(s.name===n)for(const n of s.resources)if(n.group==e&&n.binding==t)return n;for(const s of this.entry.fragment)if(s.name===n)for(const n of s.resources)if(n.group==e&&n.binding==t)return n}for(const n of this.uniforms)if(n.group==e&&n.binding==t)return n;for(const n of this.storage)if(n.group==e&&n.binding==t)return n;for(const n of this.textures)if(n.group==e&&n.binding==t)return n;for(const n of this.samplers)if(n.group==e&&n.binding==t)return n;return null}_findResource(e){for(const t of this.uniforms)if(t.name==e)return t;for(const t of this.storage)if(t.name==e)return t;for(const t of this.textures)if(t.name==e)return t;for(const t of this.samplers)if(t.name==e)return t;return null}_markStructsFromAST(e){const t=this.getTypeInfo(e,null);this._markStructsInUse(t)}_findResources(e,t){const n=[],s=this,r=[];return e.search(a=>{if(a instanceof A)r.push({});else if(a instanceof E)r.pop();else if(a instanceof F){const e=a;t&&null!==e.type&&this._markStructsFromAST(e.type),r.length>0&&(r[r.length-1][e.name]=e)}else if(a instanceof de){const e=a;t&&null!==e.type&&this._markStructsFromAST(e.type)}else if(a instanceof U){const e=a;t&&null!==e.type&&this._markStructsFromAST(e.type),r.length>0&&(r[r.length-1][e.name]=e)}else if(a instanceof xe){const e=a;if(r.length>0){if(r[r.length-1][e.name])return}const t=s._findResource(e.name);t&&n.push(t)}else if(a instanceof me){const r=a,o=s._functions.get(r.name);if(o&&(t&&(o.inUse=!0),e.calls.add(o.node),o.resources=s._findResources(o.node,t),n.push(...o.resources)),'textureSample'===r.name&&r.args.length>=2){const e=r.args[0];let t=null;if(e instanceof xe){const n=s._findResource(e.name);n&&n.resourceType===exports.ResourceType.Texture&&(t=n)}const n=r.args[1];let a=null;if(n instanceof xe){const e=s._findResource(n.name);e&&e.resourceType===exports.ResourceType.Sampler&&(a=e)}t&&a&&(null===t.relations&&(t.relations=[]),t.relations.push(a),null===a.relations&&(a.relations=[]),a.relations.push(t))}}else if(a instanceof X){const r=a,o=s._functions.get(r.name);o&&(t&&(o.inUse=!0),e.calls.add(o.node),o.resources=s._findResources(o.node,t),n.push(...o.resources))}}),[...new Map(n.map(e=>[e.name,e])).values()]}getBindGroups(){const e=[];function t(t,n){t>=e.length&&(e.length=t+1),void 0===e[t]&&(e[t]=[]),n>=e[t].length&&(e[t].length=n+1)}for(const n of this.uniforms){t(n.group,n.binding);e[n.group][n.binding]=n}for(const n of this.storage){t(n.group,n.binding);e[n.group][n.binding]=n}for(const n of this.textures){t(n.group,n.binding);e[n.group][n.binding]=n}for(const n of this.samplers){t(n.group,n.binding);e[n.group][n.binding]=n}return e}_getOutputs(e,t=void 0){if(void 0===t&&(t=[]),e instanceof ie)this._getStructOutputs(e,t);else{const n=this._getOutputInfo(e);null!==n&&t.push(n)}return t}_getStructOutputs(e,t){for(const n of e.members)if(n.type instanceof ie)this._getStructOutputs(n.type,t);else{const e=this._getAttribute(n,'location')||this._getAttribute(n,'builtin');if(null!==e){const s=this.getTypeInfo(n.type,n.type.attributes),r=this._parseInt(e.value),a=new u(n.name,s,e.name,r);t.push(a)}}}_getOutputInfo(e){const t=this._getAttribute(e,'location')||this._getAttribute(e,'builtin');if(null!==t){const n=this.getTypeInfo(e,e.attributes),s=this._parseInt(t.value);return new u('',n,t.name,s)}return null}_getInputs(e,t=void 0){void 0===t&&(t=[]);for(const n of e)if(n.type instanceof ie)this._getStructInputs(n.type,t);else{const e=this._getInputInfo(n);null!==e&&t.push(e)}return t}_getStructInputs(e,t){for(const n of e.members)if(n.type instanceof ie)this._getStructInputs(n.type,t);else{const e=this._getInputInfo(n);null!==e&&t.push(e)}}_getInputInfo(e){const t=this._getAttribute(e,'location')||this._getAttribute(e,'builtin');if(null!==t){const n=this._getAttribute(e,'interpolation'),s=this.getTypeInfo(e.type,e.attributes),r=this._parseInt(t.value),a=new c(e.name,s,t.name,r);return null!==n&&(a.interpolation=this._parseString(n.value)),a}return null}_parseString(e){return e instanceof Array&&(e=e[0]),e}_parseInt(e){e instanceof Array&&(e=e[0]);const t=parseInt(e);return isNaN(t)?e:t}_getAlias(e){for(const t of this.aliases)if(t.name==e)return t.type;return null}_getAliasInfo(e){return new l(e.name,this.getTypeInfo(e.type,null))}getTypeInfoByName(e){for(const t of this.structs)if(t.name==e)return t;for(const t of this.aliases)if(t.name==e)return t.type;return null}getTypeInfo(o,i=null){if(this._types.has(o))return this._types.get(o);if(o instanceof ce){const e=o.type?this.getTypeInfo(o.type,o.attributes):null,t=new r(o.name,e,i);return this._types.set(o,t),this._updateTypeInfo(t),t}if(o instanceof ue){const e=o,t=e.format?this.getTypeInfo(e.format,e.attributes):null,n=new s(e.name,i);return n.format=t,n.count=e.count,this._types.set(o,n),this._updateTypeInfo(n),n}if(o instanceof ie){const e=o,s=new n(e.name,i);s.startLine=e.startLine,s.endLine=e.endLine;for(const n of e.members){const e=this.getTypeInfo(n.type,n.attributes);s.members.push(new t(n.name,e,n.attributes))}return this._types.set(o,s),this._updateTypeInfo(s),s}if(o instanceof he){const t=o,n=t.format instanceof ae,s=t.format?n?this.getTypeInfo(t.format,null):new e(t.format,null):null,r=new a(t.name,s,i,t.access);return this._types.set(o,r),this._updateTypeInfo(r),r}if(o instanceof le){const e=o,t=e.format?this.getTypeInfo(e.format,null):null,n=new a(e.name,t,i,e.access);return this._types.set(o,n),this._updateTypeInfo(n),n}const l=new e(o.name,i);return this._types.set(o,l),this._updateTypeInfo(l),l}_updateTypeInfo(e){var t,a,o;const i=this._getTypeSize(e);if(e.size=null!==(t=null==i?void 0:i.size)&&void 0!==t?t:0,e instanceof s&&e.format){const t=this._getTypeSize(e.format);e.stride=Math.max(null!==(a=null==t?void 0:t.size)&&void 0!==a?a:0,null!==(o=null==t?void 0:t.align)&&void 0!==o?o:0),this._updateTypeInfo(e.format)}e instanceof r&&this._updateTypeInfo(e.format),e instanceof n&&this._updateStructInfo(e)}_updateStructInfo(e){var t;let n=0,s=0,r=0,a=0;for(let o=0,i=e.members.length;o<i;++o){const i=e.members[o],l=this._getTypeSize(i);if(!l)continue;null!==(t=this._getAlias(i.type.name))&&void 0!==t||i.type;const c=l.align,u=l.size;n=this._roundUp(c,n+s),s=u,r=n,a=Math.max(a,c),i.offset=n,i.size=u,this._updateTypeInfo(i.type)}e.size=this._roundUp(a,r+s),e.align=a}_getTypeSize(r){var a,o;if(null==r)return null;const i=this._getAttributeNum(r.attributes,'size',0),l=this._getAttributeNum(r.attributes,'align',0);if(r instanceof t&&(r=r.type),r instanceof e){const e=this._getAlias(r.name);null!==e&&(r=e)}{const e=rt._typeInfo[r.name];if(void 0!==e){const t='f16'===(null===(a=r.format)||void 0===a?void 0:a.name)?2:1;return new st(Math.max(l,e.align/t),Math.max(i,e.size/t))}}{const e=rt._typeInfo[r.name.substring(0,r.name.length-1)];if(e){const t='h'===r.name[r.name.length-1]?2:1;return new st(Math.max(l,e.align/t),Math.max(i,e.size/t))}}if(r instanceof s){let e=r,t=8,n=8;const s=this._getTypeSize(e.format);null!==s&&(n=s.size,t=s.align);return n=e.count*this._getAttributeNum(null!==(o=null==r?void 0:r.attributes)&&void 0!==o?o:null,'stride',this._roundUp(t,n)),i&&(n=i),new st(Math.max(l,t),Math.max(i,n))}if(r instanceof n){let e=0,t=0,n=0,s=0,a=0;for(const t of r.members){const r=this._getTypeSize(t.type);null!==r&&(e=Math.max(r.align,e),n=this._roundUp(r.align,n+s),s=r.size,a=n)}return t=this._roundUp(e,a+s),new st(Math.max(l,e),Math.max(i,t))}return null}_isUniformVar(e){return e instanceof F&&'uniform'==e.storage}_isStorageVar(e){return e instanceof F&&'storage'==e.storage}_isTextureVar(e){return e instanceof F&&null!==e.type&&-1!=rt._textureTypes.indexOf(e.type.name)}_isSamplerVar(e){return e instanceof F&&null!==e.type&&-1!=rt._samplerTypes.indexOf(e.type.name)}_getAttribute(e,t){const n=e;if(!n||!n.attributes)return null;const s=n.attributes;for(let e of s)if(e.name==t)return e;return null}_getAttributeNum(e,t,n){if(null===e)return n;for(let s of e)if(s.name==t){let e=null!==s&&null!==s.value?s.value:n;return e instanceof Array&&(e=e[0]),'number'==typeof e?e:'string'==typeof e?parseInt(e):n}return n}_roundUp(e,t){return Math.ceil(t/e)*e}}rt._typeInfo={f16:{align:2,size:2},i32:{align:4,size:4},u32:{align:4,size:4},f32:{align:4,size:4},atomic:{align:4,size:4},vec2:{align:8,size:8},vec3:{align:16,size:12},vec4:{align:16,size:16},mat2x2:{align:8,size:16},mat3x2:{align:8,size:24},mat4x2:{align:8,size:32},mat2x3:{align:16,size:32},mat3x3:{align:16,size:48},mat4x3:{align:16,size:64},mat2x4:{align:16,size:32},mat3x4:{align:16,size:48},mat4x4:{align:16,size:64}},rt._textureTypes=qe.any_texture_type.map(e=>e.name),rt._samplerTypes=qe.sampler_type.map(e=>e.name);let at=0;class ot{constructor(e,t,n){this.id=at++,this.name=e,this.value=t,this.node=n}clone(){return new ot(this.name,this.value,this.node)}}class it{constructor(e){this.id=at++,this.name=e.name,this.node=e}clone(){return new it(this.node)}}class lt{constructor(e){this.parent=null,this.variables=new Map,this.functions=new Map,this.currentFunctionName='',this.id=at++,e&&(this.parent=e,this.currentFunctionName=e.currentFunctionName)}getVariable(e){var t;return this.variables.has(e)?null!==(t=this.variables.get(e))&&void 0!==t?t:null:this.parent?this.parent.getVariable(e):null}getFunction(e){var t;return this.functions.has(e)?null!==(t=this.functions.get(e))&&void 0!==t?t:null:this.parent?this.parent.getFunction(e):null}createVariable(e,t,n){this.variables.set(e,new ot(e,t,null!=n?n:null))}setVariable(e,t,n){const s=this.getVariable(e);null!==s?s.value=t:this.createVariable(e,t,n)}getVariableValue(e){var t;const n=this.getVariable(e);return null!==(t=null==n?void 0:n.value)&&void 0!==t?t:null}clone(){return new lt(this)}}class ct{evalExpression(e,t){return null}getTypeInfo(e){return null}getVariableName(e,t){return''}}class ut{constructor(e){this.exec=e}getTypeInfo(e){return this.exec.getTypeInfo(e)}All(e,t){const n=this.exec.evalExpression(e.args[0],t);let s=!0;if(n instanceof Fe)return n.data.forEach(e=>{e||(s=!1)}),new Ve(s?1:0,this.getTypeInfo('bool'));throw new Error(`All() expects a vector argument. Line ${e.line}`)}Any(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe){const e=n.data.some(e=>e);return new Ve(e?1:0,this.getTypeInfo('bool'))}throw new Error(`Any() expects a vector argument. Line ${e.line}`)}Select(e,t){const n=this.exec.evalExpression(e.args[2],t);if(!(n instanceof Ve))throw new Error(`Select() expects a bool condition. Line ${e.line}`);return n.value?this.exec.evalExpression(e.args[1],t):this.exec.evalExpression(e.args[0],t)}ArrayLength(e,t){let n=e.args[0];n instanceof ke&&(n=n.right);const s=this.exec.evalExpression(n,t);if(s instanceof Ue&&0===s.typeInfo.size){const e=s.typeInfo,t=s.buffer.byteLength/e.stride;return new Ve(t,this.getTypeInfo('u32'))}return new Ve(s.typeInfo.size,this.getTypeInfo('u32'))}Abs(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>Math.abs(e)),n.typeInfo);const s=n;return new Ve(Math.abs(s.value),s.typeInfo)}Acos(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>Math.acos(e)),n.typeInfo);const s=n;return new Ve(Math.acos(s.value),n.typeInfo)}Acosh(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>Math.acosh(e)),n.typeInfo);const s=n;return new Ve(Math.acosh(s.value),n.typeInfo)}Asin(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>Math.asin(e)),n.typeInfo);const s=n;return new Ve(Math.asin(s.value),n.typeInfo)}Asinh(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>Math.asinh(e)),n.typeInfo);const s=n;return new Ve(Math.asinh(s.value),n.typeInfo)}Atan(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>Math.atan(e)),n.typeInfo);const s=n;return new Ve(Math.atan(s.value),n.typeInfo)}Atanh(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>Math.atanh(e)),n.typeInfo);const s=n;return new Ve(Math.atanh(s.value),n.typeInfo)}Atan2(e,t){const n=this.exec.evalExpression(e.args[0],t),s=this.exec.evalExpression(e.args[1],t);if(n instanceof Fe&&s instanceof Fe)return new Fe(n.data.map((e,t)=>Math.atan2(e,s.data[t])),n.typeInfo);const r=n,a=s;return new Ve(Math.atan2(r.value,a.value),n.typeInfo)}Ceil(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>Math.ceil(e)),n.typeInfo);const s=n;return new Ve(Math.ceil(s.value),n.typeInfo)}_clamp(e,t,n){return Math.min(Math.max(e,t),n)}Clamp(e,t){const n=this.exec.evalExpression(e.args[0],t),s=this.exec.evalExpression(e.args[1],t),r=this.exec.evalExpression(e.args[2],t);if(n instanceof Fe&&s instanceof Fe&&r instanceof Fe)return new Fe(n.data.map((e,t)=>this._clamp(e,s.data[t],r.data[t])),n.typeInfo);const a=n,o=s,i=r;return new Ve(this._clamp(a.value,o.value,i.value),n.typeInfo)}Cos(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>Math.cos(e)),n.typeInfo);const s=n;return new Ve(Math.cos(s.value),n.typeInfo)}Cosh(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>Math.cosh(e)),n.typeInfo);const s=n;return new Ve(Math.cos(s.value),n.typeInfo)}CountLeadingZeros(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>Math.clz32(e)),n.typeInfo);const s=n;return new Ve(Math.clz32(s.value),n.typeInfo)}_countOneBits(e){let t=0;for(;0!==e;)1&e&&t++,e>>=1;return t}CountOneBits(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>this._countOneBits(e)),n.typeInfo);const s=n;return new Ve(this._countOneBits(s.value),n.typeInfo)}_countTrailingZeros(e){if(0===e)return 32;let t=0;for(;!(1&e);)e>>=1,t++;return t}CountTrailingZeros(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>this._countTrailingZeros(e)),n.typeInfo);const s=n;return new Ve(this._countTrailingZeros(s.value),n.typeInfo)}Cross(e,t){const n=this.exec.evalExpression(e.args[0],t),s=this.exec.evalExpression(e.args[1],t);if(n instanceof Fe&&s instanceof Fe){if(3!==n.data.length||3!==s.data.length)return console.error(`Cross() expects 3D vectors. Line ${e.line}`),null;const t=n.data,r=s.data;return new Fe([t[1]*r[2]-r[1]*t[2],t[2]*r[0]-r[2]*t[0],t[0]*r[1]-r[0]*t[1]],n.typeInfo)}return console.error(`Cross() expects vector arguments. Line ${e.line}`),null}Degrees(e,t){const n=this.exec.evalExpression(e.args[0],t),s=180/Math.PI;if(n instanceof Fe)return new Fe(n.data.map(e=>e*s),n.typeInfo);return new Ve(n.value*s,this.getTypeInfo('f32'))}Determinant(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Me){const e=n.data,t=n.typeInfo.getTypeName(),s=t.endsWith('h')?this.getTypeInfo('f16'):this.getTypeInfo('f32');if('mat2x2'===t||'mat2x2f'===t||'mat2x2h'===t)return new Ve(e[0]*e[3]-e[1]*e[2],s);if('mat2x3'===t||'mat2x3f'===t||'mat2x3h'===t)return new Ve(e[0]*(e[4]*e[8]-e[5]*e[7])-e[1]*(e[3]*e[8]-e[5]*e[6])+e[2]*(e[3]*e[7]-e[4]*e[6]),s);if('mat2x4'===t||'mat2x4f'===t||'mat2x4h'===t)console.error(`TODO: Determinant for ${t}`);else if('mat3x2'===t||'mat3x2f'===t||'mat3x2h'===t)console.error(`TODO: Determinant for ${t}`);else{if('mat3x3'===t||'mat3x3f'===t||'mat3x3h'===t)return new Ve(e[0]*(e[4]*e[8]-e[5]*e[7])-e[1]*(e[3]*e[8]-e[5]*e[6])+e[2]*(e[3]*e[7]-e[4]*e[6]),s);'mat3x4'===t||'mat3x4f'===t||'mat3x4h'===t||'mat4x2'===t||'mat4x2f'===t||'mat4x2h'===t||'mat4x3'===t||'mat4x3f'===t||'mat4x3h'===t?console.error(`TODO: Determinant for ${t}`):'mat4x4'!==t&&'mat4x4f'!==t&&'mat4x4h'!==t||console.error(`TODO: Determinant for ${t}`)}}return console.error(`Determinant expects a matrix argument. Line ${e.line}`),null}Distance(e,t){const n=this.exec.evalExpression(e.args[0],t),s=this.exec.evalExpression(e.args[1],t);if(n instanceof Fe&&s instanceof Fe){let e=0;for(let t=0;t<n.data.length;++t)e+=(n.data[t]-s.data[t])*(n.data[t]-s.data[t]);return new Ve(Math.sqrt(e),this.getTypeInfo('f32'))}const r=n,a=s;return new Ve(Math.abs(r.value-a.value),n.typeInfo)}_dot(e,t){let n=0;for(let s=0;s<e.length;++s)n+=t[s]*e[s];return n}Dot(e,t){const n=this.exec.evalExpression(e.args[0],t),s=this.exec.evalExpression(e.args[1],t);return n instanceof Fe&&s instanceof Fe?new Ve(this._dot(n.data,s.data),this.getTypeInfo('f32')):(console.error(`Dot() expects vector arguments. Line ${e.line}`),null)}Dot4U8Packed(e,t){return console.error(`TODO: dot4U8Packed. Line ${e.line}`),null}Dot4I8Packed(e,t){return console.error(`TODO: dot4I8Packed. Line ${e.line}`),null}Exp(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>Math.exp(e)),n.typeInfo);const s=n;return new Ve(Math.exp(s.value),n.typeInfo)}Exp2(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>Math.pow(2,e)),n.typeInfo);const s=n;return new Ve(Math.pow(2,s.value),n.typeInfo)}ExtractBits(e,t){const n=this.exec.evalExpression(e.args[0],t),s=this.exec.evalExpression(e.args[1],t),r=this.exec.evalExpression(e.args[2],t);if('u32'!==s.typeInfo.name&&'x32'!==s.typeInfo.name)return console.error(`ExtractBits() expects an i32 offset argument. Line ${e.line}`),null;if('u32'!==r.typeInfo.name&&'x32'!==r.typeInfo.name)return console.error(`ExtractBits() expects an i32 count argument. Line ${e.line}`),null;const a=s.value,o=r.value;if(n instanceof Fe)return new Fe(n.data.map(e=>e>>a&(1<<o)-1),n.typeInfo);if('i32'!==n.typeInfo.name&&'x32'!==n.typeInfo.name)return console.error(`ExtractBits() expects an i32 argument. Line ${e.line}`),null;const i=n.value;return new Ve(i>>a&(1<<o)-1,this.getTypeInfo('i32'))}FaceForward(e,t){const n=this.exec.evalExpression(e.args[0],t),s=this.exec.evalExpression(e.args[1],t),r=this.exec.evalExpression(e.args[2],t);if(n instanceof Fe&&s instanceof Fe&&r instanceof Fe){const e=this._dot(s.data,r.data);return new Fe(e<0?Array.from(n.data):n.data.map(e=>-e),n.typeInfo)}return console.error(`FaceForward() expects vector arguments. Line ${e.line}`),null}_firstLeadingBit(e){return 0===e?-1:31-Math.clz32(e)}FirstLeadingBit(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>this._firstLeadingBit(e)),n.typeInfo);const s=n;return new Ve(this._firstLeadingBit(s.value),n.typeInfo)}_firstTrailingBit(e){return 0===e?-1:Math.log2(e&-e)}FirstTrailingBit(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>this._firstTrailingBit(e)),n.typeInfo);const s=n;return new Ve(this._firstTrailingBit(s.value),n.typeInfo)}Floor(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>Math.floor(e)),n.typeInfo);const s=n;return new Ve(Math.floor(s.value),n.typeInfo)}Fma(e,t){const n=this.exec.evalExpression(e.args[0],t),s=this.exec.evalExpression(e.args[1],t),r=this.exec.evalExpression(e.args[2],t);if(n instanceof Fe&&s instanceof Fe&&r instanceof Fe)return n.data.length!==s.data.length||n.data.length!==r.data.length?(console.error(`Fma() expects vectors of the same length. Line ${e.line}`),null):new Fe(n.data.map((e,t)=>e*s.data[t]+r.data[t]),n.typeInfo);const a=n,o=s,i=r;return new Ve(a.value*o.value+i.value,a.typeInfo)}Fract(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>e-Math.floor(e)),n.typeInfo);const s=n;return new Ve(s.value-Math.floor(s.value),n.typeInfo)}Frexp(e,t){return console.error(`TODO: frexp. Line ${e.line}`),null}InsertBits(e,t){const n=this.exec.evalExpression(e.args[0],t),s=this.exec.evalExpression(e.args[1],t),r=this.exec.evalExpression(e.args[2],t),a=this.exec.evalExpression(e.args[3],t);if('u32'!==r.typeInfo.name&&'x32'!==r.typeInfo.name)return console.error(`InsertBits() expects an i32 offset argument. Line ${e.line}`),null;const o=r.value,i=(1<<a.value)-1<<o,l=~i;if(n instanceof Fe&&s instanceof Fe)return new Fe(n.data.map((e,t)=>e&l|s.data[t]<<o&i),n.typeInfo);const c=n.value,u=s.value;return new Ve(c&l|u<<o&i,n.typeInfo)}InverseSqrt(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>1/Math.sqrt(e)),n.typeInfo);const s=n;return new Ve(1/Math.sqrt(s.value),n.typeInfo)}Ldexp(e,t){return console.error(`TODO: ldexp. Line ${e.line}`),null}Length(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe){let e=0;return n.data.forEach(t=>{e+=t*t}),new Ve(Math.sqrt(e),this.getTypeInfo('f32'))}const s=n;return new Ve(Math.abs(s.value),n.typeInfo)}Log(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>Math.log(e)),n.typeInfo);const s=n;return new Ve(Math.log(s.value),n.typeInfo)}Log2(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>Math.log2(e)),n.typeInfo);const s=n;return new Ve(Math.log2(s.value),n.typeInfo)}Max(e,t){const n=this.exec.evalExpression(e.args[0],t),s=this.exec.evalExpression(e.args[1],t);if(n instanceof Fe&&s instanceof Fe)return new Fe(n.data.map((e,t)=>Math.max(e,s.data[t])),n.typeInfo);const r=n,a=s;return new Ve(Math.max(r.value,a.value),n.typeInfo)}Min(e,t){const n=this.exec.evalExpression(e.args[0],t),s=this.exec.evalExpression(e.args[1],t);if(n instanceof Fe&&s instanceof Fe)return new Fe(n.data.map((e,t)=>Math.min(e,s.data[t])),n.typeInfo);const r=n,a=s;return new Ve(Math.min(r.value,a.value),n.typeInfo)}Mix(e,t){const n=this.exec.evalExpression(e.args[0],t),s=this.exec.evalExpression(e.args[1],t),r=this.exec.evalExpression(e.args[2],t);if(n instanceof Fe&&s instanceof Fe&&r instanceof Fe)return new Fe(n.data.map((e,t)=>n.data[t]*(1-r.data[t])+s.data[t]*r.data[t]),n.typeInfo);const a=s,o=r;return new Ve(n.value*(1-o.value)+a.value*o.value,n.typeInfo)}Modf(e,t){const n=this.exec.evalExpression(e.args[0],t),s=this.exec.evalExpression(e.args[1],t);if(n instanceof Fe&&s instanceof Fe)return new Fe(n.data.map((e,t)=>e%s.data[t]),n.typeInfo);const r=s;return new Ve(n.value%r.value,n.typeInfo)}Normalize(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe){const s=this.Length(e,t).value;return new Fe(n.data.map(e=>e/s),n.typeInfo)}return console.error(`Normalize() expects a vector argument. Line ${e.line}`),null}Pow(e,t){const n=this.exec.evalExpression(e.args[0],t),s=this.exec.evalExpression(e.args[1],t);if(n instanceof Fe&&s instanceof Fe)return new Fe(n.data.map((e,t)=>Math.pow(e,s.data[t])),n.typeInfo);const r=n,a=s;return new Ve(Math.pow(r.value,a.value),n.typeInfo)}QuantizeToF16(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>e),n.typeInfo);return new Ve(n.value,n.typeInfo)}Radians(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>e*Math.PI/180),n.typeInfo);return new Ve(n.value*Math.PI/180,this.getTypeInfo('f32'))}Reflect(e,t){let n=this.exec.evalExpression(e.args[0],t),s=this.exec.evalExpression(e.args[1],t);if(n instanceof Fe&&s instanceof Fe){const e=this._dot(n.data,s.data);return new Fe(n.data.map((t,n)=>t-2*e*s.data[n]),n.typeInfo)}return console.error(`Reflect() expects vector arguments. Line ${e.line}`),null}Refract(e,t){let n=this.exec.evalExpression(e.args[0],t),s=this.exec.evalExpression(e.args[1],t),r=this.exec.evalExpression(e.args[2],t);if(n instanceof Fe&&s instanceof Fe&&r instanceof Ve){const e=this._dot(s.data,n.data);return new Fe(n.data.map((t,n)=>{const a=1-r.value*r.value*(1-e*e);if(a<0)return 0;const o=Math.sqrt(a);return r.value*t-(r.value*e+o)*s.data[n]}),n.typeInfo)}return console.error(`Refract() expects vector arguments and a scalar argument. Line ${e.line}`),null}ReverseBits(e,t){return console.error(`TODO: reverseBits. Line ${e.line}`),null}Round(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>Math.round(e)),n.typeInfo);const s=n;return new Ve(Math.round(s.value),n.typeInfo)}Saturate(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>Math.min(Math.max(e,0),1)),n.typeInfo);const s=n;return new Ve(Math.min(Math.max(s.value,0),1),n.typeInfo)}Sign(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>Math.sign(e)),n.typeInfo);const s=n;return new Ve(Math.sign(s.value),n.typeInfo)}Sin(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>Math.sin(e)),n.typeInfo);const s=n;return new Ve(Math.sin(s.value),n.typeInfo)}Sinh(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>Math.sinh(e)),n.typeInfo);const s=n;return new Ve(Math.sinh(s.value),n.typeInfo)}_smoothstep(e,t,n){const s=Math.min(Math.max((n-e)/(t-e),0),1);return s*s*(3-2*s)}SmoothStep(e,t){const n=this.exec.evalExpression(e.args[0],t),s=this.exec.evalExpression(e.args[1],t),r=this.exec.evalExpression(e.args[2],t);if(r instanceof Fe&&n instanceof Fe&&s instanceof Fe)return new Fe(r.data.map((e,t)=>this._smoothstep(n.data[t],s.data[t],e)),r.typeInfo);const a=n,o=s,i=r;return new Ve(this._smoothstep(a.value,o.value,i.value),r.typeInfo)}Sqrt(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>Math.sqrt(e)),n.typeInfo);const s=n;return new Ve(Math.sqrt(s.value),n.typeInfo)}Step(e,t){const n=this.exec.evalExpression(e.args[0],t),s=this.exec.evalExpression(e.args[1],t);if(s instanceof Fe&&n instanceof Fe)return new Fe(s.data.map((e,t)=>e<n.data[t]?0:1),s.typeInfo);const r=n;return new Ve(s.value<r.value?0:1,r.typeInfo)}Tan(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>Math.tan(e)),n.typeInfo);const s=n;return new Ve(Math.tan(s.value),n.typeInfo)}Tanh(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>Math.tanh(e)),n.typeInfo);const s=n;return new Ve(Math.tanh(s.value),n.typeInfo)}_getTransposeType(e){const t=e.getTypeName();return'mat2x2f'===t||'mat2x2h'===t?e:'mat2x3f'===t?this.getTypeInfo('mat3x2f'):'mat2x3h'===t?this.getTypeInfo('mat3x2h'):'mat2x4f'===t?this.getTypeInfo('mat4x2f'):'mat2x4h'===t?this.getTypeInfo('mat4x2h'):'mat3x2f'===t?this.getTypeInfo('mat2x3f'):'mat3x2h'===t?this.getTypeInfo('mat2x3h'):'mat3x3f'===t||'mat3x3h'===t?e:'mat3x4f'===t?this.getTypeInfo('mat4x3f'):'mat3x4h'===t?this.getTypeInfo('mat4x3h'):'mat4x2f'===t?this.getTypeInfo('mat2x4f'):'mat4x2h'===t?this.getTypeInfo('mat2x4h'):'mat4x3f'===t?this.getTypeInfo('mat3x4f'):'mat4x3h'===t?this.getTypeInfo('mat3x4h'):('mat4x4f'===t||'mat4x4h'===t||console.error(`Invalid matrix type ${t}`),e)}Transpose(e,t){const n=this.exec.evalExpression(e.args[0],t);if(!(n instanceof Me))return console.error(`Transpose() expects a matrix argument. Line ${e.line}`),null;const s=this._getTransposeType(n.typeInfo);if('mat2x2'===n.typeInfo.name||'mat2x2f'===n.typeInfo.name||'mat2x2h'===n.typeInfo.name){const e=n.data;return new Me([e[0],e[2],e[1],e[3]],s)}if('mat2x3'===n.typeInfo.name||'mat2x3f'===n.typeInfo.name||'mat2x3h'===n.typeInfo.name){const e=n.data;return new Me([e[0],e[3],e[6],e[1],e[4],e[7]],s)}if('mat2x4'===n.typeInfo.name||'mat2x4f'===n.typeInfo.name||'mat2x4h'===n.typeInfo.name){const e=n.data;return new Me([e[0],e[4],e[8],e[12],e[1],e[5],e[9],e[13]],s)}if('mat3x2'===n.typeInfo.name||'mat3x2f'===n.typeInfo.name||'mat3x2h'===n.typeInfo.name){const e=n.data;return new Me([e[0],e[3],e[1],e[4],e[2],e[5]],s)}if('mat3x3'===n.typeInfo.name||'mat3x3f'===n.typeInfo.name||'mat3x3h'===n.typeInfo.name){const e=n.data;return new Me([e[0],e[3],e[6],e[1],e[4],e[7],e[2],e[5],e[8]],s)}if('mat3x4'===n.typeInfo.name||'mat3x4f'===n.typeInfo.name||'mat3x4h'===n.typeInfo.name){const e=n.data;return new Me([e[0],e[4],e[8],e[12],e[1],e[5],e[9],e[13],e[2],e[6],e[10],e[14]],s)}if('mat4x2'===n.typeInfo.name||'mat4x2f'===n.typeInfo.name||'mat4x2h'===n.typeInfo.name){const e=n.data;return new Me([e[0],e[4],e[1],e[5],e[2],e[6]],s)}if('mat4x3'===n.typeInfo.name||'mat4x3f'===n.typeInfo.name||'mat4x3h'===n.typeInfo.name){const e=n.data;return new Me([e[0],e[4],e[8],e[1],e[5],e[9],e[2],e[6],e[10]],s)}if('mat4x4'===n.typeInfo.name||'mat4x4f'===n.typeInfo.name||'mat4x4h'===n.typeInfo.name){const e=n.data;return new Me([e[0],e[4],e[8],e[12],e[1],e[5],e[9],e[13],e[2],e[6],e[10],e[14],e[3],e[7],e[11],e[15]],s)}return console.error(`Invalid matrix type ${n.typeInfo.name}`),null}Trunc(e,t){const n=this.exec.evalExpression(e.args[0],t);if(n instanceof Fe)return new Fe(n.data.map(e=>Math.trunc(e)),n.typeInfo);const s=n;return new Ve(Math.trunc(s.value),n.typeInfo)}Dpdx(e,t){return console.error(`TODO: dpdx. Line ${e.line}`),null}DpdxCoarse(e,t){return console.error(`TODO: dpdxCoarse. Line ${e.line}`),null}DpdxFine(e,t){return console.error('TODO: dpdxFine'),null}Dpdy(e,t){return console.error('TODO: dpdy'),null}DpdyCoarse(e,t){return console.error('TODO: dpdyCoarse'),null}DpdyFine(e,t){return console.error('TODO: dpdyFine'),null}Fwidth(e,t){return console.error('TODO: fwidth'),null}FwidthCoarse(e,t){return console.error('TODO: fwidthCoarse'),null}FwidthFine(e,t){return console.error('TODO: fwidthFine'),null}TextureDimensions(e,t){const n=e.args[0],s=e.args.length>1?this.exec.evalExpression(e.args[1],t).value:0;if(n instanceof xe){const r=n.name,a=t.getVariableValue(r);if(a instanceof We){if(s<0||s>=a.mipLevelCount)return console.error(`Invalid mip level for textureDimensions. Line ${e.line}`),null;const t=a.getMipLevelSize(s),n=a.dimension;return'1d'===n?new Ve(t[0],this.getTypeInfo('u32')):'3d'===n?new Fe(t,this.getTypeInfo('vec3u')):'2d'===n?new Fe(t.slice(0,2),this.getTypeInfo('vec2u')):(console.error(`Invalid texture dimension ${n} not found. Line ${e.line}`),null)}return console.error(`Texture ${r} not found. Line ${e.line}`),null}return console.error(`Invalid texture argument for textureDimensions. Line ${e.line}`),null}TextureGather(e,t){return console.error('TODO: textureGather'),null}TextureGatherCompare(e,t){return console.error('TODO: textureGatherCompare'),null}TextureLoad(e,t){const n=e.args[0],s=this.exec.evalExpression(e.args[1],t);if(!(s instanceof Fe)||2!==s.data.length)return console.error(`Invalid UV argument for textureLoad. Line ${e.line}`),null;if(n instanceof xe){const r=n.name,a=t.getVariableValue(r);if(a instanceof We){let n=0,o=0;['texture_storage_2d_array','texture_2d_array','texture_depth_2d_array'].indexOf(a.typeInfo.name)>-1&&(n=this.exec.evalExpression(e.args[2],t).value),['texture_1d','texture_2d','texture_depth_2d','texture_3d'].indexOf(a.typeInfo.name)>-1&&(o=this.exec.evalExpression(e.args[2],t).value),['texture_2d_array','texture_depth_2d_array'].indexOf(a.typeInfo.name)>-1&&(o=this.exec.evalExpression(e.args[3],t).value);const i=Math.floor(s.data[0]),l=Math.floor(s.data[1]),c=Math.floor(n),u=Math.floor(o);if(i<0||i>=a.width||l<0||l>=a.height)return console.error(`Texture ${r} out of bounds. Line ${e.line}`),null;const h=a.getPixel(i,l,c,u);return null===h?(console.error(`Invalid texture format for textureLoad. Line ${e.line}`),null):new Fe(h,this.getTypeInfo('vec4f'))}return console.error(`Texture ${r} not found. Line ${e.line}`),null}return console.error(`Invalid texture argument for textureLoad. Line ${e.line}`),null}TextureNumLayers(e,t){const n=e.args[0];if(n instanceof xe){const s=n.name,r=t.getVariableValue(s);return r instanceof We?new Ve(r.depthOrArrayLayers,this.getTypeInfo('u32')):(console.error(`Texture ${s} not found. Line ${e.line}`),null)}return console.error(`Invalid texture argument for textureNumLayers. Line ${e.line}`),null}TextureNumLevels(e,t){const n=e.args[0];if(n instanceof xe){const s=n.name,r=t.getVariableValue(s);return r instanceof We?new Ve(r.mipLevelCount,this.getTypeInfo('u32')):(console.error(`Texture ${s} not found. Line ${e.line}`),null)}return console.error(`Invalid texture argument for textureNumLevels. Line ${e.line}`),null}TextureNumSamples(e,t){const n=e.args[0];if(n instanceof xe){const s=n.name,r=t.getVariableValue(s);return r instanceof We?new Ve(r.sampleCount,this.getTypeInfo('u32')):(console.error(`Texture ${s} not found. Line ${e.line}`),null)}return console.error(`Invalid texture argument for textureNumSamples. Line ${e.line}`),null}TextureSample(e,t){return console.error('TODO: textureSample'),null}TextureSampleBias(e,t){return console.error('TODO: textureSampleBias'),null}TextureSampleCompare(e,t){return console.error('TODO: textureSampleCompare'),null}TextureSampleCompareLevel(e,t){return console.error('TODO: textureSampleCompareLevel'),null}TextureSampleGrad(e,t){return console.error('TODO: textureSampleGrad'),null}TextureSampleLevel(e,t){return console.error('TODO: textureSampleLevel'),null}TextureSampleBaseClampToEdge(e,t){return console.error('TODO: textureSampleBaseClampToEdge'),null}TextureStore(e,t){const n=e.args[0],s=this.exec.evalExpression(e.args[1],t),r=4===e.args.length?this.exec.evalExpression(e.args[2],t).value:0,a=4===e.args.length?this.exec.evalExpression(e.args[3],t).data:this.exec.evalExpression(e.args[2],t).data;if(4!==a.length)return console.error(`Invalid value argument for textureStore. Line ${e.line}`),null;if(!(s instanceof Fe)||2!==s.data.length)return console.error(`Invalid UV argument for textureStore. Line ${e.line}`),null;if(n instanceof xe){const o=n.name,i=t.getVariableValue(o);if(i instanceof We){const t=i.getMipLevelSize(0),n=Math.floor(s.data[0]),l=Math.floor(s.data[1]);return n<0||n>=t[0]||l<0||l>=t[1]?(console.error(`Texture ${o} out of bounds. Line ${e.line}`),null):(i.setPixel(n,l,0,r,Array.from(a)),null)}return console.error(`Texture ${o} not found. Line ${e.line}`),null}return console.error(`Invalid texture argument for textureStore. Line ${e.line}`),null}AtomicLoad(e,t){let n=e.args[0];n instanceof ke&&(n=n.right);const s=this.exec.getVariableName(n,t);return t.getVariable(s).value.getSubData(this.exec,n.postfix,t)}AtomicStore(e,t){let n=e.args[0];n instanceof ke&&(n=n.right);const s=this.exec.getVariableName(n,t),r=t.getVariable(s);let a=e.args[1];const o=this.exec.evalExpression(a,t),i=r.value.getSubData(this.exec,n.postfix,t);return i instanceof Ve&&o instanceof Ve&&(i.value=o.value),r.value instanceof Ue&&r.value.setDataValue(this.exec,i,n.postfix,t),null}AtomicAdd(e,t){let n=e.args[0];n instanceof ke&&(n=n.right);const s=this.exec.getVariableName(n,t),r=t.getVariable(s);let a=e.args[1];const o=this.exec.evalExpression(a,t),i=r.value.getSubData(this.exec,n.postfix,t),l=new Ve(i.value,i.typeInfo);return i instanceof Ve&&o instanceof Ve&&(i.value+=o.value),r.value instanceof Ue&&r.value.setDataValue(this.exec,i,n.postfix,t),l}AtomicSub(e,t){let n=e.args[0];n instanceof ke&&(n=n.right);const s=this.exec.getVariableName(n,t),r=t.getVariable(s);let a=e.args[1];const o=this.exec.evalExpression(a,t),i=r.value.getSubData(this.exec,n.postfix,t),l=new Ve(i.value,i.typeInfo);return i instanceof Ve&&o instanceof Ve&&(i.value-=o.value),r.value instanceof Ue&&r.value.setDataValue(this.exec,i,n.postfix,t),l}AtomicMax(e,t){let n=e.args[0];n instanceof ke&&(n=n.right);const s=this.exec.getVariableName(n,t),r=t.getVariable(s);let a=e.args[1];const o=this.exec.evalExpression(a,t),i=r.value.getSubData(this.exec,n.postfix,t),l=new Ve(i.value,i.typeInfo);return i instanceof Ve&&o instanceof Ve&&(i.value=Math.max(i.value,o.value)),r.value instanceof Ue&&r.value.setDataValue(this.exec,i,n.postfix,t),l}AtomicMin(e,t){let n=e.args[0];n instanceof ke&&(n=n.right);const s=this.exec.getVariableName(n,t),r=t.getVariable(s);let a=e.args[1];const o=this.exec.evalExpression(a,t),i=r.value.getSubData(this.exec,n.postfix,t),l=new Ve(i.value,i.typeInfo);return i instanceof Ve&&o instanceof Ve&&(i.value=Math.min(i.value,o.value)),r.value instanceof Ue&&r.value.setDataValue(this.exec,i,n.postfix,t),l}AtomicAnd(e,t){let n=e.args[0];n instanceof ke&&(n=n.right);const s=this.exec.getVariableName(n,t),r=t.getVariable(s);let a=e.args[1];const o=this.exec.evalExpression(a,t),i=r.value.getSubData(this.exec,n.postfix,t),l=new Ve(i.value,i.typeInfo);return i instanceof Ve&&o instanceof Ve&&(i.value=i.value&o.value),r.value instanceof Ue&&r.value.setDataValue(this.exec,i,n.postfix,t),l}AtomicOr(e,t){let n=e.args[0];n instanceof ke&&(n=n.right);const s=this.exec.getVariableName(n,t),r=t.getVariable(s);let a=e.args[1];const o=this.exec.evalExpression(a,t),i=r.value.getSubData(this.exec,n.postfix,t),l=new Ve(i.value,i.typeInfo);return i instanceof Ve&&o instanceof Ve&&(i.value=i.value|o.value),r.value instanceof Ue&&r.value.setDataValue(this.exec,i,n.postfix,t),l}AtomicXor(e,t){let n=e.args[0];n instanceof ke&&(n=n.right);const s=this.exec.getVariableName(n,t),r=t.getVariable(s);let a=e.args[1];const o=this.exec.evalExpression(a,t),i=r.value.getSubData(this.exec,n.postfix,t),l=new Ve(i.value,i.typeInfo);return i instanceof Ve&&o instanceof Ve&&(i.value=i.value^o.value),r.value instanceof Ue&&r.value.setDataValue(this.exec,i,n.postfix,t),l}AtomicExchange(e,t){let n=e.args[0];n instanceof ke&&(n=n.right);const s=this.exec.getVariableName(n,t),r=t.getVariable(s);let a=e.args[1];const o=this.exec.evalExpression(a,t),i=r.value.getSubData(this.exec,n.postfix,t),l=new Ve(i.value,i.typeInfo);return i instanceof Ve&&o instanceof Ve&&(i.value=o.value),r.value instanceof Ue&&r.value.setDataValue(this.exec,i,n.postfix,t),l}AtomicCompareExchangeWeak(e,t){return console.error('TODO: atomicCompareExchangeWeak'),null}Pack4x8snorm(e,t){return console.error('TODO: pack4x8snorm'),null}Pack4x8unorm(e,t){return console.error('TODO: pack4x8unorm'),null}Pack4xI8(e,t){return console.error('TODO: pack4xI8'),null}Pack4xU8(e,t){return console.error('TODO: pack4xU8'),null}Pack4x8Clamp(e,t){return console.error('TODO: pack4x8Clamp'),null}Pack4xU8Clamp(e,t){return console.error('TODO: pack4xU8Clamp'),null}Pack2x16snorm(e,t){return console.error('TODO: pack2x16snorm'),null}Pack2x16unorm(e,t){return console.error('TODO: pack2x16unorm'),null}Pack2x16float(e,t){return console.error('TODO: pack2x16float'),null}Unpack4x8snorm(e,t){return console.error('TODO: unpack4x8snorm'),null}Unpack4x8unorm(e,t){return console.error('TODO: unpack4x8unorm'),null}Unpack4xI8(e,t){return console.error('TODO: unpack4xI8'),null}Unpack4xU8(e,t){return console.error('TODO: unpack4xU8'),null}Unpack2x16snorm(e,t){return console.error('TODO: unpack2x16snorm'),null}Unpack2x16unorm(e,t){return console.error('TODO: unpack2x16unorm'),null}Unpack2x16float(e,t){return console.error('TODO: unpack2x16float'),null}StorageBarrier(e,t){return null}TextureBarrier(e,t){return null}WorkgroupBarrier(e,t){return null}WorkgroupUniformLoad(e,t){return null}SubgroupAdd(e,t){return console.error('TODO: subgroupAdd'),null}SubgroupExclusiveAdd(e,t){return console.error('TODO: subgroupExclusiveAdd'),null}SubgroupInclusiveAdd(e,t){return console.error('TODO: subgroupInclusiveAdd'),null}SubgroupAll(e,t){return console.error('TODO: subgroupAll'),null}SubgroupAnd(e,t){return console.error('TODO: subgroupAnd'),null}SubgroupAny(e,t){return console.error('TODO: subgroupAny'),null}SubgroupBallot(e,t){return console.error('TODO: subgroupBallot'),null}SubgroupBroadcast(e,t){return console.error('TODO: subgroupBroadcast'),null}SubgroupBroadcastFirst(e,t){return console.error('TODO: subgroupBroadcastFirst'),null}SubgroupElect(e,t){return console.error('TODO: subgroupElect'),null}SubgroupMax(e,t){return console.error('TODO: subgroupMax'),null}SubgroupMin(e,t){return console.error('TODO: subgroupMin'),null}SubgroupMul(e,t){return console.error('TODO: subgroupMul'),null}SubgroupExclusiveMul(e,t){return console.error('TODO: subgroupExclusiveMul'),null}SubgroupInclusiveMul(e,t){return console.error('TODO: subgroupInclusiveMul'),null}SubgroupOr(e,t){return console.error('TODO: subgroupOr'),null}SubgroupShuffle(e,t){return console.error('TODO: subgroupShuffle'),null}SubgroupShuffleDown(e,t){return console.error('TODO: subgroupShuffleDown'),null}SubgroupShuffleUp(e,t){return console.error('TODO: subgroupShuffleUp'),null}SubgroupShuffleXor(e,t){return console.error('TODO: subgroupShuffleXor'),null}SubgroupXor(e,t){return console.error('TODO: subgroupXor'),null}QuadBroadcast(e,t){return console.error('TODO: quadBroadcast'),null}QuadSwapDiagonal(e,t){return console.error('TODO: quadSwapDiagonal'),null}QuadSwapX(e,t){return console.error('TODO: quadSwapX'),null}QuadSwapY(e,t){return console.error('TODO: quadSwapY'),null}}const ht={vec2:2,vec2f:2,vec2i:2,vec2u:2,vec2b:2,vec2h:2,vec3:3,vec3f:3,vec3i:3,vec3u:3,vec3b:3,vec3h:3,vec4:4,vec4f:4,vec4i:4,vec4u:4,vec4b:4,vec4h:4},ft={mat2x2:[2,2,4],mat2x2f:[2,2,4],mat2x2h:[2,2,4],mat2x3:[2,3,6],mat2x3f:[2,3,6],mat2x3h:[2,3,6],mat2x4:[2,4,8],mat2x4f:[2,4,8],mat2x4h:[2,4,8],mat3x2:[3,2,6],mat3x2f:[3,2,6],mat3x2h:[3,2,6],mat3x3:[3,3,9],mat3x3f:[3,3,9],mat3x3h:[3,3,9],mat3x4:[3,4,12],mat3x4f:[3,4,12],mat3x4h:[3,4,12],mat4x2:[4,2,8],mat4x2f:[4,2,8],mat4x2h:[4,2,8],mat4x3:[4,3,12],mat4x3f:[4,3,12],mat4x3h:[4,3,12],mat4x4:[4,4,16],mat4x4f:[4,4,16],mat4x4h:[4,4,16]};class pt extends ct{constructor(e,t){var n;super(),this.ast=null!=e?e:[],this.reflection=new rt,this.reflection.updateAST(this.ast),this.context=null!==(n=null==t?void 0:t.clone())&&void 0!==n?n:new lt,this.builtins=new ut(this),this.typeInfo={bool:this.getTypeInfo(ae.bool),i32:this.getTypeInfo(ae.i32),u32:this.getTypeInfo(ae.u32),f32:this.getTypeInfo(ae.f32),f16:this.getTypeInfo(ae.f16),vec2f:this.getTypeInfo(le.vec2f),vec2u:this.getTypeInfo(le.vec2u),vec2i:this.getTypeInfo(le.vec2i),vec2h:this.getTypeInfo(le.vec2h),vec3f:this.getTypeInfo(le.vec3f),vec3u:this.getTypeInfo(le.vec3u),vec3i:this.getTypeInfo(le.vec3i),vec3h:this.getTypeInfo(le.vec3h),vec4f:this.getTypeInfo(le.vec4f),vec4u:this.getTypeInfo(le.vec4u),vec4i:this.getTypeInfo(le.vec4i),vec4h:this.getTypeInfo(le.vec4h),mat2x2f:this.getTypeInfo(le.mat2x2f),mat2x3f:this.getTypeInfo(le.mat2x3f),mat2x4f:this.getTypeInfo(le.mat2x4f),mat3x2f:this.getTypeInfo(le.mat3x2f),mat3x3f:this.getTypeInfo(le.mat3x3f),mat3x4f:this.getTypeInfo(le.mat3x4f),mat4x2f:this.getTypeInfo(le.mat4x2f),mat4x3f:this.getTypeInfo(le.mat4x3f),mat4x4f:this.getTypeInfo(le.mat4x4f)}}getVariableValue(e){var t,n;const r=null!==(n=null===(t=this.context.getVariable(e))||void 0===t?void 0:t.value)&&void 0!==n?n:null;if(null===r)return null;if(r instanceof Ve)return r.value;if(r instanceof Fe)return Array.from(r.data);if(r instanceof Me)return Array.from(r.data);if(r instanceof Ue&&r.typeInfo instanceof s){if('u32'===r.typeInfo.format.name)return Array.from(new Uint32Array(r.buffer,r.offset,r.typeInfo.count));if('i32'===r.typeInfo.format.name)return Array.from(new Int32Array(r.buffer,r.offset,r.typeInfo.count));if('f32'===r.typeInfo.format.name)return Array.from(new Float32Array(r.buffer,r.offset,r.typeInfo.count))}return console.error(`Unsupported return variable type ${r.typeInfo.name}`),null}execute(e){(e=null!=e?e:{}).constants&&this._setOverrides(e.constants,this.context),this._execStatements(this.ast,this.context)}dispatchWorkgroups(e,t,n,s){const r=this.context.clone();(s=null!=s?s:{}).constants&&this._setOverrides(s.constants,r),this._execStatements(this.ast,r);const a=r.getFunction(e);if(!a)return void console.error(`Function ${e} not found`);if('number'==typeof t)t=[t,1,1];else{if(0===t.length)return void console.error('Invalid dispatch count');1===t.length?t=[t[0],1,1]:2===t.length?t=[t[0],t[1],1]:t.length>3&&(t=[t[0],t[1],t[2]])}const o=t[0],i=t[1],l=t[2],c=this.getTypeInfo('vec3u');r.setVariable('@num_workgroups',new Fe(t,c));const u=this.reflection.getFunctionInfo(e);null===u&&console.error(`Function ${e} not found in reflection data`);for(const e in n)for(const t in n[e]){const s=n[e][t];r.variables.forEach(n=>{var r;const a=n.node;if(null==a?void 0:a.attributes){let o=null,i=null;for(const e of a.attributes)'binding'===e.name?o=e.value:'group'===e.name&&(i=e.value);if(t==o&&e==i){let o=!1;for(const s of u.resources)if(s.name===n.name&&s.group===parseInt(e)&&s.binding===parseInt(t)){o=!0;break}if(o)if(void 0!==s.texture&&void 0!==s.descriptor){const e=new We(s.texture,this.getTypeInfo(a.type),s.descriptor,null!==(r=s.texture.view)&&void 0!==r?r:null);n.value=e}else void 0!==s.uniform?n.value=new Ue(s.uniform,this.getTypeInfo(a.type)):n.value=new Ue(s,this.getTypeInfo(a.type))}}})}for(let e=0;e<l;++e)for(let t=0;t<i;++t)for(let n=0;n<o;++n)r.setVariable('@workgroup_id',new Fe([n,t,e],this.getTypeInfo('vec3u'))),this._dispatchWorkgroup(a,[n,t,e],r)}execStatement(e,t){if(e instanceof Y)return this.evalExpression(e.value,t);if(e instanceof se){if(e.condition){const n=this.evalExpression(e.condition,t);if(!(n instanceof Ve))throw new Error('Invalid break-if condition');if(!n.value)return null}return pt._breakObj}if(e instanceof re)return pt._continueObj;if(e instanceof U)this._let(e,t);else if(e instanceof F)this._var(e,t);else if(e instanceof W)this._const(e,t);else if(e instanceof M)this._override(e,t);else if(e instanceof D)this._function(e,t);else{if(e instanceof Q)return this._if(e,t);if(e instanceof Z)return this._switch(e,t);if(e instanceof B)return this._for(e,t);if(e instanceof N)return this._while(e,t);if(e instanceof j)return this._loop(e,t);if(e instanceof V){const n=t.clone();return n.currentFunctionName=t.currentFunctionName,this._execStatements(e.body,n)}if(e instanceof G)this._assign(e,t);else if(e instanceof R)this._increment(e,t);else{if(e instanceof ie)return null;if(e instanceof M){const n=e.name;null===t.getVariable(n)&&t.setVariable(n,new Ve(0,this.getTypeInfo('u32')))}else if(e instanceof X)this._call(e,t);else{if(e instanceof ee)return null;if(e instanceof te)return null;console.error('Invalid statement type.',e,`Line ${e.line}`)}}}return null}evalExpression(e,t){return e instanceof we?this._evalBinaryOp(e,t):e instanceof _e?this._evalLiteral(e,t):e instanceof xe?this._evalVariable(e,t):e instanceof me?this._evalCall(e,t):e instanceof de?this._evalCreate(e,t):e instanceof ge?this._evalConst(e,t):e instanceof ye?this._evalBitcast(e,t):e instanceof ke?this._evalUnaryOp(e,t):(console.error('Invalid expression type',e,`Line ${e.line}`),null)}getTypeInfo(e){var t;if(e instanceof ae){const t=this.reflection.getTypeInfo(e);if(null!==t)return t}let n=null!==(t=this.typeInfo[e])&&void 0!==t?t:null;return null!==n||(n=this.reflection.getTypeInfoByName(e)),n}_setOverrides(e,t){for(const n in e){const s=e[n],r=this.reflection.getOverrideInfo(n);null!==r?(null===r.type&&(r.type=this.getTypeInfo('u32')),'u32'===r.type.name||'i32'===r.type.name||'f32'===r.type.name||'f16'===r.type.name?t.setVariable(n,new Ve(s,r.type)):'bool'===r.type.name?t.setVariable(n,new Ve(s?1:0,r.type)):'vec2'===r.type.name||'vec3'===r.type.name||'vec4'===r.type.name||'vec2f'===r.type.name||'vec3f'===r.type.name||'vec4f'===r.type.name||'vec2i'===r.type.name||'vec3i'===r.type.name||'vec4i'===r.type.name||'vec2u'===r.type.name||'vec3u'===r.type.name||'vec4u'===r.type.name||'vec2h'===r.type.name||'vec3h'===r.type.name||'vec4h'===r.type.name?t.setVariable(n,new Fe(s,r.type)):console.error(`Invalid constant type for ${n}`)):console.error(`Override ${n} does not exist in the shader.`)}}_dispatchWorkgroup(e,t,n){const s=[1,1,1];for(const t of e.node.attributes)if('workgroup_size'===t.name){if(t.value.length>0){const e=n.getVariableValue(t.value[0]);s[0]=e instanceof Ve?e.value:parseInt(t.value[0])}if(t.value.length>1){const e=n.getVariableValue(t.value[1]);s[1]=e instanceof Ve?e.value:parseInt(t.value[1])}if(t.value.length>2){const e=n.getVariableValue(t.value[2]);s[2]=e instanceof Ve?e.value:parseInt(t.value[2])}}const r=this.getTypeInfo('vec3u'),a=this.getTypeInfo('u32');n.setVariable('@workgroup_size',new Fe(s,r));const o=s[0],i=s[1],l=s[2];for(let c=0,u=0;c<l;++c)for(let l=0;l<i;++l)for(let i=0;i<o;++i,++u){const o=[i,l,c],h=[i+t[0]*s[0],l+t[1]*s[1],c+t[2]*s[2]];n.setVariable('@local_invocation_id',new Fe(o,r)),n.setVariable('@global_invocation_id',new Fe(h,r)),n.setVariable('@local_invocation_index',new Ve(u,a)),this._dispatchExec(e,n)}}_dispatchExec(e,t){for(const n of e.node.args)for(const e of n.attributes)if('builtin'===e.name){const s=`@${e.value}`,r=t.getVariable(s);void 0!==r&&t.variables.set(n.name,r)}this._execStatements(e.node.body,t)}getVariableName(e,t){for(;e instanceof ke;)e=e.right;return e instanceof xe?e.name:(console.error('Unknown variable type',e,'Line',e.line),null)}_execStatements(e,t){for(const n of e){if(n instanceof Array){const e=t.clone(),s=this._execStatements(n,e);if(s)return s;continue}const e=this.execStatement(n,t);if(e)return e}return null}_call(e,t){const n=t.clone();n.currentFunctionName=e.name;const s=t.getFunction(e.name);if(s){for(let t=0;t<s.node.args.length;++t){const r=s.node.args[t],a=this.evalExpression(e.args[t],n);n.setVariable(r.name,a,r)}this._execStatements(s.node.body,n)}else if(e.isBuiltin)this._callBuiltinFunction(e,n);else{this.getTypeInfo(e.name)&&this._evalCreate(e,t)}}_increment(e,t){const n=this.getVariableName(e.variable,t),s=t.getVariable(n);s?'++'===e.operator?s.value instanceof Ve?s.value.value++:console.error(`Variable ${n} is not a scalar. Line ${e.line}`):'--'===e.operator?s.value instanceof Ve?s.value.value--:console.error(`Variable ${n} is not a scalar. Line ${e.line}`):console.error(`Unknown increment operator ${e.operator}. Line ${e.line}`):console.error(`Variable ${n} not found. Line ${e.line}`)}_getVariableData(e,t){if(e instanceof xe){const n=this.getVariableName(e,t),s=t.getVariable(n);return null===s?(console.error(`Variable ${n} not found. Line ${e.line}`),null):s.value.getSubData(this,e.postfix,t)}if(e instanceof ke){if('*'===e.operator){const n=this._getVariableData(e.right,t);return n instanceof Ne?n.reference.getSubData(this,e.postfix,t):(console.error(`Variable ${e.right} is not a pointer. Line ${e.line}`),null)}if('&'===e.operator){const n=this._getVariableData(e.right,t);return new Ne(n)}}return null}_assign(e,t){let n=null,s='<var>',r=null;if(e.variable instanceof ke){const n=this._getVariableData(e.variable,t),s=this.evalExpression(e.value,t),r=e.operator;if('='===r){if(n instanceof Ve||n instanceof Fe||n instanceof Me){if(s instanceof Ve||s instanceof Fe||s instanceof Me&&n.data.length===s.data.length)return void n.data.set(s.data);console.error(`Invalid assignment. Line ${e.line}`)}else if(n instanceof Ue&&s instanceof Ue&&n.buffer.byteLength-n.offset>=s.buffer.byteLength-s.offset)return void(n.buffer.byteLength%4==0?new Uint32Array(n.buffer,n.offset,n.typeInfo.size/4).set(new Uint32Array(s.buffer,s.offset,s.typeInfo.size/4)):new Uint8Array(n.buffer,n.offset,n.typeInfo.size).set(new Uint8Array(s.buffer,s.offset,s.typeInfo.size)));return console.error(`Invalid assignment. Line ${e.line}`),null}if('+='===r)return n instanceof Ve||n instanceof Fe||n instanceof Me?s instanceof Ve||s instanceof Fe||s instanceof Me?void n.data.set(s.data.map((e,t)=>n.data[t]+e)):void console.error(`Invalid assignment . Line ${e.line}`):void console.error(`Invalid assignment. Line ${e.line}`);if('-='===r)return(n instanceof Ve||n instanceof Fe||n instanceof Me)&&(s instanceof Ve||s instanceof Fe||s instanceof Me)?void n.data.set(s.data.map((e,t)=>n.data[t]-e)):void console.error(`Invalid assignment. Line ${e.line}`)}if(e.variable instanceof ke){if('*'===e.variable.operator){s=this.getVariableName(e.variable.right,t);const r=t.getVariable(s);if(!(r&&r.value instanceof Ne))return void console.error(`Variable ${s} is not a pointer. Line ${e.line}`);n=r.value.reference;let a=e.variable.postfix;if(!a){let t=e.variable.right;for(;t instanceof ke;){if(t.postfix){a=t.postfix;break}t=t.right}}a&&(n=n.getSubData(this,a,t))}}else{r=e.variable.postfix,s=this.getVariableName(e.variable,t);const a=t.getVariable(s);if(null===a)return void console.error(`Variable ${s} not found. Line ${e.line}`);n=a.value}if(n instanceof Ne&&(n=n.reference),null===n)return void console.error(`Variable ${s} not found. Line ${e.line}`);const a=this.evalExpression(e.value,t),o=e.operator;if('='!==o){const s=n.getSubData(this,r,t);if(s instanceof Fe&&a instanceof Ve){const t=s.data,n=a.value;if('+='===o)for(let e=0;e<t.length;++e)t[e]+=n;else if('-='===o)for(let e=0;e<t.length;++e)t[e]-=n;else if('*='===o)for(let e=0;e<t.length;++e)t[e]*=n;else if('/='===o)for(let e=0;e<t.length;++e)t[e]/=n;else if('%='===o)for(let e=0;e<t.length;++e)t[e]%=n;else if('&='===o)for(let e=0;e<t.length;++e)t[e]&=n;else if('|='===o)for(let e=0;e<t.length;++e)t[e]|=n;else if('^='===o)for(let e=0;e<t.length;++e)t[e]^=n;else if('<<='===o)for(let e=0;e<t.length;++e)t[e]<<=n;else if('>>='===o)for(let e=0;e<t.length;++e)t[e]>>=n;else console.error(`Invalid operator ${o}. Line ${e.line}`)}else if(s instanceof Fe&&a instanceof Fe){const t=s.data,n=a.data;if(t.length!==n.length)return void console.error(`Vector length mismatch. Line ${e.line}`);if('+='===o)for(let e=0;e<t.length;++e)t[e]+=n[e];else if('-='===o)for(let e=0;e<t.length;++e)t[e]-=n[e];else if('*='===o)for(let e=0;e<t.length;++e)t[e]*=n[e];else if('/='===o)for(let e=0;e<t.length;++e)t[e]/=n[e];else if('%='===o)for(let e=0;e<t.length;++e)t[e]%=n[e];else if('&='===o)for(let e=0;e<t.length;++e)t[e]&=n[e];else if('|='===o)for(let e=0;e<t.length;++e)t[e]|=n[e];else if('^='===o)for(let e=0;e<t.length;++e)t[e]^=n[e];else if('<<='===o)for(let e=0;e<t.length;++e)t[e]<<=n[e];else if('>>='===o)for(let e=0;e<t.length;++e)t[e]>>=n[e];else console.error(`Invalid operator ${o}. Line ${e.line}`)}else{if(!(s instanceof Ve&&a instanceof Ve))return void console.error(`Invalid type for ${e.operator} operator. Line ${e.line}`);'+='===o?s.value+=a.value:'-='===o?s.value-=a.value:'*='===o?s.value*=a.value:'/='===o?s.value/=a.value:'%='===o?s.value%=a.value:'&='===o?s.value&=a.value:'|='===o?s.value|=a.value:'^='===o?s.value^=a.value:'<<='===o?s.value<<=a.value:'>>='===o?s.value>>=a.value:console.error(`Invalid operator ${o}. Line ${e.line}`)}return void(n instanceof Ue&&n.setDataValue(this,s,r,t))}if(n instanceof Ue)n.setDataValue(this,a,r,t);else if(r){if(!(n instanceof Fe||n instanceof Me))return void console.error(`Variable ${s} is not a vector or matrix. Line ${e.line}`);if(r instanceof be){const o=this.evalExpression(r.index,t).value;if(n instanceof Fe){if(!(a instanceof Ve))return void console.error(`Invalid assignment to ${s}. Line ${e.line}`);n.data[o]=a.value}else{if(!(n instanceof Me))return void console.error(`Invalid assignment to ${s}. Line ${e.line}`);{const o=this.evalExpression(r.index,t).value;if(o<0)return void console.error(`Invalid assignment to ${s}. Line ${e.line}`);if(!(a instanceof Fe))return void console.error(`Invalid assignment to ${s}. Line ${e.line}`);{const t=n.typeInfo.getTypeName();if('mat2x2'===t||'mat2x2f'===t||'mat2x2h'===t){if(!(o<2&&2===a.data.length))return void console.error(`Invalid assignment to ${s}. Line ${e.line}`);n.data[2*o]=a.data[0],n.data[2*o+1]=a.data[1]}else if('mat2x3'===t||'mat2x3f'===t||'mat2x3h'===t){if(!(o<2&&3===a.data.length))return void console.error(`Invalid assignment to ${s}. Line ${e.line}`);n.data[3*o]=a.data[0],n.data[3*o+1]=a.data[1],n.data[3*o+2]=a.data[2]}else if('mat2x4'===t||'mat2x4f'===t||'mat2x4h'===t){if(!(o<2&&4===a.data.length))return void console.error(`Invalid assignment to ${s}. Line ${e.line}`);n.data[4*o]=a.data[0],n.data[4*o+1]=a.data[1],n.data[4*o+2]=a.data[2],n.data[4*o+3]=a.data[3]}else if('mat3x2'===t||'mat3x2f'===t||'mat3x2h'===t){if(!(o<3&&2===a.data.length))return void console.error(`Invalid assignment to ${s}. Line ${e.line}`);n.data[2*o]=a.data[0],n.data[2*o+1]=a.data[1]}else if('mat3x3'===t||'mat3x3f'===t||'mat3x3h'===t){if(!(o<3&&3===a.data.length))return void console.error(`Invalid assignment to ${s}. Line ${e.line}`);n.data[3*o]=a.data[0],n.data[3*o+1]=a.data[1],n.data[3*o+2]=a.data[2]}else if('mat3x4'===t||'mat3x4f'===t||'mat3x4h'===t){if(!(o<3&&4===a.data.length))return void console.error(`Invalid assignment to ${s}. Line ${e.line}`);n.data[4*o]=a.data[0],n.data[4*o+1]=a.data[1],n.data[4*o+2]=a.data[2],n.data[4*o+3]=a.data[3]}else if('mat4x2'===t||'mat4x2f'===t||'mat4x2h'===t){if(!(o<4&&2===a.data.length))return void console.error(`Invalid assignment to ${s}. Line ${e.line}`);n.data[2*o]=a.data[0],n.data[2*o+1]=a.data[1]}else if('mat4x3'===t||'mat4x3f'===t||'mat4x3h'===t){if(!(o<4&&3===a.data.length))return void console.error(`Invalid assignment to ${s}. Line ${e.line}`);n.data[3*o]=a.data[0],n.data[3*o+1]=a.data[1],n.data[3*o+2]=a.data[2]}else{if('mat4x4'!==t&&'mat4x4f'!==t&&'mat4x4h'!==t)return void console.error(`Invalid assignment to ${s}. Line ${e.line}`);if(!(o<4&&4===a.data.length))return void console.error(`Invalid assignment to ${s}. Line ${e.line}`);n.data[4*o]=a.data[0],n.data[4*o+1]=a.data[1],n.data[4*o+2]=a.data[2],n.data[4*o+3]=a.data[3]}}}}}else if(r instanceof pe){const t=r.value;if(!(n instanceof Fe))return void console.error(`Invalid assignment to ${t}. Variable ${s} is not a vector. Line ${e.line}`);if(a instanceof Ve){if(t.length>1)return void console.error(`Invalid assignment to ${t} for variable ${s}. Line ${e.line}`);if('x'===t)n.data[0]=a.value;else if('y'===t){if(n.data.length<2)return void console.error(`Invalid assignment to ${t} for variable ${s}. Line ${e.line}`);n.data[1]=a.value}else if('z'===t){if(n.data.length<3)return void console.error(`Invalid assignment to ${t} for variable ${s}. Line ${e.line}`);n.data[2]=a.value}else if('w'===t){if(n.data.length<4)return void console.error(`Invalid assignment to ${t} for variable ${s}. Line ${e.line}`);n.data[3]=a.value}}else{if(!(a instanceof Fe))return void console.error(`Invalid assignment to ${s}. Line ${e.line}`);if(t.length!==a.data.length)return void console.error(`Invalid assignment to ${t} for variable ${s}. Line ${e.line}`);for(let r=0;r<t.length;++r){const o=t[r];if('x'===o||'r'===o)n.data[0]=a.data[r];else if('y'===o||'g'===o){if(a.data.length<2)return void console.error(`Invalid assignment to ${o} for variable ${s}. Line ${e.line}`);n.data[1]=a.data[r]}else if('z'===o||'b'===o){if(a.data.length<3)return void console.error(`Invalid assignment to ${o} for variable ${s}. Line ${e.line}`);n.data[2]=a.data[r]}else{if('w'!==o&&'a'!==o)return void console.error(`Invalid assignment to ${o} for variable ${s}. Line ${e.line}`);if(a.data.length<4)return void console.error(`Invalid assignment to ${o} for variable ${s}. Line ${e.line}`);n.data[3]=a.data[r]}}}}}else n instanceof Ve&&a instanceof Ve?n.value=a.value:n instanceof Fe&&a instanceof Fe||n instanceof Me&&a instanceof Me?n.data.set(a.data):console.error(`Invalid assignment to ${s}. Line ${e.line}`)}_function(e,t){const n=new it(e);t.functions.set(e.name,n)}_const(e,t){let n=null;null!==e.value&&(n=this.evalExpression(e.value,t)),t.createVariable(e.name,n,e)}_override(e,t){const n=t.getVariable(e.name);if(null===n||null===n.value){let n=null;null!==e.value&&(n=this.evalExpression(e.value,t)),t.createVariable(e.name,n,e)}}_let(e,t){let n=null;if(null!==e.value){if(n=this.evalExpression(e.value,t),null===n)return void console.error(`Invalid value for variable ${e.name}. Line ${e.line}`);e.value instanceof ke||(n=n.clone())}else{const s=e.type.name;if('f32'===s||'i32'===s||'u32'===s||'bool'===s||'f16'===s||'vec2'===s||'vec3'===s||'vec4'===s||'vec2f'===s||'vec3f'===s||'vec4f'===s||'vec2i'===s||'vec3i'===s||'vec4i'===s||'vec2u'===s||'vec3u'===s||'vec4u'===s||'vec2h'===s||'vec3h'===s||'vec4h'===s||'vec2b'===s||'vec3b'===s||'vec4b'===s||'mat2x2'===s||'mat2x3'===s||'mat2x4'===s||'mat3x2'===s||'mat3x3'===s||'mat3x4'===s||'mat4x2'===s||'mat4x3'===s||'mat4x4'===s||'mat2x2f'===s||'mat2x3f'===s||'mat2x4f'===s||'mat3x2f'===s||'mat3x3f'===s||'mat3x4f'===s||'mat4x2f'===s||'mat4x3f'===s||'mat4x4f'===s||'mat2x2h'===s||'mat2x3h'===s||'mat2x4h'===s||'mat3x2h'===s||'mat3x3h'===s||'mat3x4h'===s||'mat4x2h'===s||'mat4x3h'===s||'mat4x4h'===s||'array'===s){const s=new de(e.type,[]);n=this._evalCreate(s,t)}}t.createVariable(e.name,n,e)}_var(e,t){let n=null;if(null!==e.value){if(n=this.evalExpression(e.value,t),null===n)return void console.error(`Invalid value for variable ${e.name}. Line ${e.line}`);e.value instanceof ke||(n=n.clone())}else{if(null===e.type)return void console.error(`Variable ${e.name} has no type. Line ${e.line}`);const s=e.type.name;if('f32'===s||'i32'===s||'u32'===s||'bool'===s||'f16'===s||'vec2'===s||'vec3'===s||'vec4'===s||'vec2f'===s||'vec3f'===s||'vec4f'===s||'vec2i'===s||'vec3i'===s||'vec4i'===s||'vec2u'===s||'vec3u'===s||'vec4u'===s||'vec2h'===s||'vec3h'===s||'vec4h'===s||'vec2b'===s||'vec3b'===s||'vec4b'===s||'mat2x2'===s||'mat2x3'===s||'mat2x4'===s||'mat3x2'===s||'mat3x3'===s||'mat3x4'===s||'mat4x2'===s||'mat4x3'===s||'mat4x4'===s||'mat2x2f'===s||'mat2x3f'===s||'mat2x4f'===s||'mat3x2f'===s||'mat3x3f'===s||'mat3x4f'===s||'mat4x2f'===s||'mat4x3f'===s||'mat4x4f'===s||'mat2x2h'===s||'mat2x3h'===s||'mat2x4h'===s||'mat3x2h'===s||'mat3x3h'===s||'mat3x4h'===s||'mat4x2h'===s||'mat4x3h'===s||'mat4x4h'===s||e.type instanceof ue||e.type instanceof ie||e.type instanceof le){const s=new de(e.type,[]);n=this._evalCreate(s,t)}}t.createVariable(e.name,n,e)}_switch(e,t){t=t.clone();const n=this.evalExpression(e.condition,t);if(!(n instanceof Ve))return console.error(`Invalid if condition. Line ${e.line}`),null;let s=null;for(const r of e.cases)if(r instanceof Se)for(const a of r.selectors){if(a instanceof Ie){s=r;continue}const o=this.evalExpression(a,t);if(!(o instanceof Ve))return console.error(`Invalid case selector. Line ${e.line}`),null;if(o.value===n.value)return this._execStatements(r.body,t)}else r instanceof Ce&&(s=r);return s?this._execStatements(s.body,t):null}_if(e,t){t=t.clone();const n=this.evalExpression(e.condition,t);if(!(n instanceof Ve))return console.error(`Invalid if condition. Line ${e.line}`),null;if(n.value)return this._execStatements(e.body,t);for(const n of e.elseif){const s=this.evalExpression(n.condition,t);if(!(s instanceof Ve))return console.error(`Invalid if condition. Line ${e.line}`),null;if(s.value)return this._execStatements(n.body,t)}return e.else?this._execStatements(e.else,t):null}_getScalarValue(e){return e instanceof Ve?e.value:(console.error('Expected scalar value.',e),0)}_for(e,t){for(t=t.clone(),this.execStatement(e.init,t);this._getScalarValue(this.evalExpression(e.condition,t));){const n=this._execStatements(e.body,t);if(n===pt._breakObj)break;if(null!==n&&n!==pt._continueObj)return n;this.execStatement(e.increment,t)}return null}_loop(e,t){for(t=t.clone();;){const n=this._execStatements(e.body,t);if(n===pt._breakObj)break;if(n===pt._continueObj){if(e.continuing){if(this._execStatements(e.continuing.body,t)===pt._breakObj)break}}else if(null!==n)return n}return null}_while(e,t){for(t=t.clone();this._getScalarValue(this.evalExpression(e.condition,t));){const n=this._execStatements(e.body,t);if(n===pt._breakObj)break;if(n!==pt._continueObj&&null!==n)return n}return null}_evalBitcast(e,t){const n=this.evalExpression(e.value,t),s=e.type;if(n instanceof Ve){const e=tt(n.value,n.typeInfo.name,s.name);return new Ve(e,this.getTypeInfo(s))}if(n instanceof Fe){const t=n.typeInfo.getTypeName();let r='';if(t.endsWith('f'))r='f32';else if(t.endsWith('i'))r='i32';else if(t.endsWith('u'))r='u32';else if(t.endsWith('b'))r='bool';else{if(!t.endsWith('h'))return console.error(`Unknown vector type ${t}. Line ${e.line}`),null;r='f16'}const a=s.getTypeName();let o='';if(a.endsWith('f'))o='f32';else if(a.endsWith('i'))o='i32';else if(a.endsWith('u'))o='u32';else if(a.endsWith('b'))o='bool';else{if(!a.endsWith('h'))return console.error(`Unknown vector type ${o}. Line ${e.line}`),null;o='f16'}const i=function(e,t,n){if(t===n)return e;const s=new Array(e.length);for(let r=0;r<e.length;r++)s[r]=tt(e[r],t,n);return s}(Array.from(n.data),r,o);return new Fe(i,this.getTypeInfo(s))}return console.error(`TODO: bitcast for ${n.typeInfo.name}. Line ${e.line}`),null}_evalConst(e,t){return t.getVariableValue(e.name).clone().getSubData(this,e.postfix,t)}_evalCreate(e,t){var r;if(e instanceof de){if(null===e.type)return Oe.void;switch(e.type.getTypeName()){case'bool':case'i32':case'u32':case'f32':case'f16':return this._callConstructorValue(e,t);case'vec2':case'vec3':case'vec4':case'vec2f':case'vec3f':case'vec4f':case'vec2h':case'vec3h':case'vec4h':case'vec2i':case'vec3i':case'vec4i':case'vec2u':case'vec3u':case'vec4u':case'vec2b':case'vec3b':case'vec4b':return this._callConstructorVec(e,t);case'mat2x2':case'mat2x2f':case'mat2x2h':case'mat2x3':case'mat2x3f':case'mat2x3h':case'mat2x4':case'mat2x4f':case'mat2x4h':case'mat3x2':case'mat3x2f':case'mat3x2h':case'mat3x3':case'mat3x3f':case'mat3x3h':case'mat3x4':case'mat3x4f':case'mat3x4h':case'mat4x2':case'mat4x2f':case'mat4x2h':case'mat4x3':case'mat4x3f':case'mat4x3h':case'mat4x4':case'mat4x4f':case'mat4x4h':return this._callConstructorMatrix(e,t)}}const a=e instanceof de?e.type.name:e.name,o=e instanceof de?this.getTypeInfo(e.type):this.getTypeInfo(e.name);if(null===o)return console.error(`Unknown type ${a}. Line ${e.line}`),null;if(0===o.size)return null;const i=new Ue(new ArrayBuffer(o.size),o,0);if(o instanceof n){if(e.args)for(let n=0;n<e.args.length;++n){const s=o.members[n],r=e.args[n],a=this.evalExpression(r,t);i.setData(this,a,s.type,s.offset,t)}}else if(o instanceof s){let n=0;if(e.args)for(let s=0;s<e.args.length;++s){const a=e.args[s],l=this.evalExpression(a,t);null===o.format&&('x32'===(null===(r=l.typeInfo)||void 0===r?void 0:r.name)?o.format=this.getTypeInfo('i32'):o.format=l.typeInfo),i.setData(this,l,o.format,n,t),n+=o.stride}}else console.error(`Unknown type "${a}". Line ${e.line}`);return e instanceof de?i.getSubData(this,e.postfix,t):i}_evalLiteral(e,t){const n=this.getTypeInfo(e.type),s=n.name;if('x32'===s||'u32'===s||'f32'===s||'f16'===s||'i32'===s||'bool'===s){return new Ve(e.scalarValue,n)}return'vec2'===s||'vec3'===s||'vec4'===s||'vec2f'===s||'vec3f'===s||'vec4f'===s||'vec2h'===s||'vec3h'===s||'vec4h'===s||'vec2i'===s||'vec3i'===s||'vec4i'===s||'vec2u'===s||'vec3u'===s||'vec4u'===s?this._callConstructorVec(e,t):'mat2x2'===s||'mat2x3'===s||'mat2x4'===s||'mat3x2'===s||'mat3x3'===s||'mat3x4'===s||'mat4x2'===s||'mat4x3'===s||'mat4x4'===s||'mat2x2f'===s||'mat2x3f'===s||'mat2x4f'===s||'mat3x2f'===s||'mat3x3f'===s||'mat3x4f'===s||'mat4x2f'===s||'mat4x3f'===s||'mat4x4f'===s||'mat2x2h'===s||'mat2x3h'===s||'mat2x4h'===s||'mat3x2h'===s||'mat3x3h'===s||'mat3x4h'===s||'mat4x2h'===s||'mat4x3h'===s||'mat4x4h'===s?this._callConstructorMatrix(e,t):e.value}_evalVariable(e,t){const n=t.getVariableValue(e.name);return null===n?n:n.getSubData(this,e.postfix,t)}_maxFormatTypeInfo(e){let t=e[0];if('f32'===t.name)return t;for(let n=1;n<e.length;++n){const s=pt._priority.get(t.name);pt._priority.get(e[n].name)<s&&(t=e[n])}return'x32'===t.name?this.getTypeInfo('i32'):t}_evalUnaryOp(e,t){const n=this.evalExpression(e.right,t);if('&'===e.operator)return new Ne(n);if('*'===e.operator)return n instanceof Ne?n.reference.getSubData(this,e.postfix,t):(console.error(`Invalid dereference. Line ${e.line}`),null);const s=n instanceof Ve?n.value:n instanceof Fe?Array.from(n.data):null;switch(e.operator){case'+':{if(Re(s)){const e=s.map((e,t)=>+e);return new Fe(e,n.typeInfo)}const e=s,t=this._maxFormatTypeInfo([n.typeInfo,n.typeInfo]);return new Ve(+e,t)}case'-':{if(Re(s)){const e=s.map((e,t)=>-e);return new Fe(e,n.typeInfo)}const e=s,t=this._maxFormatTypeInfo([n.typeInfo,n.typeInfo]);return new Ve(-e,t)}case'!':{if(Re(s)){const e=s.map((e,t)=>e?0:1);return new Fe(e,n.typeInfo)}const e=s,t=this._maxFormatTypeInfo([n.typeInfo,n.typeInfo]);return new Ve(e?0:1,t)}case'~':{if(Re(s)){const e=s.map((e,t)=>~e);return new Fe(e,n.typeInfo)}const e=s,t=this._maxFormatTypeInfo([n.typeInfo,n.typeInfo]);return new Ve(~e,t)}}return console.error(`Invalid unary operator ${e.operator}. Line ${e.line}`),null}_isMatrixType(e){return e.typeInfo.getTypeName().startsWith('mat')}_isVectorType(e){return e.typeInfo.getTypeName().startsWith('vec')}_evalBinaryOp(e,t){const n=this.evalExpression(e.left,t),s=this.evalExpression(e.right,t),r=n instanceof Ve?n.value:n instanceof Fe||n instanceof Me?Array.from(n.data):n instanceof Ue?n.toArray():null,a=s instanceof Ve?s.value:s instanceof Fe||s instanceof Me?Array.from(s.data):s instanceof Ue?s.toArray():null;switch(e.operator){case'+':{if(Re(r)&&Re(a)){const t=r,s=a;if(t.length!==s.length)return console.error(`Vector length mismatch. Line ${e.line}.`),null;const o=t.map((e,t)=>e+s[t]);return new Fe(o,n.typeInfo)}if(Re(r)){const e=a,t=r.map((t,n)=>t+e);return new Fe(t,n.typeInfo)}if(Re(a)){const e=r,t=a.map((t,n)=>e+t);return new Fe(t,s.typeInfo)}const t=r,o=a,i=this._maxFormatTypeInfo([n.typeInfo,s.typeInfo]);return new Ve(t+o,i)}case'-':{if(Re(r)&&Re(a)){const t=r,s=a;if(t.length!==s.length)return console.error(`Vector length mismatch. Line ${e.line}.`),null;const o=t.map((e,t)=>e-s[t]);return new Fe(o,n.typeInfo)}if(Re(r)){const e=a,t=r.map((t,n)=>t-e);return new Fe(t,n.typeInfo)}if(Re(a)){const e=r,t=a.map((t,n)=>e-t);return new Fe(t,s.typeInfo)}const t=r,o=a,i=this._maxFormatTypeInfo([n.typeInfo,s.typeInfo]);return new Ve(t-o,i)}case'*':{if(Re(r)&&Re(a)){const t=r,o=a;if(this._isMatrixType(n)&&this._isMatrixType(s)){const r=function(e,t,n,s){if(void 0===ft[t.name]||void 0===ft[s.name])return null;const r=ft[t.name][0],a=ft[t.name][1],o=ft[s.name][0];if(r!==ft[s.name][1])return null;const i=new Array(o*a);for(let t=0;t<a;t++)for(let s=0;s<o;s++){let l=0;for(let o=0;o<r;o++)l+=e[o*a+t]*n[s*r+o];i[t*o+s]=l}return i}(t,n.typeInfo,o,s.typeInfo);if(null===r)return console.error(`Matrix multiplication failed. Line ${e.line}.`),null;const a=ft[s.typeInfo.name][0],i=ft[n.typeInfo.name][1],l=this.getTypeInfo(`mat${a}x${i}f`);return new Me(r,l)}if(this._isMatrixType(n)&&this._isVectorType(s)){const r=function(e,t,n,s){if(void 0===ft[t.name]||void 0===ht[s.name])return null;const r=ft[t.name][0],a=ft[t.name][1];if(r!==n.length)return null;const o=new Array(a);for(let t=0;t<a;t++){let s=0;for(let o=0;o<r;o++)s+=e[o*a+t]*n[o];o[t]=s}return o}(t,n.typeInfo,o,s.typeInfo);return null===r?(console.error(`Matrix vector multiplication failed. Line ${e.line}.`),null):new Fe(r,s.typeInfo)}if(this._isVectorType(n)&&this._isMatrixType(s)){const r=function(e,t,n,s){if(void 0===ht[t.name]||void 0===ft[s.name])return null;const r=ft[s.name][0],a=ft[s.name][1];if(a!==e.length)return null;const o=[];for(let t=0;t<r;t++){let s=0;for(let o=0;o<a;o++)s+=e[o]*n[o*r+t];o[t]=s}return o}(t,n.typeInfo,o,s.typeInfo);return null===r?(console.error(`Matrix vector multiplication failed. Line ${e.line}.`),null):new Fe(r,n.typeInfo)}{if(t.length!==o.length)return console.error(`Vector length mismatch. Line ${e.line}.`),null;const s=t.map((e,t)=>e*o[t]);return new Fe(s,n.typeInfo)}}if(Re(r)){const e=a,t=r.map((t,n)=>t*e);return this._isMatrixType(n)?new Me(t,n.typeInfo):new Fe(t,n.typeInfo)}if(Re(a)){const e=r,t=a.map((t,n)=>e*t);return s instanceof Me?new Me(t,s.typeInfo):new Fe(t,s.typeInfo)}const t=r,o=a,i=this._maxFormatTypeInfo([n.typeInfo,s.typeInfo]);return new Ve(t*o,i)}case'%':{if(Re(r)&&Re(a)){const t=r,s=a;if(t.length!==s.length)return console.error(`Vector length mismatch. Line ${e.line}.`),null;const o=t.map((e,t)=>e%s[t]);return new Fe(o,n.typeInfo)}if(Re(r)){const e=a,t=r.map((t,n)=>t%e);return new Fe(t,n.typeInfo)}if(Re(a)){const e=r,t=a.map((t,n)=>e%t);return new Fe(t,s.typeInfo)}const t=r,o=a,i=this._maxFormatTypeInfo([n.typeInfo,s.typeInfo]);return new Ve(t%o,i)}case'/':{if(Re(r)&&Re(a)){const t=r,s=a;if(t.length!==s.length)return console.error(`Vector length mismatch. Line ${e.line}.`),null;const o=t.map((e,t)=>e/s[t]);return new Fe(o,n.typeInfo)}if(Re(r)){const e=a,t=r.map((t,n)=>t/e);return new Fe(t,n.typeInfo)}if(Re(a)){const e=r,t=a.map((t,n)=>e/t);return new Fe(t,s.typeInfo)}const t=r,o=a,i=this._maxFormatTypeInfo([n.typeInfo,s.typeInfo]);return new Ve(t/o,i)}case'&':{if(Re(r)&&Re(a)){const t=r,s=a;if(t.length!==s.length)return console.error(`Vector length mismatch. Line ${e.line}.`),null;const o=t.map((e,t)=>e&s[t]);return new Fe(o,n.typeInfo)}if(Re(r)){const e=a,t=r.map((t,n)=>t&e);return new Fe(t,n.typeInfo)}if(Re(a)){const e=r,t=a.map((t,n)=>e&t);return new Fe(t,s.typeInfo)}const t=r,o=a,i=this._maxFormatTypeInfo([n.typeInfo,s.typeInfo]);return new Ve(t&o,i)}case'|':{if(Re(r)&&Re(a)){const t=r,s=a;if(t.length!==s.length)return console.error(`Vector length mismatch. Line ${e.line}.`),null;const o=t.map((e,t)=>e|s[t]);return new Fe(o,n.typeInfo)}if(Re(r)){const e=a,t=r.map((t,n)=>t|e);return new Fe(t,n.typeInfo)}if(Re(a)){const e=r,t=a.map((t,n)=>e|t);return new Fe(t,s.typeInfo)}const t=r,o=a,i=this._maxFormatTypeInfo([n.typeInfo,s.typeInfo]);return new Ve(t|o,i)}case'^':{if(Re(r)&&Re(a)){const t=r,s=a;if(t.length!==s.length)return console.error(`Vector length mismatch. Line ${e.line}.`),null;const o=t.map((e,t)=>e^s[t]);return new Fe(o,n.typeInfo)}if(Re(r)){const e=a,t=r.map((t,n)=>t^e);return new Fe(t,n.typeInfo)}if(Re(a)){const e=r,t=a.map((t,n)=>e^t);return new Fe(t,s.typeInfo)}const t=r,o=a,i=this._maxFormatTypeInfo([n.typeInfo,s.typeInfo]);return new Ve(t^o,i)}case'<<':{if(Re(r)&&Re(a)){const t=r,s=a;if(t.length!==s.length)return console.error(`Vector length mismatch. Line ${e.line}.`),null;const o=t.map((e,t)=>e<<s[t]);return new Fe(o,n.typeInfo)}if(Re(r)){const e=a,t=r.map((t,n)=>t<<e);return new Fe(t,n.typeInfo)}if(Re(a)){const e=r,t=a.map((t,n)=>e<<t);return new Fe(t,s.typeInfo)}const t=r,o=a,i=this._maxFormatTypeInfo([n.typeInfo,s.typeInfo]);return new Ve(t<<o,i)}case'>>':{if(Re(r)&&Re(a)){const t=r,s=a;if(t.length!==s.length)return console.error(`Vector length mismatch. Line ${e.line}.`),null;const o=t.map((e,t)=>e>>s[t]);return new Fe(o,n.typeInfo)}if(Re(r)){const e=a,t=r.map((t,n)=>t>>e);return new Fe(t,n.typeInfo)}if(Re(a)){const e=r,t=a.map((t,n)=>e>>t);return new Fe(t,s.typeInfo)}const t=r,o=a,i=this._maxFormatTypeInfo([n.typeInfo,s.typeInfo]);return new Ve(t>>o,i)}case'>':if(Re(r)&&Re(a)){const t=r,s=a;if(t.length!==s.length)return console.error(`Vector length mismatch. Line ${e.line}.`),null;const o=t.map((e,t)=>e>s[t]?1:0);return new Fe(o,n.typeInfo)}if(Re(r)){const e=a,t=r.map((t,n)=>t>e?1:0);return new Fe(t,n.typeInfo)}if(Re(a)){const e=r,t=a.map((t,n)=>e>t?1:0);return new Fe(t,s.typeInfo)}return new Ve(r>a?1:0,this.getTypeInfo('bool'));case'<':if(Re(r)&&Re(a)){const t=r,s=a;if(t.length!==s.length)return console.error(`Vector length mismatch. Line ${e.line}.`),null;const o=t.map((e,t)=>e<s[t]?1:0);return new Fe(o,n.typeInfo)}if(Re(r)){const e=a,t=r.map((t,n)=>t<e?1:0);return new Fe(t,n.typeInfo)}if(Re(a)){const e=r,t=a.map((t,n)=>e<t?1:0);return new Fe(t,s.typeInfo)}return new Ve(r<a?1:0,this.getTypeInfo('bool'));case'==':if(Re(r)&&Re(a)){const t=r,s=a;if(t.length!==s.length)return console.error(`Vector length mismatch. Line ${e.line}.`),null;const o=t.map((e,t)=>e===s[t]?1:0);return new Fe(o,n.typeInfo)}if(Re(r)){const e=a,t=r.map((t,n)=>t==e?1:0);return new Fe(t,n.typeInfo)}if(Re(a)){const e=r,t=a.map((t,n)=>e==t?1:0);return new Fe(t,s.typeInfo)}return new Ve(r===a?1:0,this.getTypeInfo('bool'));case'!=':if(Re(r)&&Re(a)){const t=r,s=a;if(t.length!==s.length)return console.error(`Vector length mismatch. Line ${e.line}.`),null;const o=t.map((e,t)=>e!==s[t]?1:0);return new Fe(o,n.typeInfo)}if(Re(r)){const e=a,t=r.map((t,n)=>t!==e?1:0);return new Fe(t,n.typeInfo)}if(Re(a)){const e=r,t=a.map((t,n)=>e!==t?1:0);return new Fe(t,s.typeInfo)}return new Ve(r!==a?1:0,this.getTypeInfo('bool'));case'>=':if(Re(r)&&Re(a)){const t=r,s=a;if(t.length!==s.length)return console.error(`Vector length mismatch. Line ${e.line}.`),null;const o=t.map((e,t)=>e>=s[t]?1:0);return new Fe(o,n.typeInfo)}if(Re(r)){const e=a,t=r.map((t,n)=>t>=e?1:0);return new Fe(t,n.typeInfo)}if(Re(a)){const e=r,t=a.map((t,n)=>e>=t?1:0);return new Fe(t,s.typeInfo)}return new Ve(r>=a?1:0,this.getTypeInfo('bool'));case'<=':if(Re(r)&&Re(a)){const t=r,s=a;if(t.length!==s.length)return console.error(`Vector length mismatch. Line ${e.line}.`),null;const o=t.map((e,t)=>e<=s[t]?1:0);return new Fe(o,n.typeInfo)}if(Re(r)){const e=a,t=r.map((t,n)=>t<=e?1:0);return new Fe(t,n.typeInfo)}if(Re(a)){const e=r,t=a.map((t,n)=>e<=t?1:0);return new Fe(t,s.typeInfo)}return new Ve(r<=a?1:0,this.getTypeInfo('bool'));case'&&':if(Re(r)&&Re(a)){const t=r,s=a;if(t.length!==s.length)return console.error(`Vector length mismatch. Line ${e.line}.`),null;const o=t.map((e,t)=>e&&s[t]?1:0);return new Fe(o,n.typeInfo)}if(Re(r)){const e=a,t=r.map((t,n)=>t&&e?1:0);return new Fe(t,n.typeInfo)}if(Re(a)){const e=r,t=a.map((t,n)=>e&&t?1:0);return new Fe(t,s.typeInfo)}return new Ve(r&&a?1:0,this.getTypeInfo('bool'));case'||':if(Re(r)&&Re(a)){const t=r,s=a;if(t.length!==s.length)return console.error(`Vector length mismatch. Line ${e.line}.`),null;const o=t.map((e,t)=>e||s[t]?1:0);return new Fe(o,n.typeInfo)}if(Re(r)){const e=a,t=r.map((t,n)=>t||e?1:0);return new Fe(t,n.typeInfo)}if(Re(a)){const e=r,t=a.map((t,n)=>e||t?1:0);return new Fe(t,s.typeInfo)}return new Ve(r||a?1:0,this.getTypeInfo('bool'))}return console.error(`Unknown operator ${e.operator}. Line ${e.line}`),null}_evalCall(e,t){if(null!==e.cachedReturnValue)return e.cachedReturnValue;const n=t.clone();n.currentFunctionName=e.name;const s=t.getFunction(e.name);if(!s){if(e.isBuiltin)return this._callBuiltinFunction(e,n);return this.getTypeInfo(e.name)?this._evalCreate(e,t):(console.error(`Unknown function "${e.name}". Line ${e.line}`),null)}for(let t=0;t<s.node.args.length;++t){const r=s.node.args[t],a=this.evalExpression(e.args[t],n);n.createVariable(r.name,a,r)}return this._execStatements(s.node.body,n)}_callBuiltinFunction(e,t){switch(e.name){case'all':return this.builtins.All(e,t);case'any':return this.builtins.Any(e,t);case'select':return this.builtins.Select(e,t);case'arrayLength':return this.builtins.ArrayLength(e,t);case'abs':return this.builtins.Abs(e,t);case'acos':return this.builtins.Acos(e,t);case'acosh':return this.builtins.Acosh(e,t);case'asin':return this.builtins.Asin(e,t);case'asinh':return this.builtins.Asinh(e,t);case'atan':return this.builtins.Atan(e,t);case'atanh':return this.builtins.Atanh(e,t);case'atan2':return this.builtins.Atan2(e,t);case'ceil':return this.builtins.Ceil(e,t);case'clamp':return this.builtins.Clamp(e,t);case'cos':return this.builtins.Cos(e,t);case'cosh':return this.builtins.Cosh(e,t);case'countLeadingZeros':return this.builtins.CountLeadingZeros(e,t);case'countOneBits':return this.builtins.CountOneBits(e,t);case'countTrailingZeros':return this.builtins.CountTrailingZeros(e,t);case'cross':return this.builtins.Cross(e,t);case'degrees':return this.builtins.Degrees(e,t);case'determinant':return this.builtins.Determinant(e,t);case'distance':return this.builtins.Distance(e,t);case'dot':return this.builtins.Dot(e,t);case'dot4U8Packed':return this.builtins.Dot4U8Packed(e,t);case'dot4I8Packed':return this.builtins.Dot4I8Packed(e,t);case'exp':return this.builtins.Exp(e,t);case'exp2':return this.builtins.Exp2(e,t);case'extractBits':return this.builtins.ExtractBits(e,t);case'faceForward':return this.builtins.FaceForward(e,t);case'firstLeadingBit':return this.builtins.FirstLeadingBit(e,t);case'firstTrailingBit':return this.builtins.FirstTrailingBit(e,t);case'floor':return this.builtins.Floor(e,t);case'fma':return this.builtins.Fma(e,t);case'fract':return this.builtins.Fract(e,t);case'frexp':return this.builtins.Frexp(e,t);case'insertBits':return this.builtins.InsertBits(e,t);case'inverseSqrt':return this.builtins.InverseSqrt(e,t);case'ldexp':return this.builtins.Ldexp(e,t);case'length':return this.builtins.Length(e,t);case'log':return this.builtins.Log(e,t);case'log2':return this.builtins.Log2(e,t);case'max':return this.builtins.Max(e,t);case'min':return this.builtins.Min(e,t);case'mix':return this.builtins.Mix(e,t);case'modf':return this.builtins.Modf(e,t);case'normalize':return this.builtins.Normalize(e,t);case'pow':return this.builtins.Pow(e,t);case'quantizeToF16':return this.builtins.QuantizeToF16(e,t);case'radians':return this.builtins.Radians(e,t);case'reflect':return this.builtins.Reflect(e,t);case'refract':return this.builtins.Refract(e,t);case'reverseBits':return this.builtins.ReverseBits(e,t);case'round':return this.builtins.Round(e,t);case'saturate':return this.builtins.Saturate(e,t);case'sign':return this.builtins.Sign(e,t);case'sin':return this.builtins.Sin(e,t);case'sinh':return this.builtins.Sinh(e,t);case'smoothstep':return this.builtins.SmoothStep(e,t);case'sqrt':return this.builtins.Sqrt(e,t);case'step':return this.builtins.Step(e,t);case'tan':return this.builtins.Tan(e,t);case'tanh':return this.builtins.Tanh(e,t);case'transpose':return this.builtins.Transpose(e,t);case'trunc':return this.builtins.Trunc(e,t);case'dpdx':return this.builtins.Dpdx(e,t);case'dpdxCoarse':return this.builtins.DpdxCoarse(e,t);case'dpdxFine':return this.builtins.DpdxFine(e,t);case'dpdy':return this.builtins.Dpdy(e,t);case'dpdyCoarse':return this.builtins.DpdyCoarse(e,t);case'dpdyFine':return this.builtins.DpdyFine(e,t);case'fwidth':return this.builtins.Fwidth(e,t);case'fwidthCoarse':return this.builtins.FwidthCoarse(e,t);case'fwidthFine':return this.builtins.FwidthFine(e,t);case'textureDimensions':return this.builtins.TextureDimensions(e,t);case'textureGather':return this.builtins.TextureGather(e,t);case'textureGatherCompare':return this.builtins.TextureGatherCompare(e,t);case'textureLoad':return this.builtins.TextureLoad(e,t);case'textureNumLayers':return this.builtins.TextureNumLayers(e,t);case'textureNumLevels':return this.builtins.TextureNumLevels(e,t);case'textureNumSamples':return this.builtins.TextureNumSamples(e,t);case'textureSample':return this.builtins.TextureSample(e,t);case'textureSampleBias':return this.builtins.TextureSampleBias(e,t);case'textureSampleCompare':return this.builtins.TextureSampleCompare(e,t);case'textureSampleCompareLevel':return this.builtins.TextureSampleCompareLevel(e,t);case'textureSampleGrad':return this.builtins.TextureSampleGrad(e,t);case'textureSampleLevel':return this.builtins.TextureSampleLevel(e,t);case'textureSampleBaseClampToEdge':return this.builtins.TextureSampleBaseClampToEdge(e,t);case'textureStore':return this.builtins.TextureStore(e,t);case'atomicLoad':return this.builtins.AtomicLoad(e,t);case'atomicStore':return this.builtins.AtomicStore(e,t);case'atomicAdd':return this.builtins.AtomicAdd(e,t);case'atomicSub':return this.builtins.AtomicSub(e,t);case'atomicMax':return this.builtins.AtomicMax(e,t);case'atomicMin':return this.builtins.AtomicMin(e,t);case'atomicAnd':return this.builtins.AtomicAnd(e,t);case'atomicOr':return this.builtins.AtomicOr(e,t);case'atomicXor':return this.builtins.AtomicXor(e,t);case'atomicExchange':return this.builtins.AtomicExchange(e,t);case'atomicCompareExchangeWeak':return this.builtins.AtomicCompareExchangeWeak(e,t);case'pack4x8snorm':return this.builtins.Pack4x8snorm(e,t);case'pack4x8unorm':return this.builtins.Pack4x8unorm(e,t);case'pack4xI8':return this.builtins.Pack4xI8(e,t);case'pack4xU8':return this.builtins.Pack4xU8(e,t);case'pack4x8Clamp':return this.builtins.Pack4x8Clamp(e,t);case'pack4xU8Clamp':return this.builtins.Pack4xU8Clamp(e,t);case'pack2x16snorm':return this.builtins.Pack2x16snorm(e,t);case'pack2x16unorm':return this.builtins.Pack2x16unorm(e,t);case'pack2x16float':return this.builtins.Pack2x16float(e,t);case'unpack4x8snorm':return this.builtins.Unpack4x8snorm(e,t);case'unpack4x8unorm':return this.builtins.Unpack4x8unorm(e,t);case'unpack4xI8':return this.builtins.Unpack4xI8(e,t);case'unpack4xU8':return this.builtins.Unpack4xU8(e,t);case'unpack2x16snorm':return this.builtins.Unpack2x16snorm(e,t);case'unpack2x16unorm':return this.builtins.Unpack2x16unorm(e,t);case'unpack2x16float':return this.builtins.Unpack2x16float(e,t);case'storageBarrier':return this.builtins.StorageBarrier(e,t);case'textureBarrier':return this.builtins.TextureBarrier(e,t);case'workgroupBarrier':return this.builtins.WorkgroupBarrier(e,t);case'workgroupUniformLoad':return this.builtins.WorkgroupUniformLoad(e,t);case'subgroupAdd':return this.builtins.SubgroupAdd(e,t);case'subgroupExclusiveAdd':return this.builtins.SubgroupExclusiveAdd(e,t);case'subgroupInclusiveAdd':return this.builtins.SubgroupInclusiveAdd(e,t);case'subgroupAll':return this.builtins.SubgroupAll(e,t);case'subgroupAnd':return this.builtins.SubgroupAnd(e,t);case'subgroupAny':return this.builtins.SubgroupAny(e,t);case'subgroupBallot':return this.builtins.SubgroupBallot(e,t);case'subgroupBroadcast':return this.builtins.SubgroupBroadcast(e,t);case'subgroupBroadcastFirst':return this.builtins.SubgroupBroadcastFirst(e,t);case'subgroupElect':return this.builtins.SubgroupElect(e,t);case'subgroupMax':return this.builtins.SubgroupMax(e,t);case'subgroupMin':return this.builtins.SubgroupMin(e,t);case'subgroupMul':return this.builtins.SubgroupMul(e,t);case'subgroupExclusiveMul':return this.builtins.SubgroupExclusiveMul(e,t);case'subgroupInclusiveMul':return this.builtins.SubgroupInclusiveMul(e,t);case'subgroupOr':return this.builtins.SubgroupOr(e,t);case'subgroupShuffle':return this.builtins.SubgroupShuffle(e,t);case'subgroupShuffleDown':return this.builtins.SubgroupShuffleDown(e,t);case'subgroupShuffleUp':return this.builtins.SubgroupShuffleUp(e,t);case'subgroupShuffleXor':return this.builtins.SubgroupShuffleXor(e,t);case'subgroupXor':return this.builtins.SubgroupXor(e,t);case'quadBroadcast':return this.builtins.QuadBroadcast(e,t);case'quadSwapDiagonal':return this.builtins.QuadSwapDiagonal(e,t);case'quadSwapX':return this.builtins.QuadSwapX(e,t);case'quadSwapY':return this.builtins.QuadSwapY(e,t)}const n=t.getFunction(e.name);if(n){const s=t.clone();for(let t=0;t<n.node.args.length;++t){const r=n.node.args[t],a=this.evalExpression(e.args[t],s);s.setVariable(r.name,a,r)}return this._execStatements(n.node.body,s)}return null}_callConstructorValue(e,t){if(!e.args||0===e.args.length)return new Ve(0,this.getTypeInfo(e.type));const n=this.evalExpression(e.args[0],t);return n.typeInfo=this.getTypeInfo(e.type),n.getSubData(this,e.postfix,t).clone()}_callConstructorVec(e,t){const n=this.getTypeInfo(e.type),s=e.type.getTypeName(),r=ht[s];if(void 0===r)return console.error(`Invalid vec constructor ${s}. Line ${e.line}`),null;const a=[];if(e instanceof _e)if(e.isVector){const t=e.vectorValue;for(const e of t)a.push(e)}else a.push(e.scalarValue);else if(e.args)for(const n of e.args){const e=this.evalExpression(n,t);if(e instanceof Fe){const t=e.data;for(let e=0;e<t.length;++e){let n=t[e];a.push(n)}}else if(e instanceof Ve){let t=e.value;a.push(t)}}if(e.type instanceof le&&null===e.type.format&&(e.type.format=le.f32),0===a.length){const s=new Array(r).fill(0);return new Fe(s,n).getSubData(this,e.postfix,t)}if(1===a.length)for(;a.length<r;)a.push(a[0]);if(a.length<r)return console.error(`Invalid vec constructor. Line ${e.line}`),null;return new Fe(a.length>r?a.slice(0,r):a,n).getSubData(this,e.postfix,t)}_callConstructorMatrix(e,t){const n=this.getTypeInfo(e.type),s=e.type.getTypeName(),r=ft[s];if(void 0===r)return console.error(`Invalid matrix constructor ${s}. Line ${e.line}`),null;const o=[];if(e instanceof _e)if(e.isVector){const t=e.vectorValue;for(const e of t)o.push(e)}else o.push(e.scalarValue);else if(e.args)for(const n of e.args){const e=this.evalExpression(n,t);e instanceof Fe?o.push(...e.data):e instanceof Ve?o.push(e.value):e instanceof Me&&o.push(...e.data)}if(n instanceof a&&null===n.format&&(n.format=this.getTypeInfo('f32')),0===o.length){const s=new Array(r[2]).fill(0);return new Me(s,n).getSubData(this,e.postfix,t)}return o.length!==r[2]?(console.error(`Invalid matrix constructor. Line ${e.line}`),null):new Me(o,n).getSubData(this,e.postfix,t)}}pt._breakObj=new De(new e('BREAK',null),null),pt._continueObj=new De(new e('CONTINUE',null),null),pt._priority=new Map([['f32',0],['f16',1],['u32',2],['i32',3],['x32',3]]);class dt{constructor(){this.constants=new Map,this.aliases=new Map,this.structs=new Map}}class mt{constructor(){this._tokens=[],this._current=0,this._currentLine=1,this._deferArrayCountEval=[],this._currentLoop=[],this._context=new dt,this._exec=new pt,this._forwardTypeCount=0}parse(e){this._initialize(e),this._deferArrayCountEval.length=0;const t=[];for(;!this._isAtEnd();){const e=this._global_decl_or_directive();if(!e)break;t.push(e)}if(this._deferArrayCountEval.length>0){for(const e of this._deferArrayCountEval){const t=e.arrayType,n=e.countNode;if(n instanceof xe){const e=n.name,s=this._context.constants.get(e);if(s)try{const e=s.constEvaluate(this._exec);t.count=e}catch(e){}}}this._deferArrayCountEval.length=0}if(this._forwardTypeCount>0)for(const e of t)e.search(e=>{e instanceof $e||e instanceof ce?e.type=this._forwardType(e.type):e instanceof ue?e.format=this._forwardType(e.format):e instanceof F||e instanceof U||e instanceof W?e.type=this._forwardType(e.type):e instanceof D?e.returnType=this._forwardType(e.returnType):e instanceof Ae&&(e.type=this._forwardType(e.type))});return t}_forwardType(e){if(e instanceof oe){const t=this._getType(e.name);if(t)return t}else e instanceof ce?e.type=this._forwardType(e.type):e instanceof ue&&(e.format=this._forwardType(e.format));return e}_initialize(e){if(e)if('string'==typeof e){const t=new ze(e);this._tokens=t.scanTokens()}else this._tokens=e;else this._tokens=[];this._current=0}_updateNode(e,t){return e.line=null!=t?t:this._currentLine,e}_error(e,t){return{token:e,message:t,toString:()=>`${t}`}}_isAtEnd(){return this._current>=this._tokens.length||this._peek().type==qe.eof}_match(e){if(e instanceof Pe)return!!this._check(e)&&(this._advance(),!0);for(let t=0,n=e.length;t<n;++t){const n=e[t];if(this._check(n))return this._advance(),!0}return!1}_consume(e,t){if(this._check(e))return this._advance();throw this._error(this._peek(),`${t}. Line:${this._currentLine}`)}_check(e){if(this._isAtEnd())return!1;const t=this._peek();if(e instanceof Array){const n=t.type;let s=!1;for(const t of e){if(n===t)return!0;t===qe.tokens.name&&(s=!0)}if(s){const e=qe.tokens.name.rule.exec(t.lexeme);if(e&&0==e.index&&e[0]==t.lexeme)return!0}return!1}if(t.type===e)return!0;if(e===qe.tokens.name){const e=qe.tokens.name.rule.exec(t.lexeme);return e&&0==e.index&&e[0]==t.lexeme}return!1}_advance(){var e,t;return this._currentLine=null!==(t=null===(e=this._peek())||void 0===e?void 0:e.line)&&void 0!==t?t:-1,this._isAtEnd()||this._current++,this._previous()}_peek(){return this._tokens[this._current]}_previous(){return this._tokens[this._current-1]}_global_decl_or_directive(){for(;this._match(qe.tokens.semicolon)&&!this._isAtEnd(););if(this._match(qe.keywords.alias)){const e=this._type_alias();return this._consume(qe.tokens.semicolon,'Expected \';\''),this._exec.reflection.updateAST([e]),e}if(this._match(qe.keywords.diagnostic)){const e=this._diagnostic();return this._consume(qe.tokens.semicolon,'Expected \';\''),this._exec.reflection.updateAST([e]),e}if(this._match(qe.keywords.requires)){const e=this._requires_directive();return this._consume(qe.tokens.semicolon,'Expected \';\''),this._exec.reflection.updateAST([e]),e}if(this._match(qe.keywords.enable)){const e=this._enable_directive();return this._consume(qe.tokens.semicolon,'Expected \';\''),this._exec.reflection.updateAST([e]),e}const e=this._attribute();if(this._check(qe.keywords.var)){const t=this._global_variable_decl();return null!=t&&(t.attributes=e),this._consume(qe.tokens.semicolon,'Expected \';\'.'),this._exec.reflection.updateAST([t]),t}if(this._check(qe.keywords.override)){const t=this._override_variable_decl();return null!=t&&(t.attributes=e),this._consume(qe.tokens.semicolon,'Expected \';\'.'),this._exec.reflection.updateAST([t]),t}if(this._check(qe.keywords.let)){const t=this._global_let_decl();return null!=t&&(t.attributes=e),this._consume(qe.tokens.semicolon,'Expected \';\'.'),this._exec.reflection.updateAST([t]),t}if(this._check(qe.keywords.const)){const t=this._global_const_decl();return null!=t&&(t.attributes=e),this._consume(qe.tokens.semicolon,'Expected \';\'.'),this._exec.reflection.updateAST([t]),t}if(this._check(qe.keywords.struct)){const t=this._struct_decl();return null!=t&&(t.attributes=e),this._exec.reflection.updateAST([t]),t}if(this._check(qe.keywords.fn)){const t=this._function_decl();return null!=t&&(t.attributes=e),this._exec.reflection.updateAST([t]),t}return null}_function_decl(){if(!this._match(qe.keywords.fn))return null;const e=this._currentLine,t=this._consume(qe.tokens.ident,'Expected function name.').toString();this._consume(qe.tokens.paren_left,'Expected \'(\' for function arguments.');const n=[];if(!this._check(qe.tokens.paren_right))do{if(this._check(qe.tokens.paren_right))break;const e=this._attribute(),t=this._consume(qe.tokens.name,'Expected argument name.').toString();this._consume(qe.tokens.colon,'Expected \':\' for argument type.');const s=this._attribute(),r=this._type_decl();null!=r&&(r.attributes=s,n.push(this._updateNode(new Ae(t,r,e))))}while(this._match(qe.tokens.comma));this._consume(qe.tokens.paren_right,'Expected \')\' after function arguments.');let s=null;if(this._match(qe.tokens.arrow)){const e=this._attribute();s=this._type_decl(),null!=s&&(s.attributes=e)}const r=this._compound_statement(),a=this._currentLine;return this._updateNode(new D(t,n,s,r,e,a),e)}_compound_statement(){const e=[];for(this._consume(qe.tokens.brace_left,'Expected \'{\' for block.');!this._check(qe.tokens.brace_right);){const t=this._statement();null!==t&&e.push(t)}return this._consume(qe.tokens.brace_right,'Expected \'}\' for block.'),e}_statement(){for(;this._match(qe.tokens.semicolon)&&!this._isAtEnd(););if(this._check(qe.tokens.attr)&&this._attribute(),this._check(qe.keywords.if))return this._if_statement();if(this._check(qe.keywords.switch))return this._switch_statement();if(this._check(qe.keywords.loop))return this._loop_statement();if(this._check(qe.keywords.for))return this._for_statement();if(this._check(qe.keywords.while))return this._while_statement();if(this._check(qe.keywords.continuing))return this._continuing_statement();if(this._check(qe.keywords.static_assert))return this._static_assert_statement();if(this._check(qe.tokens.brace_left))return this._compound_statement();let e=null;if(this._check(qe.keywords.return))e=this._return_statement();else if(this._check([qe.keywords.var,qe.keywords.let,qe.keywords.const]))e=this._variable_statement();else if(this._match(qe.keywords.discard))e=this._updateNode(new ne);else if(this._match(qe.keywords.break)){const t=this._updateNode(new se);if(this._currentLoop.length>0){const e=this._currentLoop[this._currentLoop.length-1];t.loopId=e.id}e=t,this._check(qe.keywords.if)&&(this._advance(),t.condition=this._optional_paren_expression())}else if(this._match(qe.keywords.continue)){const t=this._updateNode(new re);if(!(this._currentLoop.length>0))throw this._error(this._peek(),`Continue statement must be inside a loop. Line: ${t.line}`);{const e=this._currentLoop[this._currentLoop.length-1];t.loopId=e.id}e=t}else e=this._increment_decrement_statement()||this._func_call_statement()||this._assignment_statement();return null!=e&&this._consume(qe.tokens.semicolon,'Expected \';\' after statement.'),e}_static_assert_statement(){if(!this._match(qe.keywords.static_assert))return null;const e=this._currentLine,t=this._optional_paren_expression();return this._updateNode(new O(t),e)}_while_statement(){if(!this._match(qe.keywords.while))return null;const e=this._updateNode(new N(null,null));return this._currentLoop.push(e),e.condition=this._optional_paren_expression(),this._check(qe.tokens.attr)&&this._attribute(),e.body=this._compound_statement(),this._currentLoop.pop(),e}_continuing_statement(){const e=this._currentLoop.length>0?this._currentLoop[this._currentLoop.length-1].id:-1;if(!this._match(qe.keywords.continuing))return null;const t=this._currentLine,n=this._compound_statement();return this._updateNode(new V(n,e),t)}_for_statement(){if(!this._match(qe.keywords.for))return null;this._consume(qe.tokens.paren_left,'Expected \'(\'.');const e=this._updateNode(new B(null,null,null,null));return this._currentLoop.push(e),e.init=this._check(qe.tokens.semicolon)?null:this._for_init(),this._consume(qe.tokens.semicolon,'Expected \';\'.'),e.condition=this._check(qe.tokens.semicolon)?null:this._short_circuit_or_expression(),this._consume(qe.tokens.semicolon,'Expected \';\'.'),e.increment=this._check(qe.tokens.paren_right)?null:this._for_increment(),this._consume(qe.tokens.paren_right,'Expected \')\'.'),this._check(qe.tokens.attr)&&this._attribute(),e.body=this._compound_statement(),this._currentLoop.pop(),e}_for_init(){return this._variable_statement()||this._func_call_statement()||this._assignment_statement()}_for_increment(){return this._func_call_statement()||this._increment_decrement_statement()||this._assignment_statement()}_variable_statement(){if(this._check(qe.keywords.var)){const e=this._variable_decl();if(null===e)throw this._error(this._peek(),'Variable declaration expected.');let t=null;return this._match(qe.tokens.equal)&&(t=this._short_circuit_or_expression()),this._updateNode(new F(e.name,e.type,e.storage,e.access,t),e.line)}if(this._match(qe.keywords.let)){const e=this._currentLine,t=this._consume(qe.tokens.name,'Expected name for let.').toString();let n=null;if(this._match(qe.tokens.colon)){const e=this._attribute();n=this._type_decl(),null!=n&&(n.attributes=e)}this._consume(qe.tokens.equal,'Expected \'=\' for let.');const s=this._short_circuit_or_expression();return this._updateNode(new U(t,n,null,null,s),e)}if(this._match(qe.keywords.const)){const e=this._currentLine,t=this._consume(qe.tokens.name,'Expected name for const.').toString();let n=null;if(this._match(qe.tokens.colon)){const e=this._attribute();n=this._type_decl(),null!=n&&(n.attributes=e)}this._consume(qe.tokens.equal,'Expected \'=\' for const.');const s=this._short_circuit_or_expression();return null===n&&s instanceof _e&&(n=s.type),this._updateNode(new W(t,n,null,null,s),e)}return null}_increment_decrement_statement(){const e=this._current,t=this._unary_expression();if(null==t)return null;if(!this._check(qe.increment_operators))return this._current=e,null;const n=this._consume(qe.increment_operators,'Expected increment operator');return this._updateNode(new R(n.type===qe.tokens.plus_plus?exports.IncrementOperator.increment:exports.IncrementOperator.decrement,t))}_assignment_statement(){let e=null;const t=this._currentLine;if(this._check(qe.tokens.brace_right))return null;let n=this._match(qe.tokens.underscore);if(n||(e=this._unary_expression()),!n&&null==e)return null;const s=this._consume(qe.assignment_operators,'Expected assignment operator.'),r=this._short_circuit_or_expression();return this._updateNode(new G(exports.AssignOperator.parse(s.lexeme),e,r),t)}_func_call_statement(){if(!this._check(qe.tokens.ident))return null;const e=this._currentLine,t=this._current,n=this._consume(qe.tokens.ident,'Expected function name.'),s=this._argument_expression_list();return null===s?(this._current=t,null):this._updateNode(new X(n.lexeme,s),e)}_loop_statement(){if(!this._match(qe.keywords.loop))return null;this._check(qe.tokens.attr)&&this._attribute(),this._consume(qe.tokens.brace_left,'Expected \'{\' for loop.');const e=this._updateNode(new j([],null));this._currentLoop.push(e);let t=this._statement();for(;null!==t;){if(Array.isArray(t))for(let n of t)e.body.push(n);else e.body.push(t);if(t instanceof V){e.continuing=t;break}t=this._statement()}return this._currentLoop.pop(),this._consume(qe.tokens.brace_right,'Expected \'}\' for loop.'),e}_switch_statement(){if(!this._match(qe.keywords.switch))return null;const e=this._updateNode(new Z(null,[]));if(this._currentLoop.push(e),e.condition=this._optional_paren_expression(),this._check(qe.tokens.attr)&&this._attribute(),this._consume(qe.tokens.brace_left,'Expected \'{\' for switch.'),e.cases=this._switch_body(),null==e.cases||0==e.cases.length)throw this._error(this._previous(),'Expected \'case\' or \'default\'.');return this._consume(qe.tokens.brace_right,'Expected \'}\' for switch.'),this._currentLoop.pop(),e}_switch_body(){const e=[];let t=!1;for(;this._check([qe.keywords.default,qe.keywords.case]);){if(this._match(qe.keywords.case)){const n=this._case_selectors();for(const e of n)if(e instanceof Ie){if(t)throw this._error(this._previous(),'Multiple default cases in switch statement.');t=!0;break}this._match(qe.tokens.colon),this._check(qe.tokens.attr)&&this._attribute(),this._consume(qe.tokens.brace_left,'Exected \'{\' for switch case.');const s=this._case_body();this._consume(qe.tokens.brace_right,'Exected \'}\' for switch case.'),e.push(this._updateNode(new Se(n,s)))}if(this._match(qe.keywords.default)){if(t)throw this._error(this._previous(),'Multiple default cases in switch statement.');this._match(qe.tokens.colon),this._check(qe.tokens.attr)&&this._attribute(),this._consume(qe.tokens.brace_left,'Exected \'{\' for switch default.');const n=this._case_body();this._consume(qe.tokens.brace_right,'Exected \'}\' for switch default.'),e.push(this._updateNode(new Ce(n)))}}return e}_case_selectors(){const e=[];for(this._match(qe.keywords.default)?e.push(this._updateNode(new Ie)):e.push(this._shift_expression());this._match(qe.tokens.comma);)this._match(qe.keywords.default)?e.push(this._updateNode(new Ie)):e.push(this._shift_expression());return e}_case_body(){if(this._match(qe.keywords.fallthrough))return this._consume(qe.tokens.semicolon,'Expected \';\''),[];let e=this._statement();if(null==e)return[];e instanceof Array||(e=[e]);const t=this._case_body();return 0==t.length?e:[...e,t[0]]}_if_statement(){if(!this._match(qe.keywords.if))return null;const e=this._currentLine,t=this._optional_paren_expression();this._check(qe.tokens.attr)&&this._attribute();const n=this._compound_statement();let s=[];this._match_elseif()&&(this._check(qe.tokens.attr)&&this._attribute(),s=this._elseif_statement(s));let r=null;return this._match(qe.keywords.else)&&(this._check(qe.tokens.attr)&&this._attribute(),r=this._compound_statement()),this._updateNode(new Q(t,n,s,r),e)}_match_elseif(){return this._tokens[this._current].type===qe.keywords.else&&this._tokens[this._current+1].type===qe.keywords.if&&(this._advance(),this._advance(),!0)}_elseif_statement(e=[]){const t=this._optional_paren_expression(),n=this._compound_statement();return e.push(this._updateNode(new Ee(t,n))),this._match_elseif()&&(this._check(qe.tokens.attr)&&this._attribute(),this._elseif_statement(e)),e}_return_statement(){if(!this._match(qe.keywords.return))return null;const e=this._short_circuit_or_expression();return this._updateNode(new Y(e))}_short_circuit_or_expression(){let e=this._short_circuit_and_expr();for(;this._match(qe.tokens.or_or);)e=this._updateNode(new we(this._previous().toString(),e,this._short_circuit_and_expr()));return e}_short_circuit_and_expr(){let e=this._inclusive_or_expression();for(;this._match(qe.tokens.and_and);)e=this._updateNode(new we(this._previous().toString(),e,this._inclusive_or_expression()));return e}_inclusive_or_expression(){let e=this._exclusive_or_expression();for(;this._match(qe.tokens.or);)e=this._updateNode(new we(this._previous().toString(),e,this._exclusive_or_expression()));return e}_exclusive_or_expression(){let e=this._and_expression();for(;this._match(qe.tokens.xor);)e=this._updateNode(new we(this._previous().toString(),e,this._and_expression()));return e}_and_expression(){let e=this._equality_expression();for(;this._match(qe.tokens.and);)e=this._updateNode(new we(this._previous().toString(),e,this._equality_expression()));return e}_equality_expression(){const e=this._relational_expression();return this._match([qe.tokens.equal_equal,qe.tokens.not_equal])?this._updateNode(new we(this._previous().toString(),e,this._relational_expression())):e}_relational_expression(){let e=this._shift_expression();for(;this._match([qe.tokens.less_than,qe.tokens.greater_than,qe.tokens.less_than_equal,qe.tokens.greater_than_equal]);)e=this._updateNode(new we(this._previous().toString(),e,this._shift_expression()));return e}_shift_expression(){let e=this._additive_expression();for(;this._match([qe.tokens.shift_left,qe.tokens.shift_right]);)e=this._updateNode(new we(this._previous().toString(),e,this._additive_expression()));return e}_additive_expression(){let e=this._multiplicative_expression();for(;this._match([qe.tokens.plus,qe.tokens.minus]);)e=this._updateNode(new we(this._previous().toString(),e,this._multiplicative_expression()));return e}_multiplicative_expression(){let e=this._unary_expression();for(;this._match([qe.tokens.star,qe.tokens.forward_slash,qe.tokens.modulo]);)e=this._updateNode(new we(this._previous().toString(),e,this._unary_expression()));return e}_unary_expression(){return this._match([qe.tokens.minus,qe.tokens.bang,qe.tokens.tilde,qe.tokens.star,qe.tokens.and])?this._updateNode(new ke(this._previous().toString(),this._unary_expression())):this._singular_expression()}_singular_expression(){const e=this._primary_expression(),t=this._postfix_expression();return t&&(e.postfix=t),e}_postfix_expression(){if(this._match(qe.tokens.bracket_left)){const e=this._short_circuit_or_expression();this._consume(qe.tokens.bracket_right,'Expected \']\'.');const t=this._updateNode(new be(e)),n=this._postfix_expression();return n&&(t.postfix=n),t}if(this._match(qe.tokens.period)){const e=this._consume(qe.tokens.name,'Expected member name.'),t=this._postfix_expression(),n=this._updateNode(new pe(e.lexeme));return t&&(n.postfix=t),n}return null}_getStruct(e){if(this._context.aliases.has(e)){return this._context.aliases.get(e).type}if(this._context.structs.has(e)){return this._context.structs.get(e)}return null}_getType(e){const t=this._getStruct(e);if(null!==t)return t;switch(e){case'void':return ae.void;case'bool':return ae.bool;case'i32':return ae.i32;case'u32':return ae.u32;case'f32':return ae.f32;case'f16':return ae.f16;case'vec2f':return le.vec2f;case'vec3f':return le.vec3f;case'vec4f':return le.vec4f;case'vec2i':return le.vec2i;case'vec3i':return le.vec3i;case'vec4i':return le.vec4i;case'vec2u':return le.vec2u;case'vec3u':return le.vec3u;case'vec4u':return le.vec4u;case'vec2h':return le.vec2h;case'vec3h':return le.vec3h;case'vec4h':return le.vec4h;case'mat2x2f':return le.mat2x2f;case'mat2x3f':return le.mat2x3f;case'mat2x4f':return le.mat2x4f;case'mat3x2f':return le.mat3x2f;case'mat3x3f':return le.mat3x3f;case'mat3x4f':return le.mat3x4f;case'mat4x2f':return le.mat4x2f;case'mat4x3f':return le.mat4x3f;case'mat4x4f':return le.mat4x4f;case'mat2x2h':return le.mat2x2h;case'mat2x3h':return le.mat2x3h;case'mat2x4h':return le.mat2x4h;case'mat3x2h':return le.mat3x2h;case'mat3x3h':return le.mat3x3h;case'mat3x4h':return le.mat3x4h;case'mat4x2h':return le.mat4x2h;case'mat4x3h':return le.mat4x3h;case'mat4x4h':return le.mat4x4h;case'mat2x2i':return le.mat2x2i;case'mat2x3i':return le.mat2x3i;case'mat2x4i':return le.mat2x4i;case'mat3x2i':return le.mat3x2i;case'mat3x3i':return le.mat3x3i;case'mat3x4i':return le.mat3x4i;case'mat4x2i':return le.mat4x2i;case'mat4x3i':return le.mat4x3i;case'mat4x4i':return le.mat4x4i;case'mat2x2u':return le.mat2x2u;case'mat2x3u':return le.mat2x3u;case'mat2x4u':return le.mat2x4u;case'mat3x2u':return le.mat3x2u;case'mat3x3u':return le.mat3x3u;case'mat3x4u':return le.mat3x4u;case'mat4x2u':return le.mat4x2u;case'mat4x3u':return le.mat4x3u;case'mat4x4u':return le.mat4x4u}return null}_validateTypeRange(e,t){if('i32'===t.name){if(e<-2147483648||e>2147483647)throw this._error(this._previous(),`Value out of range for i32: ${e}. Line: ${this._currentLine}.`)}else if('u32'===t.name&&(e<0||e>4294967295))throw this._error(this._previous(),`Value out of range for u32: ${e}. Line: ${this._currentLine}.`)}_primary_expression(){if(this._match(qe.tokens.ident)){const e=this._previous().toString();if(this._check(qe.tokens.paren_left)){const t=this._argument_expression_list(),n=this._getType(e);return null!==n?this._updateNode(new de(n,t)):this._updateNode(new me(e,t))}if(this._context.constants.has(e)){const t=this._context.constants.get(e);return this._updateNode(new ge(e,t.value))}return this._updateNode(new xe(e))}if(this._match(qe.tokens.int_literal)){const e=this._previous().toString();let t=e.endsWith('i')||e.endsWith('i')?ae.i32:e.endsWith('u')||e.endsWith('U')?ae.u32:ae.x32;const n=parseInt(e);return this._validateTypeRange(n,t),this._updateNode(new _e(new Ve(n,this._exec.getTypeInfo(t)),t))}if(this._match(qe.tokens.uint_literal)){const e=parseInt(this._previous().toString());return this._validateTypeRange(e,ae.u32),this._updateNode(new _e(new Ve(e,this._exec.getTypeInfo(ae.u32)),ae.u32))}if(this._match([qe.tokens.decimal_float_literal,qe.tokens.hex_float_literal])){let e=this._previous().toString(),t=e.endsWith('h');t&&(e=e.substring(0,e.length-1));const n=parseFloat(e);this._validateTypeRange(n,t?ae.f16:ae.f32);const s=t?ae.f16:ae.f32;return this._updateNode(new _e(new Ve(n,this._exec.getTypeInfo(s)),s))}if(this._match([qe.keywords.true,qe.keywords.false])){let e=this._previous().toString()===qe.keywords.true.rule;return this._updateNode(new _e(new Ve(e?1:0,this._exec.getTypeInfo(ae.bool)),ae.bool))}if(this._check(qe.tokens.paren_left))return this._paren_expression();if(this._match(qe.keywords.bitcast)){this._consume(qe.tokens.less_than,'Expected \'<\'.');const e=this._type_decl();this._consume(qe.tokens.greater_than,'Expected \'>\'.');const t=this._paren_expression();return this._updateNode(new ye(e,t))}const e=this._type_decl(),t=this._argument_expression_list();return this._updateNode(new de(e,t))}_argument_expression_list(){if(!this._match(qe.tokens.paren_left))return null;const e=[];do{if(this._check(qe.tokens.paren_right))break;const t=this._short_circuit_or_expression();e.push(t)}while(this._match(qe.tokens.comma));return this._consume(qe.tokens.paren_right,'Expected \')\' for argument list'),e}_optional_paren_expression(){this._match(qe.tokens.paren_left);const e=this._short_circuit_or_expression();return this._match(qe.tokens.paren_right),e}_paren_expression(){this._consume(qe.tokens.paren_left,'Expected \'(\'.');const e=this._short_circuit_or_expression();return this._consume(qe.tokens.paren_right,'Expected \')\'.'),e}_struct_decl(){if(!this._match(qe.keywords.struct))return null;const e=this._currentLine,t=this._consume(qe.tokens.ident,'Expected name for struct.').toString();this._consume(qe.tokens.brace_left,'Expected \'{\' for struct body.');const n=[];for(;!this._check(qe.tokens.brace_right);){const e=this._attribute(),t=this._consume(qe.tokens.name,'Expected variable name.').toString();this._consume(qe.tokens.colon,'Expected \':\' for struct member type.');const s=this._attribute(),r=this._type_decl();null!=r&&(r.attributes=s),this._check(qe.tokens.brace_right)?this._match(qe.tokens.comma):this._consume(qe.tokens.comma,'Expected \',\' for struct member.'),n.push(this._updateNode(new $e(t,r,e)))}this._consume(qe.tokens.brace_right,'Expected \'}\' after struct body.');const s=this._currentLine,r=this._updateNode(new ie(t,n,e,s),e);return this._context.structs.set(t,r),r}_global_variable_decl(){const e=this._variable_decl();if(!e)return null;if(this._match(qe.tokens.equal)){const t=this._const_expression();e.value=t}if(null!==e.type&&e.value instanceof _e){if('x32'!==e.value.type.name){if(e.type.getTypeName()!==e.value.type.getTypeName())throw this._error(this._peek(),`Invalid cast from ${e.value.type.name} to ${e.type.name}. Line:${this._currentLine}`)}e.value.isScalar&&this._validateTypeRange(e.value.scalarValue,e.type),e.value.type=e.type}else null===e.type&&e.value instanceof _e&&(e.type='x32'===e.value.type.name?ae.i32:e.value.type,e.value.isScalar&&this._validateTypeRange(e.value.scalarValue,e.type));return e}_override_variable_decl(){const e=this._override_decl();return e&&this._match(qe.tokens.equal)&&(e.value=this._const_expression()),e}_global_const_decl(){var e;if(!this._match(qe.keywords.const))return null;const t=this._consume(qe.tokens.name,'Expected variable name'),n=this._currentLine;let s=null;if(this._match(qe.tokens.colon)){const e=this._attribute();s=this._type_decl(),null!=s&&(s.attributes=e)}let r=null;this._consume(qe.tokens.equal,'const declarations require an assignment');const o=this._short_circuit_or_expression();try{let e=[ae.f32],n=o.constEvaluate(this._exec,e);n instanceof Ve&&this._validateTypeRange(n.value,e[0]),e[0]instanceof le&&null===e[0].format&&n.typeInfo instanceof a&&null!==n.typeInfo.format&&('f16'===n.typeInfo.format.name?e[0].format=ae.f16:'f32'===n.typeInfo.format.name?e[0].format=ae.f32:'i32'===n.typeInfo.format.name?e[0].format=ae.i32:'u32'===n.typeInfo.format.name?e[0].format=ae.u32:'bool'===n.typeInfo.format.name?e[0].format=ae.bool:console.error(`TODO: impelement template format type ${n.typeInfo.format.name}`)),r=this._updateNode(new _e(n,e[0])),this._exec.context.setVariable(t.toString(),n)}catch(e){r=o}if(null!==s&&r instanceof _e){if('x32'!==r.type.name){if(s.getTypeName()!==r.type.getTypeName())throw this._error(this._peek(),`Invalid cast from ${r.type.name} to ${s.name}. Line:${this._currentLine}`)}r.type=s,r.isScalar&&this._validateTypeRange(r.scalarValue,r.type)}else null===s&&r instanceof _e&&(s=null!==(e=null==r?void 0:r.type)&&void 0!==e?e:ae.f32,s===ae.x32&&(s=ae.i32));const i=this._updateNode(new W(t.toString(),s,'','',r),n);return this._context.constants.set(i.name,i),i}_global_let_decl(){if(!this._match(qe.keywords.let))return null;const e=this._currentLine,t=this._consume(qe.tokens.name,'Expected variable name');let n=null;if(this._match(qe.tokens.colon)){const e=this._attribute();n=this._type_decl(),null!=n&&(n.attributes=e)}let s=null;if(this._match(qe.tokens.equal)&&(s=this._const_expression()),null!==n&&s instanceof _e){if('x32'!==s.type.name){if(n.getTypeName()!==s.type.getTypeName())throw this._error(this._peek(),`Invalid cast from ${s.type.name} to ${n.name}. Line:${this._currentLine}`)}s.type=n}else null===n&&s instanceof _e&&(n='x32'===s.type.name?ae.i32:s.type);return s instanceof _e&&s.isScalar&&this._validateTypeRange(s.scalarValue,n),this._updateNode(new U(t.toString(),n,'','',s),e)}_const_expression(){return this._short_circuit_or_expression()}_variable_decl(){if(!this._match(qe.keywords.var))return null;const e=this._currentLine;let t='',n='';this._match(qe.tokens.less_than)&&(t=this._consume(qe.storage_class,'Expected storage_class.').toString(),this._match(qe.tokens.comma)&&(n=this._consume(qe.access_mode,'Expected access_mode.').toString()),this._consume(qe.tokens.greater_than,'Expected \'>\'.'));const s=this._consume(qe.tokens.name,'Expected variable name');let r=null;if(this._match(qe.tokens.colon)){const e=this._attribute();r=this._type_decl(),null!=r&&(r.attributes=e)}return this._updateNode(new F(s.toString(),r,t,n,null),e)}_override_decl(){if(!this._match(qe.keywords.override))return null;const e=this._consume(qe.tokens.name,'Expected variable name');let t=null;if(this._match(qe.tokens.colon)){const e=this._attribute();t=this._type_decl(),null!=t&&(t.attributes=e)}return this._updateNode(new M(e.toString(),t,null))}_diagnostic(){this._consume(qe.tokens.paren_left,'Expected \'(\'');const e=this._consume(qe.tokens.ident,'Expected severity control name.');this._consume(qe.tokens.comma,'Expected \',\'');let t=this._consume(qe.tokens.ident,'Expected diagnostic rule name.').toString();if(this._match(qe.tokens.period)){t+=`.${this._consume(qe.tokens.ident,'Expected diagnostic message.').toString()}`}return this._consume(qe.tokens.paren_right,'Expected \')\''),this._updateNode(new ee(e.toString(),t))}_enable_directive(){const e=this._consume(qe.tokens.ident,'identity expected.');return this._updateNode(new K(e.toString()))}_requires_directive(){const e=[this._consume(qe.tokens.ident,'identity expected.').toString()];for(;this._match(qe.tokens.comma);){const t=this._consume(qe.tokens.ident,'identity expected.');e.push(t.toString())}return this._updateNode(new J(e))}_type_alias(){const e=this._consume(qe.tokens.ident,'identity expected.');this._consume(qe.tokens.equal,'Expected \'=\' for type alias.');let t=this._type_decl();if(null===t)throw this._error(this._peek(),'Expected Type for Alias.');this._context.aliases.has(t.name)&&(t=this._context.aliases.get(t.name).type);const n=this._updateNode(new te(e.toString(),t));return this._context.aliases.set(n.name,n),n}_type_decl(){if(this._check([qe.tokens.ident,...qe.texel_format,qe.keywords.bool,qe.keywords.f32,qe.keywords.i32,qe.keywords.u32])){const e=this._advance().toString();if(this._context.structs.has(e))return this._context.structs.get(e);if(this._context.aliases.has(e))return this._context.aliases.get(e).type;if(!this._getType(e)){const t=this._updateNode(new oe(e));return this._forwardTypeCount++,t}return this._updateNode(new ae(e))}let e=this._texture_sampler_types();if(e)return e;if(this._check(qe.template_types)){let e=this._advance().toString(),t=null,n=null;this._match(qe.tokens.less_than)&&(t=this._type_decl(),n=null,this._match(qe.tokens.comma)&&(n=this._consume(qe.access_mode,'Expected access_mode for pointer').toString()),this._consume(qe.tokens.greater_than,'Expected \'>\' for type.'));return this._updateNode(new le(e,t,n))}if(this._match(qe.keywords.ptr)){let e=this._previous().toString();this._consume(qe.tokens.less_than,'Expected \'<\' for pointer.');const t=this._consume(qe.storage_class,'Expected storage_class for pointer');this._consume(qe.tokens.comma,'Expected \',\' for pointer.');const n=this._type_decl();let s=null;this._match(qe.tokens.comma)&&(s=this._consume(qe.access_mode,'Expected access_mode for pointer').toString()),this._consume(qe.tokens.greater_than,'Expected \'>\' for pointer.');return this._updateNode(new ce(e,t.toString(),n,s))}const t=this._attribute();if(this._match(qe.keywords.array)){let e=null,n=-1;const s=this._previous();let r=null;if(this._match(qe.tokens.less_than)){e=this._type_decl(),this._context.aliases.has(e.name)&&(e=this._context.aliases.get(e.name).type);let t='';if(this._match(qe.tokens.comma)){r=this._shift_expression();try{t=r.constEvaluate(this._exec).toString(),r=null}catch(e){t='1'}}this._consume(qe.tokens.greater_than,'Expected \'>\' for array.'),n=t?parseInt(t):0}const a=this._updateNode(new ue(s.toString(),t,e,n));return r&&this._deferArrayCountEval.push({arrayType:a,countNode:r}),a}return null}_texture_sampler_types(){if(this._match(qe.sampler_type))return this._updateNode(new he(this._previous().toString(),null,null));if(this._match(qe.depth_texture_type))return this._updateNode(new he(this._previous().toString(),null,null));if(this._match(qe.sampled_texture_type)||this._match(qe.multisampled_texture_type)){const e=this._previous();this._consume(qe.tokens.less_than,'Expected \'<\' for sampler type.');const t=this._type_decl();return this._consume(qe.tokens.greater_than,'Expected \'>\' for sampler type.'),this._updateNode(new he(e.toString(),t,null))}if(this._match(qe.storage_texture_type)){const e=this._previous();this._consume(qe.tokens.less_than,'Expected \'<\' for sampler type.');const t=this._consume(qe.texel_format,'Invalid texel format.').toString();this._consume(qe.tokens.comma,'Expected \',\' after texel format.');const n=this._consume(qe.access_mode,'Expected access mode for storage texture type.').toString();return this._consume(qe.tokens.greater_than,'Expected \'>\' for sampler type.'),this._updateNode(new he(e.toString(),t,n))}return null}_attribute(){let e=[];for(;this._match(qe.tokens.attr);){const t=this._consume(qe.attribute_name,'Expected attribute name'),n=this._updateNode(new Le(t.toString(),null));if(this._match(qe.tokens.paren_left)){if(n.value=this._consume(qe.literal_or_ident,'Expected attribute value').toString(),this._check(qe.tokens.comma)){this._advance();do{const e=this._consume(qe.literal_or_ident,'Expected attribute value').toString();n.value instanceof Array||(n.value=[n.value]),n.value.push(e)}while(this._match(qe.tokens.comma))}this._consume(qe.tokens.paren_right,'Expected \')\'')}e.push(n)}return 0==e.length?null:e}}class xt{get line(){return-1}}class gt extends xt{constructor(e){super(),this.node=e}get line(){return this.node.line}}class _t extends xt{constructor(e,t){super(),this.node=e,this.statement=t}get line(){return this.statement.line}}class yt extends xt{constructor(e){super(),this.id=e}}class bt extends xt{constructor(e){super(),this.id=e}}class vt extends xt{constructor(e,t){super(),this.id=e,this.node=t}get line(){return this.node.line}}class kt extends xt{constructor(e,t,n){super(),this.id=e,this.condition=t,this.node=n}get line(){return this.node.line}}class wt extends xt{constructor(e,t,n){super(),this.lineNo=-1,this.condition=e,this.position=t,this.lineNo=n}get line(){var e,t;return null!==(t=null===(e=this.condition)||void 0===e?void 0:e.line)&&void 0!==t?t:this.lineNo}}class Tt extends xt{constructor(e){super(),this.statements=[],this.statements=e}get line(){return this.statements.length>0?this.statements[0].line:-1}}class It{constructor(e,t){this.parent=null,this.commands=[],this.current=0,this.parentCallExpr=null,this.context=e,this.parent=null!=t?t:null}get isAtEnd(){return this.current>=this.commands.length}getNextCommand(){if(this.current>=this.commands.length)return null;const e=this.commands[this.current];return this.current++,e}getCurrentCommand(){return this.current>=this.commands.length?null:this.commands[this.current]}}class St{constructor(){this.states=[]}get isEmpty(){return 0==this.states.length}get last(){var e;return null!==(e=this.states[this.states.length-1])&&void 0!==e?e:null}pop(){this.states.pop()}}exports.Alias=te,exports.AliasInfo=l,exports.Argument=Ae,exports.ArgumentInfo=f,exports.ArrayIndex=be,exports.ArrayInfo=s,exports.ArrayType=ue,exports.Assign=G,exports.Attribute=Le,exports.BinaryOperator=we,exports.BitcastExpr=ye,exports.Break=se,exports.Call=X,exports.CallExpr=me,exports.Case=Se,exports.Const=W,exports.ConstExpr=ge,exports.Continue=re,exports.Continuing=V,exports.CreateExpr=de,exports.Data=De,exports.Default=Ce,exports.DefaultSelector=Ie,exports.Diagnostic=ee,exports.Discard=ne,exports.ElseIf=Ee,exports.Enable=K,exports.EntryFunctions=d,exports.Expression=fe,exports.For=B,exports.ForwardType=oe,exports.Function=D,exports.FunctionInfo=p,exports.If=Q,exports.Increment=R,exports.InputInfo=c,exports.Let=U,exports.LiteralExpr=_e,exports.Loop=j,exports.MatrixData=Me,exports.Member=$e,exports.MemberInfo=t,exports.Node=C,exports.Operator=ve,exports.OutputInfo=u,exports.Override=M,exports.OverrideInfo=h,exports.PointerData=Ne,exports.PointerInfo=r,exports.PointerType=ce,exports.Requires=J,exports.Return=Y,exports.SamplerType=he,exports.ScalarData=Ve,exports.Statement=L,exports.StaticAssert=O,exports.StringExpr=pe,exports.Struct=ie,exports.StructInfo=n,exports.Switch=Z,exports.SwitchCase=Te,exports.TemplateInfo=a,exports.TemplateType=le,exports.TextureData=We,exports.Token=He,exports.TokenType=Pe,exports.TokenTypes=qe,exports.Type=ae,exports.TypeInfo=e,exports.TypecastExpr=class Ct extends fe{constructor(e,t){super(),this.type=e,this.args=t}get astNodeType(){return'typecastExpr'}constEvaluate(e,t){return e.evalExpression(this,e.context)}search(e){this.searchBlock(this.args,e)}},exports.TypedData=Ue,exports.UnaryOperator=ke,exports.Var=F,exports.VariableExpr=xe,exports.VariableInfo=i,exports.VectorData=Fe,exports.VoidData=Oe,exports.WgslDebug=class At{constructor(e,t){this._runTimer=null,this.breakpoints=new Set,this.runStateCallback=null,this._code=e;const n=(new mt).parse(e);this._exec=new pt(n),this.runStateCallback=null!=t?t:null}getVariableValue(e){var t,n;const s=null!==(n=null===(t=this.context.getVariable(e))||void 0===t?void 0:t.value)&&void 0!==n?n:null;return null===s?null:s instanceof Ve?s.value:s instanceof Fe||s instanceof Me?Array.from(s.data):(console.error(`Unsupported return variable type ${s.typeInfo.name}`),null)}reset(){this._exec=new pt(this._exec.ast),this.startDebug()}startDebug(){this._execStack=new St;const e=this._createState(this._exec.ast,this._exec.context);this._execStack.states.push(e)}get context(){const e=this.currentState;return null===e?this._exec.context:e.context}get currentState(){for(;;){if(this._execStack.isEmpty)return null;let e=this._execStack.last;if(null===e)return null;if(e.isAtEnd){if(this._execStack.pop(),this._execStack.isEmpty)return null;e=this._execStack.last}return e}}get currentCommand(){for(;;){if(this._execStack.isEmpty)return null;let e=this._execStack.last;if(null===e)return null;if(e.isAtEnd){if(this._execStack.pop(),this._execStack.isEmpty)return null;e=this._execStack.last}const t=e.getCurrentCommand();if(null!==t)return t}}toggleBreakpoint(e){this.breakpoints.has(e)?this.breakpoints.delete(e):this.breakpoints.add(e)}clearBreakpoints(){this.breakpoints.clear()}get isRunning(){return null!==this._runTimer}run(){this.isRunning||(this._runTimer=setInterval(()=>{const e=this.currentCommand;if(e&&this.breakpoints.has(e.line))return clearInterval(this._runTimer),this._runTimer=null,void(null!==this.runStateCallback&&this.runStateCallback());this.stepNext(!0)||(clearInterval(this._runTimer),this._runTimer=null,null!==this.runStateCallback&&this.runStateCallback())},0),null!==this.runStateCallback&&this.runStateCallback())}pause(){null!==this._runTimer&&(clearInterval(this._runTimer),this._runTimer=null,null!==this.runStateCallback&&this.runStateCallback())}_setOverrides(e,t){for(const n in e){const s=e[n],r=this._exec.reflection.getOverrideInfo(n);null!==r?(null===r.type&&(r.type=this._exec.getTypeInfo('u32')),'u32'===r.type.name||'i32'===r.type.name||'f32'===r.type.name||'f16'===r.type.name?t.setVariable(n,new Ve(s,r.type)):'bool'===r.type.name?t.setVariable(n,new Ve(s?1:0,r.type)):'vec2'===r.type.name||'vec3'===r.type.name||'vec4'===r.type.name||'vec2f'===r.type.name||'vec3f'===r.type.name||'vec4f'===r.type.name||'vec2i'===r.type.name||'vec3i'===r.type.name||'vec4i'===r.type.name||'vec2u'===r.type.name||'vec3u'===r.type.name||'vec4u'===r.type.name||'vec2h'===r.type.name||'vec3h'===r.type.name||'vec4h'===r.type.name?t.setVariable(n,new Fe(s,r.type)):console.error(`Invalid constant type for ${n}`)):console.error(`Override ${n} does not exist in the shader.`)}}debugWorkgroup(e,t,n,s,r){this._execStack=new St;const a=this._exec.context;a.currentFunctionName=e,this._dispatchId=t,(r=null!=r?r:{}).constants&&this._setOverrides(r.constants,a),this._exec._execStatements(this._exec.ast,a);const o=a.getFunction(e);if(!o)return console.error(`Function ${e} not found`),!1;const i=this._exec.reflection.getFunctionInfo(e);if('number'==typeof n)n=[n,1,1];else{if(0===n.length)return console.error('Invalid dispatch count'),!1;1===n.length?n=[n[0],1,1]:2===n.length?n=[n[0],n[1],1]:n.length>3&&(n=[n[0],n[1],n[2]])}const l=n[2],c=n[1],u=n[0],h=this._exec.typeInfo.vec3u;a.setVariable('@num_workgroups',new Fe(n,h));for(const e in s)for(const t in s[e]){const n=s[e][t];a.variables.forEach(s=>{var r;const a=s.node;if(null==a?void 0:a.attributes){let o=null,l=null;for(const e of a.attributes)'binding'===e.name?o=e.value:'group'===e.name&&(l=e.value);if(t==o&&e==l){let o=!1;for(const n of i.resources)if(n.name===s.name&&n.group===parseInt(e)&&n.binding===parseInt(t)){o=!0;break}if(o){const e=this._exec.getTypeInfo(a.type);if(void 0!==n.texture&&void 0!==n.descriptor)s.value=new We(n.texture,e,n.descriptor,null!==(r=n.texture.view)&&void 0!==r?r:null);else if(void 0!==n.uniform)s.value=new Ue(n.uniform,e);else if(e.isStruct||e.isArray)s.value=new Ue(n,e);else{const e=new ue(`array<${a.type.name}>`,[],a.type,1);let t=this._exec.getTypeInfo('i32');const r=new be(new _e(new Ve(new Int32Array([0]),t),ae.u32));s.value=new Ue(n,this._exec.getTypeInfo(e)).getSubData(new pt,r,null)}}}}})}let f=!1;for(let e=0;e<l&&!f;++e)for(let t=0;t<c&&!f;++t)for(let n=0;n<u&&!f;++n)if(a.setVariable('@workgroup_id',new Fe([n,t,e],h)),this._dispatchWorkgroup(o,[n,t,e],a)){f=!0;break}return f}_shouldExecuteNextCommand(){const e=this.currentCommand;if(null===e)return!1;if(e instanceof wt){if(null===e.condition)return!0}else if(e instanceof yt||e instanceof bt)return!0;return!1}stepInto(){this.isRunning||this.stepNext(!0)}stepOver(){this.isRunning||this.stepNext(!1)}stepOut(){const e=this.currentState;if(null===e)return;const t=e.parent;this.isRunning&&(clearInterval(this._runTimer),this._runTimer=null),this._runTimer=setInterval(()=>{const e=this.currentCommand;if(e&&this.breakpoints.has(e.line))return clearInterval(this._runTimer),this._runTimer=null,void(null!==this.runStateCallback&&this.runStateCallback());this.stepNext(!0)||(clearInterval(this._runTimer),this._runTimer=null,null!==this.runStateCallback&&this.runStateCallback());this.currentState===t&&(clearInterval(this._runTimer),this._runTimer=null,null!==this.runStateCallback&&this.runStateCallback())},0),null!==this.runStateCallback&&this.runStateCallback()}stepNext(e=!0){if(!this._execStack){this._execStack=new St;const e=this._createState(this._exec.ast,this._exec.context);this._execStack.states.push(e)}for(;;){if(this._execStack.isEmpty)return!1;let t=this._execStack.last;if(null===t)return!1;if(t.isAtEnd){if(this._execStack.pop(),this._execStack.isEmpty)return!1;t=this._execStack.last}const n=t.getNextCommand();if(null!==n){if(e&&n instanceof _t){const e=n.node,s=t.context.getFunction(e.name);if(!s)continue;const r=this._createState(s.node.body,t.context.clone(),t);for(let t=0;t<s.node.args.length;++t){const n=s.node.args[t],a=this._exec.evalExpression(e.args[t],r.context);r.context.createVariable(n.name,a,n)}if(r.parentCallExpr=e,this._execStack.states.push(r),r.context.currentFunctionName=s.name,this._shouldExecuteNextCommand())continue;return!0}if(n instanceof gt){const s=n.node;if(e&&s instanceof X){const e=t.context.getFunction(s.name);if(e){const n=this._createState(e.node.body,t.context.clone(),t);for(let t=0;t<e.node.args.length;++t){const r=e.node.args[t],a=this._exec.evalExpression(s.args[t],n.context);n.context.createVariable(r.name,a,r)}if(this._execStack.states.push(n),n.context.currentFunctionName=e.name,this._shouldExecuteNextCommand())continue;return!0}}const r=this._exec.execStatement(s,t.context);if(null!=r&&!(r instanceof Oe)){let e=t;for(;e;){if(e.parentCallExpr){e.parentCallExpr.setCachedReturnValue(r);break}e=e.parent}if(null===e&&console.error('Could not find CallExpr to store return value in'),this._shouldExecuteNextCommand())continue;return!0}}else{if(n instanceof yt)continue;if(n instanceof bt)continue;if(n instanceof vt){const e=n.id;for(;!this._execStack.isEmpty;){t=this._execStack.last;for(let n=t.commands.length-1;n>=0;--n){const s=t.commands[n];if(s instanceof yt&&s.id===e)return t.current=n+1,!0}this._execStack.pop()}return console.error('Continue statement used outside of a loop'),!1}if(n instanceof kt){const e=n.id;if(n.condition){const e=this._exec.evalExpression(n.condition,t.context);if(!(e instanceof Ve))return console.error('Condition must be a scalar'),!1;if(!e.value){if(this._shouldExecuteNextCommand())continue;return!0}}for(;!this._execStack.isEmpty;){t=this._execStack.last;for(let n=t.commands.length-1;n>=0;--n){const s=t.commands[n];if(s instanceof bt&&s.id===e)return t.current=n+1,!0}this._execStack.pop()}return console.error('Break statement used outside of a loop'),!1}if(n instanceof wt){if(n.condition){const e=this._exec.evalExpression(n.condition,t.context);if(!(e instanceof Ve))return console.error('Condition must be a scalar'),!1;if(e.value){if(this._shouldExecuteNextCommand())continue;return!0}}if(t.current=n.position,this._shouldExecuteNextCommand())continue;return!0}if(n instanceof Tt){const e=this._createState(n.statements,t.context.clone(),t);this._execStack.states.push(e);continue}}if(t.isAtEnd&&(this._execStack.pop(),this._execStack.isEmpty))return!1;if(!this._shouldExecuteNextCommand())return!0}}}_dispatchWorkgroup(e,t,n){const s=[1,1,1];for(const t of e.node.attributes)if('workgroup_size'===t.name)if(Array.isArray(t.value)){if(t.value.length>0){const e=n.getVariableValue(t.value[0]);s[0]=e instanceof Ve?e.value:parseInt(t.value[0])}if(t.value.length>1){const e=n.getVariableValue(t.value[1]);s[1]=e instanceof Ve?e.value:parseInt(t.value[1])}if(t.value.length>2){const e=n.getVariableValue(t.value[2]);s[2]=e instanceof Ve?e.value:parseInt(t.value[2])}}else{const e=n.getVariableValue(t.value);e instanceof Ve?s[0]=e.value:e instanceof Fe?(s[0]=e.data[0],s[1]=e.data.length>1?e.data[1]:1,s[2]=e.data.length>2?e.data[2]:1):s[0]=parseInt(t.value)}const r=this._exec.typeInfo.vec3u,a=this._exec.typeInfo.u32;n.setVariable('@workgroup_size',new Fe(s,r));const o=s[0],i=s[1],l=s[2];let c=!1;for(let e=0,u=0;e<l&&!c;++e)for(let l=0;l<i&&!c;++l)for(let i=0;i<o&&!c;++i,++u){const o=[i,l,e],h=[i+t[0]*s[0],l+t[1]*s[1],e+t[2]*s[2]];if(n.setVariable('@local_invocation_id',new Fe(o,r)),n.setVariable('@global_invocation_id',new Fe(h,r)),n.setVariable('@local_invocation_index',new Ve(u,a)),h[0]===this._dispatchId[0]&&h[1]===this._dispatchId[1]&&h[2]===this._dispatchId[2]){c=!0;break}}return c&&this._dispatchExec(e,n),c}_dispatchExec(e,t){for(const n of e.node.args)for(const e of n.attributes)if('builtin'===e.name){const s=`@${e.value}`,r=t.getVariable(s);null!==r&&t.variables.set(n.name,r)}const n=this._createState(e.node.body,t);this._execStack.states.push(n)}_createState(e,t,n){const s=new It(t,null!=n?n:null);for(const t of e)if(t instanceof U||t instanceof F||t instanceof W||t instanceof M||t instanceof G){const e=[];this._collectFunctionCalls(t.value,e);for(const n of e)s.commands.push(new _t(n,t));s.commands.push(new gt(t))}else if(t instanceof X){const e=[];for(const n of t.args)this._collectFunctionCalls(n,e);for(const n of e)s.commands.push(new _t(n,t));s.commands.push(new gt(t))}else if(t instanceof Y){const e=[];this._collectFunctionCalls(t.value,e);for(const n of e)s.commands.push(new _t(n,t));s.commands.push(new gt(t))}else if(t instanceof R)s.commands.push(new gt(t));else{if(t instanceof D){const e=new it(t);s.context.functions.set(t.name,e);continue}if(t instanceof Q){const e=[];this._collectFunctionCalls(t.condition,e);for(const n of e)s.commands.push(new _t(n,t));let n=new wt(t.condition,0,t.line);s.commands.push(n),t.body.length>0&&s.commands.push(new Tt(t.body));const r=new wt(null,0,t.line);s.commands.push(r);for(const e of t.elseif){n.position=s.commands.length;const a=[];this._collectFunctionCalls(e.condition,a);for(const e of a)s.commands.push(new _t(e,t));n=new wt(e.condition,0,e.line),s.commands.push(n),e.body.length>0&&s.commands.push(new Tt(e.body)),s.commands.push(r)}n.position=s.commands.length,t.else&&s.commands.push(new Tt(t.else)),r.position=s.commands.length}else if(t instanceof Z){const e=[];this._collectFunctionCalls(t.condition,e);for(const n of e)s.commands.push(new _t(n,t));let n=null;for(const e of t.cases){if(e instanceof Ce){n=e;break}if(e instanceof Se)for(const t of e.selectors)if(t instanceof Ie){n=e;break}}const r=[];for(const e of t.cases){if(e===n)continue;if(!(e instanceof Se))continue;let a=null;for(const n of e.selectors){let e=new we('==',t.condition,n);a&&(e=new we('||',a,e)),a=e}const o=new wt(a,0,e.line);s.commands.push(o),e.body.length>0&&s.commands.push(new Tt(e.body));const i=new wt(null,0,e.line);r.push(i),s.commands.push(i),o.position=s.commands.length}n&&s.commands.push(new Tt(n.body)),s.commands.push(new bt(t.id));const a=s.commands.length;for(let e=0;e<r.length;++e)r[e].position=a}else if(t instanceof N){const e=[];s.commands.push(new yt(t.id)),this._collectFunctionCalls(t.condition,e);for(const n of e)s.commands.push(new _t(n,t));const n=new wt(t.condition,0,t.line);s.commands.push(n);let r=t.line;t.body.length>0&&(s.commands.push(new Tt(t.body)),r=t.body[t.body.length-1].line),s.commands.push(new wt(t.condition,0,r)),s.commands.push(new bt(t.id)),n.position=s.commands.length}else if(t instanceof B){t.init&&s.commands.push(new gt(t.init));let e=s.commands.length;null===t.increment&&s.commands.push(new yt(t.id));let n=null;if(t.condition){const e=[];this._collectFunctionCalls(t.condition,e);for(const n of e)s.commands.push(new _t(n,t));n=new wt(t.condition,0,t.line),s.commands.push(n)}let r=t.line;t.body.length>0&&(s.commands.push(new Tt(t.body)),r=t.body[t.body.length-1].line),t.increment&&(s.commands.push(new yt(t.id)),s.commands.push(new gt(t.increment))),s.commands.push(new wt(null,e,r)),s.commands.push(new bt(t.id)),n.position=s.commands.length}else if(t instanceof j){let e=s.commands.length;t.continuing||s.commands.push(new yt(t.id));let n=t.line;t.body.length>0&&(s.commands.push(new Tt(t.body)),n=t.body[t.body.length-1].line),s.commands.push(new wt(null,e,n)),s.commands.push(new bt(t.id))}else t instanceof V?(s.commands.push(new yt(t.loopId)),s.commands.push(new Tt(t.body))):t instanceof re?s.commands.push(new vt(t.loopId,t)):t instanceof se?s.commands.push(new kt(t.loopId,t.condition,t)):t instanceof O?s.commands.push(new gt(t)):t instanceof ie||console.error(`TODO: statement type ${t.constructor.name}`)}return s}_collectFunctionCalls(e,t){if(e instanceof me){if(e.args)for(const n of e.args)this._collectFunctionCalls(n,t);e.isBuiltin||t.push(e)}else if(e instanceof we)this._collectFunctionCalls(e.left,t),this._collectFunctionCalls(e.right,t);else if(e instanceof ke)this._collectFunctionCalls(e.right,t);else if(e instanceof de){if(e.args)for(const n of e.args)this._collectFunctionCalls(n,t)}else e instanceof ye?this._collectFunctionCalls(e.value,t):e instanceof be?this._collectFunctionCalls(e.index,t):_e||console.error(`TODO: expression type ${e.constructor.name}`)}},exports.WgslExec=pt,exports.WgslParser=mt,exports.WgslReflect=class Et extends rt{constructor(e){super(),e&&this.update(e)}update(e){const t=(new mt).parse(e);this.updateAST(t)}},exports.WgslScanner=ze,exports.While=N,exports._BlockEnd=E,exports._BlockStart=A;
+'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+class TypeInfo {
+    constructor(name, attributes) {
+        this.name = name;
+        this.attributes = attributes;
+        this.size = 0;
+    }
+    get isArray() {
+        return false;
+    }
+    get isStruct() {
+        return false;
+    }
+    get isTemplate() {
+        return false;
+    }
+    get isPointer() {
+        return false;
+    }
+    getTypeName() {
+        return this.name;
+    }
+}
+class MemberInfo {
+    constructor(name, type, attributes) {
+        this.name = name;
+        this.type = type;
+        this.attributes = attributes;
+        this.offset = 0;
+        this.size = 0;
+    }
+    get isArray() {
+        return this.type.isArray;
+    }
+    get isStruct() {
+        return this.type.isStruct;
+    }
+    get isTemplate() {
+        return this.type.isTemplate;
+    }
+    get align() {
+        return this.type.isStruct ? this.type.align : 0;
+    }
+    get members() {
+        return this.type.isStruct ? this.type.members : null;
+    }
+    get format() {
+        return this.type.isArray
+            ? this.type.format
+            : this.type.isTemplate
+                ? this.type.format
+                : null;
+    }
+    get count() {
+        return this.type.isArray ? this.type.count : 0;
+    }
+    get stride() {
+        return this.type.isArray ? this.type.stride : this.size;
+    }
+}
+class StructInfo extends TypeInfo {
+    constructor(name, attributes) {
+        super(name, attributes);
+        this.members = [];
+        this.align = 0;
+        this.startLine = -1;
+        this.endLine = -1;
+        this.inUse = false;
+    }
+    get isStruct() {
+        return true;
+    }
+}
+class ArrayInfo extends TypeInfo {
+    constructor(name, attributes) {
+        super(name, attributes);
+        this.count = 0;
+        this.stride = 0;
+    }
+    get isArray() {
+        return true;
+    }
+    getTypeName() {
+        return `array<${this.format.getTypeName()}, ${this.count}>`;
+    }
+}
+class PointerInfo extends TypeInfo {
+    constructor(name, format, attributes) {
+        super(name, attributes);
+        this.format = format;
+    }
+    get isPointer() {
+        return true;
+    }
+    getTypeName() {
+        return `&${this.format.getTypeName()}`;
+    }
+}
+class TemplateInfo extends TypeInfo {
+    constructor(name, format, attributes, access) {
+        super(name, attributes);
+        this.format = format;
+        this.access = access;
+    }
+    get isTemplate() {
+        return true;
+    }
+    getTypeName() {
+        let name = this.name;
+        if (this.format !== null) {
+            if (name === "vec2" || name === "vec3" || name === "vec4" ||
+                name === "mat2x2" || name === "mat2x3" || name === "mat2x4" ||
+                name === "mat3x2" || name === "mat3x3" || name === "mat3x4" ||
+                name === "mat4x2" || name === "mat4x3" || name === "mat4x4") {
+                if (this.format.name === "f32") {
+                    name += "f";
+                    return name;
+                }
+                else if (this.format.name === "i32") {
+                    name += "i";
+                    return name;
+                }
+                else if (this.format.name === "u32") {
+                    name += "u";
+                    return name;
+                }
+                else if (this.format.name === "bool") {
+                    name += "b";
+                    return name;
+                }
+                else if (this.format.name === "f16") {
+                    name += "h";
+                    return name;
+                }
+            }
+            name += `<${this.format.name}>`;
+        }
+        else {
+            if (name === "vec2" || name === "vec3" || name === "vec4") {
+                return name;
+            }
+            //console.error("Template format is null.");
+        }
+        return name;
+    }
+}
+exports.ResourceType = void 0;
+(function (ResourceType) {
+    ResourceType[ResourceType["Uniform"] = 0] = "Uniform";
+    ResourceType[ResourceType["Storage"] = 1] = "Storage";
+    ResourceType[ResourceType["Texture"] = 2] = "Texture";
+    ResourceType[ResourceType["Sampler"] = 3] = "Sampler";
+    ResourceType[ResourceType["StorageTexture"] = 4] = "StorageTexture";
+})(exports.ResourceType || (exports.ResourceType = {}));
+class VariableInfo {
+    constructor(name, type, group, binding, attributes, resourceType, access) {
+        this.relations = null;
+        this.name = name;
+        this.type = type;
+        this.group = group;
+        this.binding = binding;
+        this.attributes = attributes;
+        this.resourceType = resourceType;
+        this.access = access;
+    }
+    get isArray() {
+        return this.type.isArray;
+    }
+    get isStruct() {
+        return this.type.isStruct;
+    }
+    get isTemplate() {
+        return this.type.isTemplate;
+    }
+    get size() {
+        return this.type.size;
+    }
+    get align() {
+        return this.type.isStruct ? this.type.align : 0;
+    }
+    get members() {
+        return this.type.isStruct ? this.type.members : null;
+    }
+    get format() {
+        return this.type.isArray
+            ? this.type.format
+            : this.type.isTemplate
+                ? this.type.format
+                : null;
+    }
+    get count() {
+        return this.type.isArray ? this.type.count : 0;
+    }
+    get stride() {
+        return this.type.isArray ? this.type.stride : this.size;
+    }
+}
+class AliasInfo {
+    constructor(name, type) {
+        this.name = name;
+        this.type = type;
+    }
+}
+class InputInfo {
+    constructor(name, type, locationType, location) {
+        this.name = name;
+        this.type = type;
+        this.locationType = locationType;
+        this.location = location;
+        this.interpolation = null;
+    }
+}
+class OutputInfo {
+    constructor(name, type, locationType, location) {
+        this.name = name;
+        this.type = type;
+        this.locationType = locationType;
+        this.location = location;
+    }
+}
+class OverrideInfo {
+    constructor(name, type, attributes, id) {
+        this.name = name;
+        this.type = type;
+        this.attributes = attributes;
+        this.id = id;
+    }
+}
+class ArgumentInfo {
+    constructor(name, type, attributes) {
+        this.name = name;
+        this.type = type;
+        this.attributes = attributes;
+    }
+}
+class FunctionInfo {
+    constructor(name, stage = null, attributes) {
+        this.stage = null;
+        this.inputs = [];
+        this.outputs = [];
+        this.arguments = [];
+        this.returnType = null;
+        this.resources = [];
+        this.overrides = [];
+        this.startLine = -1;
+        this.endLine = -1;
+        this.inUse = false;
+        this.calls = new Set();
+        this.name = name;
+        this.stage = stage;
+        this.attributes = attributes;
+    }
+}
+class EntryFunctions {
+    constructor() {
+        this.vertex = [];
+        this.fragment = [];
+        this.compute = [];
+    }
+}
+
+// From https://stackoverflow.com/questions/5678432/decompressing-half-precision-floats-in-javascript
+function float16ToFloat32(float16) {
+    var s = (float16 & 0x8000) >> 15;
+    var e = (float16 & 0x7C00) >> 10;
+    var f = float16 & 0x03FF;
+    if (e == 0) {
+        return (s ? -1 : 1) * Math.pow(2, -14) * (f / Math.pow(2, 10));
+    }
+    else if (e == 0x1F) {
+        return f ? NaN : ((s ? -1 : 1) * Infinity);
+    }
+    return (s ? -1 : 1) * Math.pow(2, e - 15) * (1 + (f / Math.pow(2, 10)));
+}
+const float32View = new Float32Array(1);
+const int32View = new Int32Array(float32View.buffer);
+const float16View = new Uint16Array(1);
+function float32ToFloat16(float32) {
+    float32View[0] = float32;
+    const f32 = int32View[0];
+    const sign = (f32 >> 31) & 1;
+    let exponent = (f32 >> 23) & 0xff;
+    let fraction = f32 & 0x7fffff;
+    if (exponent === 0xff) { // Infinity or NaN
+        float16View[0] = (sign << 15) | 0x7c00 | (fraction !== 0 ? 0x0200 : 0);
+        return float16View[0];
+    }
+    if (exponent === 0) { // Zero or subnormal
+        if (fraction === 0) { // Zero
+            float16View[0] = sign << 15;
+            return float16View[0];
+        }
+        // Subnormal
+        fraction |= 0x800000;
+        let shift = 113;
+        while ((fraction & 0x800000) === 0) {
+            fraction <<= 1;
+            shift--;
+        }
+        exponent = 127 - shift;
+        fraction &= 0x7fffff;
+        if (exponent > 0) {
+            fraction = (fraction >> (126 - exponent)) + ((fraction >> (127 - exponent)) & 1);
+            float16View[0] = (sign << 15) | (exponent << 10) | (fraction >> 13);
+            return float16View[0];
+        }
+        else {
+            float16View[0] = sign << 15;
+            return float16View[0];
+        }
+    }
+    // Normalized
+    exponent = exponent - 127 + 15;
+    if (exponent >= 31) { // Overflow
+        float16View[0] = (sign << 15) | 0x7c00;
+        return float16View[0];
+    }
+    if (exponent <= 0) { // Underflow
+        if (exponent < -10) {
+            float16View[0] = sign << 15;
+            return float16View[0];
+        }
+        fraction = (fraction | 0x800000) >> (1 - exponent);
+        float16View[0] = (sign << 15) | (fraction >> 13);
+        return float16View[0];
+    }
+    fraction = fraction >> 13;
+    float16View[0] = (sign << 15) | (exponent << 10) | fraction;
+    return float16View[0];
+}
+const uint32 = new Uint32Array(1);
+const uint32ToFloat32 = new Float32Array(uint32.buffer, 0, 1);
+function float11ToFloat32(f11) {
+    const u32 = (((((f11) >> 6) & 0x1F) + (127 - 15)) << 23) | (((f11) & 0x3F) << 17);
+    uint32[0] = u32;
+    return uint32ToFloat32[0];
+}
+function float10ToFloat32(f10) {
+    const u32 = (((((f10) >> 5) & 0x1F) + (127 - 15)) << 23) | (((f10) & 0x1F) << 18);
+    uint32[0] = u32;
+    return uint32ToFloat32[0];
+}
+
+function setTexturePixel(imageData, x, y, z, mipLevel, height, bytesPerRow, texelByteSize, format, value) {
+    bytesPerRow = bytesPerRow >> mipLevel;
+    height = height >> mipLevel;
+    const offset = (z * bytesPerRow * height) + y * bytesPerRow + x * texelByteSize;
+    switch (format) {
+        case "r8unorm": {
+            setPixelValue(imageData, offset, "8unorm", 1, value);
+            return;
+        }
+        case "r8snorm": {
+            setPixelValue(imageData, offset, "8snorm", 1, value);
+            return;
+        }
+        case "r8uint": {
+            setPixelValue(imageData, offset, "8uint", 1, value);
+            return;
+        }
+        case "r8sint": {
+            setPixelValue(imageData, offset, "8sint", 1, value);
+            return;
+        }
+        case "rg8unorm": {
+            setPixelValue(imageData, offset, "8unorm", 2, value);
+            return;
+        }
+        case "rg8snorm": {
+            setPixelValue(imageData, offset, "8snorm", 2, value);
+            return;
+        }
+        case "rg8uint": {
+            setPixelValue(imageData, offset, "8uint", 2, value);
+            return;
+        }
+        case "rg8sint": {
+            setPixelValue(imageData, offset, "8sint", 2, value);
+            return;
+        }
+        case "rgba8unorm-srgb":
+        case "rgba8unorm": {
+            setPixelValue(imageData, offset, "8unorm", 4, value);
+            return;
+        }
+        case "rgba8snorm": {
+            setPixelValue(imageData, offset, "8snorm", 4, value);
+            return;
+        }
+        case "rgba8uint": {
+            setPixelValue(imageData, offset, "8uint", 4, value);
+            return;
+        }
+        case "rgba8sint": {
+            setPixelValue(imageData, offset, "8sint", 4, value);
+            return;
+        }
+        case "bgra8unorm-srgb":
+        case "bgra8unorm": {
+            setPixelValue(imageData, offset, "8unorm", 4, value);
+            return;
+        }
+        case "r16uint": {
+            setPixelValue(imageData, offset, "16uint", 1, value);
+            return;
+        }
+        case "r16sint": {
+            setPixelValue(imageData, offset, "16sint", 1, value);
+            return;
+        }
+        case "r16float": {
+            setPixelValue(imageData, offset, "16float", 1, value);
+            return;
+        }
+        case "rg16uint": {
+            setPixelValue(imageData, offset, "16uint", 2, value);
+            return;
+        }
+        case "rg16sint": {
+            setPixelValue(imageData, offset, "16sint", 2, value);
+            return;
+        }
+        case "rg16float": {
+            setPixelValue(imageData, offset, "16float", 2, value);
+            return;
+        }
+        case "rgba16uint": {
+            setPixelValue(imageData, offset, "16uint", 4, value);
+            return;
+        }
+        case "rgba16sint": {
+            setPixelValue(imageData, offset, "16sint", 4, value);
+            return;
+        }
+        case "rgba16float": {
+            setPixelValue(imageData, offset, "16float", 4, value);
+            return;
+        }
+        case "r32uint": {
+            setPixelValue(imageData, offset, "32uint", 1, value);
+            return;
+        }
+        case "r32sint": {
+            setPixelValue(imageData, offset, "32sint", 1, value);
+            return;
+        }
+        case "depth16unorm": // depth formats get conerted to r32float
+        case "depth24plus":
+        case "depth24plus-stencil8":
+        case "depth32float":
+        case "depth32float-stencil8":
+        case "r32float": {
+            setPixelValue(imageData, offset, "32float", 1, value);
+            return;
+        }
+        case "rg32uint": {
+            setPixelValue(imageData, offset, "32uint", 2, value);
+            return;
+        }
+        case "rg32sint": {
+            setPixelValue(imageData, offset, "32sint", 2, value);
+            return;
+        }
+        case "rg32float": {
+            setPixelValue(imageData, offset, "32float", 2, value);
+            return;
+        }
+        case "rgba32uint": {
+            setPixelValue(imageData, offset, "32uint", 4, value);
+            return;
+        }
+        case "rgba32sint": {
+            setPixelValue(imageData, offset, "32sint", 4, value);
+            return;
+        }
+        case "rgba32float": {
+            setPixelValue(imageData, offset, "32float", 4, value);
+            return;
+        }
+        case "rg11b10ufloat": {
+            console.error("TODO: rg11b10ufloat not supported for writing");
+            /*const uintValue = new Uint32Array(imageData.buffer, offset, 1)[0];
+            const ri = uintValue & 0x7FF;
+            const gi = (uintValue & 0x3FF800) >> 11;
+            const bi = (uintValue & 0xFFC00000) >> 22;
+            const rf = float11ToFloat32(ri);
+            const gf = float11ToFloat32(gi);
+            const bf = float10ToFloat32(bi);
+            return [rf, gf, bf, 1.0];*/
+            return;
+        }
+    }
+}
+function getTexturePixel(imageData, x, y, z, mipLevel, height, bytesPerRow, texelByteSize, format) {
+    bytesPerRow = bytesPerRow >> mipLevel;
+    height = height >> mipLevel;
+    const offset = (z * bytesPerRow * height) + y * bytesPerRow + x * texelByteSize;
+    switch (format) {
+        case "r8unorm": {
+            const value = pixelValue(imageData, offset, "8unorm", 1);
+            return [value[0]];
+        }
+        case "r8snorm": {
+            const value = pixelValue(imageData, offset, "8snorm", 1);
+            return [value[0]];
+        }
+        case "r8uint": {
+            const value = pixelValue(imageData, offset, "8uint", 1);
+            return [value[0]];
+        }
+        case "r8sint": {
+            const value = pixelValue(imageData, offset, "8sint", 1);
+            return [value[0]];
+        }
+        case "rg8unorm": {
+            const value = pixelValue(imageData, offset, "8unorm", 2);
+            return [value[0], value[1]];
+        }
+        case "rg8snorm": {
+            const value = pixelValue(imageData, offset, "8snorm", 2);
+            return [value[0], value[1]];
+        }
+        case "rg8uint": {
+            const value = pixelValue(imageData, offset, "8uint", 2);
+            return [value[0], value[1]];
+        }
+        case "rg8sint": {
+            const value = pixelValue(imageData, offset, "8sint", 2);
+            return [value[0], value[1]];
+        }
+        case "rgba8unorm-srgb":
+        case "rgba8unorm": {
+            const value = pixelValue(imageData, offset, "8unorm", 4);
+            return [value[0], value[1], value[2], value[3]];
+        }
+        case "rgba8snorm": {
+            const value = pixelValue(imageData, offset, "8snorm", 4);
+            return [value[0], value[1], value[2], value[3]];
+        }
+        case "rgba8uint": {
+            const value = pixelValue(imageData, offset, "8uint", 4);
+            return [value[0], value[1], value[2], value[3]];
+        }
+        case "rgba8sint": {
+            const value = pixelValue(imageData, offset, "8sint", 4);
+            return [value[0], value[1], value[2], value[3]];
+        }
+        case "bgra8unorm-srgb":
+        case "bgra8unorm": {
+            const value = pixelValue(imageData, offset, "8unorm", 4);
+            return [value[2], value[1], value[0], value[3]];
+        }
+        case "r16uint": {
+            const value = pixelValue(imageData, offset, "16uint", 1);
+            return [value[0]];
+        }
+        case "r16sint": {
+            const value = pixelValue(imageData, offset, "16sint", 1);
+            return [value[0]];
+        }
+        case "r16float": {
+            const value = pixelValue(imageData, offset, "16float", 1);
+            return [value[0]];
+        }
+        case "rg16uint": {
+            const value = pixelValue(imageData, offset, "16uint", 2);
+            return [value[0], value[1]];
+        }
+        case "rg16sint": {
+            const value = pixelValue(imageData, offset, "16sint", 2);
+            return [value[0], value[1]];
+        }
+        case "rg16float": {
+            const value = pixelValue(imageData, offset, "16float", 2);
+            return [value[0], value[1]];
+        }
+        case "rgba16uint": {
+            const value = pixelValue(imageData, offset, "16uint", 4);
+            return [value[0], value[1], value[2], value[3]];
+        }
+        case "rgba16sint": {
+            const value = pixelValue(imageData, offset, "16sint", 4);
+            return [value[0], value[1], value[2], value[3]];
+        }
+        case "rgba16float": {
+            const value = pixelValue(imageData, offset, "16float", 4);
+            return [value[0], value[1], value[2], value[3]];
+        }
+        case "r32uint": {
+            const value = pixelValue(imageData, offset, "32uint", 1);
+            return [value[0]];
+        }
+        case "r32sint": {
+            const value = pixelValue(imageData, offset, "32sint", 1);
+            return [value[0]];
+        }
+        case "depth16unorm": // depth formats get conerted to r32float
+        case "depth24plus":
+        case "depth24plus-stencil8":
+        case "depth32float":
+        case "depth32float-stencil8":
+        case "r32float": {
+            const value = pixelValue(imageData, offset, "32float", 1);
+            return [value[0]];
+        }
+        case "rg32uint": {
+            const value = pixelValue(imageData, offset, "32uint", 2);
+            return [value[0], value[1]];
+        }
+        case "rg32sint": {
+            const value = pixelValue(imageData, offset, "32sint", 2);
+            return [value[0], value[1]];
+        }
+        case "rg32float": {
+            const value = pixelValue(imageData, offset, "32float", 2);
+            return [value[0], value[1]];
+        }
+        case "rgba32uint": {
+            const value = pixelValue(imageData, offset, "32uint", 4);
+            return [value[0], value[1], value[2], value[3]];
+        }
+        case "rgba32sint": {
+            const value = pixelValue(imageData, offset, "32sint", 4);
+            return [value[0], value[1], value[2], value[3]];
+        }
+        case "rgba32float": {
+            const value = pixelValue(imageData, offset, "32float", 4);
+            return [value[0], value[1], value[2], value[3]];
+        }
+        case "rg11b10ufloat": {
+            const uintValue = new Uint32Array(imageData.buffer, offset, 1)[0];
+            const ri = uintValue & 0x7FF;
+            const gi = (uintValue & 0x3FF800) >> 11;
+            const bi = (uintValue & 0xFFC00000) >> 22;
+            const rf = float11ToFloat32(ri);
+            const gf = float11ToFloat32(gi);
+            const bf = float10ToFloat32(bi);
+            return [rf, gf, bf, 1.0];
+        }
+    }
+    return null;
+}
+function pixelValue(imageData, offset, format, numChannels) {
+    const value = [0, 0, 0, 0];
+    for (let i = 0; i < numChannels; ++i) {
+        switch (format) {
+            case "8unorm":
+                value[i] = imageData[offset] / 255;
+                offset++;
+                break;
+            case "8snorm":
+                value[i] = (imageData[offset] / 255) * 2 - 1;
+                offset++;
+                break;
+            case "8uint":
+                value[i] = imageData[offset];
+                offset++;
+                break;
+            case "8sint":
+                value[i] = imageData[offset] - 127;
+                offset++;
+                break;
+            case "16uint":
+                value[i] = imageData[offset] | (imageData[offset + 1] << 8);
+                offset += 2;
+                break;
+            case "16sint":
+                value[i] = (imageData[offset] | (imageData[offset + 1] << 8)) - 32768;
+                offset += 2;
+                break;
+            case "16float":
+                value[i] = float16ToFloat32(imageData[offset] | (imageData[offset + 1] << 8));
+                offset += 2;
+                break;
+            case "32uint":
+                value[i] = imageData[offset] | (imageData[offset + 1] << 8) | (imageData[offset + 2] << 16) | (imageData[offset + 3] << 24);
+                offset += 4;
+                break;
+            case "32sint":
+                value[i] = (imageData[offset] | (imageData[offset + 1] << 8) | (imageData[offset + 2] << 16) | (imageData[offset + 3] << 24)) | 0;
+                offset += 4;
+                break;
+            case "32float":
+                value[i] = new Float32Array(imageData.buffer, offset, 1)[0];
+                offset += 4;
+                break;
+        }
+    }
+    return value;
+}
+function setPixelValue(imageData, offset, format, numChannels, value) {
+    for (let i = 0; i < numChannels; ++i) {
+        switch (format) {
+            case "8unorm":
+                imageData[offset] = value[i] * 255;
+                offset++;
+                break;
+            case "8snorm":
+                imageData[offset] = ((value[i] + 1.0) * 0.5) * 255;
+                offset++;
+                break;
+            case "8uint":
+                imageData[offset] = value[i];
+                offset++;
+                break;
+            case "8sint":
+                imageData[offset] = value[i] + 127;
+                offset++;
+                break;
+            case "16uint":
+                new Uint16Array(imageData.buffer, offset, 1)[0] = value[i];
+                offset += 2;
+                break;
+            case "16sint":
+                new Int16Array(imageData.buffer, offset, 1)[0] = value[i];
+                offset += 2;
+                break;
+            case "16float": {
+                const f16 = float32ToFloat16(value[i]);
+                new Uint16Array(imageData.buffer, offset, 1)[0] = f16;
+                offset += 2;
+                break;
+            }
+            case "32uint":
+                new Uint32Array(imageData.buffer, offset, 1)[0] = value[i];
+                offset += 4;
+                break;
+            case "32sint":
+                new Int32Array(imageData.buffer, offset, 1)[0] = value[i];
+                offset += 4;
+                break;
+            case "32float":
+                new Float32Array(imageData.buffer, offset, 1)[0] = value[i];
+                offset += 4;
+                break;
+        }
+    }
+    return value;
+}
+
+const TextureFormatInfo = {
+    "r8unorm": { "bytesPerBlock": 1, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 1 },
+    "r8snorm": { "bytesPerBlock": 1, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 1 },
+    "r8uint": { "bytesPerBlock": 1, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 1 },
+    "r8sint": { "bytesPerBlock": 1, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 1 },
+    "rg8unorm": { "bytesPerBlock": 2, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 2 },
+    "rg8snorm": { "bytesPerBlock": 2, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 2 },
+    "rg8uint": { "bytesPerBlock": 2, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 2 },
+    "rg8sint": { "bytesPerBlock": 2, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 2 },
+    "rgba8unorm": { "bytesPerBlock": 4, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 4 },
+    "rgba8unorm-srgb": { "bytesPerBlock": 4, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 4 },
+    "rgba8snorm": { "bytesPerBlock": 4, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 4 },
+    "rgba8uint": { "bytesPerBlock": 4, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 4 },
+    "rgba8sint": { "bytesPerBlock": 4, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 4 },
+    "bgra8unorm": { "bytesPerBlock": 4, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 4 },
+    "bgra8unorm-srgb": { "bytesPerBlock": 4, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 4 },
+    "r16uint": { "bytesPerBlock": 2, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 1 },
+    "r16sint": { "bytesPerBlock": 2, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 1 },
+    "r16float": { "bytesPerBlock": 2, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 1 },
+    "rg16uint": { "bytesPerBlock": 4, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 2 },
+    "rg16sint": { "bytesPerBlock": 4, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 2 },
+    "rg16float": { "bytesPerBlock": 4, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 2 },
+    "rgba16uint": { "bytesPerBlock": 8, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 4 },
+    "rgba16sint": { "bytesPerBlock": 8, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 4 },
+    "rgba16float": { "bytesPerBlock": 8, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 4 },
+    "r32uint": { "bytesPerBlock": 4, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 1 },
+    "r32sint": { "bytesPerBlock": 4, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 1 },
+    "r32float": { "bytesPerBlock": 4, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 1 },
+    "rg32uint": { "bytesPerBlock": 8, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 2 },
+    "rg32sint": { "bytesPerBlock": 8, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 2 },
+    "rg32float": { "bytesPerBlock": 8, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 2 },
+    "rgba32uint": { "bytesPerBlock": 16, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 4 },
+    "rgba32sint": { "bytesPerBlock": 16, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 4 },
+    "rgba32float": { "bytesPerBlock": 16, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 4 },
+    "rgb10a2uint": { "bytesPerBlock": 4, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 4 },
+    "rgb10a2unorm": { "bytesPerBlock": 4, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 4 },
+    "rg11b10ufloat": { "bytesPerBlock": 4, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 4 },
+    // Depth Stencil Formats
+    "stencil8": { "bytesPerBlock": 1, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "isDepthStencil": true, "hasDepth": false, "hasStencil": true, "channels": 1 }, // bytesPerBlock is actually 1-4
+    "depth16unorm": { "bytesPerBlock": 2, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "isDepthStencil": true, "hasDepth": true, "hasStencil": false, "channels": 1 },
+    "depth24plus": { "bytesPerBlock": 4, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "isDepthStencil": true, "hasDepth": true, "hasStencil": false, "depthOnlyFormat": "depth32float", "channels": 1 },
+    "depth24plus-stencil8": { "bytesPerBlock": 8, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "isDepthStencil": true, "hasDepth": true, "hasStencil": true, "depthOnlyFormat": "depth32float", "channels": 1 }, // bytesPerBlock is actually 4-8
+    "depth32float": { "bytesPerBlock": 4, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "isDepthStencil": true, "hasDepth": true, "hasStencil": false, "channels": 1 },
+    "depth32float-stencil8": { "bytesPerBlock": 8, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "isDepthStencil": true, "hasDepth": true, "hasStencil": true, "stencilOnlyFormat": "depth32float", "channels": 1 }, // bytesPerBlock is actually 5-8
+    // Packed Formats
+    "rgb9e5ufloat": { "bytesPerBlock": 4, "blockWidth": 1, "blockHeight": 1, "isCompressed": false, "channels": 4 },
+    // Compressed Formats
+    "bc1-rgba-unorm": { "bytesPerBlock": 8, "blockWidth": 4, "blockHeight": 4, "isCompressed": true, "channels": 4 },
+    "bc1-rgba-unorm-srgb": { "bytesPerBlock": 8, "blockWidth": 4, "blockHeight": 4, "isCompressed": true, "channels": 4 },
+    "bc2-rgba-unorm": { "bytesPerBlock": 16, "blockWidth": 4, "blockHeight": 4, "isCompressed": true, "channels": 4 },
+    "bc2-rgba-unorm-srgb": { "bytesPerBlock": 16, "blockWidth": 4, "blockHeight": 4, "isCompressed": true, "channels": 4 },
+    "bc3-rgba-unorm": { "bytesPerBlock": 16, "blockWidth": 4, "blockHeight": 4, "isCompressed": true, "channels": 4 },
+    "bc3-rgba-unorm-srgb": { "bytesPerBlock": 16, "blockWidth": 4, "blockHeight": 4, "isCompressed": true, "channels": 4 },
+    "bc4-r-unorm": { "bytesPerBlock": 8, "blockWidth": 4, "blockHeight": 4, "isCompressed": true, "channels": 1 },
+    "bc4-r-snorm": { "bytesPerBlock": 8, "blockWidth": 4, "blockHeight": 4, "isCompressed": true, "channels": 1 },
+    "bc5-rg-unorm": { "bytesPerBlock": 16, "blockWidth": 4, "blockHeight": 4, "isCompressed": true, "channels": 2 },
+    "bc5-rg-snorm": { "bytesPerBlock": 16, "blockWidth": 4, "blockHeight": 4, "isCompressed": true, "channels": 2 },
+    "bc6h-rgb-ufloat": { "bytesPerBlock": 16, "blockWidth": 4, "blockHeight": 4, "isCompressed": true, "channels": 4 },
+    "bc6h-rgb-float": { "bytesPerBlock": 16, "blockWidth": 4, "blockHeight": 4, "isCompressed": true, "channels": 4 },
+    "bc7-rgba-unorm": { "bytesPerBlock": 16, "blockWidth": 4, "blockHeight": 4, "isCompressed": true, "channels": 4 },
+    "bc7-rgba-unorm-srgb": { "bytesPerBlock": 16, "blockWidth": 4, "blockHeight": 4, "isCompressed": true, "channels": 4 },
+    "etc2-rgb8unorm": { "bytesPerBlock": 8, "blockWidth": 4, "blockHeight": 4, "isCompressed": true, "channels": 4 },
+    "etc2-rgb8unorm-srgb": { "bytesPerBlock": 8, "blockWidth": 4, "blockHeight": 4, "isCompressed": true, "channels": 4 },
+    "etc2-rgb8a1unorm": { "bytesPerBlock": 8, "blockWidth": 4, "blockHeight": 4, "isCompressed": true, "channels": 4 },
+    "etc2-rgb8a1unorm-srgb": { "bytesPerBlock": 8, "blockWidth": 4, "blockHeight": 4, "isCompressed": true, "channels": 4 },
+    "etc2-rgba8unorm": { "bytesPerBlock": 16, "blockWidth": 4, "blockHeight": 4, "isCompressed": true, "channels": 4 },
+    "etc2-rgba8unorm-srgb": { "bytesPerBlock": 16, "blockWidth": 4, "blockHeight": 4, "isCompressed": true, "channels": 4 },
+    "eac-r11unorm": { "bytesPerBlock": 8, "blockWidth": 1, "blockHeight": 1, "isCompressed": true, "channels": 1 },
+    "eac-r11snorm": { "bytesPerBlock": 8, "blockWidth": 1, "blockHeight": 1, "isCompressed": true, "channels": 1 },
+    "eac-rg11unorm": { "bytesPerBlock": 16, "blockWidth": 1, "blockHeight": 1, "isCompressed": true, "channels": 2 },
+    "eac-rg11snorm": { "bytesPerBlock": 16, "blockWidth": 1, "blockHeight": 1, "isCompressed": true, "channels": 2 },
+    "astc-4x4-unorm": { "bytesPerBlock": 16, "blockWidth": 4, "blockHeight": 4, "isCompressed": true, "channels": 4 },
+    "astc-4x4-unorm-srgb": { "bytesPerBlock": 16, "blockWidth": 4, "blockHeight": 4, "isCompressed": true, "channels": 4 },
+    "astc-5x4-unorm": { "bytesPerBlock": 16, "blockWidth": 5, "blockHeight": 4, "isCompressed": true, "channels": 4 },
+    "astc-5x4-unorm-srgb": { "bytesPerBlock": 16, "blockWidth": 5, "blockHeight": 4, "isCompressed": true, "channels": 4 },
+    "astc-5x5-unorm": { "bytesPerBlock": 16, "blockWidth": 5, "blockHeight": 5, "isCompressed": true, "channels": 4 },
+    "astc-5x5-unorm-srgb": { "bytesPerBlock": 16, "blockWidth": 5, "blockHeight": 5, "isCompressed": true, "channels": 4 },
+    "astc-6x5-unorm": { "bytesPerBlock": 16, "blockWidth": 6, "blockHeight": 5, "isCompressed": true, "channels": 4 },
+    "astc-6x5-unorm-srgb": { "bytesPerBlock": 16, "blockWidth": 6, "blockHeight": 5, "isCompressed": true, "channels": 4 },
+    "astc-6x6-unorm": { "bytesPerBlock": 16, "blockWidth": 6, "blockHeight": 6, "isCompressed": true, "channels": 4 },
+    "astc-6x6-unorm-srgb": { "bytesPerBlock": 16, "blockWidth": 6, "blockHeight": 6, "isCompressed": true, "channels": 4 },
+    "astc-8x5-unorm": { "bytesPerBlock": 16, "blockWidth": 8, "blockHeight": 5, "isCompressed": true, "channels": 4 },
+    "astc-8x5-unorm-srgb": { "bytesPerBlock": 16, "blockWidth": 8, "blockHeight": 5, "isCompressed": true, "channels": 4 },
+    "astc-8x6-unorm": { "bytesPerBlock": 16, "blockWidth": 8, "blockHeight": 6, "isCompressed": true, "channels": 4 },
+    "astc-8x6-unorm-srgb": { "bytesPerBlock": 16, "blockWidth": 8, "blockHeight": 6, "isCompressed": true, "channels": 4 },
+    "astc-8x8-unorm": { "bytesPerBlock": 16, "blockWidth": 8, "blockHeight": 8, "isCompressed": true, "channels": 4 },
+    "astc-8x8-unorm-srgb": { "bytesPerBlock": 16, "blockWidth": 8, "blockHeight": 8, "isCompressed": true, "channels": 4 },
+    "astc-10x5-unorm": { "bytesPerBlock": 16, "blockWidth": 10, "blockHeight": 5, "isCompressed": true, "channels": 4 },
+    "astc-10x5-unorm-srgb": { "bytesPerBlock": 16, "blockWidth": 10, "blockHeight": 5, "isCompressed": true, "channels": 4 },
+    "astc-10x6-unorm": { "bytesPerBlock": 16, "blockWidth": 10, "blockHeight": 6, "isCompressed": true, "channels": 4 },
+    "astc-10x6-unorm-srgb": { "bytesPerBlock": 16, "blockWidth": 10, "blockHeight": 6, "isCompressed": true, "channels": 4 },
+    "astc-10x8-unorm": { "bytesPerBlock": 16, "blockWidth": 10, "blockHeight": 8, "isCompressed": true, "channels": 4 },
+    "astc-10x8-unorm-srgb": { "bytesPerBlock": 16, "blockWidth": 10, "blockHeight": 8, "isCompressed": true, "channels": 4 },
+    "astc-10x10-unorm": { "bytesPerBlock": 16, "blockWidth": 10, "blockHeight": 10, "isCompressed": true, "channels": 4 },
+    "astc-10x10-unorm-srgb": { "bytesPerBlock": 16, "blockWidth": 10, "blockHeight": 10, "isCompressed": true, "channels": 4 },
+    "astc-12x10-unorm": { "bytesPerBlock": 16, "blockWidth": 12, "blockHeight": 10, "isCompressed": true, "channels": 4 },
+    "astc-12x10-unorm-srgb": { "bytesPerBlock": 16, "blockWidth": 12, "blockHeight": 10, "isCompressed": true, "channels": 4 },
+    "astc-12x12-unorm": { "bytesPerBlock": 16, "blockWidth": 12, "blockHeight": 12, "isCompressed": true, "channels": 4 },
+    "astc-12x12-unorm-srgb": { "bytesPerBlock": 16, "blockWidth": 12, "blockHeight": 12, "isCompressed": true, "channels": 4 },
+};
+
+/**
+ * @class Node
+ * @category AST
+ * Base class for AST nodes parsed from a WGSL shader.
+ */
+class Node {
+    constructor() {
+        this.id = Node._id++;
+        this.line = 0;
+    }
+    get isAstNode() {
+        return true;
+    }
+    get astNodeType() {
+        return "";
+    }
+    search(callback) {
+        callback(this);
+    }
+    searchBlock(block, callback) {
+        if (block) {
+            callback(_BlockStart.instance);
+            for (const node of block) {
+                if (node instanceof Array) {
+                    this.searchBlock(node, callback);
+                }
+                else {
+                    node.search(callback);
+                }
+            }
+            callback(_BlockEnd.instance);
+        }
+    }
+    constEvaluate(context, type) {
+        throw new Error("Cannot evaluate node");
+    }
+    constEvaluateString(context) {
+        return this.constEvaluate(context).toString();
+    }
+}
+Node._id = 0;
+// For internal use only
+class _BlockStart extends Node {
+}
+_BlockStart.instance = new _BlockStart();
+// For internal use only
+class _BlockEnd extends Node {
+}
+_BlockEnd.instance = new _BlockEnd();
+const BuiltinFunctionNames = new Set([
+    "all",
+    "all",
+    "any",
+    "select",
+    "arrayLength",
+    "abs",
+    "acos",
+    "acosh",
+    "asin",
+    "asinh",
+    "atan",
+    "atanh",
+    "atan2",
+    "ceil",
+    "clamp",
+    "cos",
+    "cosh",
+    "countLeadingZeros",
+    "countOneBits",
+    "countTrailingZeros",
+    "cross",
+    "degrees",
+    "determinant",
+    "distance",
+    "dot",
+    "dot4U8Packed",
+    "dot4I8Packed",
+    "exp",
+    "exp2",
+    "extractBits",
+    "faceForward",
+    "firstLeadingBit",
+    "firstTrailingBit",
+    "floor",
+    "fma",
+    "fract",
+    "frexp",
+    "insertBits",
+    "inverseSqrt",
+    "ldexp",
+    "length",
+    "log",
+    "log2",
+    "max",
+    "min",
+    "mix",
+    "modf",
+    "normalize",
+    "pow",
+    "quantizeToF16",
+    "radians",
+    "reflect",
+    "refract",
+    "reverseBits",
+    "round",
+    "saturate",
+    "sign",
+    "sin",
+    "sinh",
+    "smoothStep",
+    "sqrt",
+    "step",
+    "tan",
+    "tanh",
+    "transpose",
+    "trunc",
+    "dpdx",
+    "dpdxCoarse",
+    "dpdxFine",
+    "dpdy",
+    "dpdyCoarse",
+    "dpdyFine",
+    "fwidth",
+    "fwidthCoarse",
+    "fwidthFine",
+    "textureDimensions",
+    "textureGather",
+    "textureGatherCompare",
+    "textureLoad",
+    "textureNumLayers",
+    "textureNumLevels",
+    "textureNumSamples",
+    "textureSample",
+    "textureSampleBias",
+    "textureSampleCompare",
+    "textureSampleCompareLevel",
+    "textureSampleGrad",
+    "textureSampleLevel",
+    "textureSampleBaseClampToEdge",
+    "textureStore",
+    "atomicLoad",
+    "atomicStore",
+    "atomicAdd",
+    "atomicSub",
+    "atomicMax",
+    "atomicMin",
+    "atomicAnd",
+    "atomicOr",
+    "atomicXor",
+    "atomicExchange",
+    "atomicCompareExchangeWeak",
+    "pack4x8snorm",
+    "pack4x8unorm",
+    "pack4xI8",
+    "pack4xU8",
+    "pack4x8Clamp",
+    "pack4xU8Clamp",
+    "pack2x16snorm",
+    "pack2x16unorm",
+    "pack2x16float",
+    "unpack4x8snorm",
+    "unpack4x8unorm",
+    "unpack4xI8",
+    "unpack4xU8",
+    "unpack2x16snorm",
+    "unpack2x16unorm",
+    "unpack2x16float",
+    "storageBarrier",
+    "textureBarrier",
+    "workgroupBarrier",
+    "workgroupUniformLoad",
+    "subgroupAdd",
+    "subgroupExclusiveAdd",
+    "subgroupInclusiveAdd",
+    "subgroupAll",
+    "subgroupAnd",
+    "subgroupAny",
+    "subgroupBallot",
+    "subgroupBroadcast",
+    "subgroupBroadcastFirst",
+    "subgroupElect",
+    "subgroupMax",
+    "subgroupMin",
+    "subgroupMul",
+    "subgroupExclusiveMul",
+    "subgroupInclusiveMul",
+    "subgroupOr",
+    "subgroupShuffle",
+    "subgroupShuffleDown",
+    "subgroupShuffleUp",
+    "subgroupShuffleXor",
+    "subgroupXor",
+    "quadBroadcast",
+    "quadSwapDiagonal",
+    "quadSwapX",
+    "quadSwapY",
+]);
+/**
+ * @class Statement
+ * @extends Node
+ * @category AST
+ */
+class Statement extends Node {
+    constructor() {
+        super();
+    }
+}
+/**
+ * @class Function
+ * @extends Statement
+ * @category AST
+ */
+class Function extends Statement {
+    constructor(name, args, returnType, body, startLine, endLine) {
+        super();
+        this.calls = new Set();
+        this.name = name;
+        this.args = args;
+        this.returnType = returnType;
+        this.body = body;
+        this.startLine = startLine;
+        this.endLine = endLine;
+    }
+    get astNodeType() {
+        return "function";
+    }
+    search(callback) {
+        if (this.attributes) {
+            for (const attr of this.attributes) {
+                callback(attr);
+            }
+        }
+        callback(this);
+        for (const arg of this.args) {
+            callback(arg);
+        }
+        this.searchBlock(this.body, callback);
+    }
+}
+/**
+ * @class StaticAssert
+ * @extends Statement
+ * @category AST
+ */
+class StaticAssert extends Statement {
+    constructor(expression) {
+        super();
+        this.expression = expression;
+    }
+    get astNodeType() {
+        return "staticAssert";
+    }
+    search(callback) {
+        this.expression.search(callback);
+    }
+}
+/**
+ * @class While
+ * @extends Statement
+ * @category AST
+ */
+class While extends Statement {
+    constructor(condition, body) {
+        super();
+        this.condition = condition;
+        this.body = body;
+    }
+    get astNodeType() {
+        return "while";
+    }
+    search(callback) {
+        this.condition.search(callback);
+        this.searchBlock(this.body, callback);
+    }
+}
+/**
+ * @class Continuing
+ * @extends Statement
+ * @category AST
+ */
+class Continuing extends Statement {
+    constructor(body, loopId) {
+        super();
+        this.body = body;
+        this.loopId = loopId;
+    }
+    get astNodeType() {
+        return "continuing";
+    }
+    search(callback) {
+        this.searchBlock(this.body, callback);
+    }
+}
+/**
+ * @class For
+ * @extends Statement
+ * @category AST
+ */
+class For extends Statement {
+    constructor(init, condition, increment, body) {
+        super();
+        this.init = init;
+        this.condition = condition;
+        this.increment = increment;
+        this.body = body;
+    }
+    get astNodeType() {
+        return "for";
+    }
+    search(callback) {
+        var _a, _b, _c;
+        (_a = this.init) === null || _a === void 0 ? void 0 : _a.search(callback);
+        (_b = this.condition) === null || _b === void 0 ? void 0 : _b.search(callback);
+        (_c = this.increment) === null || _c === void 0 ? void 0 : _c.search(callback);
+        this.searchBlock(this.body, callback);
+    }
+}
+/**
+ * @class Var
+ * @extends Statement
+ * @category AST
+ */
+class Var extends Statement {
+    constructor(name, type, storage, access, value) {
+        super();
+        this.attributes = null;
+        this.name = name;
+        this.type = type;
+        this.storage = storage;
+        this.access = access;
+        this.value = value;
+    }
+    get astNodeType() {
+        return "var";
+    }
+    search(callback) {
+        var _a;
+        callback(this);
+        (_a = this.value) === null || _a === void 0 ? void 0 : _a.search(callback);
+    }
+}
+/**
+ * @class Override
+ * @extends Statement
+ * @category AST
+ */
+class Override extends Statement {
+    constructor(name, type, value) {
+        super();
+        this.attributes = null;
+        this.name = name;
+        this.type = type;
+        this.value = value;
+    }
+    get astNodeType() {
+        return "override";
+    }
+    search(callback) {
+        var _a;
+        (_a = this.value) === null || _a === void 0 ? void 0 : _a.search(callback);
+    }
+}
+/**
+ * @class Let
+ * @extends Statement
+ * @category AST
+ */
+class Let extends Statement {
+    constructor(name, type, storage, access, value) {
+        super();
+        this.attributes = null;
+        this.name = name;
+        this.type = type;
+        this.storage = storage;
+        this.access = access;
+        this.value = value;
+    }
+    get astNodeType() {
+        return "let";
+    }
+    search(callback) {
+        var _a;
+        callback(this);
+        (_a = this.value) === null || _a === void 0 ? void 0 : _a.search(callback);
+    }
+}
+/**
+ * @class Const
+ * @extends Statement
+ * @category AST
+ */
+class Const extends Statement {
+    constructor(name, type, storage, access, value) {
+        super();
+        this.attributes = null;
+        this.name = name;
+        this.type = type;
+        this.storage = storage;
+        this.access = access;
+        this.value = value;
+    }
+    get astNodeType() {
+        return "const";
+    }
+    constEvaluate(context, type) {
+        return this.value.constEvaluate(context, type);
+    }
+    search(callback) {
+        var _a;
+        callback(this);
+        (_a = this.value) === null || _a === void 0 ? void 0 : _a.search(callback);
+    }
+}
+exports.IncrementOperator = void 0;
+(function (IncrementOperator) {
+    IncrementOperator["increment"] = "++";
+    IncrementOperator["decrement"] = "--";
+})(exports.IncrementOperator || (exports.IncrementOperator = {}));
+(function (IncrementOperator) {
+    function parse(val) {
+        const key = val;
+        if (key == "parse")
+            throw new Error("Invalid value for IncrementOperator");
+        return IncrementOperator[key];
+    }
+    IncrementOperator.parse = parse;
+})(exports.IncrementOperator || (exports.IncrementOperator = {}));
+/**
+ * @class Increment
+ * @extends Statement
+ * @category AST
+ */
+class Increment extends Statement {
+    constructor(operator, variable) {
+        super();
+        this.operator = operator;
+        this.variable = variable;
+    }
+    get astNodeType() {
+        return "increment";
+    }
+    search(callback) {
+        this.variable.search(callback);
+    }
+}
+exports.AssignOperator = void 0;
+(function (AssignOperator) {
+    AssignOperator["assign"] = "=";
+    AssignOperator["addAssign"] = "+=";
+    AssignOperator["subtractAssin"] = "-=";
+    AssignOperator["multiplyAssign"] = "*=";
+    AssignOperator["divideAssign"] = "/=";
+    AssignOperator["moduloAssign"] = "%=";
+    AssignOperator["andAssign"] = "&=";
+    AssignOperator["orAssign"] = "|=";
+    AssignOperator["xorAssign"] = "^=";
+    AssignOperator["shiftLeftAssign"] = "<<=";
+    AssignOperator["shiftRightAssign"] = ">>=";
+})(exports.AssignOperator || (exports.AssignOperator = {}));
+(function (AssignOperator) {
+    function parse(val) {
+        const key = val;
+        if (key == "parse") {
+            throw new Error("Invalid value for AssignOperator");
+        }
+        //return AssignOperator[key];
+        return key;
+    }
+    AssignOperator.parse = parse;
+})(exports.AssignOperator || (exports.AssignOperator = {}));
+/**
+ * @class Assign
+ * @extends Statement
+ * @category AST
+ */
+class Assign extends Statement {
+    constructor(operator, variable, value) {
+        super();
+        this.operator = operator;
+        this.variable = variable;
+        this.value = value;
+    }
+    get astNodeType() {
+        return "assign";
+    }
+    search(callback) {
+        this.variable.search(callback);
+        this.value.search(callback);
+    }
+}
+/**
+ * @class Call
+ * @extends Statement
+ * @category AST
+ */
+class Call extends Statement {
+    constructor(name, args) {
+        super();
+        this.name = name;
+        this.args = args;
+    }
+    get astNodeType() {
+        return "call";
+    }
+    isBuiltin() {
+        return BuiltinFunctionNames.has(this.name);
+    }
+    search(callback) {
+        for (const node of this.args) {
+            node.search(callback);
+        }
+        callback(this);
+    }
+}
+/**
+ * @class Loop
+ * @extends Statement
+ * @category AST
+ */
+class Loop extends Statement {
+    constructor(body, continuing) {
+        super();
+        this.body = body;
+        this.continuing = continuing;
+    }
+    get astNodeType() {
+        return "loop";
+    }
+    search(callback) {
+        var _a;
+        this.searchBlock(this.body, callback);
+        (_a = this.continuing) === null || _a === void 0 ? void 0 : _a.search(callback);
+    }
+}
+/**
+ * @class Switch
+ * @extends Statement
+ * @category AST
+ */
+class Switch extends Statement {
+    constructor(condition, cases) {
+        super();
+        this.condition = condition;
+        this.cases = cases;
+    }
+    get astNodeType() {
+        return "switch";
+    }
+    search(callback) {
+        callback(this);
+        for (const node of this.cases) {
+            node.search(callback);
+        }
+    }
+}
+/**
+ * @class If
+ * @extends Statement
+ * @category AST
+ */
+class If extends Statement {
+    constructor(condition, body, elseif, _else) {
+        super();
+        this.condition = condition;
+        this.body = body;
+        this.elseif = elseif;
+        this.else = _else;
+    }
+    get astNodeType() {
+        return "if";
+    }
+    search(callback) {
+        this.condition.search(callback);
+        this.searchBlock(this.body, callback);
+        this.searchBlock(this.elseif, callback);
+        this.searchBlock(this.else, callback);
+    }
+}
+/**
+ * @class Return
+ * @extends Statement
+ * @category AST
+ */
+class Return extends Statement {
+    constructor(value) {
+        super();
+        this.value = value;
+    }
+    get astNodeType() {
+        return "return";
+    }
+    search(callback) {
+        var _a;
+        (_a = this.value) === null || _a === void 0 ? void 0 : _a.search(callback);
+    }
+}
+/**
+ * @class Enable
+ * @extends Statement
+ * @category AST
+ */
+class Enable extends Statement {
+    constructor(name) {
+        super();
+        this.name = name;
+    }
+    get astNodeType() {
+        return "enable";
+    }
+}
+/**
+ * @class Requires
+ * @extends Statement
+ * @category AST
+ */
+class Requires extends Statement {
+    constructor(extensions) {
+        super();
+        this.extensions = extensions;
+    }
+    get astNodeType() {
+        return "requires";
+    }
+}
+/**
+ * @class Diagnostic
+ * @extends Statement
+ * @category AST
+ */
+class Diagnostic extends Statement {
+    constructor(severity, rule) {
+        super();
+        this.severity = severity;
+        this.rule = rule;
+    }
+    get astNodeType() {
+        return "diagnostic";
+    }
+}
+/**
+ * @class Alias
+ * @extends Statement
+ * @category AST
+ */
+class Alias extends Statement {
+    constructor(name, type) {
+        super();
+        this.name = name;
+        this.type = type;
+    }
+    get astNodeType() {
+        return "alias";
+    }
+}
+/**
+ * @class Discard
+ * @extends Statement
+ * @category AST
+ */
+class Discard extends Statement {
+    constructor() {
+        super();
+    }
+    get astNodeType() {
+        return "discard";
+    }
+}
+/**
+ * @class Break
+ * @extends Statement
+ * @category AST
+ */
+class Break extends Statement {
+    constructor() {
+        super();
+        this.condition = null;
+        this.loopId = -1;
+    }
+    get astNodeType() {
+        return "break";
+    }
+}
+/**
+ * @class Continue
+ * @extends Statement
+ * @category AST
+ */
+class Continue extends Statement {
+    constructor() {
+        super();
+        this.loopId = -1;
+    }
+    get astNodeType() {
+        return "continue";
+    }
+}
+/**
+ * @class Type
+ * @extends Statement
+ * @category AST
+ */
+class Type extends Statement {
+    constructor(name) {
+        super();
+        this.attributes = null;
+        this.name = name;
+    }
+    get astNodeType() {
+        return "type";
+    }
+    get isStruct() {
+        return false;
+    }
+    get isArray() {
+        return false;
+    }
+    static maxFormatType(x) {
+        let t = x[0];
+        if (t.name === "f32") {
+            return t;
+        }
+        for (let i = 1; i < x.length; ++i) {
+            const tv = Type._priority.get(t.name);
+            const xv = Type._priority.get(x[i].name);
+            if (xv < tv) {
+                t = x[i];
+            }
+        }
+        if (t.name === "x32") {
+            return Type.i32;
+        }
+        return t;
+    }
+    getTypeName() {
+        return this.name;
+    }
+}
+Type.x32 = new Type("x32");
+Type.f32 = new Type("f32");
+Type.i32 = new Type("i32");
+Type.u32 = new Type("u32");
+Type.f16 = new Type("f16");
+Type.bool = new Type("bool");
+Type.void = new Type("void");
+Type._priority = new Map([["f32", 0], ["f16", 1], ["u32", 2], ["i32", 3], ["x32", 3]]);
+/**
+ * @class ForwardType
+ * @extends Type
+ * @category AST
+ * Internal type used as a placeholder for a type being used before it has been defined.
+ */
+class ForwardType extends Type {
+    constructor(name) {
+        super(name);
+    }
+}
+/**
+ * @class StructType
+ * @extends Type
+ * @category AST
+ */
+class Struct extends Type {
+    constructor(name, members, startLine, endLine) {
+        super(name);
+        this.members = members;
+        this.startLine = startLine;
+        this.endLine = endLine;
+    }
+    get astNodeType() {
+        return "struct";
+    }
+    get isStruct() {
+        return true;
+    }
+    /// Return the index of the member with the given name, or -1 if not found.
+    getMemberIndex(name) {
+        for (let i = 0; i < this.members.length; i++) {
+            if (this.members[i].name == name)
+                return i;
+        }
+        return -1;
+    }
+    search(callback) {
+        for (const member of this.members) {
+            callback(member);
+        }
+    }
+}
+/**
+ * @class TemplateType
+ * @extends Type
+ * @category AST
+ */
+class TemplateType extends Type {
+    constructor(name, format, access) {
+        super(name);
+        this.format = format;
+        this.access = access;
+    }
+    get astNodeType() {
+        return "template";
+    }
+    getTypeName() {
+        let name = this.name;
+        if (this.format !== null) {
+            if (name === "vec2" || name === "vec3" || name === "vec4" ||
+                name === "mat2x2" || name === "mat2x3" || name === "mat2x4" ||
+                name === "mat3x2" || name === "mat3x3" || name === "mat3x4" ||
+                name === "mat4x2" || name === "mat4x3" || name === "mat4x4") {
+                if (this.format.name === "f32") {
+                    name += "f";
+                    return name;
+                }
+                else if (this.format.name === "i32") {
+                    name += "i";
+                    return name;
+                }
+                else if (this.format.name === "u32") {
+                    name += "u";
+                    return name;
+                }
+                else if (this.format.name === "bool") {
+                    name += "b";
+                    return name;
+                }
+                else if (this.format.name === "f16") {
+                    name += "h";
+                    return name;
+                }
+            }
+            name += `<${this.format.name}>`;
+        }
+        else {
+            if (name === "vec2" || name === "vec3" || name === "vec4") {
+                return name;
+            }
+            //console.error("Template format is null.");
+        }
+        return name;
+    }
+}
+TemplateType.vec2f = new TemplateType("vec2", Type.f32, null);
+TemplateType.vec3f = new TemplateType("vec3", Type.f32, null);
+TemplateType.vec4f = new TemplateType("vec4", Type.f32, null);
+TemplateType.vec2i = new TemplateType("vec2", Type.i32, null);
+TemplateType.vec3i = new TemplateType("vec3", Type.i32, null);
+TemplateType.vec4i = new TemplateType("vec4", Type.i32, null);
+TemplateType.vec2u = new TemplateType("vec2", Type.u32, null);
+TemplateType.vec3u = new TemplateType("vec3", Type.u32, null);
+TemplateType.vec4u = new TemplateType("vec4", Type.u32, null);
+TemplateType.vec2h = new TemplateType("vec2", Type.f16, null);
+TemplateType.vec3h = new TemplateType("vec3", Type.f16, null);
+TemplateType.vec4h = new TemplateType("vec4", Type.f16, null);
+TemplateType.vec2b = new TemplateType("vec2", Type.bool, null);
+TemplateType.vec3b = new TemplateType("vec3", Type.bool, null);
+TemplateType.vec4b = new TemplateType("vec4", Type.bool, null);
+TemplateType.mat2x2f = new TemplateType("mat2x2", Type.f32, null);
+TemplateType.mat2x3f = new TemplateType("mat2x3", Type.f32, null);
+TemplateType.mat2x4f = new TemplateType("mat2x4", Type.f32, null);
+TemplateType.mat3x2f = new TemplateType("mat3x2", Type.f32, null);
+TemplateType.mat3x3f = new TemplateType("mat3x3", Type.f32, null);
+TemplateType.mat3x4f = new TemplateType("mat3x4", Type.f32, null);
+TemplateType.mat4x2f = new TemplateType("mat4x2", Type.f32, null);
+TemplateType.mat4x3f = new TemplateType("mat4x3", Type.f32, null);
+TemplateType.mat4x4f = new TemplateType("mat4x4", Type.f32, null);
+TemplateType.mat2x2h = new TemplateType("mat2x2", Type.f16, null);
+TemplateType.mat2x3h = new TemplateType("mat2x3", Type.f16, null);
+TemplateType.mat2x4h = new TemplateType("mat2x4", Type.f16, null);
+TemplateType.mat3x2h = new TemplateType("mat3x2", Type.f16, null);
+TemplateType.mat3x3h = new TemplateType("mat3x3", Type.f16, null);
+TemplateType.mat3x4h = new TemplateType("mat3x4", Type.f16, null);
+TemplateType.mat4x2h = new TemplateType("mat4x2", Type.f16, null);
+TemplateType.mat4x3h = new TemplateType("mat4x3", Type.f16, null);
+TemplateType.mat4x4h = new TemplateType("mat4x4", Type.f16, null);
+TemplateType.mat2x2i = new TemplateType("mat2x2", Type.i32, null);
+TemplateType.mat2x3i = new TemplateType("mat2x3", Type.i32, null);
+TemplateType.mat2x4i = new TemplateType("mat2x4", Type.i32, null);
+TemplateType.mat3x2i = new TemplateType("mat3x2", Type.i32, null);
+TemplateType.mat3x3i = new TemplateType("mat3x3", Type.i32, null);
+TemplateType.mat3x4i = new TemplateType("mat3x4", Type.i32, null);
+TemplateType.mat4x2i = new TemplateType("mat4x2", Type.i32, null);
+TemplateType.mat4x3i = new TemplateType("mat4x3", Type.i32, null);
+TemplateType.mat4x4i = new TemplateType("mat4x4", Type.i32, null);
+TemplateType.mat2x2u = new TemplateType("mat2x2", Type.u32, null);
+TemplateType.mat2x3u = new TemplateType("mat2x3", Type.u32, null);
+TemplateType.mat2x4u = new TemplateType("mat2x4", Type.u32, null);
+TemplateType.mat3x2u = new TemplateType("mat3x2", Type.u32, null);
+TemplateType.mat3x3u = new TemplateType("mat3x3", Type.u32, null);
+TemplateType.mat3x4u = new TemplateType("mat3x4", Type.u32, null);
+TemplateType.mat4x2u = new TemplateType("mat4x2", Type.u32, null);
+TemplateType.mat4x3u = new TemplateType("mat4x3", Type.u32, null);
+TemplateType.mat4x4u = new TemplateType("mat4x4", Type.u32, null);
+/**
+ * @class PointerType
+ * @extends Type
+ * @category AST
+ */
+class PointerType extends Type {
+    constructor(name, storage, type, access) {
+        super(name);
+        this.storage = storage;
+        this.type = type;
+        this.access = access;
+    }
+    get astNodeType() {
+        return "pointer";
+    }
+}
+/**
+ * @class ArrayType
+ * @extends Type
+ * @category AST
+ */
+class ArrayType extends Type {
+    constructor(name, attributes, format, count) {
+        super(name);
+        this.attributes = attributes;
+        this.format = format;
+        this.count = count;
+    }
+    get astNodeType() {
+        return "array";
+    }
+    get isArray() {
+        return true;
+    }
+}
+/**
+ * @class SamplerType
+ * @extends Type
+ * @category AST
+ */
+class SamplerType extends Type {
+    constructor(name, format, access) {
+        super(name);
+        this.format = format;
+        this.access = access;
+    }
+    get astNodeType() {
+        return "sampler";
+    }
+}
+/**
+ * @class Expression
+ * @extends Node
+ * @category AST
+ */
+class Expression extends Node {
+    constructor() {
+        super();
+        this.postfix = null;
+        this.hasParen = false;
+    }
+}
+/**
+ * @class StringExpr
+ * @extends Expression
+ * @category AST
+ */
+class StringExpr extends Expression {
+    constructor(value) {
+        super();
+        this.value = value;
+    }
+    get astNodeType() {
+        return "stringExpr";
+    }
+    toString() {
+        return this.value;
+    }
+    constEvaluateString() {
+        return this.value;
+    }
+}
+/**
+ * @class CreateExpr
+ * @extends Expression
+ * @category AST
+ */
+class CreateExpr extends Expression {
+    constructor(type, args) {
+        super();
+        this.type = type;
+        this.args = args;
+    }
+    get astNodeType() {
+        return "createExpr";
+    }
+    search(callback) {
+        callback(this);
+        if (this.args) {
+            for (const node of this.args) {
+                node.search(callback);
+            }
+        }
+    }
+    constEvaluate(context, type) {
+        if (type) {
+            type[0] = this.type;
+        }
+        return context.evalExpression(this, context.context);
+    }
+}
+/**
+ * @class CallExpr
+ * @extends Expression
+ * @category AST
+ */
+class CallExpr extends Expression {
+    constructor(name, args) {
+        super();
+        this.cachedReturnValue = null;
+        this.name = name;
+        this.args = args;
+    }
+    get astNodeType() {
+        return "callExpr";
+    }
+    setCachedReturnValue(value) {
+        this.cachedReturnValue = value;
+    }
+    get isBuiltin() {
+        return BuiltinFunctionNames.has(this.name);
+    }
+    constEvaluate(context, type) {
+        return context.evalExpression(this, context.context);
+    }
+    search(callback) {
+        for (const node of this.args) {
+            node.search(callback);
+        }
+        callback(this);
+    }
+}
+/**
+ * @class VariableExpr
+ * @extends Expression
+ * @category AST
+ */
+class VariableExpr extends Expression {
+    constructor(name) {
+        super();
+        this.name = name;
+    }
+    get astNodeType() {
+        return "varExpr";
+    }
+    search(callback) {
+        callback(this);
+        if (this.postfix) {
+            this.postfix.search(callback);
+        }
+    }
+    constEvaluate(context, type) {
+        return context.evalExpression(this, context.context);
+    }
+}
+/**
+ * @class ConstExpr
+ * @extends Expression
+ * @category AST
+ */
+class ConstExpr extends Expression {
+    constructor(name, initializer) {
+        super();
+        this.name = name;
+        this.initializer = initializer;
+    }
+    get astNodeType() {
+        return "constExpr";
+    }
+    constEvaluate(context, type) {
+        if (this.initializer) {
+            const data = context.evalExpression(this.initializer, context.context);
+            if (data !== null && this.postfix) {
+                return data.getSubData(context, this.postfix, context.context);
+            }
+            return data;
+        }
+        return null;
+    }
+    search(callback) {
+        this.initializer.search(callback);
+    }
+}
+/**
+ * @class LiteralExpr
+ * @extends Expression
+ * @category AST
+ */
+class LiteralExpr extends Expression {
+    constructor(value, type) {
+        super();
+        this.value = value;
+        this.type = type;
+    }
+    get astNodeType() {
+        return "literalExpr";
+    }
+    constEvaluate(context, type) {
+        if (type !== undefined) {
+            type[0] = this.type;
+        }
+        return this.value;
+    }
+    get isScalar() {
+        return this.value instanceof ScalarData;
+    }
+    get isVector() {
+        return this.value instanceof VectorData || this.value instanceof MatrixData;
+    }
+    get scalarValue() {
+        if (this.value instanceof ScalarData) {
+            return this.value.value;
+        }
+        console.error("Value is not scalar.");
+        return 0.0;
+    }
+    get vectorValue() {
+        if (this.value instanceof VectorData) {
+            return this.value.data;
+        }
+        if (this.value instanceof MatrixData) {
+            return this.value.data;
+        }
+        console.error("Value is not a vector or matrix.");
+        return new Float32Array(0);
+    }
+}
+/**
+ * @class BitcastExpr
+ * @extends Expression
+ * @category AST
+ */
+class BitcastExpr extends Expression {
+    constructor(type, value) {
+        super();
+        this.type = type;
+        this.value = value;
+    }
+    get astNodeType() {
+        return "bitcastExpr";
+    }
+    search(callback) {
+        this.value.search(callback);
+    }
+}
+/**
+ * @class TypecastExpr
+ * @extends Expression
+ * @category AST
+ */
+class TypecastExpr extends Expression {
+    constructor(type, args) {
+        super();
+        this.type = type;
+        this.args = args;
+    }
+    get astNodeType() {
+        return "typecastExpr";
+    }
+    constEvaluate(context, type) {
+        return context.evalExpression(this, context.context);
+    }
+    search(callback) {
+        this.searchBlock(this.args, callback);
+    }
+}
+/**
+ * @class ArrayIndex
+ * @extends Expression
+ * @category AST
+ */
+class ArrayIndex extends Expression {
+    constructor(index) {
+        super();
+        this.index = index;
+    }
+    search(callback) {
+        this.index.search(callback);
+    }
+}
+/**
+ * @class Operator
+ * @extends Expression
+ * @category AST
+ */
+class Operator extends Expression {
+    constructor() {
+        super();
+    }
+}
+/**
+ * @class UnaryOperator
+ * @extends Operator
+ * @category AST
+ * @property {string} operator +, -, !, ~
+ */
+class UnaryOperator extends Operator {
+    constructor(operator, right) {
+        super();
+        this.operator = operator;
+        this.right = right;
+    }
+    get astNodeType() {
+        return "unaryOp";
+    }
+    constEvaluate(context, type) {
+        return context.evalExpression(this, context.context);
+    }
+    search(callback) {
+        this.right.search(callback);
+    }
+}
+/**
+ * @class BinaryOperator
+ * @extends Operator
+ * @category AST
+ * @property {string} operator +, -, *, /, %, ==, !=, <, >, <=, >=, &&, ||
+ */
+class BinaryOperator extends Operator {
+    constructor(operator, left, right) {
+        super();
+        this.operator = operator;
+        this.left = left;
+        this.right = right;
+    }
+    get astNodeType() {
+        return "binaryOp";
+    }
+    _getPromotedType(t1, t2) {
+        if (t1.name === t2.name) {
+            return t1;
+        }
+        if (t1.name === "f32" || t2.name === "f32") {
+            return Type.f32;
+        }
+        if (t1.name === "u32" || t2.name === "u32") {
+            return Type.u32;
+        }
+        return Type.i32;
+    }
+    constEvaluate(context, type) {
+        return context.evalExpression(this, context.context);
+    }
+    search(callback) {
+        this.left.search(callback);
+        this.right.search(callback);
+    }
+}
+/**
+ * @class SwitchCase
+ * @extends Node
+ * @category AST
+ */
+class SwitchCase extends Node {
+    constructor(body) {
+        super();
+        this.body = body;
+    }
+    search(callback) {
+        callback(this);
+        this.searchBlock(this.body, callback);
+    }
+}
+class DefaultSelector extends Expression {
+    constructor() {
+        super();
+    }
+    get astNodeType() {
+        return "default";
+    }
+}
+/**
+ * @class Case
+ * @extends SwitchCase
+ * @category AST
+ */
+class Case extends SwitchCase {
+    constructor(selectors, body) {
+        super(body);
+        this.selectors = selectors;
+    }
+    get astNodeType() {
+        return "case";
+    }
+    search(callback) {
+        this.searchBlock(this.body, callback);
+    }
+}
+/**
+ * @class Default
+ * @extends SwitchCase
+ * @category AST
+ */
+class Default extends SwitchCase {
+    constructor(body) {
+        super(body);
+    }
+    get astNodeType() {
+        return "default";
+    }
+    search(callback) {
+        this.searchBlock(this.body, callback);
+    }
+}
+/**
+ * @class Argument
+ * @extends Node
+ * @category AST
+ */
+class Argument extends Node {
+    constructor(name, type, attributes) {
+        super();
+        this.name = name;
+        this.type = type;
+        this.attributes = attributes;
+    }
+    get astNodeType() {
+        return "argument";
+    }
+}
+/**
+ * @class ElseIf
+ * @extends Node
+ * @category AST
+ */
+class ElseIf extends Node {
+    constructor(condition, body) {
+        super();
+        this.condition = condition;
+        this.body = body;
+    }
+    get astNodeType() {
+        return "elseif";
+    }
+    search(callback) {
+        this.condition.search(callback);
+        this.searchBlock(this.body, callback);
+    }
+}
+/**
+ * @class Member
+ * @extends Node
+ * @category AST
+ */
+class Member extends Node {
+    constructor(name, type, attributes) {
+        super();
+        this.name = name;
+        this.type = type;
+        this.attributes = attributes;
+    }
+    get astNodeType() {
+        return "member";
+    }
+}
+/**
+ * @class Attribute
+ * @extends Node
+ * @category AST
+ */
+class Attribute extends Node {
+    constructor(name, value) {
+        super();
+        this.name = name;
+        this.value = value;
+    }
+    get astNodeType() {
+        return "attribute";
+    }
+}
+class Data {
+    constructor(typeInfo, parent) {
+        this.parent = null;
+        this.typeInfo = typeInfo;
+        this.parent = parent;
+        this.id = Data._id++;
+    }
+    clone() {
+        throw `Clone: Not implemented for ${this.constructor.name}`;
+    }
+    setDataValue(exec, value, postfix, context) {
+        console.error(`SetDataValue: Not implemented for ${this.constructor.name}`);
+    }
+    getSubData(exec, postfix, context) {
+        console.error(`GetDataValue: Not implemented for ${this.constructor.name}`);
+        return null;
+    }
+    toString() {
+        return `<${this.typeInfo.getTypeName()}>`;
+    }
+}
+Data._id = 0;
+class VoidData extends Data {
+    constructor() {
+        super(new TypeInfo("void", null), null);
+    }
+    toString() {
+        return "void";
+    }
+}
+VoidData.void = new VoidData();
+class PointerData extends Data {
+    constructor(reference) {
+        super(new PointerInfo("pointer", reference.typeInfo, null), null);
+        this.reference = reference;
+    }
+    clone() {
+        return this;
+    }
+    setDataValue(exec, value, postfix, context) {
+        this.reference.setDataValue(exec, value, postfix, context);
+    }
+    getSubData(exec, postfix, context) {
+        if (postfix) {
+            return this.reference.getSubData(exec, postfix, context);
+        }
+        return this;
+    }
+    toString() {
+        return `&${this.reference.toString()}`;
+    }
+}
+class ScalarData extends Data {
+    constructor(value, typeInfo, parent = null) {
+        super(typeInfo, parent);
+        if (value instanceof Int32Array || value instanceof Uint32Array || value instanceof Float32Array) {
+            this.data = value;
+        }
+        else {
+            if (this.typeInfo.name === "x32") {
+                if (value - Math.floor(value) !== 0) {
+                    this.data = new Float32Array([value]);
+                }
+                else if (value >= 0) {
+                    this.data = new Uint32Array([value]);
+                }
+                else {
+                    this.data = new Int32Array([value]);
+                }
+            }
+            else if (this.typeInfo.name === "i32" || this.typeInfo.name === "bool") {
+                this.data = new Int32Array([value]);
+            }
+            else if (this.typeInfo.name === "u32") {
+                this.data = new Uint32Array([value]);
+            }
+            else if (this.typeInfo.name === "f32" || this.typeInfo.name === "f16") {
+                this.data = new Float32Array([value]);
+            }
+            else {
+                console.error(`ScalarData2: Invalid type`, typeInfo);
+            }
+        }
+    }
+    clone() {
+        if (this.data instanceof Float32Array) {
+            return new ScalarData(new Float32Array(this.data), this.typeInfo, null);
+        }
+        else if (this.data instanceof Int32Array) {
+            return new ScalarData(new Int32Array(this.data), this.typeInfo, null);
+        }
+        else if (this.data instanceof Uint32Array) {
+            return new ScalarData(new Uint32Array(this.data), this.typeInfo, null);
+        }
+        throw `ScalarData: Invalid data type`;
+    }
+    get value() {
+        return this.data[0];
+    }
+    set value(v) {
+        this.data[0] = v;
+    }
+    setDataValue(exec, value, postfix, context) {
+        if (postfix) {
+            console.error(`SetDataValue: Scalar data does not support postfix`, postfix);
+            return;
+        }
+        if (!(value instanceof ScalarData)) {
+            console.error(`SetDataValue: Invalid value`, value);
+            return;
+        }
+        let v = value.data[0];
+        if (this.typeInfo.name === "i32" || this.typeInfo.name === "u32") {
+            v = Math.floor(v);
+        }
+        else if (this.typeInfo.name === "bool") {
+            v = v ? 1 : 0;
+        }
+        this.data[0] = v;
+    }
+    getSubData(exec, postfix, context) {
+        if (postfix) {
+            console.error(`getSubData: Scalar data does not support postfix`, postfix);
+            return null;
+        }
+        return this;
+    }
+    toString() {
+        return `${this.value}`;
+    }
+}
+function _getVectorData(exec, values, formatName) {
+    const size = values.length;
+    if (size === 2) {
+        if (formatName === "f32") {
+            return new VectorData(new Float32Array(values), exec.getTypeInfo("vec2f"));
+        }
+        else if (formatName === "i32" || formatName === "bool") {
+            return new VectorData(new Int32Array(values), exec.getTypeInfo("vec2i"));
+        }
+        else if (formatName === "u32") {
+            return new VectorData(new Uint32Array(values), exec.getTypeInfo("vec2u"));
+        }
+        else if (formatName === "f16") {
+            return new VectorData(new Float32Array(values), exec.getTypeInfo("vec2h"));
+        }
+        else {
+            console.error(`getSubData: Unknown format ${formatName}`);
+        }
+        return null;
+    }
+    if (size === 3) {
+        if (formatName === "f32") {
+            return new VectorData(new Float32Array(values), exec.getTypeInfo("vec3f"));
+        }
+        else if (formatName === "i32" || formatName === "bool") {
+            return new VectorData(new Int32Array(values), exec.getTypeInfo("vec3i"));
+        }
+        else if (formatName === "u32") {
+            return new VectorData(new Uint32Array(values), exec.getTypeInfo("vec3u"));
+        }
+        else if (formatName === "f16") {
+            return new VectorData(new Float32Array(values), exec.getTypeInfo("vec3h"));
+        }
+        else {
+            console.error(`getSubData: Unknown format ${formatName}`);
+        }
+        return null;
+    }
+    if (size === 4) {
+        if (formatName === "f32") {
+            return new VectorData(new Float32Array(values), exec.getTypeInfo("vec4f"));
+        }
+        else if (formatName === "i32" || formatName === "bool") {
+            return new VectorData(new Int32Array(values), exec.getTypeInfo("vec4i"));
+        }
+        else if (formatName === "u32") {
+            return new VectorData(new Uint32Array(values), exec.getTypeInfo("vec4u"));
+        }
+        else if (formatName === "f16") {
+            return new VectorData(new Float32Array(values), exec.getTypeInfo("vec4h"));
+        }
+        console.error(`getSubData: Unknown format ${formatName}`);
+        return null;
+    }
+    console.error(`getSubData: Invalid vector size ${values.length}`);
+    return null;
+}
+class VectorData extends Data {
+    constructor(value, typeInfo, parent = null) {
+        super(typeInfo, parent);
+        if (value instanceof Float32Array || value instanceof Uint32Array || value instanceof Int32Array) {
+            this.data = value;
+        }
+        else {
+            const typename = this.typeInfo.name;
+            if (typename === "vec2f" || typename === "vec3f" || typename === "vec4f") {
+                this.data = new Float32Array(value);
+            }
+            else if (typename === "vec2i" || typename === "vec3i" || typename === "vec4i") {
+                this.data = new Int32Array(value);
+            }
+            else if (typename === "vec2u" || typename === "vec3u" || typename === "vec4u") {
+                this.data = new Uint32Array(value);
+            }
+            else if (typename === "vec2h" || typename === "vec3h" || typename === "vec4h") {
+                this.data = new Float32Array(value);
+            }
+            else if (typename === "vec2b" || typename === "vec3b" || typename === "vec4b") {
+                this.data = new Int32Array(value);
+            }
+            else if (typename === "vec2" || typename === "vec3" || typename === "vec4") {
+                this.data = new Float32Array(value);
+            }
+            else {
+                console.error(`VectorData: Invalid type ${typename}`);
+            }
+        }
+    }
+    clone() {
+        if (this.data instanceof Float32Array) {
+            return new VectorData(new Float32Array(this.data), this.typeInfo, null);
+        }
+        else if (this.data instanceof Int32Array) {
+            return new VectorData(new Int32Array(this.data), this.typeInfo, null);
+        }
+        else if (this.data instanceof Uint32Array) {
+            return new VectorData(new Uint32Array(this.data), this.typeInfo, null);
+        }
+        throw `VectorData: Invalid data type`;
+    }
+    setDataValue(exec, value, postfix, context) {
+        if (postfix instanceof StringExpr) {
+            console.error("TODO: Set vector postfix");
+            return;
+        }
+        if (!(value instanceof VectorData)) {
+            console.error(`SetDataValue: Invalid value`, value);
+            return;
+        }
+        this.data = value.data;
+    }
+    getSubData(exec, postfix, context) {
+        if (postfix === null) {
+            return this;
+        }
+        let format = exec.getTypeInfo("f32");
+        if (this.typeInfo instanceof TemplateInfo) {
+            format = this.typeInfo.format || format;
+        }
+        else {
+            const typeName = this.typeInfo.name;
+            if (typeName === "vec2f" || typeName === "vec3f" || typeName === "vec4f") {
+                format = exec.getTypeInfo("f32");
+            }
+            else if (typeName === "vec2i" || typeName === "vec3i" || typeName === "vec4i") {
+                format = exec.getTypeInfo("i32");
+            }
+            else if (typeName === "vec2b" || typeName === "vec3b" || typeName === "vec4b") {
+                format = exec.getTypeInfo("bool");
+            }
+            else if (typeName === "vec2u" || typeName === "vec3u" || typeName === "vec4u") {
+                format = exec.getTypeInfo("u32");
+            }
+            else if (typeName === "vec2h" || typeName === "vec3h" || typeName === "vec4h") {
+                format = exec.getTypeInfo("f16");
+            }
+            else {
+                console.error(`GetSubData: Unknown type ${typeName}`);
+            }
+        }
+        let self = this;
+        while (postfix !== null && self !== null) {
+            if (postfix instanceof ArrayIndex) {
+                const idx = postfix.index;
+                let i = -1;
+                if (idx instanceof LiteralExpr) {
+                    if (idx.value instanceof ScalarData) {
+                        i = idx.value.value;
+                    }
+                    else {
+                        console.error(`GetSubData: Invalid array index ${idx.value}`);
+                        return null;
+                    }
+                }
+                else {
+                    const d = exec.evalExpression(idx, context);
+                    if (d instanceof ScalarData) {
+                        i = d.value;
+                    }
+                    else {
+                        console.error(`GetSubData: Unknown index type`, idx);
+                        return null;
+                    }
+                }
+                if (i < 0 || i >= self.data.length) {
+                    console.error(`GetSubData: Index out of range`, i);
+                    return null;
+                }
+                if (self.data instanceof Float32Array) {
+                    const d = new Float32Array(self.data.buffer, self.data.byteOffset + i * 4, 1);
+                    return new ScalarData(d, format);
+                }
+                else if (self.data instanceof Int32Array) {
+                    const d = new Int32Array(self.data.buffer, self.data.byteOffset + i * 4, 1);
+                    return new ScalarData(d, format);
+                }
+                else if (self.data instanceof Uint32Array) {
+                    const d = new Uint32Array(self.data.buffer, self.data.byteOffset + i * 4, 1);
+                    return new ScalarData(d, format);
+                }
+                throw `GetSubData: Invalid data type`;
+            }
+            else if (postfix instanceof StringExpr) {
+                const member = postfix.value.toLowerCase();
+                if (member.length === 1) {
+                    let i = 0;
+                    if (member === "x" || member === "r") {
+                        i = 0;
+                    }
+                    else if (member === "y" || member === "g") {
+                        i = 1;
+                    }
+                    else if (member === "z" || member === "b") {
+                        i = 2;
+                    }
+                    else if (member === "w" || member === "a") {
+                        i = 3;
+                    }
+                    else {
+                        console.error(`GetSubData: Unknown member ${member}`);
+                        return null;
+                    }
+                    if (this.data instanceof Float32Array) {
+                        let d = new Float32Array(this.data.buffer, this.data.byteOffset + i * 4, 1);
+                        return new ScalarData(d, format, this);
+                    }
+                    else if (this.data instanceof Int32Array) {
+                        let d = new Int32Array(this.data.buffer, this.data.byteOffset + i * 4, 1);
+                        return new ScalarData(d, format, this);
+                    }
+                    else if (this.data instanceof Uint32Array) {
+                        let d = new Uint32Array(this.data.buffer, this.data.byteOffset + i * 4, 1);
+                        return new ScalarData(d, format, this);
+                    }
+                }
+                const values = [];
+                for (const m of member) {
+                    if (m === "x" || m === "r") {
+                        values.push(this.data[0]);
+                    }
+                    else if (m === "y" || m === "g") {
+                        values.push(this.data[1]);
+                    }
+                    else if (m === "z" || m === "b") {
+                        values.push(this.data[2]);
+                    }
+                    else if (m === "w" || m === "a") {
+                        values.push(this.data[3]);
+                    }
+                    else {
+                        console.error(`GetDataValue: Unknown member ${m}`);
+                    }
+                }
+                self = _getVectorData(exec, values, format.name);
+            }
+            else {
+                console.error(`GetSubData: Unknown postfix`, postfix);
+                return null;
+            }
+            postfix = postfix.postfix;
+        }
+        return self;
+    }
+    toString() {
+        let s = `${this.data[0]}`;
+        for (let i = 1; i < this.data.length; ++i) {
+            s += `, ${this.data[i]}`;
+        }
+        return s;
+    }
+}
+class MatrixData extends Data {
+    constructor(value, typeInfo, parent = null) {
+        super(typeInfo, parent);
+        if (value instanceof Float32Array) {
+            this.data = value;
+        }
+        else {
+            this.data = new Float32Array(value);
+        }
+    }
+    clone() {
+        return new MatrixData(new Float32Array(this.data), this.typeInfo, null);
+    }
+    setDataValue(exec, value, postfix, context) {
+        if (postfix instanceof StringExpr) {
+            console.error("TODO: Set matrix postfix");
+            return;
+        }
+        if (!(value instanceof MatrixData)) {
+            console.error(`SetDataValue: Invalid value`, value);
+            return;
+        }
+        this.data = value.data;
+    }
+    getSubData(exec, postfix, context) {
+        if (postfix === null) {
+            return this;
+        }
+        const typeName = this.typeInfo.name;
+        exec.getTypeInfo("f32");
+        if (this.typeInfo instanceof TemplateInfo) {
+            this.typeInfo.format;
+        }
+        else {
+            if (typeName.endsWith("f")) {
+                exec.getTypeInfo("f32");
+            }
+            else if (typeName.endsWith("i")) {
+                exec.getTypeInfo("i32");
+            }
+            else if (typeName.endsWith("u")) {
+                exec.getTypeInfo("u32");
+            }
+            else if (typeName.endsWith("h")) {
+                exec.getTypeInfo("f16");
+            }
+            else {
+                console.error(`GetDataValue: Unknown type ${typeName}`);
+                return null;
+            }
+        }
+        if (postfix instanceof ArrayIndex) {
+            const idx = postfix.index;
+            let i = -1;
+            if (idx instanceof LiteralExpr) {
+                if (idx.value instanceof ScalarData) {
+                    i = idx.value.value;
+                }
+                else {
+                    console.error(`GetDataValue: Invalid array index ${idx.value}`);
+                    return null;
+                }
+            }
+            else {
+                const d = exec.evalExpression(idx, context);
+                if (d instanceof ScalarData) {
+                    i = d.value;
+                }
+                else {
+                    console.error(`GetDataValue: Unknown index type`, idx);
+                    return null;
+                }
+            }
+            if (i < 0 || i >= this.data.length) {
+                console.error(`GetDataValue: Index out of range`, i);
+                return null;
+            }
+            const formatSuffix = typeName.endsWith("h") ? "h" : "f";
+            let vectorData;
+            if (typeName === "mat2x2" || typeName === "mat2x2f" || typeName === "mat2x2h" ||
+                typeName === "mat3x2" || typeName === "mat3x2f" || typeName === "mat3x2h" ||
+                typeName === "mat4x2" || typeName === "mat4x2f" || typeName === "mat4x2h") {
+                vectorData = new VectorData(new Float32Array(this.data.buffer, this.data.byteOffset + i * 2 * 4, 2), exec.getTypeInfo(`vec2${formatSuffix}`));
+            }
+            else if (typeName === "mat2x3" || typeName === "mat2x3f" || typeName === "mat2x3h" ||
+                typeName === "mat3x3" || typeName === "mat3x3f" || typeName === "mat3x3h" ||
+                typeName === "mat4x3" || typeName === "mat4x3f" || typeName === "mat4x3h") {
+                vectorData = new VectorData(new Float32Array(this.data.buffer, this.data.byteOffset + i * 3 * 4, 3), exec.getTypeInfo(`vec3${formatSuffix}`));
+            }
+            else if (typeName === "mat2x4" || typeName === "mat2x4f" || typeName === "mat2x4h" ||
+                typeName === "mat3x4" || typeName === "mat3x4f" || typeName === "mat3x4h" ||
+                typeName === "mat4x4" || typeName === "mat4x4f" || typeName === "mat4x4h") {
+                vectorData = new VectorData(new Float32Array(this.data.buffer, this.data.byteOffset + i * 4 * 4, 4), exec.getTypeInfo(`vec4${formatSuffix}`));
+            }
+            else {
+                console.error(`GetDataValue: Unknown type ${typeName}`);
+                return null;
+            }
+            if (postfix.postfix) {
+                return vectorData.getSubData(exec, postfix.postfix, context);
+            }
+            return vectorData;
+        }
+        else {
+            console.error(`GetDataValue: Invalid postfix`, postfix);
+            return null;
+        }
+    }
+    toString() {
+        let s = `${this.data[0]}`;
+        for (let i = 1; i < this.data.length; ++i) {
+            s += `, ${this.data[i]}`;
+        }
+        return s;
+    }
+}
+// Used to store array and struct data
+class TypedData extends Data {
+    constructor(data, typeInfo, offset = 0, parent = null) {
+        super(typeInfo, parent);
+        this.buffer = data instanceof ArrayBuffer ? data : data.buffer;
+        this.offset = offset;
+    }
+    clone() {
+        const cloned = new Uint8Array(new Uint8Array(this.buffer, this.offset, this.typeInfo.size));
+        return new TypedData(cloned.buffer, this.typeInfo, 0, null);
+    }
+    setDataValue(exec, value, postfix, context) {
+        if (value === null) {
+            console.log(`setDataValue: NULL data.`);
+            return;
+        }
+        let offset = this.offset;
+        let typeInfo = this.typeInfo;
+        while (postfix) {
+            if (postfix instanceof ArrayIndex) {
+                if (typeInfo instanceof ArrayInfo) {
+                    const idx = postfix.index;
+                    if (idx instanceof LiteralExpr) {
+                        if (idx.value instanceof ScalarData) {
+                            offset += idx.value.value * typeInfo.stride;
+                        }
+                        else {
+                            console.error(`SetDataValue: Invalid index type ${idx.value}`);
+                            return;
+                        }
+                    }
+                    else {
+                        const i = exec.evalExpression(idx, context);
+                        if (i instanceof ScalarData) {
+                            offset += i.value * typeInfo.stride;
+                        }
+                        else {
+                            console.error(`SetDataValue: Unknown index type`, idx);
+                            return;
+                        }
+                    }
+                    typeInfo = typeInfo.format;
+                }
+                else {
+                    console.error(`SetDataValue: Type ${typeInfo.getTypeName()} is not an array`);
+                }
+            }
+            else if (postfix instanceof StringExpr) {
+                const member = postfix.value;
+                if (typeInfo instanceof StructInfo) {
+                    let found = false;
+                    for (const m of typeInfo.members) {
+                        if (m.name === member) {
+                            offset += m.offset;
+                            typeInfo = m.type;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        console.error(`SetDataValue: Member ${member} not found`);
+                        return;
+                    }
+                }
+                else if (typeInfo instanceof TypeInfo) {
+                    const typeName = typeInfo.getTypeName();
+                    let element = 0;
+                    if (member === "x" || member === "r") {
+                        element = 0;
+                    }
+                    else if (member === "y" || member === "g") {
+                        element = 1;
+                    }
+                    else if (member === "z" || member === "b") {
+                        element = 2;
+                    }
+                    else if (member === "w" || member === "a") {
+                        element = 3;
+                    }
+                    else {
+                        console.error(`SetDataValue: Unknown member ${member}`);
+                        return;
+                    }
+                    if (!(value instanceof ScalarData)) {
+                        console.error(`SetDataValue: Invalid value`, value);
+                        return;
+                    }
+                    const v = value.value;
+                    if (typeName === "vec2f") {
+                        new Float32Array(this.buffer, offset, 2)[element] = v;
+                        return;
+                    }
+                    else if (typeName === "vec3f") {
+                        new Float32Array(this.buffer, offset, 3)[element] = v;
+                        return;
+                    }
+                    else if (typeName === "vec4f") {
+                        new Float32Array(this.buffer, offset, 4)[element] = v;
+                        return;
+                    }
+                    else if (typeName === "vec2i") {
+                        new Int32Array(this.buffer, offset, 2)[element] = v;
+                        return;
+                    }
+                    else if (typeName === "vec3i") {
+                        new Int32Array(this.buffer, offset, 3)[element] = v;
+                        return;
+                    }
+                    else if (typeName === "vec4i") {
+                        new Int32Array(this.buffer, offset, 4)[element] = v;
+                        return;
+                    }
+                    else if (typeName === "vec2u") {
+                        new Uint32Array(this.buffer, offset, 2)[element] = v;
+                        return;
+                    }
+                    else if (typeName === "vec3u") {
+                        new Uint32Array(this.buffer, offset, 3)[element] = v;
+                        return;
+                    }
+                    else if (typeName === "vec4u") {
+                        new Uint32Array(this.buffer, offset, 4)[element] = v;
+                        return;
+                    }
+                    console.error(`SetDataValue: Type ${typeName} is not a struct`);
+                    return;
+                }
+            }
+            else {
+                console.error(`SetDataValue: Unknown postfix type`, postfix);
+                return;
+            }
+            postfix = postfix.postfix;
+        }
+        this.setData(exec, value, typeInfo, offset, context);
+    }
+    setData(exec, value, typeInfo, offset, context) {
+        const typeName = typeInfo.getTypeName();
+        if (typeName === "f32" || typeName === "f16") {
+            if (value instanceof ScalarData) {
+                new Float32Array(this.buffer, offset, 1)[0] = value.value;
+            }
+            return;
+        }
+        else if (typeName === "i32" || typeName === "atomic<i32>" || typeName === "x32") {
+            if (value instanceof ScalarData) {
+                new Int32Array(this.buffer, offset, 1)[0] = value.value;
+            }
+            return;
+        }
+        else if (typeName === "u32" || typeName === "atomic<u32>") {
+            if (value instanceof ScalarData) {
+                new Uint32Array(this.buffer, offset, 1)[0] = value.value;
+            }
+            return;
+        }
+        else if (typeName === "bool") {
+            if (value instanceof ScalarData) {
+                new Int32Array(this.buffer, offset, 1)[0] = value.value;
+            }
+            return;
+        }
+        else if (typeName === "vec2f" || typeName === "vec2h") {
+            const x = new Float32Array(this.buffer, offset, 2);
+            if (value instanceof VectorData) {
+                x[0] = value.data[0];
+                x[1] = value.data[1];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+            }
+            return;
+        }
+        else if (typeName === "vec3f" || typeName === "vec3h") {
+            const x = new Float32Array(this.buffer, offset, 3);
+            if (value instanceof VectorData) {
+                x[0] = value.data[0];
+                x[1] = value.data[1];
+                x[2] = value.data[2];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+            }
+            return;
+        }
+        else if (typeName === "vec4f" || typeName === "vec4h") {
+            const x = new Float32Array(this.buffer, offset, 4);
+            if (value instanceof VectorData) {
+                x[0] = value.data[0];
+                x[1] = value.data[1];
+                x[2] = value.data[2];
+                x[3] = value.data[3];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+            }
+            return;
+        }
+        else if (typeName === "vec2i") {
+            const x = new Int32Array(this.buffer, offset, 2);
+            if (value instanceof VectorData) {
+                x[0] = value.data[0];
+                x[1] = value.data[1];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+            }
+            return;
+        }
+        else if (typeName === "vec3i") {
+            const x = new Int32Array(this.buffer, offset, 3);
+            if (value instanceof VectorData) {
+                x[0] = value.data[0];
+                x[1] = value.data[1];
+                x[2] = value.data[2];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+            }
+            return;
+        }
+        else if (typeName === "vec4i") {
+            const x = new Int32Array(this.buffer, offset, 4);
+            if (value instanceof VectorData) {
+                x[0] = value.data[0];
+                x[1] = value.data[1];
+                x[2] = value.data[2];
+                x[3] = value.data[3];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+            }
+            return;
+        }
+        else if (typeName === "vec2u") {
+            const x = new Uint32Array(this.buffer, offset, 2);
+            if (value instanceof VectorData) {
+                x[0] = value.data[0];
+                x[1] = value.data[1];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+            }
+            return;
+        }
+        else if (typeName === "vec3u") {
+            const x = new Uint32Array(this.buffer, offset, 3);
+            if (value instanceof VectorData) {
+                x[0] = value.data[0];
+                x[1] = value.data[1];
+                x[2] = value.data[2];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+            }
+            return;
+        }
+        else if (typeName === "vec4u") {
+            const x = new Uint32Array(this.buffer, offset, 4);
+            if (value instanceof VectorData) {
+                x[0] = value.data[0];
+                x[1] = value.data[1];
+                x[2] = value.data[2];
+                x[3] = value.data[3];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+            }
+            return;
+        }
+        else if (typeName === "vec2b") {
+            const x = new Uint32Array(this.buffer, offset, 2);
+            if (value instanceof VectorData) {
+                x[0] = value.data[0];
+                x[1] = value.data[1];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+            }
+            return;
+        }
+        else if (typeName === "vec3b") {
+            const x = new Uint32Array(this.buffer, offset, 3);
+            if (value instanceof VectorData) {
+                x[0] = value.data[0];
+                x[1] = value.data[1];
+                x[2] = value.data[2];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+            }
+            return;
+        }
+        else if (typeName === "vec4b") {
+            const x = new Uint32Array(this.buffer, offset, 4);
+            if (value instanceof VectorData) {
+                x[0] = value.data[0];
+                x[1] = value.data[1];
+                x[2] = value.data[2];
+                x[3] = value.data[3];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+            }
+            return;
+        }
+        else if (typeName === "mat2x2f" || typeName === "mat2x2h") {
+            const x = new Float32Array(this.buffer, offset, 4);
+            if (value instanceof MatrixData) {
+                x[0] = value.data[0];
+                x[1] = value.data[1];
+                x[2] = value.data[2];
+                x[3] = value.data[3];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+            }
+            return;
+        }
+        else if (typeName === "mat2x3f" || typeName === "mat2x3h") {
+            const x = new Float32Array(this.buffer, offset, 6);
+            if (value instanceof MatrixData) {
+                x[0] = value.data[0];
+                x[1] = value.data[1];
+                x[2] = value.data[2];
+                x[3] = value.data[3];
+                x[4] = value.data[4];
+                x[5] = value.data[5];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+                x[4] = value[4];
+                x[5] = value[5];
+            }
+            return;
+        }
+        else if (typeName === "mat2x4f" || typeName === "mat2x4h") {
+            const x = new Float32Array(this.buffer, offset, 8);
+            if (value instanceof MatrixData) {
+                x[0] = value.data[0];
+                x[1] = value.data[1];
+                x[2] = value.data[2];
+                x[3] = value.data[3];
+                x[4] = value.data[4];
+                x[5] = value.data[5];
+                x[6] = value.data[6];
+                x[7] = value.data[7];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+                x[4] = value[4];
+                x[5] = value[5];
+                x[6] = value[6];
+                x[7] = value[7];
+            }
+            return;
+        }
+        else if (typeName === "mat3x2f" || typeName === "mat3x2h") {
+            const x = new Float32Array(this.buffer, offset, 6);
+            if (value instanceof MatrixData) {
+                x[0] = value.data[0];
+                x[1] = value.data[1];
+                x[2] = value.data[2];
+                x[3] = value.data[3];
+                x[4] = value.data[4];
+                x[5] = value.data[5];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+                x[4] = value[4];
+                x[5] = value[5];
+            }
+            return;
+        }
+        else if (typeName === "mat3x3f" || typeName === "mat3x3h") {
+            const x = new Float32Array(this.buffer, offset, 9);
+            if (value instanceof MatrixData) {
+                x[0] = value.data[0];
+                x[1] = value.data[1];
+                x[2] = value.data[2];
+                x[3] = value.data[3];
+                x[4] = value.data[4];
+                x[5] = value.data[5];
+                x[6] = value.data[6];
+                x[7] = value.data[7];
+                x[8] = value.data[8];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+                x[4] = value[4];
+                x[5] = value[5];
+                x[6] = value[6];
+                x[7] = value[7];
+                x[8] = value[8];
+            }
+            return;
+        }
+        else if (typeName === "mat3x4f" || typeName === "mat3x4h") {
+            const x = new Float32Array(this.buffer, offset, 12);
+            if (value instanceof MatrixData) {
+                x[0] = value.data[0];
+                x[1] = value.data[1];
+                x[2] = value.data[2];
+                x[3] = value.data[3];
+                x[4] = value.data[4];
+                x[5] = value.data[5];
+                x[6] = value.data[6];
+                x[7] = value.data[7];
+                x[8] = value.data[8];
+                x[9] = value.data[9];
+                x[10] = value.data[10];
+                x[11] = value.data[11];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+                x[4] = value[4];
+                x[5] = value[5];
+                x[6] = value[6];
+                x[7] = value[7];
+                x[8] = value[8];
+                x[9] = value[9];
+                x[10] = value[10];
+                x[11] = value[11];
+            }
+            return;
+        }
+        else if (typeName === "mat4x2f" || typeName === "mat4x2h") {
+            const x = new Float32Array(this.buffer, offset, 8);
+            if (value instanceof MatrixData) {
+                x[0] = value.data[0];
+                x[1] = value.data[1];
+                x[2] = value.data[2];
+                x[3] = value.data[3];
+                x[4] = value.data[4];
+                x[5] = value.data[5];
+                x[6] = value.data[6];
+                x[7] = value.data[7];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+                x[4] = value[4];
+                x[5] = value[5];
+                x[6] = value[6];
+                x[7] = value[7];
+            }
+            return;
+        }
+        else if (typeName === "mat4x3f" || typeName === "mat4x3h") {
+            const x = new Float32Array(this.buffer, offset, 12);
+            if (value instanceof MatrixData) {
+                x[0] = value.data[0];
+                x[1] = value.data[1];
+                x[2] = value.data[2];
+                x[3] = value.data[3];
+                x[4] = value.data[4];
+                x[5] = value.data[5];
+                x[6] = value.data[6];
+                x[7] = value.data[7];
+                x[8] = value.data[8];
+                x[9] = value.data[9];
+                x[10] = value.data[10];
+                x[11] = value.data[11];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+                x[4] = value[4];
+                x[5] = value[5];
+                x[6] = value[6];
+                x[7] = value[7];
+                x[8] = value[8];
+                x[9] = value[9];
+                x[10] = value[10];
+                x[11] = value[11];
+            }
+            return;
+        }
+        else if (typeName === "mat4x4f" || typeName === "mat4x4h") {
+            const x = new Float32Array(this.buffer, offset, 16);
+            if (value instanceof MatrixData) {
+                x[0] = value.data[0];
+                x[1] = value.data[1];
+                x[2] = value.data[2];
+                x[3] = value.data[3];
+                x[4] = value.data[4];
+                x[5] = value.data[5];
+                x[6] = value.data[6];
+                x[7] = value.data[7];
+                x[8] = value.data[8];
+                x[9] = value.data[9];
+                x[10] = value.data[10];
+                x[11] = value.data[11];
+                x[12] = value.data[12];
+                x[13] = value.data[13];
+                x[14] = value.data[14];
+                x[15] = value.data[15];
+            }
+            else {
+                x[0] = value[0];
+                x[1] = value[1];
+                x[2] = value[2];
+                x[3] = value[3];
+                x[4] = value[4];
+                x[5] = value[5];
+                x[6] = value[6];
+                x[7] = value[7];
+                x[8] = value[8];
+                x[9] = value[9];
+                x[10] = value[10];
+                x[11] = value[11];
+                x[12] = value[12];
+                x[13] = value[13];
+                x[14] = value[14];
+                x[15] = value[15];
+            }
+            return;
+        }
+        if (value instanceof TypedData) {
+            if (typeInfo === value.typeInfo) {
+                const x = new Uint8Array(this.buffer, offset, value.buffer.byteLength);
+                x.set(new Uint8Array(value.buffer));
+                return;
+            }
+            else {
+                console.error(`SetDataValue: Type mismatch`, typeName, value.typeInfo.getTypeName());
+                return;
+            }
+        }
+        console.error(`SetData: Unknown type ${typeName}`);
+    }
+    getSubData(exec, postfix, context) {
+        var _a, _b, _c;
+        if (postfix === null) {
+            return this;
+        }
+        let offset = this.offset;
+        let typeInfo = this.typeInfo;
+        while (postfix) {
+            if (postfix instanceof ArrayIndex) {
+                const idx = postfix.index;
+                const _i = idx instanceof Expression ? exec.evalExpression(idx, context) : idx;
+                let i = 0;
+                if (_i instanceof ScalarData) {
+                    i = _i.value;
+                }
+                else if (typeof _i === "number") {
+                    i = _i;
+                }
+                else {
+                    console.error(`GetDataValue: Invalid index type`, idx);
+                }
+                if (typeInfo instanceof ArrayInfo) {
+                    offset += i * typeInfo.stride;
+                    typeInfo = typeInfo.format;
+                }
+                else {
+                    const typeName = typeInfo.getTypeName();
+                    if (typeName === "mat4x4" || typeName === "mat4x4f" || typeName === "mat4x4h") {
+                        offset += i * 16;
+                        typeInfo = exec.getTypeInfo("vec4f");
+                    }
+                    else if (typeName === "mat4x3" || typeName === "mat4x3f" || typeName === "mat4x3h") {
+                        offset += i * 12;
+                        typeInfo = exec.getTypeInfo("vec3f");
+                    }
+                    else if (typeName === "mat4x2" || typeName === "mat4x2f" || typeName === "mat4x2h") {
+                        offset += i * 8;
+                        typeInfo = exec.getTypeInfo("vec2f");
+                    }
+                    else if (typeName === "mat3x4" || typeName === "mat3x4f" || typeName === "mat3x4h") {
+                        offset += i * 12;
+                        typeInfo = exec.getTypeInfo("vec4f");
+                    }
+                    else if (typeName === "mat3x3" || typeName === "mat3x3f" || typeName === "mat3x3h") {
+                        offset += i * 9;
+                        typeInfo = exec.getTypeInfo("vec3f");
+                    }
+                    else if (typeName === "mat3x2" || typeName === "mat3x2f" || typeName === "mat3x2h") {
+                        offset += i * 6;
+                        typeInfo = exec.getTypeInfo("vec2f");
+                    }
+                    else if (typeName === "mat2x4" || typeName === "mat2x4f" || typeName === "mat2x4h") {
+                        offset += i * 8;
+                        typeInfo = exec.getTypeInfo("vec4f");
+                    }
+                    else if (typeName === "mat2x3" || typeName === "mat2x3f" || typeName === "mat2x3h") {
+                        offset += i * 6;
+                        typeInfo = exec.getTypeInfo("vec3f");
+                    }
+                    else if (typeName === "mat2x2" || typeName === "mat2x2f" || typeName === "mat2x2h") {
+                        offset += i * 4;
+                        typeInfo = exec.getTypeInfo("vec2f");
+                    }
+                    else if (typeName === "vec2f" || typeName === "vec3f" || typeName === "vec4f") {
+                        offset += i * 4;
+                        typeInfo = exec.getTypeInfo("f32");
+                    }
+                    else if (typeName === "vec2h" || typeName === "vec3h" || typeName === "vec4h") {
+                        offset += i * 2;
+                        typeInfo = exec.getTypeInfo("f16");
+                    }
+                    else if (typeName === "vec2b" || typeName === "vec3b" || typeName === "vec4b") {
+                        offset += i * 1;
+                        typeInfo = exec.getTypeInfo("bool");
+                    }
+                    else if (typeName === "vec2i" || typeName === "vec3i" || typeName === "vec4i") {
+                        offset += i * 4;
+                        typeInfo = exec.getTypeInfo("i32");
+                    }
+                    else if (typeName === "vec2u" || typeName === "vec3u" || typeName === "vec4u") {
+                        offset += i * 4;
+                        typeInfo = exec.getTypeInfo("u32");
+                    }
+                    else {
+                        console.error(`getDataValue: Type ${typeInfo.getTypeName()} is not an array`);
+                    }
+                }
+            }
+            else if (postfix instanceof StringExpr) {
+                const member = postfix.value;
+                if (typeInfo instanceof StructInfo) {
+                    let found = false;
+                    for (const m of typeInfo.members) {
+                        if (m.name === member) {
+                            offset += m.offset;
+                            typeInfo = m.type;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        console.error(`GetDataValue: Member ${member} not found`);
+                        return null;
+                    }
+                }
+                else if (typeInfo instanceof TypeInfo) {
+                    const typeName = typeInfo.getTypeName();
+                    if (typeName === "vec2f" || typeName === "vec3f" || typeName === "vec4f" ||
+                        typeName === "vec2i" || typeName === "vec3i" || typeName === "vec4i" ||
+                        typeName === "vec2u" || typeName === "vec3u" || typeName === "vec4u" ||
+                        typeName === "vec2b" || typeName === "vec3b" || typeName === "vec4b" ||
+                        typeName === "vec2h" || typeName === "vec3h" || typeName === "vec4h" ||
+                        typeName === "vec2" || typeName === "vec3" || typeName === "vec4") {
+                        if (member.length > 0 && member.length < 5) {
+                            let formatSuffix = "f";
+                            const value = [];
+                            for (let i = 0; i < member.length; ++i) {
+                                const m = member[i].toLowerCase();
+                                let element = 0;
+                                if (m === "x" || m === "r") {
+                                    element = 0;
+                                }
+                                else if (m === "y" || m === "g") {
+                                    element = 1;
+                                }
+                                else if (m === "z" || m === "b") {
+                                    element = 2;
+                                }
+                                else if (m === "w" || m === "a") {
+                                    element = 3;
+                                }
+                                else {
+                                    console.error(`Unknown member ${member}`);
+                                    return null;
+                                }
+                                if (member.length === 1) {
+                                    if (typeName.endsWith("f")) {
+                                        if (this.buffer.byteLength < (offset + element * 4 + 4)) {
+                                            console.log("Insufficient buffer data");
+                                            return null;
+                                        }
+                                        return new ScalarData(new Float32Array(this.buffer, offset + element * 4, 1), exec.getTypeInfo("f32"), this);
+                                    }
+                                    else if (typeName.endsWith("h")) {
+                                        return new ScalarData(new Float32Array(this.buffer, offset + element * 4, 1), exec.getTypeInfo("f16"), this);
+                                    }
+                                    else if (typeName.endsWith("i")) {
+                                        return new ScalarData(new Int32Array(this.buffer, offset + element * 4, 1), exec.getTypeInfo("i32"), this);
+                                    }
+                                    else if (typeName.endsWith("b")) {
+                                        return new ScalarData(new Int32Array(this.buffer, offset + element * 4, 1), exec.getTypeInfo("bool"), this);
+                                    }
+                                    else if (typeName.endsWith("u")) {
+                                        return new ScalarData(new Uint32Array(this.buffer, offset + element * 4, 1), exec.getTypeInfo("i32"), this);
+                                    }
+                                }
+                                if (typeName === "vec2f") {
+                                    value.push(new Float32Array(this.buffer, offset, 2)[element]);
+                                }
+                                else if (typeName === "vec3f") {
+                                    if ((offset + 12) >= this.buffer.byteLength) {
+                                        console.log("Insufficient buffer data");
+                                        return null;
+                                    }
+                                    const fa = new Float32Array(this.buffer, offset, 3);
+                                    value.push(fa[element]);
+                                }
+                                else if (typeName === "vec4f") {
+                                    value.push(new Float32Array(this.buffer, offset, 4)[element]);
+                                }
+                                else if (typeName === "vec2i") {
+                                    formatSuffix = "i";
+                                    value.push(new Int32Array(this.buffer, offset, 2)[element]);
+                                }
+                                else if (typeName === "vec3i") {
+                                    formatSuffix = "i";
+                                    value.push(new Int32Array(this.buffer, offset, 3)[element]);
+                                }
+                                else if (typeName === "vec4i") {
+                                    formatSuffix = "i";
+                                    value.push(new Int32Array(this.buffer, offset, 4)[element]);
+                                }
+                                else if (typeName === "vec2u") {
+                                    formatSuffix = "u";
+                                    const ua = new Uint32Array(this.buffer, offset, 2);
+                                    value.push(ua[element]);
+                                }
+                                else if (typeName === "vec3u") {
+                                    formatSuffix = "u";
+                                    value.push(new Uint32Array(this.buffer, offset, 3)[element]);
+                                }
+                                else if (typeName === "vec4u") {
+                                    formatSuffix = "u";
+                                    value.push(new Uint32Array(this.buffer, offset, 4)[element]);
+                                }
+                            }
+                            if (value.length === 2) {
+                                typeInfo = exec.getTypeInfo(`vec2${formatSuffix}`);
+                            }
+                            else if (value.length === 3) {
+                                typeInfo = exec.getTypeInfo(`vec3${formatSuffix}`);
+                            }
+                            else if (value.length === 4) {
+                                typeInfo = exec.getTypeInfo(`vec4${formatSuffix}`);
+                            }
+                            else {
+                                console.error(`GetDataValue: Invalid vector length ${value.length}`);
+                            }
+                            return new VectorData(value, typeInfo, null);
+                        }
+                        else {
+                            console.error(`GetDataValue: Unknown member ${member}`);
+                            return null;
+                        }
+                    }
+                    console.error(`GetDataValue: Type ${typeName} is not a struct`);
+                    return null;
+                }
+            }
+            else {
+                console.error(`GetDataValue: Unknown postfix type`, postfix);
+                return null;
+            }
+            postfix = postfix.postfix;
+        }
+        const typeName = typeInfo.getTypeName();
+        if (typeName === "f32") {
+            return new ScalarData(new Float32Array(this.buffer, offset, 1), typeInfo, this);
+        }
+        else if (typeName === "i32") {
+            return new ScalarData(new Int32Array(this.buffer, offset, 1), typeInfo, this);
+        }
+        else if (typeName === "u32") {
+            return new ScalarData(new Uint32Array(this.buffer, offset, 1), typeInfo, this);
+        }
+        else if (typeName === "vec2f") {
+            return new VectorData(new Float32Array(this.buffer, offset, 2), typeInfo, this);
+        }
+        else if (typeName === "vec3f") {
+            return new VectorData(new Float32Array(this.buffer, offset, 3), typeInfo, this);
+        }
+        else if (typeName === "vec4f") {
+            return new VectorData(new Float32Array(this.buffer, offset, 4), typeInfo, this);
+        }
+        else if (typeName === "vec2i") {
+            return new VectorData(new Int32Array(this.buffer, offset, 2), typeInfo, this);
+        }
+        else if (typeName === "vec3i") {
+            return new VectorData(new Int32Array(this.buffer, offset, 3), typeInfo, this);
+        }
+        else if (typeName === "vec4i") {
+            return new VectorData(new Int32Array(this.buffer, offset, 4), typeInfo, this);
+        }
+        else if (typeName === "vec2u") {
+            return new VectorData(new Uint32Array(this.buffer, offset, 2), typeInfo, this);
+        }
+        else if (typeName === "vec3u") {
+            return new VectorData(new Uint32Array(this.buffer, offset, 3), typeInfo, this);
+        }
+        else if (typeName === "vec4u") {
+            return new VectorData(new Uint32Array(this.buffer, offset, 4), typeInfo, this);
+        }
+        if (typeInfo instanceof TemplateInfo && typeInfo.name === "atomic") {
+            if (((_a = typeInfo.format) === null || _a === void 0 ? void 0 : _a.name) === "u32") {
+                return new ScalarData(new Uint32Array(this.buffer, offset, 1)[0], typeInfo.format, this);
+            }
+            else if (((_b = typeInfo.format) === null || _b === void 0 ? void 0 : _b.name) === "i32") {
+                return new ScalarData(new Int32Array(this.buffer, offset, 1)[0], typeInfo.format, this);
+            }
+            else {
+                console.error(`GetDataValue: Invalid atomic format ${(_c = typeInfo.format) === null || _c === void 0 ? void 0 : _c.name}`);
+                return null;
+            }
+        }
+        return new TypedData(this.buffer, typeInfo, offset, this);
+    }
+    toArray() {
+        const typeName = this.typeInfo.getTypeName();
+        if (typeName === "f32" || typeName === "f16") {
+            return new Float32Array(this.buffer, this.offset, 1);
+        }
+        else if (typeName === "i32" || typeName === "atomic<i32>" || typeName === "x32") {
+            return new Int32Array(this.buffer, this.offset, 1);
+        }
+        else if (typeName === "u32" || typeName === "atomic<u32>") {
+            return new Uint32Array(this.buffer, this.offset, 1);
+        }
+        else if (typeName === "bool") {
+            return new Int32Array(this.buffer, this.offset, 1);
+        }
+        else if (typeName === "vec2f" || typeName === "vec2h") {
+            return new Float32Array(this.buffer, this.offset, 2);
+        }
+        else if (typeName === "vec3f" || typeName === "vec3h") {
+            return new Float32Array(this.buffer, this.offset, 3);
+        }
+        else if (typeName === "vec4f" || typeName === "vec4h") {
+            return new Float32Array(this.buffer, this.offset, 4);
+        }
+        else if (typeName === "vec2i") {
+            return new Int32Array(this.buffer, this.offset, 2);
+        }
+        else if (typeName === "vec3i") {
+            return new Int32Array(this.buffer, this.offset, 3);
+        }
+        else if (typeName === "vec4i") {
+            return new Int32Array(this.buffer, this.offset, 4);
+        }
+        else if (typeName === "vec2u") {
+            return new Uint32Array(this.buffer, this.offset, 2);
+        }
+        else if (typeName === "vec3u") {
+            return new Uint32Array(this.buffer, this.offset, 3);
+        }
+        else if (typeName === "vec4u") {
+            return new Uint32Array(this.buffer, this.offset, 4);
+        }
+        else if (typeName === "vec2b") {
+            return new Uint32Array(this.buffer, this.offset, 2);
+        }
+        else if (typeName === "vec3b") {
+            return new Uint32Array(this.buffer, this.offset, 3);
+        }
+        else if (typeName === "vec4b") {
+            return new Uint32Array(this.buffer, this.offset, 4);
+        }
+        else if (typeName === "mat2x2f" || typeName === "mat2x2h") {
+            return new Float32Array(this.buffer, this.offset, 4);
+        }
+        else if (typeName === "mat2x3f" || typeName === "mat2x3h") {
+            return new Float32Array(this.buffer, this.offset, 6);
+        }
+        else if (typeName === "mat2x4f" || typeName === "mat2x4h") {
+            return new Float32Array(this.buffer, this.offset, 8);
+        }
+        else if (typeName === "mat3x2f" || typeName === "mat3x2h") {
+            return new Float32Array(this.buffer, this.offset, 6);
+        }
+        else if (typeName === "mat3x3f" || typeName === "mat3x3h") {
+            return new Float32Array(this.buffer, this.offset, 9);
+        }
+        else if (typeName === "mat3x4f" || typeName === "mat3x4h") {
+            return new Float32Array(this.buffer, this.offset, 12);
+        }
+        else if (typeName === "mat4x2f" || typeName === "mat4x2h") {
+            return new Float32Array(this.buffer, this.offset, 8);
+        }
+        else if (typeName === "mat4x3f" || typeName === "mat4x3h") {
+            return new Float32Array(this.buffer, this.offset, 12);
+        }
+        else if (typeName === "mat4x4f" || typeName === "mat4x4h") {
+            return new Float32Array(this.buffer, this.offset, 16);
+        }
+        return null;
+    }
+    toString() {
+        let s = "";
+        if (this.typeInfo instanceof ArrayInfo) {
+            if (this.typeInfo.format.name === "f32") {
+                const fa = new Float32Array(this.buffer, this.offset);
+                s = `[${fa[0]}`;
+                for (let i = 1; i < fa.length; ++i) {
+                    s += `, ${fa[i]}`;
+                }
+            }
+            else if (this.typeInfo.format.name === "i32") {
+                const fa = new Int32Array(this.buffer, this.offset);
+                s = `[${fa[0]}`;
+                for (let i = 1; i < fa.length; ++i) {
+                    s += `, ${fa[i]}`;
+                }
+            }
+            else if (this.typeInfo.format.name === "u32") {
+                const fa = new Uint32Array(this.buffer, this.offset);
+                s = `[${fa[0]}`;
+                for (let i = 1; i < fa.length; ++i) {
+                    s += `, ${fa[i]}`;
+                }
+            }
+            else if (this.typeInfo.format.name === "vec2f") {
+                const fa = new Float32Array(this.buffer, this.offset);
+                s = `[${fa[0]}, ${fa[1]}]`;
+                for (let i = 1; i < fa.length / 2; ++i) {
+                    s += `, [${fa[i * 2]}, ${fa[i * 2 + 1]}]`;
+                }
+            }
+            else if (this.typeInfo.format.name === "vec3f") {
+                const fa = new Float32Array(this.buffer, this.offset);
+                s = `[${fa[0]}, ${fa[1]}, ${fa[2]}]`;
+                for (let i = 4; i < fa.length; i += 4) {
+                    s += `, [${fa[i]}, ${fa[i + 1]}, ${fa[i + 2]}]`;
+                }
+            }
+            else if (this.typeInfo.format.name === "vec4f") {
+                const fa = new Float32Array(this.buffer, this.offset);
+                s = `[${fa[0]}, ${fa[1]}, ${fa[2]}, ${fa[3]}]`;
+                for (let i = 4; i < fa.length; i += 4) {
+                    s += `, [${fa[i]}, ${fa[i + 1]}, ${fa[i + 2]}, ${fa[i + 3]}]`;
+                }
+            }
+            else {
+                s = `[...]`;
+            }
+        }
+        else if (this.typeInfo instanceof StructInfo) {
+            s += `{...}`;
+        }
+        else {
+            s = `[...]`;
+        }
+        return s;
+    }
+}
+class TextureData extends Data {
+    constructor(data, typeInfo, descriptor, view) {
+        super(typeInfo, null);
+        this.data = data;
+        this.descriptor = descriptor;
+        this.view = view;
+    }
+    clone() {
+        return new TextureData(this.data, this.typeInfo, this.descriptor, this.view);
+    }
+    get width() {
+        var _a, _b;
+        const size = this.descriptor["size"];
+        if (size instanceof Array && size.length > 0) {
+            return (_a = size[0]) !== null && _a !== void 0 ? _a : 0;
+        }
+        else if (size instanceof Object) {
+            return (_b = size["width"]) !== null && _b !== void 0 ? _b : 0;
+        }
+        return 0;
+    }
+    get height() {
+        var _a, _b;
+        const size = this.descriptor["size"];
+        if (size instanceof Array && size.length > 1) {
+            return (_a = size[1]) !== null && _a !== void 0 ? _a : 0;
+        }
+        else if (size instanceof Object) {
+            return (_b = size["height"]) !== null && _b !== void 0 ? _b : 0;
+        }
+        return 0;
+    }
+    get depthOrArrayLayers() {
+        var _a, _b;
+        const size = this.descriptor["size"];
+        if (size instanceof Array && size.length > 2) {
+            return (_a = size[2]) !== null && _a !== void 0 ? _a : 0;
+        }
+        else if (size instanceof Object) {
+            return (_b = size["depthOrArrayLayers"]) !== null && _b !== void 0 ? _b : 0;
+        }
+        return 0;
+    }
+    get format() {
+        var _a;
+        if (this.descriptor) {
+            return (_a = this.descriptor["format"]) !== null && _a !== void 0 ? _a : "rgba8unorm";
+        }
+        return "rgba8unorm";
+    }
+    get sampleCount() {
+        var _a;
+        if (this.descriptor) {
+            return (_a = this.descriptor["sampleCount"]) !== null && _a !== void 0 ? _a : 1;
+        }
+        return 1;
+    }
+    get mipLevelCount() {
+        var _a;
+        if (this.descriptor) {
+            return (_a = this.descriptor["mipLevelCount"]) !== null && _a !== void 0 ? _a : 1;
+        }
+        return 1;
+    }
+    get dimension() {
+        var _a;
+        if (this.descriptor) {
+            return (_a = this.descriptor["dimension"]) !== null && _a !== void 0 ? _a : "2d";
+        }
+        return "2d";
+    }
+    getMipLevelSize(level) {
+        if (level >= this.mipLevelCount) {
+            return [0, 0, 0];
+        }
+        const size = [this.width, this.height, this.depthOrArrayLayers];
+        for (let i = 0; i < size.length; ++i) {
+            size[i] = Math.max(1, size[i] >> level);
+        }
+        return size;
+    }
+    get texelByteSize() {
+        const format = this.format;
+        const formatInfo = TextureFormatInfo[format];
+        if (!formatInfo) {
+            return 0;
+        }
+        if (formatInfo.isDepthStencil) {
+            return 4; // depth textures have r32float imageData
+        }
+        return formatInfo.bytesPerBlock;
+    }
+    get bytesPerRow() {
+        const width = this.width;
+        const texelByteSize = this.texelByteSize;
+        //return (width * texelByteSize + 255) & ~0xff; // bytesPerRow is aligned to a multiple of 256 bytes
+        return width * texelByteSize;
+    }
+    get isDepthStencil() {
+        const format = this.format;
+        const formatInfo = TextureFormatInfo[format];
+        if (!formatInfo) {
+            return false;
+        }
+        return formatInfo.isDepthStencil;
+    }
+    getGpuSize() {
+        const format = this.format;
+        const formatInfo = TextureFormatInfo[format];
+        const width = this.width;
+        if (!format || width <= 0 || !formatInfo) {
+            return -1;
+        }
+        const height = this.height;
+        const depthOrArrayLayers = this.depthOrArrayLayers;
+        const dimension = this.dimension;
+        const blockWidth = width / formatInfo.blockWidth;
+        const blockHeight = dimension === "1d" ? 1 : height / formatInfo.blockHeight;
+        const bytesPerBlock = formatInfo.bytesPerBlock;
+        return blockWidth * blockHeight * bytesPerBlock * depthOrArrayLayers;
+    }
+    getPixel(x, y, z = 0, mipLevel = 0) {
+        const texelByteSize = this.texelByteSize;
+        const bytesPerRow = this.bytesPerRow;
+        const height = this.height;
+        const buffer = this.data[mipLevel];
+        const imageData = new Uint8Array(buffer);
+        return getTexturePixel(imageData, x, y, z, mipLevel, height, bytesPerRow, texelByteSize, this.format);
+    }
+    setPixel(x, y, z, mipLevel, value) {
+        const texelByteSize = this.texelByteSize;
+        const bytesPerRow = this.bytesPerRow;
+        const height = this.height;
+        const buffer = this.data[mipLevel];
+        const imageData = new Uint8Array(buffer);
+        setTexturePixel(imageData, x, y, z, mipLevel, height, bytesPerRow, texelByteSize, this.format, value);
+    }
+}
+
+var _a;
+exports.TokenClass = void 0;
+(function (TokenClass) {
+    TokenClass[TokenClass["token"] = 0] = "token";
+    TokenClass[TokenClass["keyword"] = 1] = "keyword";
+    TokenClass[TokenClass["reserved"] = 2] = "reserved";
+})(exports.TokenClass || (exports.TokenClass = {}));
+class TokenType {
+    constructor(name, type, rule) {
+        this.name = name;
+        this.type = type;
+        this.rule = rule;
+    }
+    toString() {
+        return this.name;
+    }
+}
+/// Catalog of defined token types, keywords, and reserved words.
+class TokenTypes {
+}
+_a = TokenTypes;
+TokenTypes.none = new TokenType("", exports.TokenClass.reserved, "");
+TokenTypes.eof = new TokenType("EOF", exports.TokenClass.token, "");
+TokenTypes.reserved = {
+    asm: new TokenType("asm", exports.TokenClass.reserved, "asm"),
+    bf16: new TokenType("bf16", exports.TokenClass.reserved, "bf16"),
+    do: new TokenType("do", exports.TokenClass.reserved, "do"),
+    enum: new TokenType("enum", exports.TokenClass.reserved, "enum"),
+    f16: new TokenType("f16", exports.TokenClass.reserved, "f16"),
+    f64: new TokenType("f64", exports.TokenClass.reserved, "f64"),
+    handle: new TokenType("handle", exports.TokenClass.reserved, "handle"),
+    i8: new TokenType("i8", exports.TokenClass.reserved, "i8"),
+    i16: new TokenType("i16", exports.TokenClass.reserved, "i16"),
+    i64: new TokenType("i64", exports.TokenClass.reserved, "i64"),
+    mat: new TokenType("mat", exports.TokenClass.reserved, "mat"),
+    premerge: new TokenType("premerge", exports.TokenClass.reserved, "premerge"),
+    regardless: new TokenType("regardless", exports.TokenClass.reserved, "regardless"),
+    typedef: new TokenType("typedef", exports.TokenClass.reserved, "typedef"),
+    u8: new TokenType("u8", exports.TokenClass.reserved, "u8"),
+    u16: new TokenType("u16", exports.TokenClass.reserved, "u16"),
+    u64: new TokenType("u64", exports.TokenClass.reserved, "u64"),
+    unless: new TokenType("unless", exports.TokenClass.reserved, "unless"),
+    using: new TokenType("using", exports.TokenClass.reserved, "using"),
+    vec: new TokenType("vec", exports.TokenClass.reserved, "vec"),
+    void: new TokenType("void", exports.TokenClass.reserved, "void"),
+};
+TokenTypes.keywords = {
+    array: new TokenType("array", exports.TokenClass.keyword, "array"),
+    atomic: new TokenType("atomic", exports.TokenClass.keyword, "atomic"),
+    bool: new TokenType("bool", exports.TokenClass.keyword, "bool"),
+    f32: new TokenType("f32", exports.TokenClass.keyword, "f32"),
+    i32: new TokenType("i32", exports.TokenClass.keyword, "i32"),
+    mat2x2: new TokenType("mat2x2", exports.TokenClass.keyword, "mat2x2"),
+    mat2x3: new TokenType("mat2x3", exports.TokenClass.keyword, "mat2x3"),
+    mat2x4: new TokenType("mat2x4", exports.TokenClass.keyword, "mat2x4"),
+    mat3x2: new TokenType("mat3x2", exports.TokenClass.keyword, "mat3x2"),
+    mat3x3: new TokenType("mat3x3", exports.TokenClass.keyword, "mat3x3"),
+    mat3x4: new TokenType("mat3x4", exports.TokenClass.keyword, "mat3x4"),
+    mat4x2: new TokenType("mat4x2", exports.TokenClass.keyword, "mat4x2"),
+    mat4x3: new TokenType("mat4x3", exports.TokenClass.keyword, "mat4x3"),
+    mat4x4: new TokenType("mat4x4", exports.TokenClass.keyword, "mat4x4"),
+    ptr: new TokenType("ptr", exports.TokenClass.keyword, "ptr"),
+    sampler: new TokenType("sampler", exports.TokenClass.keyword, "sampler"),
+    sampler_comparison: new TokenType("sampler_comparison", exports.TokenClass.keyword, "sampler_comparison"),
+    struct: new TokenType("struct", exports.TokenClass.keyword, "struct"),
+    texture_1d: new TokenType("texture_1d", exports.TokenClass.keyword, "texture_1d"),
+    texture_2d: new TokenType("texture_2d", exports.TokenClass.keyword, "texture_2d"),
+    texture_2d_array: new TokenType("texture_2d_array", exports.TokenClass.keyword, "texture_2d_array"),
+    texture_3d: new TokenType("texture_3d", exports.TokenClass.keyword, "texture_3d"),
+    texture_cube: new TokenType("texture_cube", exports.TokenClass.keyword, "texture_cube"),
+    texture_cube_array: new TokenType("texture_cube_array", exports.TokenClass.keyword, "texture_cube_array"),
+    texture_multisampled_2d: new TokenType("texture_multisampled_2d", exports.TokenClass.keyword, "texture_multisampled_2d"),
+    texture_storage_1d: new TokenType("texture_storage_1d", exports.TokenClass.keyword, "texture_storage_1d"),
+    texture_storage_2d: new TokenType("texture_storage_2d", exports.TokenClass.keyword, "texture_storage_2d"),
+    texture_storage_2d_array: new TokenType("texture_storage_2d_array", exports.TokenClass.keyword, "texture_storage_2d_array"),
+    texture_storage_3d: new TokenType("texture_storage_3d", exports.TokenClass.keyword, "texture_storage_3d"),
+    texture_depth_2d: new TokenType("texture_depth_2d", exports.TokenClass.keyword, "texture_depth_2d"),
+    texture_depth_2d_array: new TokenType("texture_depth_2d_array", exports.TokenClass.keyword, "texture_depth_2d_array"),
+    texture_depth_cube: new TokenType("texture_depth_cube", exports.TokenClass.keyword, "texture_depth_cube"),
+    texture_depth_cube_array: new TokenType("texture_depth_cube_array", exports.TokenClass.keyword, "texture_depth_cube_array"),
+    texture_depth_multisampled_2d: new TokenType("texture_depth_multisampled_2d", exports.TokenClass.keyword, "texture_depth_multisampled_2d"),
+    texture_external: new TokenType("texture_external", exports.TokenClass.keyword, "texture_external"),
+    u32: new TokenType("u32", exports.TokenClass.keyword, "u32"),
+    vec2: new TokenType("vec2", exports.TokenClass.keyword, "vec2"),
+    vec3: new TokenType("vec3", exports.TokenClass.keyword, "vec3"),
+    vec4: new TokenType("vec4", exports.TokenClass.keyword, "vec4"),
+    bitcast: new TokenType("bitcast", exports.TokenClass.keyword, "bitcast"),
+    block: new TokenType("block", exports.TokenClass.keyword, "block"),
+    break: new TokenType("break", exports.TokenClass.keyword, "break"),
+    case: new TokenType("case", exports.TokenClass.keyword, "case"),
+    continue: new TokenType("continue", exports.TokenClass.keyword, "continue"),
+    continuing: new TokenType("continuing", exports.TokenClass.keyword, "continuing"),
+    default: new TokenType("default", exports.TokenClass.keyword, "default"),
+    diagnostic: new TokenType("diagnostic", exports.TokenClass.keyword, "diagnostic"),
+    discard: new TokenType("discard", exports.TokenClass.keyword, "discard"),
+    else: new TokenType("else", exports.TokenClass.keyword, "else"),
+    enable: new TokenType("enable", exports.TokenClass.keyword, "enable"),
+    fallthrough: new TokenType("fallthrough", exports.TokenClass.keyword, "fallthrough"),
+    false: new TokenType("false", exports.TokenClass.keyword, "false"),
+    fn: new TokenType("fn", exports.TokenClass.keyword, "fn"),
+    for: new TokenType("for", exports.TokenClass.keyword, "for"),
+    function: new TokenType("function", exports.TokenClass.keyword, "function"),
+    if: new TokenType("if", exports.TokenClass.keyword, "if"),
+    let: new TokenType("let", exports.TokenClass.keyword, "let"),
+    const: new TokenType("const", exports.TokenClass.keyword, "const"),
+    loop: new TokenType("loop", exports.TokenClass.keyword, "loop"),
+    while: new TokenType("while", exports.TokenClass.keyword, "while"),
+    private: new TokenType("private", exports.TokenClass.keyword, "private"),
+    read: new TokenType("read", exports.TokenClass.keyword, "read"),
+    read_write: new TokenType("read_write", exports.TokenClass.keyword, "read_write"),
+    return: new TokenType("return", exports.TokenClass.keyword, "return"),
+    requires: new TokenType("requires", exports.TokenClass.keyword, "requires"),
+    storage: new TokenType("storage", exports.TokenClass.keyword, "storage"),
+    switch: new TokenType("switch", exports.TokenClass.keyword, "switch"),
+    true: new TokenType("true", exports.TokenClass.keyword, "true"),
+    alias: new TokenType("alias", exports.TokenClass.keyword, "alias"),
+    type: new TokenType("type", exports.TokenClass.keyword, "type"),
+    uniform: new TokenType("uniform", exports.TokenClass.keyword, "uniform"),
+    var: new TokenType("var", exports.TokenClass.keyword, "var"),
+    override: new TokenType("override", exports.TokenClass.keyword, "override"),
+    workgroup: new TokenType("workgroup", exports.TokenClass.keyword, "workgroup"),
+    write: new TokenType("write", exports.TokenClass.keyword, "write"),
+    r8unorm: new TokenType("r8unorm", exports.TokenClass.keyword, "r8unorm"),
+    r8snorm: new TokenType("r8snorm", exports.TokenClass.keyword, "r8snorm"),
+    r8uint: new TokenType("r8uint", exports.TokenClass.keyword, "r8uint"),
+    r8sint: new TokenType("r8sint", exports.TokenClass.keyword, "r8sint"),
+    r16uint: new TokenType("r16uint", exports.TokenClass.keyword, "r16uint"),
+    r16sint: new TokenType("r16sint", exports.TokenClass.keyword, "r16sint"),
+    r16float: new TokenType("r16float", exports.TokenClass.keyword, "r16float"),
+    rg8unorm: new TokenType("rg8unorm", exports.TokenClass.keyword, "rg8unorm"),
+    rg8snorm: new TokenType("rg8snorm", exports.TokenClass.keyword, "rg8snorm"),
+    rg8uint: new TokenType("rg8uint", exports.TokenClass.keyword, "rg8uint"),
+    rg8sint: new TokenType("rg8sint", exports.TokenClass.keyword, "rg8sint"),
+    r32uint: new TokenType("r32uint", exports.TokenClass.keyword, "r32uint"),
+    r32sint: new TokenType("r32sint", exports.TokenClass.keyword, "r32sint"),
+    r32float: new TokenType("r32float", exports.TokenClass.keyword, "r32float"),
+    rg16uint: new TokenType("rg16uint", exports.TokenClass.keyword, "rg16uint"),
+    rg16sint: new TokenType("rg16sint", exports.TokenClass.keyword, "rg16sint"),
+    rg16float: new TokenType("rg16float", exports.TokenClass.keyword, "rg16float"),
+    rgba8unorm: new TokenType("rgba8unorm", exports.TokenClass.keyword, "rgba8unorm"),
+    rgba8unorm_srgb: new TokenType("rgba8unorm_srgb", exports.TokenClass.keyword, "rgba8unorm_srgb"),
+    rgba8snorm: new TokenType("rgba8snorm", exports.TokenClass.keyword, "rgba8snorm"),
+    rgba8uint: new TokenType("rgba8uint", exports.TokenClass.keyword, "rgba8uint"),
+    rgba8sint: new TokenType("rgba8sint", exports.TokenClass.keyword, "rgba8sint"),
+    bgra8unorm: new TokenType("bgra8unorm", exports.TokenClass.keyword, "bgra8unorm"),
+    bgra8unorm_srgb: new TokenType("bgra8unorm_srgb", exports.TokenClass.keyword, "bgra8unorm_srgb"),
+    rgb10a2unorm: new TokenType("rgb10a2unorm", exports.TokenClass.keyword, "rgb10a2unorm"),
+    rg11b10float: new TokenType("rg11b10float", exports.TokenClass.keyword, "rg11b10float"),
+    rg32uint: new TokenType("rg32uint", exports.TokenClass.keyword, "rg32uint"),
+    rg32sint: new TokenType("rg32sint", exports.TokenClass.keyword, "rg32sint"),
+    rg32float: new TokenType("rg32float", exports.TokenClass.keyword, "rg32float"),
+    rgba16uint: new TokenType("rgba16uint", exports.TokenClass.keyword, "rgba16uint"),
+    rgba16sint: new TokenType("rgba16sint", exports.TokenClass.keyword, "rgba16sint"),
+    rgba16float: new TokenType("rgba16float", exports.TokenClass.keyword, "rgba16float"),
+    rgba32uint: new TokenType("rgba32uint", exports.TokenClass.keyword, "rgba32uint"),
+    rgba32sint: new TokenType("rgba32sint", exports.TokenClass.keyword, "rgba32sint"),
+    rgba32float: new TokenType("rgba32float", exports.TokenClass.keyword, "rgba32float"),
+    static_assert: new TokenType("static_assert", exports.TokenClass.keyword, "static_assert"),
+    // WGSL grammar has a few keywords that have different token names than the strings they
+    // represent. Aliasing them here.
+    /*int32: new TokenType("i32", TokenClass.keyword, "i32"),
+        uint32: new TokenType("u32", TokenClass.keyword, "u32"),
+        float32: new TokenType("f32", TokenClass.keyword, "f32"),
+        pointer: new TokenType("ptr", TokenClass.keyword, "ptr"),*/
+};
+TokenTypes.tokens = {
+    decimal_float_literal: new TokenType("decimal_float_literal", exports.TokenClass.token, /((-?[0-9]*\.[0-9]+|-?[0-9]+\.[0-9]*)((e|E)(\+|-)?[0-9]+)?[fh]?)|(-?[0-9]+(e|E)(\+|-)?[0-9]+[fh]?)|(-?[0-9]+[fh])/),
+    hex_float_literal: new TokenType("hex_float_literal", exports.TokenClass.token, /-?0x((([0-9a-fA-F]*\.[0-9a-fA-F]+|[0-9a-fA-F]+\.[0-9a-fA-F]*)((p|P)(\+|-)?[0-9]+[fh]?)?)|([0-9a-fA-F]+(p|P)(\+|-)?[0-9]+[fh]?))/),
+    int_literal: new TokenType("int_literal", exports.TokenClass.token, /-?0x[0-9a-fA-F]+|0i?|-?[1-9][0-9]*i?/),
+    uint_literal: new TokenType("uint_literal", exports.TokenClass.token, /0x[0-9a-fA-F]+u|0u|[1-9][0-9]*u/),
+    name: new TokenType("name", exports.TokenClass.token, /([_\p{XID_Start}][\p{XID_Continue}]+)|([\p{XID_Start}])/u),
+    //name: new TokenType("name", TokenClass.token, /[_a-zA-Z][0-9a-zA-Z_]*/),
+    ident: new TokenType("ident", exports.TokenClass.token, /[_a-zA-Z][0-9a-zA-Z_]*/),
+    and: new TokenType("and", exports.TokenClass.token, "&"),
+    and_and: new TokenType("and_and", exports.TokenClass.token, "&&"),
+    arrow: new TokenType("arrow ", exports.TokenClass.token, "->"),
+    attr: new TokenType("attr", exports.TokenClass.token, "@"),
+    forward_slash: new TokenType("forward_slash", exports.TokenClass.token, "/"),
+    bang: new TokenType("bang", exports.TokenClass.token, "!"),
+    bracket_left: new TokenType("bracket_left", exports.TokenClass.token, "["),
+    bracket_right: new TokenType("bracket_right", exports.TokenClass.token, "]"),
+    brace_left: new TokenType("brace_left", exports.TokenClass.token, "{"),
+    brace_right: new TokenType("brace_right", exports.TokenClass.token, "}"),
+    colon: new TokenType("colon", exports.TokenClass.token, ":"),
+    comma: new TokenType("comma", exports.TokenClass.token, ","),
+    equal: new TokenType("equal", exports.TokenClass.token, "="),
+    equal_equal: new TokenType("equal_equal", exports.TokenClass.token, "=="),
+    not_equal: new TokenType("not_equal", exports.TokenClass.token, "!="),
+    greater_than: new TokenType("greater_than", exports.TokenClass.token, ">"),
+    greater_than_equal: new TokenType("greater_than_equal", exports.TokenClass.token, ">="),
+    shift_right: new TokenType("shift_right", exports.TokenClass.token, ">>"),
+    less_than: new TokenType("less_than", exports.TokenClass.token, "<"),
+    less_than_equal: new TokenType("less_than_equal", exports.TokenClass.token, "<="),
+    shift_left: new TokenType("shift_left", exports.TokenClass.token, "<<"),
+    modulo: new TokenType("modulo", exports.TokenClass.token, "%"),
+    minus: new TokenType("minus", exports.TokenClass.token, "-"),
+    minus_minus: new TokenType("minus_minus", exports.TokenClass.token, "--"),
+    period: new TokenType("period", exports.TokenClass.token, "."),
+    plus: new TokenType("plus", exports.TokenClass.token, "+"),
+    plus_plus: new TokenType("plus_plus", exports.TokenClass.token, "++"),
+    or: new TokenType("or", exports.TokenClass.token, "|"),
+    or_or: new TokenType("or_or", exports.TokenClass.token, "||"),
+    paren_left: new TokenType("paren_left", exports.TokenClass.token, "("),
+    paren_right: new TokenType("paren_right", exports.TokenClass.token, ")"),
+    semicolon: new TokenType("semicolon", exports.TokenClass.token, ";"),
+    star: new TokenType("star", exports.TokenClass.token, "*"),
+    tilde: new TokenType("tilde", exports.TokenClass.token, "~"),
+    underscore: new TokenType("underscore", exports.TokenClass.token, "_"),
+    xor: new TokenType("xor", exports.TokenClass.token, "^"),
+    plus_equal: new TokenType("plus_equal", exports.TokenClass.token, "+="),
+    minus_equal: new TokenType("minus_equal", exports.TokenClass.token, "-="),
+    times_equal: new TokenType("times_equal", exports.TokenClass.token, "*="),
+    division_equal: new TokenType("division_equal", exports.TokenClass.token, "/="),
+    modulo_equal: new TokenType("modulo_equal", exports.TokenClass.token, "%="),
+    and_equal: new TokenType("and_equal", exports.TokenClass.token, "&="),
+    or_equal: new TokenType("or_equal", exports.TokenClass.token, "|="),
+    xor_equal: new TokenType("xor_equal", exports.TokenClass.token, "^="),
+    shift_right_equal: new TokenType("shift_right_equal", exports.TokenClass.token, ">>="),
+    shift_left_equal: new TokenType("shift_left_equal", exports.TokenClass.token, "<<="),
+};
+TokenTypes.simpleTokens = {
+    "@": _a.tokens.attr,
+    "{": _a.tokens.brace_left,
+    "}": _a.tokens.brace_right,
+    ":": _a.tokens.colon,
+    ",": _a.tokens.comma,
+    "(": _a.tokens.paren_left,
+    ")": _a.tokens.paren_right,
+    ";": _a.tokens.semicolon,
+};
+TokenTypes.literalTokens = {
+    "&": _a.tokens.and,
+    "&&": _a.tokens.and_and,
+    "->": _a.tokens.arrow,
+    "/": _a.tokens.forward_slash,
+    "!": _a.tokens.bang,
+    "[": _a.tokens.bracket_left,
+    "]": _a.tokens.bracket_right,
+    "=": _a.tokens.equal,
+    "==": _a.tokens.equal_equal,
+    "!=": _a.tokens.not_equal,
+    ">": _a.tokens.greater_than,
+    ">=": _a.tokens.greater_than_equal,
+    ">>": _a.tokens.shift_right,
+    "<": _a.tokens.less_than,
+    "<=": _a.tokens.less_than_equal,
+    "<<": _a.tokens.shift_left,
+    "%": _a.tokens.modulo,
+    "-": _a.tokens.minus,
+    "--": _a.tokens.minus_minus,
+    ".": _a.tokens.period,
+    "+": _a.tokens.plus,
+    "++": _a.tokens.plus_plus,
+    "|": _a.tokens.or,
+    "||": _a.tokens.or_or,
+    "*": _a.tokens.star,
+    "~": _a.tokens.tilde,
+    "_": _a.tokens.underscore,
+    "^": _a.tokens.xor,
+    "+=": _a.tokens.plus_equal,
+    "-=": _a.tokens.minus_equal,
+    "*=": _a.tokens.times_equal,
+    "/=": _a.tokens.division_equal,
+    "%=": _a.tokens.modulo_equal,
+    "&=": _a.tokens.and_equal,
+    "|=": _a.tokens.or_equal,
+    "^=": _a.tokens.xor_equal,
+    ">>=": _a.tokens.shift_right_equal,
+    "<<=": _a.tokens.shift_left_equal,
+};
+TokenTypes.regexTokens = {
+    decimal_float_literal: _a.tokens.decimal_float_literal,
+    hex_float_literal: _a.tokens.hex_float_literal,
+    int_literal: _a.tokens.int_literal,
+    uint_literal: _a.tokens.uint_literal,
+    ident: _a.tokens.ident,
+};
+TokenTypes.storage_class = [
+    _a.keywords.function,
+    _a.keywords.private,
+    _a.keywords.workgroup,
+    _a.keywords.uniform,
+    _a.keywords.storage,
+];
+TokenTypes.access_mode = [
+    _a.keywords.read,
+    _a.keywords.write,
+    _a.keywords.read_write,
+];
+TokenTypes.sampler_type = [
+    _a.keywords.sampler,
+    _a.keywords.sampler_comparison,
+];
+TokenTypes.sampled_texture_type = [
+    _a.keywords.texture_1d,
+    _a.keywords.texture_2d,
+    _a.keywords.texture_2d_array,
+    _a.keywords.texture_3d,
+    _a.keywords.texture_cube,
+    _a.keywords.texture_cube_array,
+];
+TokenTypes.multisampled_texture_type = [
+    _a.keywords.texture_multisampled_2d,
+];
+TokenTypes.storage_texture_type = [
+    _a.keywords.texture_storage_1d,
+    _a.keywords.texture_storage_2d,
+    _a.keywords.texture_storage_2d_array,
+    _a.keywords.texture_storage_3d,
+];
+TokenTypes.depth_texture_type = [
+    _a.keywords.texture_depth_2d,
+    _a.keywords.texture_depth_2d_array,
+    _a.keywords.texture_depth_cube,
+    _a.keywords.texture_depth_cube_array,
+    _a.keywords.texture_depth_multisampled_2d,
+];
+TokenTypes.texture_external_type = [_a.keywords.texture_external];
+TokenTypes.any_texture_type = [
+    ..._a.sampled_texture_type,
+    ..._a.multisampled_texture_type,
+    ..._a.storage_texture_type,
+    ..._a.depth_texture_type,
+    ..._a.texture_external_type,
+];
+TokenTypes.texel_format = [
+    _a.keywords.r8unorm,
+    _a.keywords.r8snorm,
+    _a.keywords.r8uint,
+    _a.keywords.r8sint,
+    _a.keywords.r16uint,
+    _a.keywords.r16sint,
+    _a.keywords.r16float,
+    _a.keywords.rg8unorm,
+    _a.keywords.rg8snorm,
+    _a.keywords.rg8uint,
+    _a.keywords.rg8sint,
+    _a.keywords.r32uint,
+    _a.keywords.r32sint,
+    _a.keywords.r32float,
+    _a.keywords.rg16uint,
+    _a.keywords.rg16sint,
+    _a.keywords.rg16float,
+    _a.keywords.rgba8unorm,
+    _a.keywords.rgba8unorm_srgb,
+    _a.keywords.rgba8snorm,
+    _a.keywords.rgba8uint,
+    _a.keywords.rgba8sint,
+    _a.keywords.bgra8unorm,
+    _a.keywords.bgra8unorm_srgb,
+    _a.keywords.rgb10a2unorm,
+    _a.keywords.rg11b10float,
+    _a.keywords.rg32uint,
+    _a.keywords.rg32sint,
+    _a.keywords.rg32float,
+    _a.keywords.rgba16uint,
+    _a.keywords.rgba16sint,
+    _a.keywords.rgba16float,
+    _a.keywords.rgba32uint,
+    _a.keywords.rgba32sint,
+    _a.keywords.rgba32float,
+];
+TokenTypes.const_literal = [
+    _a.tokens.int_literal,
+    _a.tokens.uint_literal,
+    _a.tokens.decimal_float_literal,
+    _a.tokens.hex_float_literal,
+    _a.keywords.true,
+    _a.keywords.false,
+];
+TokenTypes.literal_or_ident = [
+    _a.tokens.ident,
+    _a.tokens.int_literal,
+    _a.tokens.uint_literal,
+    _a.tokens.decimal_float_literal,
+    _a.tokens.hex_float_literal,
+    _a.tokens.name
+];
+TokenTypes.element_count_expression = [
+    _a.tokens.int_literal,
+    _a.tokens.uint_literal,
+    _a.tokens.ident,
+];
+TokenTypes.template_types = [
+    _a.keywords.vec2,
+    _a.keywords.vec3,
+    _a.keywords.vec4,
+    _a.keywords.mat2x2,
+    _a.keywords.mat2x3,
+    _a.keywords.mat2x4,
+    _a.keywords.mat3x2,
+    _a.keywords.mat3x3,
+    _a.keywords.mat3x4,
+    _a.keywords.mat4x2,
+    _a.keywords.mat4x3,
+    _a.keywords.mat4x4,
+    _a.keywords.atomic,
+    _a.keywords.bitcast,
+    ..._a.any_texture_type,
+];
+// The grammar calls out 'block', but attribute grammar is defined to use a 'ident'.
+// The attribute grammar should be ident | block.
+TokenTypes.attribute_name = [_a.tokens.ident, _a.keywords.block, _a.keywords.diagnostic];
+TokenTypes.assignment_operators = [
+    _a.tokens.equal,
+    _a.tokens.plus_equal,
+    _a.tokens.minus_equal,
+    _a.tokens.times_equal,
+    _a.tokens.division_equal,
+    _a.tokens.modulo_equal,
+    _a.tokens.and_equal,
+    _a.tokens.or_equal,
+    _a.tokens.xor_equal,
+    _a.tokens.shift_right_equal,
+    _a.tokens.shift_left_equal,
+];
+TokenTypes.increment_operators = [
+    _a.tokens.plus_plus,
+    _a.tokens.minus_minus,
+];
+/// A token parsed by the WgslScanner.
+class Token {
+    constructor(type, lexeme, line, start, end) {
+        this.type = type;
+        this.lexeme = lexeme;
+        this.line = line;
+        this.start = start;
+        this.end = end;
+    }
+    toString() {
+        return this.lexeme;
+    }
+    isTemplateType() {
+        return TokenTypes.template_types.indexOf(this.type) != -1;
+    }
+    isArrayType() {
+        return this.type == TokenTypes.keywords.array;
+    }
+    isArrayOrTemplateType() {
+        return this.isArrayType() || this.isTemplateType();
+    }
+}
+/// Lexical scanner for the WGSL language. This takes an input source text and generates a list
+/// of Token objects, which can then be fed into the WgslParser to generate an AST.
+class WgslScanner {
+    constructor(source) {
+        this._tokens = [];
+        this._start = 0;
+        this._current = 0;
+        this._line = 1;
+        this._source = source !== null && source !== void 0 ? source : "";
+    }
+    /// Scan all tokens from the source.
+    scanTokens() {
+        while (!this._isAtEnd()) {
+            this._start = this._current;
+            if (!this.scanToken()) {
+                throw `Invalid syntax at line ${this._line}`;
+            }
+        }
+        this._tokens.push(new Token(TokenTypes.eof, "", this._line, this._current, this._current));
+        return this._tokens;
+    }
+    /// Scan a single token from the source.
+    scanToken() {
+        // Find the longest consecutive set of characters that match a rule.
+        let lexeme = this._advance();
+        // Skip line-feed, adding to the line counter.
+        if (lexeme == "\n") {
+            this._line++;
+            return true;
+        }
+        // Skip whitespace
+        if (this._isWhitespace(lexeme)) {
+            return true;
+        }
+        if (lexeme == "/") {
+            // If it's a // comment, skip everything until the next line-feed.
+            if (this._peekAhead() == "/") {
+                while (lexeme != "\n") {
+                    if (this._isAtEnd()) {
+                        return true;
+                    }
+                    lexeme = this._advance();
+                }
+                // skip the linefeed
+                this._line++;
+                return true;
+            }
+            else if (this._peekAhead() == "*") {
+                // If it's a / * block comment, skip everything until the matching * /,
+                // allowing for nested block comments.
+                this._advance();
+                let commentLevel = 1;
+                while (commentLevel > 0) {
+                    if (this._isAtEnd()) {
+                        return true;
+                    }
+                    lexeme = this._advance();
+                    if (lexeme == "\n") {
+                        this._line++;
+                    }
+                    else if (lexeme == "*") {
+                        if (this._peekAhead() == "/") {
+                            this._advance();
+                            commentLevel--;
+                            if (commentLevel == 0) {
+                                return true;
+                            }
+                        }
+                    }
+                    else if (lexeme == "/") {
+                        if (this._peekAhead() == "*") {
+                            this._advance();
+                            commentLevel++;
+                        }
+                    }
+                }
+                return true;
+            }
+        }
+        // Shortcut single character tokens
+        const simpleToken = TokenTypes.simpleTokens[lexeme];
+        if (simpleToken) {
+            this._addToken(simpleToken);
+            return true;
+        }
+        // Shortcut keywords and identifiers
+        let matchType = TokenTypes.none;
+        const isAlpha = this._isAlpha(lexeme);
+        const isUnderscore = lexeme === "_";
+        if (this._isAlphaNumeric(lexeme)) {
+            let nextChar = this._peekAhead();
+            while (this._isAlphaNumeric(nextChar)) {
+                lexeme += this._advance();
+                nextChar = this._peekAhead();
+            }
+        }
+        if (isAlpha) {
+            const matchedType = TokenTypes.keywords[lexeme];
+            if (matchedType) {
+                this._addToken(matchedType);
+                return true;
+            }
+        }
+        if (isAlpha || isUnderscore) {
+            this._addToken(TokenTypes.tokens.ident);
+            return true;
+        }
+        // Scan for the next valid token type
+        for (;;) {
+            let matchedType = this._findType(lexeme);
+            // An exception to "longest lexeme" rule is '>>'. In the case of 1>>2, it's a
+            // shift_right.
+            // In the case of array<vec4<f32>>, it's two greater_than's (one to close the vec4,
+            // and one to close the array).
+            // Another ambiguity is '>='. In the case of vec2<i32>=vec2(1,2),
+            // it's a greather_than and an equal, not a greater_than_equal.
+            // Another ambiguity is '-'. In the case of a-2, it's a minus; in the case of a*-2, it's a -2;
+            // in the case of foo()->int, it's a ->; in the case of foo-- or --foo, it's a -- decrement.
+            // WGSL requires context sensitive parsing to resolve these ambiguities. Both of these cases
+            // are predicated on it the > either closing a template, or being part of an operator.
+            // The solution here is to check if there was a less_than up to some number of tokens
+            // previously, and the token prior to that is a keyword that requires a '<', then it will be
+            // split into two operators; otherwise it's a single operator.
+            const nextLexeme = this._peekAhead();
+            if (lexeme == "-" && this._tokens.length > 0) {
+                if (nextLexeme == "=") {
+                    this._current++;
+                    lexeme += nextLexeme;
+                    this._addToken(TokenTypes.tokens.minus_equal);
+                    return true;
+                }
+                if (nextLexeme == "-") {
+                    this._current++;
+                    lexeme += nextLexeme;
+                    this._addToken(TokenTypes.tokens.minus_minus);
+                    return true;
+                }
+                const ti = this._tokens.length - 1;
+                const isIdentOrLiteral = TokenTypes.literal_or_ident.indexOf(this._tokens[ti].type) != -1;
+                if ((isIdentOrLiteral || this._tokens[ti].type == TokenTypes.tokens.paren_right) && nextLexeme != ">") {
+                    this._addToken(matchedType);
+                    return true;
+                }
+            }
+            if (lexeme == ">" && (nextLexeme == ">" || nextLexeme == "=")) {
+                let foundLessThan = false;
+                let ti = this._tokens.length - 1;
+                for (let count = 0; count < 5 && ti >= 0; ++count, --ti) {
+                    if (TokenTypes.assignment_operators.indexOf(this._tokens[ti].type) !== -1) {
+                        break;
+                    }
+                    if (this._tokens[ti].type === TokenTypes.tokens.less_than) {
+                        if (ti > 0 && this._tokens[ti - 1].isArrayOrTemplateType()) {
+                            foundLessThan = true;
+                        }
+                        break;
+                    }
+                }
+                // If there was a less_than in the recent token history, then this is probably a
+                // greater_than.
+                if (foundLessThan) {
+                    this._addToken(matchedType);
+                    return true;
+                }
+            }
+            // The current lexeme may not match any rule, but some token types may be invalid for
+            // part of the string but valid after a few more characters.
+            // For example, 0x.5 is a hex_float_literal. But as it's being scanned,
+            // "0" is a int_literal, then "0x" is invalid. If we stopped there, it would return
+            // the int_literal "0", but that's incorrect. So if we look forward a few characters,
+            // we'd get "0x.", which is still invalid, followed by "0x.5" which is the correct
+            // hex_float_literal. So that means if we hit an non-matching string, we should look
+            // ahead up to two characters to see if the string starts matching a valid rule again.
+            if (matchedType === TokenTypes.none) {
+                let lookAheadLexeme = lexeme;
+                let lookAhead = 0;
+                const maxLookAhead = 2;
+                for (let li = 0; li < maxLookAhead; ++li) {
+                    lookAheadLexeme += this._peekAhead(li);
+                    matchedType = this._findType(lookAheadLexeme);
+                    if (matchedType !== TokenTypes.none) {
+                        lookAhead = li;
+                        break;
+                    }
+                }
+                if (matchedType === TokenTypes.none) {
+                    if (matchType === TokenTypes.none) {
+                        return false;
+                    }
+                    this._current--;
+                    this._addToken(matchType);
+                    return true;
+                }
+                lexeme = lookAheadLexeme;
+                this._current += lookAhead + 1;
+            }
+            matchType = matchedType;
+            if (this._isAtEnd()) {
+                break;
+            }
+            lexeme += this._advance();
+        }
+        // We got to the end of the input stream. Then the token we've ready so far is it.
+        if (matchType === TokenTypes.none) {
+            return false;
+        }
+        this._addToken(matchType);
+        return true;
+    }
+    _findType(lexeme) {
+        for (const name in TokenTypes.regexTokens) {
+            const type = TokenTypes.regexTokens[name];
+            if (this._match(lexeme, type.rule)) {
+                return type;
+            }
+        }
+        const type = TokenTypes.literalTokens[lexeme];
+        if (type) {
+            return type;
+        }
+        return TokenTypes.none;
+    }
+    _match(lexeme, rule) {
+        const match = rule.exec(lexeme);
+        return match && match.index == 0 && match[0] == lexeme;
+    }
+    _isAtEnd() {
+        return this._current >= this._source.length;
+    }
+    _isAlpha(c) {
+        // To support UTF-8 characters, allow anything other than whitespace, numbers, or operators
+        return !this._isNumeric(c) && !this._isWhitespace(c) && c !== "_" && c !== "." && c !== "(" && c !== ")" &&
+            c !== "[" && c !== "]" && c !== "{" && c !== "}" && c !== "," && c !== ";" && c !== ":" && c !== "=" &&
+            c !== "!" && c !== "<" && c !== ">" && c !== "+" && c !== "-" && c !== "*" && c !== "/" && c !== "%" &&
+            c !== "&" && c !== "|" && c !== "^" && c !== "~" && c !== "@" && c !== "#" && c !== "?" && c !== "'" &&
+            c !== "`" && c !== "\"" && c !== "\\" && c !== "\n" && c !== "\r" && c !== "\t" && c !== "\0";
+    }
+    _isNumeric(c) {
+        return c >= "0" && c <= "9";
+    }
+    _isAlphaNumeric(c) {
+        return this._isAlpha(c) || this._isNumeric(c) || c === "_";
+    }
+    _isWhitespace(c) {
+        return c == " " || c == "\t" || c == "\r";
+    }
+    _advance(amount = 0) {
+        let c = this._source[this._current];
+        amount = amount || 0;
+        amount++;
+        this._current += amount;
+        return c;
+    }
+    _peekAhead(offset = 0) {
+        offset = offset || 0;
+        if (this._current + offset >= this._source.length) {
+            return "\0";
+        }
+        return this._source[this._current + offset];
+    }
+    _addToken(type) {
+        const text = this._source.substring(this._start, this._current);
+        this._tokens.push(new Token(type, text, this._line, this._start, this._current));
+    }
+}
+
+function isArray(value) {
+    return Array.isArray(value) || (value === null || value === void 0 ? void 0 : value.buffer) instanceof ArrayBuffer;
+}
+const _f32 = new Float32Array(1);
+const _f32_i32 = new Uint32Array(_f32.buffer);
+const _f32_u32 = new Uint32Array(_f32.buffer);
+const _i32 = new Int32Array(1);
+const _i32_f32 = new Float32Array(_i32.buffer);
+const _i32_u32 = new Uint32Array(_i32.buffer);
+const _u32 = new Uint32Array(1);
+const _u32_f32 = new Float32Array(_u32.buffer);
+const _u32_i32 = new Int32Array(_u32.buffer);
+function castScalar(v, from, to) {
+    if (from === to) {
+        return v;
+    }
+    if (from === "f32") {
+        if (to === "i32" || to === "x32") {
+            _f32[0] = v;
+            return _f32_i32[0];
+        }
+        else if (to === "u32") {
+            _f32[0] = v;
+            return _f32_u32[0];
+        }
+    }
+    else if (from === "i32" || from === "x32") {
+        if (to === "f32") {
+            _i32[0] = v;
+            return _i32_f32[0];
+        }
+        else if (to === "u32") {
+            _i32[0] = v;
+            return _i32_u32[0];
+        }
+    }
+    else if (from === "u32") {
+        if (to === "f32") {
+            _u32[0] = v;
+            return _u32_f32[0];
+        }
+        else if (to === "i32" || to === "x32") {
+            _u32[0] = v;
+            return _u32_i32[0];
+        }
+    }
+    console.error(`Unsupported cast from ${from} to ${to}`);
+    return v;
+}
+function castVector(v, from, to) {
+    if (from === to) {
+        return v;
+    }
+    const cast = new Array(v.length);
+    for (let i = 0; i < v.length; i++) {
+        cast[i] = castScalar(v[i], from, to);
+    }
+    return cast;
+}
+
+/**
+ * @author Brendan Duncan / https://github.com/brendan-duncan
+ */
+class _FunctionResources {
+    constructor(node) {
+        this.resources = null;
+        this.inUse = false;
+        this.info = null;
+        this.node = node;
+    }
+}
+class _TypeSize {
+    constructor(align, size) {
+        this.align = align;
+        this.size = size;
+    }
+}
+class Reflect {
+    constructor() {
+        /// All top-level uniform vars in the shader.
+        this.uniforms = [];
+        /// All top-level storage vars in the shader.
+        this.storage = [];
+        /// All top-level texture vars in the shader;
+        this.textures = [];
+        // All top-level sampler vars in the shader.
+        this.samplers = [];
+        /// All top-level type aliases in the shader.
+        this.aliases = [];
+        /// All top-level overrides in the shader.
+        this.overrides = [];
+        /// All top-level structs in the shader.
+        this.structs = [];
+        /// All entry functions in the shader: vertex, fragment, and/or compute.
+        this.entry = new EntryFunctions();
+        /// All functions in the shader, including entry functions.
+        this.functions = [];
+        this._types = new Map();
+        this._functions = new Map();
+    }
+    _isStorageTexture(type) {
+        return (type.name == "texture_storage_1d" ||
+            type.name == "texture_storage_2d" ||
+            type.name == "texture_storage_2d_array" ||
+            type.name == "texture_storage_3d");
+    }
+    updateAST(ast) {
+        for (const node of ast) {
+            if (node instanceof Function) {
+                this._functions.set(node.name, new _FunctionResources(node));
+            }
+        }
+        for (const node of ast) {
+            if (node instanceof Struct) {
+                const info = this.getTypeInfo(node, null);
+                if (info instanceof StructInfo) {
+                    this.structs.push(info);
+                }
+            }
+        }
+        for (const node of ast) {
+            if (node instanceof Alias) {
+                this.aliases.push(this._getAliasInfo(node));
+                continue;
+            }
+            if (node instanceof Override) {
+                const v = node;
+                const id = this._getAttributeNum(v.attributes, "id", 0);
+                const type = v.type != null ? this.getTypeInfo(v.type, v.attributes) : null;
+                this.overrides.push(new OverrideInfo(v.name, type, v.attributes, id));
+                continue;
+            }
+            if (this._isUniformVar(node)) {
+                const v = node;
+                const g = this._getAttributeNum(v.attributes, "group", 0);
+                const b = this._getAttributeNum(v.attributes, "binding", 0);
+                const type = this.getTypeInfo(v.type, v.attributes);
+                const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, exports.ResourceType.Uniform, v.access);
+                if (!varInfo.access) {
+                    varInfo.access = "read";
+                }
+                this.uniforms.push(varInfo);
+                continue;
+            }
+            if (this._isStorageVar(node)) {
+                const v = node;
+                const g = this._getAttributeNum(v.attributes, "group", 0);
+                const b = this._getAttributeNum(v.attributes, "binding", 0);
+                const type = this.getTypeInfo(v.type, v.attributes);
+                const isStorageTexture = this._isStorageTexture(type);
+                const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, isStorageTexture ? exports.ResourceType.StorageTexture : exports.ResourceType.Storage, v.access);
+                if (!varInfo.access) {
+                    varInfo.access = "read";
+                }
+                this.storage.push(varInfo);
+                continue;
+            }
+            if (this._isTextureVar(node)) {
+                const v = node;
+                const g = this._getAttributeNum(v.attributes, "group", 0);
+                const b = this._getAttributeNum(v.attributes, "binding", 0);
+                const type = this.getTypeInfo(v.type, v.attributes);
+                const isStorageTexture = this._isStorageTexture(type);
+                const access = isStorageTexture ? type.access : v.access;
+                const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, isStorageTexture ? exports.ResourceType.StorageTexture : exports.ResourceType.Texture, access || v.access);
+                if (!varInfo.access) {
+                    varInfo.access = "read";
+                }
+                if (isStorageTexture) {
+                    this.storage.push(varInfo);
+                }
+                else {
+                    this.textures.push(varInfo);
+                }
+                continue;
+            }
+            if (this._isSamplerVar(node)) {
+                const v = node;
+                const g = this._getAttributeNum(v.attributes, "group", 0);
+                const b = this._getAttributeNum(v.attributes, "binding", 0);
+                const type = this.getTypeInfo(v.type, v.attributes);
+                const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, exports.ResourceType.Sampler, v.access);
+                this.samplers.push(varInfo);
+                continue;
+            }
+        }
+        for (const node of ast) {
+            if (node instanceof Function) {
+                const vertexStage = this._getAttribute(node, "vertex");
+                const fragmentStage = this._getAttribute(node, "fragment");
+                const computeStage = this._getAttribute(node, "compute");
+                const stage = vertexStage || fragmentStage || computeStage;
+                const fn = new FunctionInfo(node.name, stage === null || stage === void 0 ? void 0 : stage.name, node.attributes);
+                fn.attributes = node.attributes;
+                fn.startLine = node.startLine;
+                fn.endLine = node.endLine;
+                this.functions.push(fn);
+                this._functions.get(node.name).info = fn;
+                if (stage) {
+                    this._functions.get(node.name).inUse = true;
+                    fn.inUse = true;
+                    fn.inputs = this._getInputs(node.args);
+                    fn.outputs = this._getOutputs(node.returnType);
+                    this.entry[stage.name].push(fn);
+                }
+                fn.resources = this._findResources(node, !!stage);
+                fn.arguments = node.args.map((arg) => new ArgumentInfo(arg.name, this.getTypeInfo(arg.type, arg.attributes), arg.attributes));
+                fn.returnType = node.returnType ? this.getTypeInfo(node.returnType, node.attributes) : null;
+                continue;
+            }
+        }
+        for (const fn of this._functions.values()) {
+            if (fn.info) {
+                fn.info.inUse = fn.inUse;
+                this._addCalls(fn.node, fn.info.calls);
+            }
+        }
+        for (const fn of this._functions.values()) {
+            fn.node.search((node) => {
+                var _a, _b, _c;
+                if (node instanceof Attribute) {
+                    if (node.value) {
+                        if (isArray(node.value)) {
+                            for (const value of node.value) {
+                                for (const override of this.overrides) {
+                                    if (value === override.name) {
+                                        (_a = fn.info) === null || _a === void 0 ? void 0 : _a.overrides.push(override);
+                                    }
+                                }
+                            }
+                        }
+                        else {
+                            for (const override of this.overrides) {
+                                if (node.value === override.name) {
+                                    (_b = fn.info) === null || _b === void 0 ? void 0 : _b.overrides.push(override);
+                                }
+                            }
+                        }
+                    }
+                }
+                else if (node instanceof VariableExpr) {
+                    for (const override of this.overrides) {
+                        if (node.name === override.name) {
+                            (_c = fn.info) === null || _c === void 0 ? void 0 : _c.overrides.push(override);
+                        }
+                    }
+                }
+            });
+        }
+        for (const u of this.uniforms) {
+            this._markStructsInUse(u.type);
+        }
+        for (const s of this.storage) {
+            this._markStructsInUse(s.type);
+        }
+    }
+    getFunctionInfo(name) {
+        for (const fn of this.functions) {
+            if (fn.name == name) {
+                return fn;
+            }
+        }
+        return null;
+    }
+    getStructInfo(name) {
+        for (const s of this.structs) {
+            if (s.name == name) {
+                return s;
+            }
+        }
+        return null;
+    }
+    getOverrideInfo(name) {
+        for (const o of this.overrides) {
+            if (o.name == name) {
+                return o;
+            }
+        }
+        return null;
+    }
+    _markStructsInUse(type) {
+        if (!type) {
+            return;
+        }
+        if (type.isStruct) {
+            type.inUse = true;
+            if (type.members) {
+                for (const m of type.members) {
+                    this._markStructsInUse(m.type);
+                }
+            }
+        }
+        else if (type.isArray) {
+            this._markStructsInUse(type.format);
+        }
+        else if (type.isTemplate) {
+            if (type.format) {
+                this._markStructsInUse(type.format);
+            }
+        }
+        else {
+            const alias = this._getAlias(type.name);
+            if (alias) {
+                this._markStructsInUse(alias);
+            }
+        }
+    }
+    _addCalls(fn, calls) {
+        var _a;
+        for (const call of fn.calls) {
+            const info = (_a = this._functions.get(call.name)) === null || _a === void 0 ? void 0 : _a.info;
+            if (info) {
+                calls.add(info);
+            }
+        }
+    }
+    /// Find a resource by its group and binding.
+    findResource(group, binding, entry) {
+        if (entry) {
+            for (const fn of this.entry.compute) {
+                if (fn.name === entry) {
+                    for (const r of fn.resources) {
+                        if (r.group == group && r.binding == binding) {
+                            return r;
+                        }
+                    }
+                }
+            }
+            for (const fn of this.entry.vertex) {
+                if (fn.name === entry) {
+                    for (const r of fn.resources) {
+                        if (r.group == group && r.binding == binding) {
+                            return r;
+                        }
+                    }
+                }
+            }
+            for (const fn of this.entry.fragment) {
+                if (fn.name === entry) {
+                    for (const r of fn.resources) {
+                        if (r.group == group && r.binding == binding) {
+                            return r;
+                        }
+                    }
+                }
+            }
+        }
+        for (const u of this.uniforms) {
+            if (u.group == group && u.binding == binding) {
+                return u;
+            }
+        }
+        for (const s of this.storage) {
+            if (s.group == group && s.binding == binding) {
+                return s;
+            }
+        }
+        for (const t of this.textures) {
+            if (t.group == group && t.binding == binding) {
+                return t;
+            }
+        }
+        for (const s of this.samplers) {
+            if (s.group == group && s.binding == binding) {
+                return s;
+            }
+        }
+        return null;
+    }
+    _findResource(name) {
+        for (const u of this.uniforms) {
+            if (u.name == name) {
+                return u;
+            }
+        }
+        for (const s of this.storage) {
+            if (s.name == name) {
+                return s;
+            }
+        }
+        for (const t of this.textures) {
+            if (t.name == name) {
+                return t;
+            }
+        }
+        for (const s of this.samplers) {
+            if (s.name == name) {
+                return s;
+            }
+        }
+        return null;
+    }
+    _markStructsFromAST(type) {
+        const info = this.getTypeInfo(type, null);
+        this._markStructsInUse(info);
+    }
+    _findResources(fn, isEntry) {
+        const resources = [];
+        const self = this;
+        const varStack = [];
+        fn.search((node) => {
+            if (node instanceof _BlockStart) {
+                varStack.push({});
+            }
+            else if (node instanceof _BlockEnd) {
+                varStack.pop();
+            }
+            else if (node instanceof Var) {
+                const v = node;
+                if (isEntry && v.type !== null) {
+                    this._markStructsFromAST(v.type);
+                }
+                if (varStack.length > 0) {
+                    varStack[varStack.length - 1][v.name] = v;
+                }
+            }
+            else if (node instanceof CreateExpr) {
+                const c = node;
+                if (isEntry && c.type !== null) {
+                    this._markStructsFromAST(c.type);
+                }
+            }
+            else if (node instanceof Let) {
+                const v = node;
+                if (isEntry && v.type !== null) {
+                    this._markStructsFromAST(v.type);
+                }
+                if (varStack.length > 0) {
+                    varStack[varStack.length - 1][v.name] = v;
+                }
+            }
+            else if (node instanceof VariableExpr) {
+                const v = node;
+                // Check to see if the variable is a local variable before checking to see if it's
+                // a resource.
+                if (varStack.length > 0) {
+                    const varInfo = varStack[varStack.length - 1][v.name];
+                    if (varInfo) {
+                        return;
+                    }
+                }
+                const varInfo = self._findResource(v.name);
+                if (varInfo) {
+                    resources.push(varInfo);
+                }
+            }
+            else if (node instanceof CallExpr) {
+                const c = node;
+                const callFn = self._functions.get(c.name);
+                if (callFn) {
+                    if (isEntry) {
+                        callFn.inUse = true;
+                    }
+                    fn.calls.add(callFn.node);
+                    // force the recursion to mark the structures
+                    callFn.resources = self._findResources(callFn.node, isEntry);
+                    resources.push(...callFn.resources);
+                }
+                if (c.name === "textureSample") {
+                    if (c.args.length >= 2) {
+                        const textureArg = c.args[0];
+                        let texture = null;
+                        if (textureArg instanceof VariableExpr) {
+                            const varInfo = self._findResource(textureArg.name);
+                            if (varInfo && varInfo.resourceType === exports.ResourceType.Texture) {
+                                texture = varInfo;
+                            }
+                        }
+                        const samplerArg = c.args[1];
+                        let sampler = null;
+                        if (samplerArg instanceof VariableExpr) {
+                            const varInfo = self._findResource(samplerArg.name);
+                            if (varInfo && varInfo.resourceType === exports.ResourceType.Sampler) {
+                                sampler = varInfo;
+                            }
+                        }
+                        if (texture && sampler) {
+                            if (texture.relations === null) {
+                                texture.relations = [];
+                            }
+                            texture.relations.push(sampler);
+                            if (sampler.relations === null) {
+                                sampler.relations = [];
+                            }
+                            sampler.relations.push(texture);
+                        }
+                    }
+                }
+            }
+            else if (node instanceof Call) {
+                const c = node;
+                const callFn = self._functions.get(c.name);
+                if (callFn) {
+                    if (isEntry) {
+                        callFn.inUse = true;
+                    }
+                    fn.calls.add(callFn.node);
+                    // force the recursion to mark the structures
+                    callFn.resources = self._findResources(callFn.node, isEntry);
+                    resources.push(...callFn.resources);
+                }
+            }
+        });
+        return [...new Map(resources.map(r => [r.name, r])).values()];
+    }
+    getBindGroups() {
+        const groups = [];
+        function _makeRoom(group, binding) {
+            if (group >= groups.length) {
+                groups.length = group + 1;
+            }
+            if (groups[group] === undefined) {
+                groups[group] = [];
+            }
+            if (binding >= groups[group].length) {
+                groups[group].length = binding + 1;
+            }
+        }
+        for (const u of this.uniforms) {
+            _makeRoom(u.group, u.binding);
+            const group = groups[u.group];
+            group[u.binding] = u;
+        }
+        for (const u of this.storage) {
+            _makeRoom(u.group, u.binding);
+            const group = groups[u.group];
+            group[u.binding] = u;
+        }
+        for (const t of this.textures) {
+            _makeRoom(t.group, t.binding);
+            const group = groups[t.group];
+            group[t.binding] = t;
+        }
+        for (const t of this.samplers) {
+            _makeRoom(t.group, t.binding);
+            const group = groups[t.group];
+            group[t.binding] = t;
+        }
+        return groups;
+    }
+    _getOutputs(type, outputs = undefined) {
+        if (outputs === undefined) {
+            outputs = [];
+        }
+        if (type instanceof Struct) {
+            this._getStructOutputs(type, outputs);
+        }
+        else {
+            const output = this._getOutputInfo(type);
+            if (output !== null) {
+                outputs.push(output);
+            }
+        }
+        return outputs;
+    }
+    _getStructOutputs(struct, outputs) {
+        for (const m of struct.members) {
+            if (m.type instanceof Struct) {
+                this._getStructOutputs(m.type, outputs);
+            }
+            else {
+                const location = this._getAttribute(m, "location") || this._getAttribute(m, "builtin");
+                if (location !== null) {
+                    const typeInfo = this.getTypeInfo(m.type, m.type.attributes);
+                    const locationValue = this._parseInt(location.value);
+                    const info = new OutputInfo(m.name, typeInfo, location.name, locationValue);
+                    outputs.push(info);
+                }
+            }
+        }
+    }
+    _getOutputInfo(type) {
+        const location = this._getAttribute(type, "location") ||
+            this._getAttribute(type, "builtin");
+        if (location !== null) {
+            const typeInfo = this.getTypeInfo(type, type.attributes);
+            const locationValue = this._parseInt(location.value);
+            const info = new OutputInfo("", typeInfo, location.name, locationValue);
+            return info;
+        }
+        return null;
+    }
+    _getInputs(args, inputs = undefined) {
+        if (inputs === undefined) {
+            inputs = [];
+        }
+        for (const arg of args) {
+            if (arg.type instanceof Struct) {
+                this._getStructInputs(arg.type, inputs);
+            }
+            else {
+                const input = this._getInputInfo(arg);
+                if (input !== null) {
+                    inputs.push(input);
+                }
+            }
+        }
+        return inputs;
+    }
+    _getStructInputs(struct, inputs) {
+        for (const m of struct.members) {
+            if (m.type instanceof Struct) {
+                this._getStructInputs(m.type, inputs);
+            }
+            else {
+                const input = this._getInputInfo(m);
+                if (input !== null) {
+                    inputs.push(input);
+                }
+            }
+        }
+    }
+    _getInputInfo(node) {
+        const location = this._getAttribute(node, "location") ||
+            this._getAttribute(node, "builtin");
+        if (location !== null) {
+            const interpolation = this._getAttribute(node, "interpolation");
+            const type = this.getTypeInfo(node.type, node.attributes);
+            const locationValue = this._parseInt(location.value);
+            const info = new InputInfo(node.name, type, location.name, locationValue);
+            if (interpolation !== null) {
+                info.interpolation = this._parseString(interpolation.value);
+            }
+            return info;
+        }
+        return null;
+    }
+    _parseString(s) {
+        if (s instanceof Array) {
+            s = s[0];
+        }
+        return s;
+    }
+    _parseInt(s) {
+        if (s instanceof Array) {
+            s = s[0];
+        }
+        const n = parseInt(s);
+        return isNaN(n) ? s : n;
+    }
+    _getAlias(name) {
+        for (const a of this.aliases) {
+            if (a.name == name) {
+                return a.type;
+            }
+        }
+        return null;
+    }
+    _getAliasInfo(node) {
+        return new AliasInfo(node.name, this.getTypeInfo(node.type, null));
+    }
+    getTypeInfoByName(name) {
+        for (const s of this.structs) {
+            if (s.name == name) {
+                return s;
+            }
+        }
+        for (const a of this.aliases) {
+            if (a.name == name) {
+                return a.type;
+            }
+        }
+        return null;
+    }
+    getTypeInfo(type, attributes = null) {
+        if (this._types.has(type)) {
+            return this._types.get(type);
+        }
+        if (type instanceof PointerType) {
+            const t = type.type ? this.getTypeInfo(type.type, type.attributes) : null;
+            const info = new PointerInfo(type.name, t, attributes);
+            this._types.set(type, info);
+            this._updateTypeInfo(info);
+            return info;
+        }
+        if (type instanceof ArrayType) {
+            const a = type;
+            const t = a.format ? this.getTypeInfo(a.format, a.attributes) : null;
+            const info = new ArrayInfo(a.name, attributes);
+            info.format = t;
+            info.count = a.count;
+            this._types.set(type, info);
+            this._updateTypeInfo(info);
+            return info;
+        }
+        if (type instanceof Struct) {
+            const s = type;
+            const info = new StructInfo(s.name, attributes);
+            info.startLine = s.startLine;
+            info.endLine = s.endLine;
+            for (const m of s.members) {
+                const t = this.getTypeInfo(m.type, m.attributes);
+                info.members.push(new MemberInfo(m.name, t, m.attributes));
+            }
+            this._types.set(type, info);
+            this._updateTypeInfo(info);
+            return info;
+        }
+        if (type instanceof SamplerType) {
+            const s = type;
+            const formatIsType = s.format instanceof Type;
+            const format = s.format
+                ? formatIsType
+                    ? this.getTypeInfo(s.format, null)
+                    : new TypeInfo(s.format, null)
+                : null;
+            const info = new TemplateInfo(s.name, format, attributes, s.access);
+            this._types.set(type, info);
+            this._updateTypeInfo(info);
+            return info;
+        }
+        if (type instanceof TemplateType) {
+            const t = type;
+            const format = t.format ? this.getTypeInfo(t.format, null) : null;
+            const info = new TemplateInfo(t.name, format, attributes, t.access);
+            this._types.set(type, info);
+            this._updateTypeInfo(info);
+            return info;
+        }
+        const info = new TypeInfo(type.name, attributes);
+        this._types.set(type, info);
+        this._updateTypeInfo(info);
+        return info;
+    }
+    _updateTypeInfo(type) {
+        var _a, _b, _c;
+        const typeSize = this._getTypeSize(type);
+        type.size = (_a = typeSize === null || typeSize === void 0 ? void 0 : typeSize.size) !== null && _a !== void 0 ? _a : 0;
+        if (type instanceof ArrayInfo) {
+            if (type["format"]) {
+                const formatInfo = this._getTypeSize(type["format"]);
+                // Array stride is the maximum of the format size and alignment.
+                // In the case of a vec3f, the size is 12 bytes, but the alignment is 16 bytes.
+                // Buffer alignment is therefore 16 bytes.
+                type.stride = Math.max((_b = formatInfo === null || formatInfo === void 0 ? void 0 : formatInfo.size) !== null && _b !== void 0 ? _b : 0, (_c = formatInfo === null || formatInfo === void 0 ? void 0 : formatInfo.align) !== null && _c !== void 0 ? _c : 0);
+                this._updateTypeInfo(type["format"]);
+            }
+        }
+        if (type instanceof PointerInfo) {
+            this._updateTypeInfo(type["format"]);
+        }
+        if (type instanceof StructInfo) {
+            this._updateStructInfo(type);
+        }
+    }
+    _updateStructInfo(struct) {
+        var _a;
+        let offset = 0;
+        let lastSize = 0;
+        let lastOffset = 0;
+        let structAlign = 0;
+        for (let mi = 0, ml = struct.members.length; mi < ml; ++mi) {
+            const member = struct.members[mi];
+            const sizeInfo = this._getTypeSize(member);
+            if (!sizeInfo) {
+                continue;
+            }
+            (_a = this._getAlias(member.type.name)) !== null && _a !== void 0 ? _a : member.type;
+            const align = sizeInfo.align;
+            const size = sizeInfo.size;
+            offset = this._roundUp(align, offset + lastSize);
+            lastSize = size;
+            lastOffset = offset;
+            structAlign = Math.max(structAlign, align);
+            member.offset = offset;
+            member.size = size;
+            this._updateTypeInfo(member.type);
+        }
+        struct.size = this._roundUp(structAlign, lastOffset + lastSize);
+        struct.align = structAlign;
+    }
+    _getTypeSize(type) {
+        var _a, _b;
+        if (type === null || type === undefined) {
+            return null;
+        }
+        const explicitSize = this._getAttributeNum(type.attributes, "size", 0);
+        const explicitAlign = this._getAttributeNum(type.attributes, "align", 0);
+        if (type instanceof MemberInfo) {
+            type = type.type;
+        }
+        if (type instanceof TypeInfo) {
+            const alias = this._getAlias(type.name);
+            if (alias !== null) {
+                type = alias;
+            }
+        }
+        {
+            const info = Reflect._typeInfo[type.name];
+            if (info !== undefined) {
+                const divisor = ((_a = type["format"]) === null || _a === void 0 ? void 0 : _a.name) === "f16" ? 2 : 1;
+                return new _TypeSize(Math.max(explicitAlign, info.align / divisor), Math.max(explicitSize, info.size / divisor));
+            }
+        }
+        {
+            const info = Reflect._typeInfo[type.name.substring(0, type.name.length - 1)];
+            if (info) {
+                const divisor = type.name[type.name.length - 1] === "h" ? 2 : 1;
+                return new _TypeSize(Math.max(explicitAlign, info.align / divisor), Math.max(explicitSize, info.size / divisor));
+            }
+        }
+        if (type instanceof ArrayInfo) {
+            let arrayType = type;
+            let align = 8;
+            let size = 8;
+            // Type                 AlignOf(T)          Sizeof(T)
+            // array<E, N>          AlignOf(E)          N * roundUp(AlignOf(E), SizeOf(E))
+            // array<E>             AlignOf(E)          N * roundUp(AlignOf(E), SizeOf(E))  (N determined at runtime)
+            //
+            // @stride(Q)
+            // array<E, N>          AlignOf(E)          N * Q
+            //
+            // @stride(Q)
+            // array<E>             AlignOf(E)          Nruntime * Q
+            //const E = type.format.name;
+            const E = this._getTypeSize(arrayType.format);
+            if (E !== null) {
+                size = E.size;
+                align = E.align;
+            }
+            const N = arrayType.count;
+            const stride = this._getAttributeNum((_b = type === null || type === void 0 ? void 0 : type.attributes) !== null && _b !== void 0 ? _b : null, "stride", this._roundUp(align, size));
+            size = N * stride;
+            if (explicitSize) {
+                size = explicitSize;
+            }
+            return new _TypeSize(Math.max(explicitAlign, align), Math.max(explicitSize, size));
+        }
+        if (type instanceof StructInfo) {
+            let align = 0;
+            let size = 0;
+            // struct S     AlignOf:    max(AlignOfMember(S, M1), ... , AlignOfMember(S, MN))
+            //              SizeOf:     roundUp(AlignOf(S), OffsetOfMember(S, L) + SizeOfMember(S, L))
+            //                          Where L is the last member of the structure
+            let offset = 0;
+            let lastSize = 0;
+            let lastOffset = 0;
+            for (const m of type.members) {
+                const mi = this._getTypeSize(m.type);
+                if (mi !== null) {
+                    align = Math.max(mi.align, align);
+                    offset = this._roundUp(mi.align, offset + lastSize);
+                    lastSize = mi.size;
+                    lastOffset = offset;
+                }
+            }
+            size = this._roundUp(align, lastOffset + lastSize);
+            return new _TypeSize(Math.max(explicitAlign, align), Math.max(explicitSize, size));
+        }
+        return null;
+    }
+    _isUniformVar(node) {
+        return node instanceof Var && node.storage == "uniform";
+    }
+    _isStorageVar(node) {
+        return node instanceof Var && node.storage == "storage";
+    }
+    _isTextureVar(node) {
+        return (node instanceof Var &&
+            node.type !== null &&
+            Reflect._textureTypes.indexOf(node.type.name) != -1);
+    }
+    _isSamplerVar(node) {
+        return (node instanceof Var &&
+            node.type !== null &&
+            Reflect._samplerTypes.indexOf(node.type.name) != -1);
+    }
+    _getAttribute(node, name) {
+        const obj = node;
+        if (!obj || !obj["attributes"]) {
+            return null;
+        }
+        const attrs = obj["attributes"];
+        for (let a of attrs) {
+            if (a.name == name) {
+                return a;
+            }
+        }
+        return null;
+    }
+    _getAttributeNum(attributes, name, defaultValue) {
+        if (attributes === null) {
+            return defaultValue;
+        }
+        for (let a of attributes) {
+            if (a.name == name) {
+                let v = a !== null && a.value !== null ? a.value : defaultValue;
+                if (v instanceof Array) {
+                    v = v[0];
+                }
+                if (typeof v === "number") {
+                    return v;
+                }
+                if (typeof v === "string") {
+                    return parseInt(v);
+                }
+                return defaultValue;
+            }
+        }
+        return defaultValue;
+    }
+    _roundUp(k, n) {
+        return Math.ceil(n / k) * k;
+    }
+}
+// Type                 AlignOf(T)          Sizeof(T)
+// i32, u32, or f32     4                   4
+// atomic<T>            4                   4
+// vec2<T>              8                   8
+// vec3<T>              16                  12
+// vec4<T>              16                  16
+// mat2x2<f32>          8                   16
+// mat3x2<f32>          8                   24
+// mat4x2<f32>          8                   32
+// mat2x3<f32>          16                  32
+// mat3x3<f32>          16                  48
+// mat4x3<f32>          16                  64
+// mat2x4<f32>          16                  32
+// mat3x4<f32>          16                  48
+// mat4x4<f32>          16                  64
+Reflect._typeInfo = {
+    f16: { align: 2, size: 2 },
+    i32: { align: 4, size: 4 },
+    u32: { align: 4, size: 4 },
+    f32: { align: 4, size: 4 },
+    atomic: { align: 4, size: 4 },
+    vec2: { align: 8, size: 8 },
+    vec3: { align: 16, size: 12 },
+    vec4: { align: 16, size: 16 },
+    mat2x2: { align: 8, size: 16 },
+    mat3x2: { align: 8, size: 24 },
+    mat4x2: { align: 8, size: 32 },
+    mat2x3: { align: 16, size: 32 },
+    mat3x3: { align: 16, size: 48 },
+    mat4x3: { align: 16, size: 64 },
+    mat2x4: { align: 16, size: 32 },
+    mat3x4: { align: 16, size: 48 },
+    mat4x4: { align: 16, size: 64 },
+};
+Reflect._textureTypes = TokenTypes.any_texture_type.map((t) => {
+    return t.name;
+});
+Reflect._samplerTypes = TokenTypes.sampler_type.map((t) => {
+    return t.name;
+});
+
+let _id = 0;
+class VarRef {
+    constructor(n, v, node) {
+        this.id = _id++;
+        this.name = n;
+        this.value = v;
+        this.node = node;
+    }
+    clone() {
+        return new VarRef(this.name, this.value, this.node);
+    }
+}
+class FunctionRef {
+    constructor(node) {
+        this.id = _id++;
+        this.name = node.name;
+        this.node = node;
+    }
+    clone() {
+        return new FunctionRef(this.node);
+    }
+}
+class ExecContext {
+    constructor(parent) {
+        this.parent = null;
+        this.variables = new Map();
+        this.functions = new Map();
+        this.currentFunctionName = "";
+        this.id = _id++;
+        if (parent) {
+            this.parent = parent;
+            this.currentFunctionName = parent.currentFunctionName;
+        }
+    }
+    getVariable(name) {
+        var _a;
+        if (this.variables.has(name)) {
+            return (_a = this.variables.get(name)) !== null && _a !== void 0 ? _a : null;
+        }
+        if (this.parent) {
+            return this.parent.getVariable(name);
+        }
+        return null;
+    }
+    getFunction(name) {
+        var _a;
+        if (this.functions.has(name)) {
+            return (_a = this.functions.get(name)) !== null && _a !== void 0 ? _a : null;
+        }
+        if (this.parent) {
+            return this.parent.getFunction(name);
+        }
+        return null;
+    }
+    createVariable(name, value, node) {
+        this.variables.set(name, new VarRef(name, value, node !== null && node !== void 0 ? node : null));
+    }
+    setVariable(name, value, node) {
+        const v = this.getVariable(name);
+        if (v !== null) {
+            v.value = value;
+        }
+        else {
+            this.createVariable(name, value, node);
+        }
+    }
+    getVariableValue(name) {
+        var _a;
+        const v = this.getVariable(name);
+        return (_a = v === null || v === void 0 ? void 0 : v.value) !== null && _a !== void 0 ? _a : null;
+    }
+    clone() {
+        return new ExecContext(this);
+    }
+}
+
+class ExecInterface {
+    evalExpression(node, context) {
+        return null;
+    }
+    getTypeInfo(type) {
+        return null;
+    }
+    getVariableName(node, context) {
+        return "";
+    }
+}
+
+class BuiltinFunctions {
+    constructor(exec) {
+        this.exec = exec;
+    }
+    getTypeInfo(type) {
+        return this.exec.getTypeInfo(type);
+    }
+    // Logical Built-in Functions
+    All(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        let isTrue = true;
+        if (value instanceof VectorData) {
+            value.data.forEach((x) => { if (!x)
+                isTrue = false; });
+            return new ScalarData(isTrue ? 1 : 0, this.getTypeInfo("bool"));
+        }
+        throw new Error(`All() expects a vector argument. Line ${node.line}`);
+    }
+    Any(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            const res = value.data.some((v) => v);
+            return new ScalarData(res ? 1 : 0, this.getTypeInfo("bool"));
+        }
+        throw new Error(`Any() expects a vector argument. Line ${node.line}`);
+    }
+    Select(node, context) {
+        // select(false, true, condition)
+        const condition = this.exec.evalExpression(node.args[2], context);
+        if (!(condition instanceof ScalarData)) {
+            throw new Error(`Select() expects a bool condition. Line ${node.line}`);
+        }
+        if (!condition.value) {
+            return this.exec.evalExpression(node.args[0], context);
+        }
+        else {
+            return this.exec.evalExpression(node.args[1], context);
+        }
+    }
+    // Array Built-in Functions
+    ArrayLength(node, context) {
+        let arrayArg = node.args[0];
+        // TODO: handle "&" operator
+        if (arrayArg instanceof UnaryOperator) {
+            arrayArg = arrayArg.right;
+        }
+        const arrayData = this.exec.evalExpression(arrayArg, context);
+        if (arrayData instanceof TypedData && arrayData.typeInfo.size === 0) {
+            const ta = arrayData.typeInfo;
+            const count = arrayData.buffer.byteLength / ta.stride;
+            return new ScalarData(count, this.getTypeInfo("u32"));
+        }
+        return new ScalarData(arrayData.typeInfo.size, this.getTypeInfo("u32"));
+    }
+    // Numeric Built-in Functions
+    Abs(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => Math.abs(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(Math.abs(s.value), s.typeInfo);
+    }
+    Acos(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => Math.acos(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(Math.acos(s.value), value.typeInfo);
+    }
+    Acosh(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => Math.acosh(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(Math.acosh(s.value), value.typeInfo);
+    }
+    Asin(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => Math.asin(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(Math.asin(s.value), value.typeInfo);
+    }
+    Asinh(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => Math.asinh(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(Math.asinh(s.value), value.typeInfo);
+    }
+    Atan(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => Math.atan(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(Math.atan(s.value), value.typeInfo);
+    }
+    Atanh(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => Math.atanh(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(Math.atanh(s.value), value.typeInfo);
+    }
+    Atan2(node, context) {
+        const y = this.exec.evalExpression(node.args[0], context);
+        const x = this.exec.evalExpression(node.args[1], context);
+        if (y instanceof VectorData && x instanceof VectorData) {
+            return new VectorData(y.data.map((v, i) => Math.atan2(v, x.data[i])), y.typeInfo);
+        }
+        const ys = y;
+        const xs = x;
+        return new ScalarData(Math.atan2(ys.value, xs.value), y.typeInfo);
+    }
+    Ceil(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => Math.ceil(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(Math.ceil(s.value), value.typeInfo);
+    }
+    _clamp(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+    }
+    Clamp(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        const min = this.exec.evalExpression(node.args[1], context);
+        const max = this.exec.evalExpression(node.args[2], context);
+        if (value instanceof VectorData && min instanceof VectorData && max instanceof VectorData) {
+            return new VectorData(value.data.map((v, i) => this._clamp(v, min.data[i], max.data[i])), value.typeInfo);
+        }
+        const s = value;
+        const minS = min;
+        const maxS = max;
+        return new ScalarData(this._clamp(s.value, minS.value, maxS.value), value.typeInfo);
+    }
+    Cos(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => Math.cos(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(Math.cos(s.value), value.typeInfo);
+    }
+    Cosh(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => Math.cosh(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(Math.cos(s.value), value.typeInfo);
+    }
+    CountLeadingZeros(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => Math.clz32(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(Math.clz32(s.value), value.typeInfo);
+    }
+    _countOneBits(value) {
+        let count = 0;
+        while (value !== 0) {
+            if (value & 1) {
+                count++;
+            }
+            value >>= 1;
+        }
+        return count;
+    }
+    CountOneBits(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => this._countOneBits(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(this._countOneBits(s.value), value.typeInfo);
+    }
+    _countTrailingZeros(value) {
+        if (value === 0) {
+            return 32; // Special case for 0
+        }
+        let count = 0;
+        while ((value & 1) === 0) {
+            value >>= 1;
+            count++;
+        }
+        return count;
+    }
+    CountTrailingZeros(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => this._countTrailingZeros(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(this._countTrailingZeros(s.value), value.typeInfo);
+    }
+    Cross(node, context) {
+        const l = this.exec.evalExpression(node.args[0], context);
+        const r = this.exec.evalExpression(node.args[1], context);
+        if (l instanceof VectorData && r instanceof VectorData) {
+            if (l.data.length !== 3 || r.data.length !== 3) {
+                console.error(`Cross() expects 3D vectors. Line ${node.line}`);
+                return null;
+            }
+            const lv = l.data;
+            const rv = r.data;
+            return new VectorData([
+                lv[1] * rv[2] - rv[1] * lv[2],
+                lv[2] * rv[0] - rv[2] * lv[0],
+                lv[0] * rv[1] - rv[0] * lv[1],
+            ], l.typeInfo);
+        }
+        console.error(`Cross() expects vector arguments. Line ${node.line}`);
+        return null;
+    }
+    Degrees(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        const radToDeg = 180.0 / Math.PI;
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => v * radToDeg), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(s.value * radToDeg, this.getTypeInfo("f32"));
+    }
+    Determinant(node, context) {
+        const m = this.exec.evalExpression(node.args[0], context);
+        if (m instanceof MatrixData) {
+            const mv = m.data;
+            const mt = m.typeInfo.getTypeName();
+            const isHalf = mt.endsWith("h");
+            const formatType = isHalf ? this.getTypeInfo("f16") : this.getTypeInfo("f32");
+            if (mt === "mat2x2" || mt === "mat2x2f" || mt === "mat2x2h") {
+                return new ScalarData(mv[0] * mv[3] - mv[1] * mv[2], formatType);
+            }
+            else if (mt === "mat2x3" || mt === "mat2x3f" || mt === "mat2x3h") {
+                return new ScalarData(mv[0] * (mv[4] * mv[8] - mv[5] * mv[7]) -
+                    mv[1] * (mv[3] * mv[8] - mv[5] * mv[6]) + mv[2] * (mv[3] * mv[7] - mv[4] * mv[6]), formatType);
+            }
+            else if (mt === "mat2x4" || mt === "mat2x4f" || mt === "mat2x4h") {
+                console.error(`TODO: Determinant for ${mt}`);
+            }
+            else if (mt === "mat3x2" || mt === "mat3x2f" || mt === "mat3x2h") {
+                console.error(`TODO: Determinant for ${mt}`);
+            }
+            else if (mt === "mat3x3" || mt === "mat3x3f" || mt === "mat3x3h") {
+                return new ScalarData(mv[0] * (mv[4] * mv[8] - mv[5] * mv[7]) -
+                    mv[1] * (mv[3] * mv[8] - mv[5] * mv[6]) + mv[2] * (mv[3] * mv[7] - mv[4] * mv[6]), formatType);
+            }
+            else if (mt === "mat3x4" || mt === "mat3x4f" || mt === "mat3x4h") {
+                console.error(`TODO: Determinant for ${mt}`);
+            }
+            else if (mt === "mat4x2" || mt === "mat4x2f" || mt === "mat4x2h") {
+                console.error(`TODO: Determinant for ${mt}`);
+            }
+            else if (mt === "mat4x3" || mt === "mat4x3f" || mt === "mat4x3h") {
+                console.error(`TODO: Determinant for ${mt}`);
+            }
+            else if (mt === "mat4x4" || mt === "mat4x4f" || mt === "mat4x4h") {
+                console.error(`TODO: Determinant for ${mt}`);
+            }
+        }
+        console.error(`Determinant expects a matrix argument. Line ${node.line}`);
+        return null;
+    }
+    Distance(node, context) {
+        const l = this.exec.evalExpression(node.args[0], context);
+        const r = this.exec.evalExpression(node.args[1], context);
+        if (l instanceof VectorData && r instanceof VectorData) {
+            let sum = 0;
+            for (let i = 0; i < l.data.length; ++i) {
+                sum += (l.data[i] - r.data[i]) * (l.data[i] - r.data[i]);
+            }
+            return new ScalarData(Math.sqrt(sum), this.getTypeInfo("f32"));
+        }
+        const ls = l;
+        const rs = r;
+        return new ScalarData(Math.abs(ls.value - rs.value), l.typeInfo);
+    }
+    _dot(e1, e2) {
+        let dot = 0;
+        for (let i = 0; i < e1.length; ++i) {
+            dot += e2[i] * e1[i];
+        }
+        return dot;
+    }
+    Dot(node, context) {
+        const l = this.exec.evalExpression(node.args[0], context);
+        const r = this.exec.evalExpression(node.args[1], context);
+        if (l instanceof VectorData && r instanceof VectorData) {
+            return new ScalarData(this._dot(l.data, r.data), this.getTypeInfo("f32"));
+        }
+        console.error(`Dot() expects vector arguments. Line ${node.line}`);
+        return null;
+    }
+    Dot4U8Packed(node, context) {
+        console.error(`TODO: dot4U8Packed. Line ${node.line}`);
+        return null;
+    }
+    Dot4I8Packed(node, context) {
+        console.error(`TODO: dot4I8Packed. Line ${node.line}`);
+        return null;
+    }
+    Exp(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => Math.exp(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(Math.exp(s.value), value.typeInfo);
+    }
+    Exp2(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => Math.pow(2, v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(Math.pow(2, s.value), value.typeInfo);
+    }
+    ExtractBits(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        const offset = this.exec.evalExpression(node.args[1], context);
+        const count = this.exec.evalExpression(node.args[2], context);
+        if (offset.typeInfo.name !== "u32" && offset.typeInfo.name !== "x32") {
+            console.error(`ExtractBits() expects an i32 offset argument. Line ${node.line}`);
+            return null;
+        }
+        if (count.typeInfo.name !== "u32" && count.typeInfo.name !== "x32") {
+            console.error(`ExtractBits() expects an i32 count argument. Line ${node.line}`);
+            return null;
+        }
+        const o = offset.value;
+        const c = count.value;
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => (v >> o) & ((1 << c) - 1)), value.typeInfo);
+        }
+        if (value.typeInfo.name !== "i32" && value.typeInfo.name !== "x32") {
+            console.error(`ExtractBits() expects an i32 argument. Line ${node.line}`);
+            return null;
+        }
+        const v = value.value;
+        return new ScalarData((v >> o) & ((1 << c) - 1), this.getTypeInfo("i32"));
+    }
+    FaceForward(node, context) {
+        const e1 = this.exec.evalExpression(node.args[0], context);
+        const e2 = this.exec.evalExpression(node.args[1], context);
+        const n = this.exec.evalExpression(node.args[2], context);
+        if (e1 instanceof VectorData && e2 instanceof VectorData && n instanceof VectorData) {
+            const dot = this._dot(e2.data, n.data);
+            if (dot < 0) {
+                return new VectorData(Array.from(e1.data), e1.typeInfo);
+            }
+            return new VectorData(e1.data.map((v) => -v), e1.typeInfo);
+        }
+        console.error(`FaceForward() expects vector arguments. Line ${node.line}`);
+        return null;
+    }
+    _firstLeadingBit(s) {
+        if (s === 0) {
+            return -1;
+        }
+        return 31 - Math.clz32(s); // clz32: count leading zeros
+    }
+    FirstLeadingBit(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => this._firstLeadingBit(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(this._firstLeadingBit(s.value), value.typeInfo);
+    }
+    _firstTrailingBit(s) {
+        if (s === 0) {
+            return -1;
+        }
+        return Math.log2(s & -s); // n & -n isolates the lowest set bit.  Math.log2 gives its position.
+    }
+    FirstTrailingBit(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => this._firstTrailingBit(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(this._firstTrailingBit(s.value), value.typeInfo);
+    }
+    Floor(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => Math.floor(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(Math.floor(s.value), value.typeInfo);
+    }
+    Fma(node, context) {
+        const a = this.exec.evalExpression(node.args[0], context);
+        const b = this.exec.evalExpression(node.args[1], context);
+        const c = this.exec.evalExpression(node.args[2], context);
+        if (a instanceof VectorData && b instanceof VectorData && c instanceof VectorData) {
+            if (a.data.length !== b.data.length || a.data.length !== c.data.length) {
+                console.error(`Fma() expects vectors of the same length. Line ${node.line}`);
+                return null;
+            }
+            return new VectorData(a.data.map((v, i) => v * b.data[i] + c.data[i]), a.typeInfo);
+        }
+        const av = a;
+        const bv = b;
+        const cv = c;
+        return new ScalarData(av.value * bv.value + cv.value, av.typeInfo);
+    }
+    Fract(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => v - Math.floor(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(s.value - Math.floor(s.value), value.typeInfo);
+    }
+    Frexp(node, context) {
+        console.error(`TODO: frexp. Line ${node.line}`);
+        return null;
+    }
+    InsertBits(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        const insert = this.exec.evalExpression(node.args[1], context);
+        const offset = this.exec.evalExpression(node.args[2], context);
+        const count = this.exec.evalExpression(node.args[3], context);
+        if (offset.typeInfo.name !== "u32" && offset.typeInfo.name !== "x32") {
+            console.error(`InsertBits() expects an i32 offset argument. Line ${node.line}`);
+            return null;
+        }
+        const o = offset.value;
+        const c = count.value;
+        const mask = ((1 << c) - 1) << o;
+        const invMask = ~mask;
+        if (value instanceof VectorData && insert instanceof VectorData) {
+            return new VectorData(value.data.map((v, i) => {
+                return (v & invMask) | ((insert.data[i] << o) & mask);
+            }), value.typeInfo);
+        }
+        const v = value.value;
+        const i = insert.value;
+        return new ScalarData((v & invMask) | ((i << o) & mask), value.typeInfo);
+    }
+    InverseSqrt(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => 1 / Math.sqrt(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(1 / Math.sqrt(s.value), value.typeInfo);
+    }
+    Ldexp(node, context) {
+        console.error(`TODO: ldexp. Line ${node.line}`);
+        return null;
+    }
+    Length(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            let sum = 0;
+            value.data.forEach((v) => { sum += v * v; });
+            return new ScalarData(Math.sqrt(sum), this.getTypeInfo("f32"));
+        }
+        const s = value;
+        return new ScalarData(Math.abs(s.value), value.typeInfo);
+    }
+    Log(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => Math.log(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(Math.log(s.value), value.typeInfo);
+    }
+    Log2(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => Math.log2(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(Math.log2(s.value), value.typeInfo);
+    }
+    Max(node, context) {
+        const l = this.exec.evalExpression(node.args[0], context);
+        const r = this.exec.evalExpression(node.args[1], context);
+        if (l instanceof VectorData && r instanceof VectorData) {
+            return new VectorData(l.data.map((v, i) => Math.max(v, r.data[i])), l.typeInfo);
+        }
+        const ls = l;
+        const rs = r;
+        return new ScalarData(Math.max(ls.value, rs.value), l.typeInfo);
+    }
+    Min(node, context) {
+        const l = this.exec.evalExpression(node.args[0], context);
+        const r = this.exec.evalExpression(node.args[1], context);
+        if (l instanceof VectorData && r instanceof VectorData) {
+            return new VectorData(l.data.map((v, i) => Math.min(v, r.data[i])), l.typeInfo);
+        }
+        const ls = l;
+        const rs = r;
+        return new ScalarData(Math.min(ls.value, rs.value), l.typeInfo);
+    }
+    Mix(node, context) {
+        const x = this.exec.evalExpression(node.args[0], context);
+        const y = this.exec.evalExpression(node.args[1], context);
+        const a = this.exec.evalExpression(node.args[2], context);
+        if (x instanceof VectorData && y instanceof VectorData && a instanceof VectorData) {
+            return new VectorData(x.data.map((v, i) => x.data[i] * (1 - a.data[i]) + y.data[i] * a.data[i]), x.typeInfo);
+        }
+        const xs = x;
+        const ys = y;
+        const as = a;
+        return new ScalarData(xs.value * (1 - as.value) + ys.value * as.value, x.typeInfo);
+    }
+    Modf(node, context) {
+        const x = this.exec.evalExpression(node.args[0], context);
+        const y = this.exec.evalExpression(node.args[1], context);
+        if (x instanceof VectorData && y instanceof VectorData) {
+            return new VectorData(x.data.map((v, i) => v % y.data[i]), x.typeInfo);
+        }
+        const xs = x;
+        const ys = y;
+        return new ScalarData(xs.value % ys.value, x.typeInfo);
+    }
+    Normalize(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            const length = this.Length(node, context).value;
+            return new VectorData(value.data.map((v) => v / length), value.typeInfo);
+        }
+        console.error(`Normalize() expects a vector argument. Line ${node.line}`);
+        return null;
+    }
+    Pow(node, context) {
+        const x = this.exec.evalExpression(node.args[0], context);
+        const y = this.exec.evalExpression(node.args[1], context);
+        if (x instanceof VectorData && y instanceof VectorData) {
+            return new VectorData(x.data.map((v, i) => Math.pow(v, y.data[i])), x.typeInfo);
+        }
+        const xs = x;
+        const ys = y;
+        return new ScalarData(Math.pow(xs.value, ys.value), x.typeInfo);
+    }
+    QuantizeToF16(node, context) {
+        // TODO: actually quantize the f32 to f16
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => v), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(s.value, value.typeInfo);
+    }
+    Radians(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => v * Math.PI / 180), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(s.value * Math.PI / 180, this.getTypeInfo("f32"));
+    }
+    Reflect(node, context) {
+        // e1 - 2 * dot(e2, e1) * e2
+        let e1 = this.exec.evalExpression(node.args[0], context);
+        let e2 = this.exec.evalExpression(node.args[1], context);
+        if (e1 instanceof VectorData && e2 instanceof VectorData) {
+            const dot = this._dot(e1.data, e2.data);
+            return new VectorData(e1.data.map((v, i) => v - 2 * dot * e2.data[i]), e1.typeInfo);
+        }
+        console.error(`Reflect() expects vector arguments. Line ${node.line}`);
+        return null;
+    }
+    Refract(node, context) {
+        let e1 = this.exec.evalExpression(node.args[0], context);
+        let e2 = this.exec.evalExpression(node.args[1], context);
+        let e3 = this.exec.evalExpression(node.args[2], context);
+        if (e1 instanceof VectorData && e2 instanceof VectorData && e3 instanceof ScalarData) {
+            const dot = this._dot(e2.data, e1.data);
+            return new VectorData(e1.data.map((v, i) => {
+                const k = 1.0 - e3.value * e3.value * (1.0 - dot * dot);
+                if (k < 0) {
+                    return 0;
+                }
+                const sqrtK = Math.sqrt(k);
+                return e3.value * v - (e3.value * dot + sqrtK) * e2.data[i];
+            }), e1.typeInfo);
+        }
+        console.error(`Refract() expects vector arguments and a scalar argument. Line ${node.line}`);
+        return null;
+    }
+    ReverseBits(node, context) {
+        console.error(`TODO: reverseBits. Line ${node.line}`);
+        return null;
+    }
+    Round(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => Math.round(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(Math.round(s.value), value.typeInfo);
+    }
+    Saturate(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => Math.min(Math.max(v, 0), 1)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(Math.min(Math.max(s.value, 0), 1), value.typeInfo);
+    }
+    Sign(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => Math.sign(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(Math.sign(s.value), value.typeInfo);
+    }
+    Sin(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => Math.sin(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(Math.sin(s.value), value.typeInfo);
+    }
+    Sinh(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => Math.sinh(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(Math.sinh(s.value), value.typeInfo);
+    }
+    _smoothstep(edge0, edge1, x) {
+        const t = Math.min(Math.max((x - edge0) / (edge1 - edge0), 0), 1);
+        return t * t * (3 - 2 * t);
+    }
+    SmoothStep(node, context) {
+        const edge0 = this.exec.evalExpression(node.args[0], context);
+        const edge1 = this.exec.evalExpression(node.args[1], context);
+        const x = this.exec.evalExpression(node.args[2], context);
+        if (x instanceof VectorData && edge0 instanceof VectorData && edge1 instanceof VectorData) {
+            return new VectorData(x.data.map((v, i) => this._smoothstep(edge0.data[i], edge1.data[i], v)), x.typeInfo);
+        }
+        const e0 = edge0;
+        const e1 = edge1;
+        const xS = x;
+        return new ScalarData(this._smoothstep(e0.value, e1.value, xS.value), x.typeInfo);
+    }
+    Sqrt(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => Math.sqrt(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(Math.sqrt(s.value), value.typeInfo);
+    }
+    Step(node, context) {
+        const edge = this.exec.evalExpression(node.args[0], context);
+        const x = this.exec.evalExpression(node.args[1], context);
+        if (x instanceof VectorData && edge instanceof VectorData) {
+            return new VectorData(x.data.map((v, i) => v < edge.data[i] ? 0 : 1), x.typeInfo);
+        }
+        const e = edge;
+        const s = x;
+        return new ScalarData(s.value < e.value ? 0 : 1, e.typeInfo);
+    }
+    Tan(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => Math.tan(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(Math.tan(s.value), value.typeInfo);
+    }
+    Tanh(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => Math.tanh(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(Math.tanh(s.value), value.typeInfo);
+    }
+    _getTransposeType(t) {
+        const tname = t.getTypeName();
+        if (tname === "mat2x2f" || tname === "mat2x2h") {
+            return t;
+        }
+        else if (tname === "mat2x3f") {
+            return this.getTypeInfo("mat3x2f");
+        }
+        else if (tname === "mat2x3h") {
+            return this.getTypeInfo("mat3x2h");
+        }
+        else if (tname === "mat2x4f") {
+            return this.getTypeInfo("mat4x2f");
+        }
+        else if (tname === "mat2x4h") {
+            return this.getTypeInfo("mat4x2h");
+        }
+        else if (tname === "mat3x2f") {
+            return this.getTypeInfo("mat2x3f");
+        }
+        else if (tname === "mat3x2h") {
+            return this.getTypeInfo("mat2x3h");
+        }
+        else if (tname === "mat3x3f" || tname === "mat3x3h") {
+            return t;
+        }
+        else if (tname === "mat3x4f") {
+            return this.getTypeInfo("mat4x3f");
+        }
+        else if (tname === "mat3x4h") {
+            return this.getTypeInfo("mat4x3h");
+        }
+        else if (tname === "mat4x2f") {
+            return this.getTypeInfo("mat2x4f");
+        }
+        else if (tname === "mat4x2h") {
+            return this.getTypeInfo("mat2x4h");
+        }
+        else if (tname === "mat4x3f") {
+            return this.getTypeInfo("mat3x4f");
+        }
+        else if (tname === "mat4x3h") {
+            return this.getTypeInfo("mat3x4h");
+        }
+        else if (tname === "mat4x4f" || tname === "mat4x4h") {
+            return t;
+        }
+        console.error(`Invalid matrix type ${tname}`);
+        return t;
+    }
+    Transpose(node, context) {
+        const m = this.exec.evalExpression(node.args[0], context);
+        if (!(m instanceof MatrixData)) {
+            console.error(`Transpose() expects a matrix argument. Line ${node.line}`);
+            return null;
+        }
+        const ttype = this._getTransposeType(m.typeInfo);
+        if (m.typeInfo.name === "mat2x2" || m.typeInfo.name === "mat2x2f" || m.typeInfo.name === "mat2x2h") {
+            const mv = m.data;
+            return new MatrixData([mv[0], mv[2], mv[1], mv[3]], ttype);
+        }
+        else if (m.typeInfo.name === "mat2x3" || m.typeInfo.name === "mat2x3f" || m.typeInfo.name === "mat2x3h") {
+            const mv = m.data;
+            return new MatrixData([mv[0], mv[3], mv[6], mv[1], mv[4], mv[7]], ttype);
+        }
+        else if (m.typeInfo.name === "mat2x4" || m.typeInfo.name === "mat2x4f" || m.typeInfo.name === "mat2x4h") {
+            const mv = m.data;
+            return new MatrixData([mv[0], mv[4], mv[8], mv[12], mv[1], mv[5], mv[9], mv[13]], ttype);
+        }
+        else if (m.typeInfo.name === "mat3x2" || m.typeInfo.name === "mat3x2f" || m.typeInfo.name === "mat3x2h") {
+            const mv = m.data;
+            return new MatrixData([mv[0], mv[3], mv[1], mv[4], mv[2], mv[5]], ttype);
+        }
+        else if (m.typeInfo.name === "mat3x3" || m.typeInfo.name === "mat3x3f" || m.typeInfo.name === "mat3x3h") {
+            const mv = m.data;
+            return new MatrixData([mv[0], mv[3], mv[6], mv[1], mv[4], mv[7], mv[2], mv[5], mv[8]], ttype);
+        }
+        else if (m.typeInfo.name === "mat3x4" || m.typeInfo.name === "mat3x4f" || m.typeInfo.name === "mat3x4h") {
+            const mv = m.data;
+            return new MatrixData([mv[0], mv[4], mv[8], mv[12], mv[1], mv[5], mv[9], mv[13], mv[2], mv[6], mv[10], mv[14]], ttype);
+        }
+        else if (m.typeInfo.name === "mat4x2" || m.typeInfo.name === "mat4x2f" || m.typeInfo.name === "mat4x2h") {
+            const mv = m.data;
+            return new MatrixData([mv[0], mv[4], mv[1], mv[5], mv[2], mv[6]], ttype);
+        }
+        else if (m.typeInfo.name === "mat4x3" || m.typeInfo.name === "mat4x3f" || m.typeInfo.name === "mat4x3h") {
+            const mv = m.data;
+            return new MatrixData([mv[0], mv[4], mv[8], mv[1], mv[5], mv[9], mv[2], mv[6], mv[10]], ttype);
+        }
+        else if (m.typeInfo.name === "mat4x4" || m.typeInfo.name === "mat4x4f" || m.typeInfo.name === "mat4x4h") {
+            const mv = m.data;
+            return new MatrixData([mv[0], mv[4], mv[8], mv[12],
+                mv[1], mv[5], mv[9], mv[13],
+                mv[2], mv[6], mv[10], mv[14],
+                mv[3], mv[7], mv[11], mv[15]], ttype);
+        }
+        console.error(`Invalid matrix type ${m.typeInfo.name}`);
+        return null;
+    }
+    Trunc(node, context) {
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v) => Math.trunc(v)), value.typeInfo);
+        }
+        const s = value;
+        return new ScalarData(Math.trunc(s.value), value.typeInfo);
+    }
+    // Derivative Built-in Functions
+    Dpdx(node, context) {
+        console.error(`TODO: dpdx. Line ${node.line}`);
+        return null;
+    }
+    DpdxCoarse(node, context) {
+        console.error(`TODO: dpdxCoarse. Line ${node.line}`);
+        return null;
+    }
+    DpdxFine(node, context) {
+        console.error("TODO: dpdxFine");
+        return null;
+    }
+    Dpdy(node, context) {
+        console.error("TODO: dpdy");
+        return null;
+    }
+    DpdyCoarse(node, context) {
+        console.error("TODO: dpdyCoarse");
+        return null;
+    }
+    DpdyFine(node, context) {
+        console.error("TODO: dpdyFine");
+        return null;
+    }
+    Fwidth(node, context) {
+        console.error("TODO: fwidth");
+        return null;
+    }
+    FwidthCoarse(node, context) {
+        console.error("TODO: fwidthCoarse");
+        return null;
+    }
+    FwidthFine(node, context) {
+        console.error("TODO: fwidthFine");
+        return null;
+    }
+    // Texture Built-in Functions
+    TextureDimensions(node, context) {
+        const textureArg = node.args[0];
+        const level = node.args.length > 1 ? this.exec.evalExpression(node.args[1], context).value : 0;
+        if (textureArg instanceof VariableExpr) {
+            const textureName = textureArg.name;
+            const texture = context.getVariableValue(textureName);
+            if (texture instanceof TextureData) {
+                if (level < 0 || level >= texture.mipLevelCount) {
+                    console.error(`Invalid mip level for textureDimensions. Line ${node.line}`);
+                    return null;
+                }
+                const textureSize = texture.getMipLevelSize(level);
+                const dimension = texture.dimension;
+                if (dimension === "1d") {
+                    return new ScalarData(textureSize[0], this.getTypeInfo("u32"));
+                }
+                else if (dimension === "3d") {
+                    return new VectorData(textureSize, this.getTypeInfo("vec3u"));
+                }
+                else if (dimension === "2d") {
+                    return new VectorData(textureSize.slice(0, 2), this.getTypeInfo("vec2u"));
+                }
+                else {
+                    console.error(`Invalid texture dimension ${dimension} not found. Line ${node.line}`);
+                    return null;
+                }
+            }
+            else {
+                console.error(`Texture ${textureName} not found. Line ${node.line}`);
+                return null;
+            }
+        }
+        console.error(`Invalid texture argument for textureDimensions. Line ${node.line}`);
+        return null;
+    }
+    TextureGather(node, context) {
+        console.error("TODO: textureGather");
+        return null;
+    }
+    TextureGatherCompare(node, context) {
+        console.error("TODO: textureGatherCompare");
+        return null;
+    }
+    TextureLoad(node, context) {
+        // https://www.w3.org/TR/WGSL/#textureload
+        const textureArg = node.args[0];
+        const uv = this.exec.evalExpression(node.args[1], context);
+        // TODO: non-vec2 UVs, for non-2D textures
+        if (!(uv instanceof VectorData) || uv.data.length !== 2) {
+            console.error(`Invalid UV argument for textureLoad. Line ${node.line}`);
+            return null;
+        }
+        if (textureArg instanceof VariableExpr) {
+            const textureName = textureArg.name;
+            const texture = context.getVariableValue(textureName);
+            if (texture instanceof TextureData) {
+                let zVal = 0;
+                let mipLevel = 0;
+                if (["texture_storage_2d_array", "texture_2d_array", "texture_depth_2d_array"].indexOf(texture.typeInfo.name) > -1) {
+                    zVal = this.exec.evalExpression(node.args[2], context).value;
+                }
+                if (["texture_1d", "texture_2d", "texture_depth_2d", "texture_3d"].indexOf(texture.typeInfo.name) > -1) {
+                    mipLevel = this.exec.evalExpression(node.args[2], context).value;
+                }
+                if (["texture_2d_array", "texture_depth_2d_array"].indexOf(texture.typeInfo.name) > -1) {
+                    mipLevel = this.exec.evalExpression(node.args[3], context).value;
+                }
+                const x = Math.floor(uv.data[0]);
+                const y = Math.floor(uv.data[1]);
+                const z = Math.floor(zVal);
+                const level = Math.floor(mipLevel);
+                if (x < 0 || x >= texture.width || y < 0 || y >= texture.height) {
+                    console.error(`Texture ${textureName} out of bounds. Line ${node.line}`);
+                    return null;
+                }
+                const texel = texture.getPixel(x, y, z, level);
+                if (texel === null) {
+                    console.error(`Invalid texture format for textureLoad. Line ${node.line}`);
+                    return null;
+                }
+                return new VectorData(texel, this.getTypeInfo("vec4f"));
+            }
+            else {
+                console.error(`Texture ${textureName} not found. Line ${node.line}`);
+                return null;
+            }
+        }
+        console.error(`Invalid texture argument for textureLoad. Line ${node.line}`);
+        return null;
+    }
+    TextureNumLayers(node, context) {
+        const textureArg = node.args[0];
+        if (textureArg instanceof VariableExpr) {
+            const textureName = textureArg.name;
+            const texture = context.getVariableValue(textureName);
+            if (texture instanceof TextureData) {
+                return new ScalarData(texture.depthOrArrayLayers, this.getTypeInfo("u32"));
+            }
+            else {
+                console.error(`Texture ${textureName} not found. Line ${node.line}`);
+                return null;
+            }
+        }
+        console.error(`Invalid texture argument for textureNumLayers. Line ${node.line}`);
+        return null;
+    }
+    TextureNumLevels(node, context) {
+        const textureArg = node.args[0];
+        if (textureArg instanceof VariableExpr) {
+            const textureName = textureArg.name;
+            const texture = context.getVariableValue(textureName);
+            if (texture instanceof TextureData) {
+                return new ScalarData(texture.mipLevelCount, this.getTypeInfo("u32"));
+            }
+            else {
+                console.error(`Texture ${textureName} not found. Line ${node.line}`);
+                return null;
+            }
+        }
+        console.error(`Invalid texture argument for textureNumLevels. Line ${node.line}`);
+        return null;
+    }
+    TextureNumSamples(node, context) {
+        const textureArg = node.args[0];
+        if (textureArg instanceof VariableExpr) {
+            const textureName = textureArg.name;
+            const texture = context.getVariableValue(textureName);
+            if (texture instanceof TextureData) {
+                return new ScalarData(texture.sampleCount, this.getTypeInfo("u32"));
+            }
+            else {
+                console.error(`Texture ${textureName} not found. Line ${node.line}`);
+                return null;
+            }
+        }
+        console.error(`Invalid texture argument for textureNumSamples. Line ${node.line}`);
+        return null;
+    }
+    TextureSample(node, context) {
+        console.error("TODO: textureSample");
+        return null;
+    }
+    TextureSampleBias(node, context) {
+        console.error("TODO: textureSampleBias");
+        return null;
+    }
+    TextureSampleCompare(node, context) {
+        console.error("TODO: textureSampleCompare");
+        return null;
+    }
+    TextureSampleCompareLevel(node, context) {
+        console.error("TODO: textureSampleCompareLevel");
+        return null;
+    }
+    TextureSampleGrad(node, context) {
+        console.error("TODO: textureSampleGrad");
+        return null;
+    }
+    TextureSampleLevel(node, context) {
+        console.error("TODO: textureSampleLevel");
+        return null;
+    }
+    TextureSampleBaseClampToEdge(node, context) {
+        console.error("TODO: textureSampleBaseClampToEdge");
+        return null;
+    }
+    TextureStore(node, context) {
+        const textureArg = node.args[0];
+        const uv = this.exec.evalExpression(node.args[1], context);
+        const index = (node.args.length === 4) ? this.exec.evalExpression(node.args[2], context).value : 0;
+        const value = (node.args.length === 4) ? this.exec.evalExpression(node.args[3], context).data :
+            this.exec.evalExpression(node.args[2], context).data;
+        if (value.length !== 4) {
+            console.error(`Invalid value argument for textureStore. Line ${node.line}`);
+            return null;
+        }
+        // TODO: non-vec2 UVs, for non-2D textures
+        if (!(uv instanceof VectorData) || uv.data.length !== 2) {
+            console.error(`Invalid UV argument for textureStore. Line ${node.line}`);
+            return null;
+        }
+        if (textureArg instanceof VariableExpr) {
+            const textureName = textureArg.name;
+            const texture = context.getVariableValue(textureName);
+            if (texture instanceof TextureData) {
+                const textureSize = texture.getMipLevelSize(0);
+                const x = Math.floor(uv.data[0]);
+                const y = Math.floor(uv.data[1]);
+                if (x < 0 || x >= textureSize[0] || y < 0 || y >= textureSize[1]) {
+                    console.error(`Texture ${textureName} out of bounds. Line ${node.line}`);
+                    return null;
+                }
+                texture.setPixel(x, y, 0, index, Array.from(value));
+                return null;
+            }
+            else {
+                console.error(`Texture ${textureName} not found. Line ${node.line}`);
+                return null;
+            }
+        }
+        console.error(`Invalid texture argument for textureStore. Line ${node.line}`);
+        return null;
+    }
+    // Atomic Built-in Functions
+    AtomicLoad(node, context) {
+        let l = node.args[0];
+        if (l instanceof UnaryOperator) {
+            l = l.right;
+        }
+        const name = this.exec.getVariableName(l, context);
+        const v = context.getVariable(name);
+        const currentValue = v.value.getSubData(this.exec, l.postfix, context);
+        return currentValue;
+    }
+    AtomicStore(node, context) {
+        let l = node.args[0];
+        if (l instanceof UnaryOperator) {
+            l = l.right;
+        }
+        const name = this.exec.getVariableName(l, context);
+        const v = context.getVariable(name);
+        let r = node.args[1];
+        const value = this.exec.evalExpression(r, context);
+        const currentValue = v.value.getSubData(this.exec, l.postfix, context);
+        if (currentValue instanceof ScalarData && value instanceof ScalarData) {
+            currentValue.value = value.value;
+        }
+        if (v.value instanceof TypedData) {
+            v.value.setDataValue(this.exec, currentValue, l.postfix, context);
+        }
+        return null;
+    }
+    AtomicAdd(node, context) {
+        let l = node.args[0];
+        if (l instanceof UnaryOperator) {
+            l = l.right;
+        }
+        const name = this.exec.getVariableName(l, context);
+        const v = context.getVariable(name);
+        let r = node.args[1];
+        const value = this.exec.evalExpression(r, context);
+        const currentValue = v.value.getSubData(this.exec, l.postfix, context);
+        const originalValue = new ScalarData(currentValue.value, currentValue.typeInfo);
+        if (currentValue instanceof ScalarData && value instanceof ScalarData) {
+            currentValue.value += value.value;
+        }
+        if (v.value instanceof TypedData) {
+            v.value.setDataValue(this.exec, currentValue, l.postfix, context);
+        }
+        return originalValue;
+    }
+    AtomicSub(node, context) {
+        let l = node.args[0];
+        if (l instanceof UnaryOperator) {
+            l = l.right;
+        }
+        const name = this.exec.getVariableName(l, context);
+        const v = context.getVariable(name);
+        let r = node.args[1];
+        const value = this.exec.evalExpression(r, context);
+        const currentValue = v.value.getSubData(this.exec, l.postfix, context);
+        const originalValue = new ScalarData(currentValue.value, currentValue.typeInfo);
+        if (currentValue instanceof ScalarData && value instanceof ScalarData) {
+            currentValue.value -= value.value;
+        }
+        if (v.value instanceof TypedData) {
+            v.value.setDataValue(this.exec, currentValue, l.postfix, context);
+        }
+        return originalValue;
+    }
+    AtomicMax(node, context) {
+        let l = node.args[0];
+        if (l instanceof UnaryOperator) {
+            l = l.right;
+        }
+        const name = this.exec.getVariableName(l, context);
+        const v = context.getVariable(name);
+        let r = node.args[1];
+        const value = this.exec.evalExpression(r, context);
+        const currentValue = v.value.getSubData(this.exec, l.postfix, context);
+        const originalValue = new ScalarData(currentValue.value, currentValue.typeInfo);
+        if (currentValue instanceof ScalarData && value instanceof ScalarData) {
+            currentValue.value = Math.max(currentValue.value, value.value);
+        }
+        if (v.value instanceof TypedData) {
+            v.value.setDataValue(this.exec, currentValue, l.postfix, context);
+        }
+        return originalValue;
+    }
+    AtomicMin(node, context) {
+        let l = node.args[0];
+        if (l instanceof UnaryOperator) {
+            l = l.right;
+        }
+        const name = this.exec.getVariableName(l, context);
+        const v = context.getVariable(name);
+        let r = node.args[1];
+        const value = this.exec.evalExpression(r, context);
+        const currentValue = v.value.getSubData(this.exec, l.postfix, context);
+        const originalValue = new ScalarData(currentValue.value, currentValue.typeInfo);
+        if (currentValue instanceof ScalarData && value instanceof ScalarData) {
+            currentValue.value = Math.min(currentValue.value, value.value);
+        }
+        if (v.value instanceof TypedData) {
+            v.value.setDataValue(this.exec, currentValue, l.postfix, context);
+        }
+        return originalValue;
+    }
+    AtomicAnd(node, context) {
+        let l = node.args[0];
+        if (l instanceof UnaryOperator) {
+            l = l.right;
+        }
+        const name = this.exec.getVariableName(l, context);
+        const v = context.getVariable(name);
+        let r = node.args[1];
+        const value = this.exec.evalExpression(r, context);
+        const currentValue = v.value.getSubData(this.exec, l.postfix, context);
+        const originalValue = new ScalarData(currentValue.value, currentValue.typeInfo);
+        if (currentValue instanceof ScalarData && value instanceof ScalarData) {
+            currentValue.value = currentValue.value & value.value;
+        }
+        if (v.value instanceof TypedData) {
+            v.value.setDataValue(this.exec, currentValue, l.postfix, context);
+        }
+        return originalValue;
+    }
+    AtomicOr(node, context) {
+        let l = node.args[0];
+        if (l instanceof UnaryOperator) {
+            l = l.right;
+        }
+        const name = this.exec.getVariableName(l, context);
+        const v = context.getVariable(name);
+        let r = node.args[1];
+        const value = this.exec.evalExpression(r, context);
+        const currentValue = v.value.getSubData(this.exec, l.postfix, context);
+        const originalValue = new ScalarData(currentValue.value, currentValue.typeInfo);
+        if (currentValue instanceof ScalarData && value instanceof ScalarData) {
+            currentValue.value = currentValue.value | value.value;
+        }
+        if (v.value instanceof TypedData) {
+            v.value.setDataValue(this.exec, currentValue, l.postfix, context);
+        }
+        return originalValue;
+    }
+    AtomicXor(node, context) {
+        let l = node.args[0];
+        if (l instanceof UnaryOperator) {
+            l = l.right;
+        }
+        const name = this.exec.getVariableName(l, context);
+        const v = context.getVariable(name);
+        let r = node.args[1];
+        const value = this.exec.evalExpression(r, context);
+        const currentValue = v.value.getSubData(this.exec, l.postfix, context);
+        const originalValue = new ScalarData(currentValue.value, currentValue.typeInfo);
+        if (currentValue instanceof ScalarData && value instanceof ScalarData) {
+            currentValue.value = currentValue.value ^ value.value;
+        }
+        if (v.value instanceof TypedData) {
+            v.value.setDataValue(this.exec, currentValue, l.postfix, context);
+        }
+        return originalValue;
+    }
+    AtomicExchange(node, context) {
+        let l = node.args[0];
+        if (l instanceof UnaryOperator) {
+            l = l.right;
+        }
+        const name = this.exec.getVariableName(l, context);
+        const v = context.getVariable(name);
+        let r = node.args[1];
+        const value = this.exec.evalExpression(r, context);
+        const currentValue = v.value.getSubData(this.exec, l.postfix, context);
+        const originalValue = new ScalarData(currentValue.value, currentValue.typeInfo);
+        if (currentValue instanceof ScalarData && value instanceof ScalarData) {
+            currentValue.value = value.value;
+        }
+        if (v.value instanceof TypedData) {
+            v.value.setDataValue(this.exec, currentValue, l.postfix, context);
+        }
+        return originalValue;
+    }
+    AtomicCompareExchangeWeak(node, context) {
+        console.error("TODO: atomicCompareExchangeWeak");
+        return null;
+    }
+    // Data Packing Built-in Functions
+    Pack4x8snorm(node, context) {
+        console.error("TODO: pack4x8snorm");
+        return null;
+    }
+    Pack4x8unorm(node, context) {
+        console.error("TODO: pack4x8unorm");
+        return null;
+    }
+    Pack4xI8(node, context) {
+        console.error("TODO: pack4xI8");
+        return null;
+    }
+    Pack4xU8(node, context) {
+        console.error("TODO: pack4xU8");
+        return null;
+    }
+    Pack4x8Clamp(node, context) {
+        console.error("TODO: pack4x8Clamp");
+        return null;
+    }
+    Pack4xU8Clamp(node, context) {
+        console.error("TODO: pack4xU8Clamp");
+        return null;
+    }
+    Pack2x16snorm(node, context) {
+        console.error("TODO: pack2x16snorm");
+        return null;
+    }
+    Pack2x16unorm(node, context) {
+        console.error("TODO: pack2x16unorm");
+        return null;
+    }
+    Pack2x16float(node, context) {
+        console.error("TODO: pack2x16float");
+        return null;
+    }
+    // Data Unpacking Built-in Functions
+    Unpack4x8snorm(node, context) {
+        console.error("TODO: unpack4x8snorm");
+        return null;
+    }
+    Unpack4x8unorm(node, context) {
+        console.error("TODO: unpack4x8unorm");
+        return null;
+    }
+    Unpack4xI8(node, context) {
+        console.error("TODO: unpack4xI8");
+        return null;
+    }
+    Unpack4xU8(node, context) {
+        console.error("TODO: unpack4xU8");
+        return null;
+    }
+    Unpack2x16snorm(node, context) {
+        console.error("TODO: unpack2x16snorm");
+        return null;
+    }
+    Unpack2x16unorm(node, context) {
+        console.error("TODO: unpack2x16unorm");
+        return null;
+    }
+    Unpack2x16float(node, context) {
+        console.error("TODO: unpack2x16float");
+        return null;
+    }
+    // Synchronization Functions
+    StorageBarrier(node, context) {
+        // Execution is single threaded, barriers not necessary.
+        return null;
+    }
+    TextureBarrier(node, context) {
+        // Execution is single threaded, barriers not necessary.
+        return null;
+    }
+    WorkgroupBarrier(node, context) {
+        // Execution is single threaded, barriers not necessary.
+        return null;
+    }
+    WorkgroupUniformLoad(node, context) {
+        // Execution is single threaded, barriers not necessary.
+        return null;
+    }
+    // Subgroup Functions
+    SubgroupAdd(node, context) {
+        console.error("TODO: subgroupAdd");
+        return null;
+    }
+    SubgroupExclusiveAdd(node, context) {
+        console.error("TODO: subgroupExclusiveAdd");
+        return null;
+    }
+    SubgroupInclusiveAdd(node, context) {
+        console.error("TODO: subgroupInclusiveAdd");
+        return null;
+    }
+    SubgroupAll(node, context) {
+        console.error("TODO: subgroupAll");
+        return null;
+    }
+    SubgroupAnd(node, context) {
+        console.error("TODO: subgroupAnd");
+        return null;
+    }
+    SubgroupAny(node, context) {
+        console.error("TODO: subgroupAny");
+        return null;
+    }
+    SubgroupBallot(node, context) {
+        console.error("TODO: subgroupBallot");
+        return null;
+    }
+    SubgroupBroadcast(node, context) {
+        console.error("TODO: subgroupBroadcast");
+        return null;
+    }
+    SubgroupBroadcastFirst(node, context) {
+        console.error("TODO: subgroupBroadcastFirst");
+        return null;
+    }
+    SubgroupElect(node, context) {
+        console.error("TODO: subgroupElect");
+        return null;
+    }
+    SubgroupMax(node, context) {
+        console.error("TODO: subgroupMax");
+        return null;
+    }
+    SubgroupMin(node, context) {
+        console.error("TODO: subgroupMin");
+        return null;
+    }
+    SubgroupMul(node, context) {
+        console.error("TODO: subgroupMul");
+        return null;
+    }
+    SubgroupExclusiveMul(node, context) {
+        console.error("TODO: subgroupExclusiveMul");
+        return null;
+    }
+    SubgroupInclusiveMul(node, context) {
+        console.error("TODO: subgroupInclusiveMul");
+        return null;
+    }
+    SubgroupOr(node, context) {
+        console.error("TODO: subgroupOr");
+        return null;
+    }
+    SubgroupShuffle(node, context) {
+        console.error("TODO: subgroupShuffle");
+        return null;
+    }
+    SubgroupShuffleDown(node, context) {
+        console.error("TODO: subgroupShuffleDown");
+        return null;
+    }
+    SubgroupShuffleUp(node, context) {
+        console.error("TODO: subgroupShuffleUp");
+        return null;
+    }
+    SubgroupShuffleXor(node, context) {
+        console.error("TODO: subgroupShuffleXor");
+        return null;
+    }
+    SubgroupXor(node, context) {
+        console.error("TODO: subgroupXor");
+        return null;
+    }
+    // Quad Functions
+    QuadBroadcast(node, context) {
+        console.error("TODO: quadBroadcast");
+        return null;
+    }
+    QuadSwapDiagonal(node, context) {
+        console.error("TODO: quadSwapDiagonal");
+        return null;
+    }
+    QuadSwapX(node, context) {
+        console.error("TODO: quadSwapX");
+        return null;
+    }
+    QuadSwapY(node, context) {
+        console.error("TODO: quadSwapY");
+        return null;
+    }
+}
+
+const VectorTypeSize = {
+    "vec2": 2, "vec2f": 2, "vec2i": 2, "vec2u": 2, "vec2b": 2, "vec2h": 2,
+    "vec3": 3, "vec3f": 3, "vec3i": 3, "vec3u": 3, "vec3b": 3, "vec3h": 3,
+    "vec4": 4, "vec4f": 4, "vec4i": 4, "vec4u": 4, "vec4b": 4, "vec4h": 4
+};
+const MatrixTypeSize = {
+    "mat2x2": [2, 2, 4], "mat2x2f": [2, 2, 4], "mat2x2h": [2, 2, 4],
+    "mat2x3": [2, 3, 6], "mat2x3f": [2, 3, 6], "mat2x3h": [2, 3, 6],
+    "mat2x4": [2, 4, 8], "mat2x4f": [2, 4, 8], "mat2x4h": [2, 4, 8],
+    "mat3x2": [3, 2, 6], "mat3x2f": [3, 2, 6], "mat3x2h": [3, 2, 6],
+    "mat3x3": [3, 3, 9], "mat3x3f": [3, 3, 9], "mat3x3h": [3, 3, 9],
+    "mat3x4": [3, 4, 12], "mat3x4f": [3, 4, 12], "mat3x4h": [3, 4, 12],
+    "mat4x2": [4, 2, 8], "mat4x2f": [4, 2, 8], "mat4x2h": [4, 2, 8],
+    "mat4x3": [4, 3, 12], "mat4x3f": [4, 3, 12], "mat4x3h": [4, 3, 12],
+    "mat4x4": [4, 4, 16], "mat4x4f": [4, 4, 16], "mat4x4h": [4, 4, 16]
+};
+function matrixMultiply(matrixA, t1, matrixB, t2) {
+    if (MatrixTypeSize[t1.name] === undefined || MatrixTypeSize[t2.name] === undefined) {
+        return null;
+    }
+    const k = MatrixTypeSize[t1.name][0];
+    const r = MatrixTypeSize[t1.name][1];
+    const c = MatrixTypeSize[t2.name][0];
+    const k2 = MatrixTypeSize[t2.name][1];
+    if (k !== k2) {
+        return null;
+    }
+    const result = new Array(c * r);
+    for (let j = 0; j < r; j++) { // Iterate through columns of result
+        for (let i = 0; i < c; i++) { // Iterate through rows of result
+            let sum = 0;
+            for (let l = 0; l < k; l++) {
+                sum += matrixA[l * r + j] * matrixB[i * k + l]; // Access column-major elements
+            }
+            result[j * c + i] = sum; // Store in column-major order
+        }
+    }
+    return result;
+}
+function matrixVectorMultiply(matrix, t1, vector, t2) {
+    if (MatrixTypeSize[t1.name] === undefined || VectorTypeSize[t2.name] === undefined) {
+        return null;
+    }
+    const cols = MatrixTypeSize[t1.name][0];
+    const rows = MatrixTypeSize[t1.name][1];
+    if (cols !== vector.length) {
+        return null;
+    }
+    const resultVec = new Array(rows);
+    // Perform matrix-vector multiplication (column-major)
+    for (let i = 0; i < rows; i++) {
+        let sum = 0;
+        for (let j = 0; j < cols; j++) {
+            sum += matrix[j * rows + i] * vector[j]; // Access column-major element
+        }
+        resultVec[i] = sum;
+    }
+    return resultVec;
+}
+function vectorMatrixMultiply(vector, t1, matrix, t2) {
+    if (VectorTypeSize[t1.name] === undefined || MatrixTypeSize[t2.name] === undefined) {
+        return null;
+    }
+    const cols = MatrixTypeSize[t2.name][0];
+    const rows = MatrixTypeSize[t2.name][1];
+    if (rows !== vector.length) {
+        return null;
+    }
+    const result = [];
+    for (let j = 0; j < cols; j++) {
+        let sum = 0;
+        for (let i = 0; i < rows; i++) {
+            sum += vector[i] * matrix[i * cols + j];
+        }
+        result[j] = sum;
+    }
+    return result;
+}
+
+class WgslExec extends ExecInterface {
+    constructor(ast, context) {
+        var _a;
+        super();
+        this.ast = ast !== null && ast !== void 0 ? ast : [];
+        this.reflection = new Reflect();
+        this.reflection.updateAST(this.ast);
+        this.context = (_a = context === null || context === void 0 ? void 0 : context.clone()) !== null && _a !== void 0 ? _a : new ExecContext();
+        this.builtins = new BuiltinFunctions(this);
+        this.typeInfo = {
+            "bool": this.getTypeInfo(Type.bool),
+            "i32": this.getTypeInfo(Type.i32),
+            "u32": this.getTypeInfo(Type.u32),
+            "f32": this.getTypeInfo(Type.f32),
+            "f16": this.getTypeInfo(Type.f16),
+            "vec2f": this.getTypeInfo(TemplateType.vec2f),
+            "vec2u": this.getTypeInfo(TemplateType.vec2u),
+            "vec2i": this.getTypeInfo(TemplateType.vec2i),
+            "vec2h": this.getTypeInfo(TemplateType.vec2h),
+            "vec3f": this.getTypeInfo(TemplateType.vec3f),
+            "vec3u": this.getTypeInfo(TemplateType.vec3u),
+            "vec3i": this.getTypeInfo(TemplateType.vec3i),
+            "vec3h": this.getTypeInfo(TemplateType.vec3h),
+            "vec4f": this.getTypeInfo(TemplateType.vec4f),
+            "vec4u": this.getTypeInfo(TemplateType.vec4u),
+            "vec4i": this.getTypeInfo(TemplateType.vec4i),
+            "vec4h": this.getTypeInfo(TemplateType.vec4h),
+            "mat2x2f": this.getTypeInfo(TemplateType.mat2x2f),
+            "mat2x3f": this.getTypeInfo(TemplateType.mat2x3f),
+            "mat2x4f": this.getTypeInfo(TemplateType.mat2x4f),
+            "mat3x2f": this.getTypeInfo(TemplateType.mat3x2f),
+            "mat3x3f": this.getTypeInfo(TemplateType.mat3x3f),
+            "mat3x4f": this.getTypeInfo(TemplateType.mat3x4f),
+            "mat4x2f": this.getTypeInfo(TemplateType.mat4x2f),
+            "mat4x3f": this.getTypeInfo(TemplateType.mat4x3f),
+            "mat4x4f": this.getTypeInfo(TemplateType.mat4x4f),
+        };
+    }
+    getVariableValue(name) {
+        var _a, _b;
+        const v = (_b = (_a = this.context.getVariable(name)) === null || _a === void 0 ? void 0 : _a.value) !== null && _b !== void 0 ? _b : null;
+        if (v === null) {
+            return null;
+        }
+        if (v instanceof ScalarData) {
+            return v.value;
+        }
+        if (v instanceof VectorData) {
+            return Array.from(v.data);
+        }
+        if (v instanceof MatrixData) {
+            return Array.from(v.data);
+        }
+        if (v instanceof TypedData) {
+            if (v.typeInfo instanceof ArrayInfo) {
+                if (v.typeInfo.format.name === "u32") {
+                    return Array.from(new Uint32Array(v.buffer, v.offset, v.typeInfo.count));
+                }
+                else if (v.typeInfo.format.name === "i32") {
+                    return Array.from(new Int32Array(v.buffer, v.offset, v.typeInfo.count));
+                }
+                else if (v.typeInfo.format.name === "f32") {
+                    return Array.from(new Float32Array(v.buffer, v.offset, v.typeInfo.count));
+                }
+            }
+        }
+        console.error(`Unsupported return variable type ${v.typeInfo.name}`);
+        return null;
+    }
+    execute(config) {
+        config = config !== null && config !== void 0 ? config : {};
+        if (config["constants"]) {
+            this._setOverrides(config["constants"], this.context);
+        }
+        this._execStatements(this.ast, this.context);
+    }
+    dispatchWorkgroups(kernel, dispatchCount, bindGroups, config) {
+        const context = this.context.clone();
+        config = config !== null && config !== void 0 ? config : {};
+        if (config["constants"]) {
+            this._setOverrides(config["constants"], context);
+        }
+        this._execStatements(this.ast, context);
+        const f = context.getFunction(kernel);
+        if (!f) {
+            console.error(`Function ${kernel} not found`);
+            return;
+        }
+        if (typeof dispatchCount === "number") {
+            dispatchCount = [dispatchCount, 1, 1];
+        }
+        else if (dispatchCount.length === 0) {
+            console.error(`Invalid dispatch count`);
+            return;
+        }
+        else if (dispatchCount.length === 1) {
+            dispatchCount = [dispatchCount[0], 1, 1];
+        }
+        else if (dispatchCount.length === 2) {
+            dispatchCount = [dispatchCount[0], dispatchCount[1], 1];
+        }
+        else if (dispatchCount.length > 3) {
+            dispatchCount = [dispatchCount[0], dispatchCount[1], dispatchCount[2]];
+        }
+        const width = dispatchCount[0];
+        const height = dispatchCount[1];
+        const depth = dispatchCount[2];
+        const vec3u = this.getTypeInfo("vec3u");
+        context.setVariable("@num_workgroups", new VectorData(dispatchCount, vec3u));
+        const kernelRefl = this.reflection.getFunctionInfo(kernel);
+        if (kernelRefl === null) {
+            console.error(`Function ${kernel} not found in reflection data`);
+        }
+        for (const set in bindGroups) {
+            for (const binding in bindGroups[set]) {
+                const entry = bindGroups[set][binding];
+                context.variables.forEach((v) => {
+                    var _a;
+                    const node = v.node;
+                    if (node === null || node === void 0 ? void 0 : node.attributes) {
+                        let b = null;
+                        let s = null;
+                        for (const attr of node.attributes) {
+                            if (attr.name === "binding") {
+                                b = attr.value;
+                            }
+                            else if (attr.name === "group") {
+                                s = attr.value;
+                            }
+                        }
+                        if (binding == b && set == s) {
+                            let found = false;
+                            for (const resource of kernelRefl.resources) {
+                                if (resource.name === v.name && resource.group === parseInt(set) && resource.binding === parseInt(binding)) {
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (found) {
+                                if (entry.texture !== undefined && entry.descriptor !== undefined) {
+                                    // Texture
+                                    const textureData = new TextureData(entry.texture, this.getTypeInfo(node.type), entry.descriptor, (_a = entry.texture.view) !== null && _a !== void 0 ? _a : null);
+                                    v.value = textureData;
+                                }
+                                else if (entry.uniform !== undefined) {
+                                    // Uniform buffer
+                                    v.value = new TypedData(entry.uniform, this.getTypeInfo(node.type));
+                                }
+                                else {
+                                    // Storage buffer
+                                    v.value = new TypedData(entry, this.getTypeInfo(node.type));
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        for (let z = 0; z < depth; ++z) {
+            for (let y = 0; y < height; ++y) {
+                for (let x = 0; x < width; ++x) {
+                    context.setVariable("@workgroup_id", new VectorData([x, y, z], this.getTypeInfo("vec3u")));
+                    this._dispatchWorkgroup(f, [x, y, z], context);
+                }
+            }
+        }
+    }
+    execStatement(stmt, context) {
+        if (stmt instanceof Return) {
+            return this.evalExpression(stmt.value, context);
+        }
+        else if (stmt instanceof Break) {
+            if (stmt.condition) {
+                const c = this.evalExpression(stmt.condition, context);
+                if (!(c instanceof ScalarData)) {
+                    throw new Error(`Invalid break-if condition`);
+                }
+                if (!c.value) {
+                    return null;
+                }
+            }
+            return WgslExec._breakObj;
+        }
+        else if (stmt instanceof Continue) {
+            return WgslExec._continueObj;
+        }
+        else if (stmt instanceof Let) {
+            this._let(stmt, context);
+        }
+        else if (stmt instanceof Var) {
+            this._var(stmt, context);
+        }
+        else if (stmt instanceof Const) {
+            this._const(stmt, context);
+        }
+        else if (stmt instanceof Override) {
+            this._override(stmt, context);
+        }
+        else if (stmt instanceof Function) {
+            this._function(stmt, context);
+        }
+        else if (stmt instanceof If) {
+            return this._if(stmt, context);
+        }
+        else if (stmt instanceof Switch) {
+            return this._switch(stmt, context);
+        }
+        else if (stmt instanceof For) {
+            return this._for(stmt, context);
+        }
+        else if (stmt instanceof While) {
+            return this._while(stmt, context);
+        }
+        else if (stmt instanceof Loop) {
+            return this._loop(stmt, context);
+        }
+        else if (stmt instanceof Continuing) {
+            const subContext = context.clone();
+            subContext.currentFunctionName = context.currentFunctionName;
+            return this._execStatements(stmt.body, subContext);
+        }
+        else if (stmt instanceof Assign) {
+            this._assign(stmt, context);
+        }
+        else if (stmt instanceof Increment) {
+            this._increment(stmt, context);
+        }
+        else if (stmt instanceof Struct) {
+            return null;
+        }
+        else if (stmt instanceof Override) {
+            const name = stmt.name;
+            if (context.getVariable(name) === null) {
+                context.setVariable(name, new ScalarData(0, this.getTypeInfo("u32")));
+                //console.error(`Override constant ${name} not found. Line ${stmt.line}`);
+            }
+        }
+        else if (stmt instanceof Call) {
+            this._call(stmt, context);
+        }
+        else if (stmt instanceof Diagnostic) {
+            return null; // Nothing to do here.
+        }
+        else if (stmt instanceof Alias) {
+            return null; // Nothing to do here.
+        }
+        else {
+            console.error(`Invalid statement type.`, stmt, `Line ${stmt.line}`);
+        }
+        return null;
+    }
+    evalExpression(node, context) {
+        if (node instanceof BinaryOperator) {
+            return this._evalBinaryOp(node, context);
+        }
+        else if (node instanceof LiteralExpr) {
+            return this._evalLiteral(node, context);
+        }
+        else if (node instanceof VariableExpr) {
+            return this._evalVariable(node, context);
+        }
+        else if (node instanceof CallExpr) {
+            return this._evalCall(node, context);
+        }
+        else if (node instanceof CreateExpr) {
+            return this._evalCreate(node, context);
+        }
+        else if (node instanceof ConstExpr) {
+            return this._evalConst(node, context);
+        }
+        else if (node instanceof BitcastExpr) {
+            return this._evalBitcast(node, context);
+        }
+        else if (node instanceof UnaryOperator) {
+            return this._evalUnaryOp(node, context);
+        }
+        console.error(`Invalid expression type`, node, `Line ${node.line}`);
+        return null;
+    }
+    getTypeInfo(type) {
+        var _a;
+        if (type instanceof Type) {
+            const t = this.reflection.getTypeInfo(type);
+            if (t !== null) {
+                return t;
+            }
+        }
+        let t = (_a = this.typeInfo[type]) !== null && _a !== void 0 ? _a : null;
+        if (t !== null) {
+            return t;
+        }
+        t = this.reflection.getTypeInfoByName(type);
+        return t;
+    }
+    _setOverrides(constants, context) {
+        for (const k in constants) {
+            const v = constants[k];
+            const override = this.reflection.getOverrideInfo(k);
+            if (override !== null) {
+                if (override.type === null) {
+                    override.type = this.getTypeInfo("u32");
+                }
+                if (override.type.name === "u32" || override.type.name === "i32" || override.type.name === "f32" || override.type.name === "f16") {
+                    context.setVariable(k, new ScalarData(v, override.type));
+                }
+                else if (override.type.name === "bool") {
+                    context.setVariable(k, new ScalarData(v ? 1 : 0, override.type));
+                }
+                else if (override.type.name === "vec2" || override.type.name === "vec3" || override.type.name === "vec4" ||
+                    override.type.name === "vec2f" || override.type.name === "vec3f" || override.type.name === "vec4f" ||
+                    override.type.name === "vec2i" || override.type.name === "vec3i" || override.type.name === "vec4i" ||
+                    override.type.name === "vec2u" || override.type.name === "vec3u" || override.type.name === "vec4u" ||
+                    override.type.name === "vec2h" || override.type.name === "vec3h" || override.type.name === "vec4h") {
+                    context.setVariable(k, new VectorData(v, override.type));
+                }
+                else {
+                    console.error(`Invalid constant type for ${k}`);
+                }
+            }
+            else {
+                console.error(`Override ${k} does not exist in the shader.`);
+            }
+        }
+    }
+    _dispatchWorkgroup(f, workgroup_id, context) {
+        const workgroupSize = [1, 1, 1];
+        for (const attr of f.node.attributes) {
+            if (attr.name === "workgroup_size") {
+                if (attr.value.length > 0) {
+                    // The value could be an override constant
+                    const v = context.getVariableValue(attr.value[0]);
+                    if (v instanceof ScalarData) {
+                        workgroupSize[0] = v.value;
+                    }
+                    else {
+                        workgroupSize[0] = parseInt(attr.value[0]);
+                    }
+                }
+                if (attr.value.length > 1) {
+                    const v = context.getVariableValue(attr.value[1]);
+                    if (v instanceof ScalarData) {
+                        workgroupSize[1] = v.value;
+                    }
+                    else {
+                        workgroupSize[1] = parseInt(attr.value[1]);
+                    }
+                }
+                if (attr.value.length > 2) {
+                    const v = context.getVariableValue(attr.value[2]);
+                    if (v instanceof ScalarData) {
+                        workgroupSize[2] = v.value;
+                    }
+                    else {
+                        workgroupSize[2] = parseInt(attr.value[2]);
+                    }
+                }
+            }
+        }
+        const vec3u = this.getTypeInfo("vec3u");
+        const u32 = this.getTypeInfo("u32");
+        context.setVariable("@workgroup_size", new VectorData(workgroupSize, vec3u));
+        const width = workgroupSize[0];
+        const height = workgroupSize[1];
+        const depth = workgroupSize[2];
+        for (let z = 0, li = 0; z < depth; ++z) {
+            for (let y = 0; y < height; ++y) {
+                for (let x = 0; x < width; ++x, ++li) {
+                    const local_invocation_id = [x, y, z];
+                    const global_invocation_id = [
+                        x + workgroup_id[0] * workgroupSize[0],
+                        y + workgroup_id[1] * workgroupSize[1],
+                        z + workgroup_id[2] * workgroupSize[2]
+                    ];
+                    context.setVariable("@local_invocation_id", new VectorData(local_invocation_id, vec3u));
+                    context.setVariable("@global_invocation_id", new VectorData(global_invocation_id, vec3u));
+                    context.setVariable("@local_invocation_index", new ScalarData(li, u32));
+                    this._dispatchExec(f, context);
+                }
+            }
+        }
+    }
+    _dispatchExec(f, context) {
+        // Update any built-in input args.
+        // TODO: handle input structs.
+        for (const arg of f.node.args) {
+            for (const attr of arg.attributes) {
+                if (attr.name === "builtin") {
+                    const globalName = `@${attr.value}`;
+                    const globalVar = context.getVariable(globalName);
+                    if (globalVar !== undefined) {
+                        context.variables.set(arg.name, globalVar);
+                    }
+                }
+            }
+        }
+        this._execStatements(f.node.body, context);
+    }
+    getVariableName(node, context) {
+        while (node instanceof UnaryOperator) {
+            node = node.right;
+        }
+        if (node instanceof VariableExpr) {
+            return node.name;
+        }
+        else {
+            console.error(`Unknown variable type`, node, 'Line', node.line);
+        }
+        return null;
+    }
+    _execStatements(statements, context) {
+        for (const stmt of statements) {
+            // Block statements are declared as arrays of statements.
+            if (stmt instanceof Array) {
+                const subContext = context.clone();
+                const res = this._execStatements(stmt, subContext);
+                if (res) {
+                    return res;
+                }
+                continue;
+            }
+            const res = this.execStatement(stmt, context);
+            if (res) {
+                return res;
+            }
+        }
+        return null;
+    }
+    _call(node, context) {
+        const subContext = context.clone();
+        subContext.currentFunctionName = node.name;
+        const f = context.getFunction(node.name);
+        if (!f) {
+            if (node.isBuiltin) {
+                this._callBuiltinFunction(node, subContext);
+            }
+            else {
+                const typeInfo = this.getTypeInfo(node.name);
+                if (typeInfo) {
+                    this._evalCreate(node, context);
+                }
+            }
+            return;
+        }
+        for (let ai = 0; ai < f.node.args.length; ++ai) {
+            const arg = f.node.args[ai];
+            const value = this.evalExpression(node.args[ai], subContext);
+            subContext.setVariable(arg.name, value, arg);
+        }
+        this._execStatements(f.node.body, subContext);
+    }
+    _increment(node, context) {
+        const name = this.getVariableName(node.variable, context);
+        const v = context.getVariable(name);
+        if (!v) {
+            console.error(`Variable ${name} not found. Line ${node.line}`);
+            return;
+        }
+        if (node.operator === "++") {
+            if (v.value instanceof ScalarData) {
+                v.value.value++;
+            }
+            else {
+                console.error(`Variable ${name} is not a scalar. Line ${node.line}`);
+            }
+        }
+        else if (node.operator === "--") {
+            if (v.value instanceof ScalarData) {
+                v.value.value--;
+            }
+            else {
+                console.error(`Variable ${name} is not a scalar. Line ${node.line}`);
+            }
+        }
+        else {
+            console.error(`Unknown increment operator ${node.operator}. Line ${node.line}`);
+        }
+    }
+    _getVariableData(node, context) {
+        if (node instanceof VariableExpr) {
+            const name = this.getVariableName(node, context);
+            const _var = context.getVariable(name);
+            if (_var === null) {
+                console.error(`Variable ${name} not found. Line ${node.line}`);
+                return null;
+            }
+            return _var.value.getSubData(this, node.postfix, context);
+        }
+        if (node instanceof UnaryOperator) {
+            if (node.operator === "*") {
+                const refData = this._getVariableData(node.right, context);
+                if (!(refData instanceof PointerData)) {
+                    console.error(`Variable ${node.right} is not a pointer. Line ${node.line}`);
+                    return null;
+                }
+                return refData.reference.getSubData(this, node.postfix, context);
+            }
+            else if (node.operator === "&") {
+                const refData = this._getVariableData(node.right, context);
+                return new PointerData(refData);
+            }
+        }
+        return null;
+    }
+    _assign(node, context) {
+        let v = null;
+        let name = "<var>";
+        let postfix = null;
+        if (node.variable instanceof UnaryOperator) {
+            const varData = this._getVariableData(node.variable, context);
+            const assignValue = this.evalExpression(node.value, context);
+            const op = node.operator;
+            if (op === "=") {
+                if (varData instanceof ScalarData || varData instanceof VectorData || varData instanceof MatrixData) {
+                    if (assignValue instanceof ScalarData || assignValue instanceof VectorData || assignValue instanceof MatrixData &&
+                        varData.data.length === assignValue.data.length) {
+                        varData.data.set(assignValue.data);
+                        return;
+                    }
+                    else {
+                        console.error(`Invalid assignment. Line ${node.line}`);
+                    }
+                }
+                else if (varData instanceof TypedData && assignValue instanceof TypedData) {
+                    if ((varData.buffer.byteLength - varData.offset) >= (assignValue.buffer.byteLength - assignValue.offset)) {
+                        if (varData.buffer.byteLength % 4 === 0) {
+                            new Uint32Array(varData.buffer, varData.offset, varData.typeInfo.size / 4).set(new Uint32Array(assignValue.buffer, assignValue.offset, assignValue.typeInfo.size / 4));
+                        }
+                        else {
+                            new Uint8Array(varData.buffer, varData.offset, varData.typeInfo.size).set(new Uint8Array(assignValue.buffer, assignValue.offset, assignValue.typeInfo.size));
+                        }
+                        return;
+                    }
+                }
+                console.error(`Invalid assignment. Line ${node.line}`);
+                return null;
+            }
+            else if (op === "+=") {
+                if (varData instanceof ScalarData || varData instanceof VectorData || varData instanceof MatrixData) {
+                    if (assignValue instanceof ScalarData || assignValue instanceof VectorData || assignValue instanceof MatrixData) {
+                        varData.data.set(assignValue.data.map((v, i) => varData.data[i] + v));
+                        return;
+                    }
+                    else {
+                        console.error(`Invalid assignment . Line ${node.line}`);
+                        return;
+                    }
+                }
+                else {
+                    console.error(`Invalid assignment. Line ${node.line}`);
+                    return;
+                }
+            }
+            else if (op === "-=") {
+                if (varData instanceof ScalarData || varData instanceof VectorData || varData instanceof MatrixData) {
+                    if (assignValue instanceof ScalarData || assignValue instanceof VectorData || assignValue instanceof MatrixData) {
+                        varData.data.set(assignValue.data.map((v, i) => varData.data[i] - v));
+                        return;
+                    }
+                    else {
+                        console.error(`Invalid assignment. Line ${node.line}`);
+                        return;
+                    }
+                }
+                else {
+                    console.error(`Invalid assignment. Line ${node.line}`);
+                    return;
+                }
+            }
+        }
+        if (node.variable instanceof UnaryOperator) {
+            if (node.variable.operator === "*") {
+                name = this.getVariableName(node.variable.right, context);
+                const _var = context.getVariable(name);
+                if (_var && _var.value instanceof PointerData) {
+                    v = _var.value.reference;
+                }
+                else {
+                    console.error(`Variable ${name} is not a pointer. Line ${node.line}`);
+                    return;
+                }
+                let postfix = node.variable.postfix;
+                if (!postfix) {
+                    let rNode = node.variable.right;
+                    while (rNode instanceof UnaryOperator) {
+                        if (rNode.postfix) {
+                            postfix = rNode.postfix;
+                            break;
+                        }
+                        rNode = rNode.right;
+                    }
+                }
+                if (postfix) {
+                    v = v.getSubData(this, postfix, context);
+                }
+            }
+        }
+        else {
+            postfix = node.variable.postfix;
+            name = this.getVariableName(node.variable, context);
+            const _var = context.getVariable(name);
+            if (_var === null) {
+                console.error(`Variable ${name} not found. Line ${node.line}`);
+                return;
+            }
+            v = _var.value;
+        }
+        if (v instanceof PointerData) {
+            v = v.reference;
+        }
+        if (v === null) {
+            console.error(`Variable ${name} not found. Line ${node.line}`);
+            return;
+        }
+        const value = this.evalExpression(node.value, context);
+        const op = node.operator;
+        if (op !== "=") {
+            const currentValue = v.getSubData(this, postfix, context);
+            if (currentValue instanceof VectorData && value instanceof ScalarData) {
+                const cv = currentValue.data;
+                const v = value.value;
+                if (op === "+=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] += v;
+                    }
+                }
+                else if (op === "-=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] -= v;
+                    }
+                }
+                else if (op === "*=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] *= v;
+                    }
+                }
+                else if (op === "/=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] /= v;
+                    }
+                }
+                else if (op === "%=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] %= v;
+                    }
+                }
+                else if (op === "&=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] &= v;
+                    }
+                }
+                else if (op === "|=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] |= v;
+                    }
+                }
+                else if (op === "^=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] ^= v;
+                    }
+                }
+                else if (op === "<<=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] <<= v;
+                    }
+                }
+                else if (op === ">>=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] >>= v;
+                    }
+                }
+                else {
+                    console.error(`Invalid operator ${op}. Line ${node.line}`);
+                }
+            }
+            else if (currentValue instanceof VectorData && value instanceof VectorData) {
+                const cv = currentValue.data;
+                const v = value.data;
+                if (cv.length !== v.length) {
+                    console.error(`Vector length mismatch. Line ${node.line}`);
+                    return;
+                }
+                if (op === "+=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] += v[i];
+                    }
+                }
+                else if (op === "-=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] -= v[i];
+                    }
+                }
+                else if (op === "*=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] *= v[i];
+                    }
+                }
+                else if (op === "/=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] /= v[i];
+                    }
+                }
+                else if (op === "%=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] %= v[i];
+                    }
+                }
+                else if (op === "&=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] &= v[i];
+                    }
+                }
+                else if (op === "|=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] |= v[i];
+                    }
+                }
+                else if (op === "^=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] ^= v[i];
+                    }
+                }
+                else if (op === "<<=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] <<= v[i];
+                    }
+                }
+                else if (op === ">>=") {
+                    for (let i = 0; i < cv.length; ++i) {
+                        cv[i] >>= v[i];
+                    }
+                }
+                else {
+                    console.error(`Invalid operator ${op}. Line ${node.line}`);
+                }
+            }
+            else if (currentValue instanceof ScalarData && value instanceof ScalarData) {
+                if (op === "+=") {
+                    currentValue.value += value.value;
+                }
+                else if (op === "-=") {
+                    currentValue.value -= value.value;
+                }
+                else if (op === "*=") {
+                    currentValue.value *= value.value;
+                }
+                else if (op === "/=") {
+                    currentValue.value /= value.value;
+                }
+                else if (op === "%=") {
+                    currentValue.value %= value.value;
+                }
+                else if (op === "&=") {
+                    currentValue.value &= value.value;
+                }
+                else if (op === "|=") {
+                    currentValue.value |= value.value;
+                }
+                else if (op === "^=") {
+                    currentValue.value ^= value.value;
+                }
+                else if (op === "<<=") {
+                    currentValue.value <<= value.value;
+                }
+                else if (op === ">>=") {
+                    currentValue.value >>= value.value;
+                }
+                else {
+                    console.error(`Invalid operator ${op}. Line ${node.line}`);
+                }
+            }
+            else {
+                console.error(`Invalid type for ${node.operator} operator. Line ${node.line}`);
+                return;
+            }
+            // If the variable is a TypedData, as in a struct or array, and we're assigning a
+            // sub portion of it, set the data in the original buffer.
+            if (v instanceof TypedData) {
+                v.setDataValue(this, currentValue, postfix, context);
+            }
+            return;
+        }
+        if (v instanceof TypedData) {
+            v.setDataValue(this, value, postfix, context);
+        }
+        else if (postfix) {
+            if (!(v instanceof VectorData) && !(v instanceof MatrixData)) {
+                console.error(`Variable ${name} is not a vector or matrix. Line ${node.line}`);
+                return;
+            }
+            if (postfix instanceof ArrayIndex) {
+                const idx = this.evalExpression(postfix.index, context).value;
+                if (v instanceof VectorData) {
+                    if (value instanceof ScalarData) {
+                        v.data[idx] = value.value;
+                    }
+                    else {
+                        console.error(`Invalid assignment to ${name}. Line ${node.line}`);
+                        return;
+                    }
+                }
+                else if (v instanceof MatrixData) {
+                    const idx = this.evalExpression(postfix.index, context).value;
+                    if (idx < 0) {
+                        console.error(`Invalid assignment to ${name}. Line ${node.line}`);
+                        return;
+                    }
+                    if (value instanceof VectorData) {
+                        const typeName = v.typeInfo.getTypeName();
+                        if (typeName === "mat2x2" || typeName === "mat2x2f" || typeName === "mat2x2h") {
+                            if (idx < 2 && value.data.length === 2) {
+                                v.data[idx * 2] = value.data[0];
+                                v.data[idx * 2 + 1] = value.data[1];
+                            }
+                            else {
+                                console.error(`Invalid assignment to ${name}. Line ${node.line}`);
+                                return;
+                            }
+                        }
+                        else if (typeName === "mat2x3" || typeName === "mat2x3f" || typeName === "mat2x3h") {
+                            if (idx < 2 && value.data.length === 3) {
+                                v.data[idx * 3] = value.data[0];
+                                v.data[idx * 3 + 1] = value.data[1];
+                                v.data[idx * 3 + 2] = value.data[2];
+                            }
+                            else {
+                                console.error(`Invalid assignment to ${name}. Line ${node.line}`);
+                                return;
+                            }
+                        }
+                        else if (typeName === "mat2x4" || typeName === "mat2x4f" || typeName === "mat2x4h") {
+                            if (idx < 2 && value.data.length === 4) {
+                                v.data[idx * 4] = value.data[0];
+                                v.data[idx * 4 + 1] = value.data[1];
+                                v.data[idx * 4 + 2] = value.data[2];
+                                v.data[idx * 4 + 3] = value.data[3];
+                            }
+                            else {
+                                console.error(`Invalid assignment to ${name}. Line ${node.line}`);
+                                return;
+                            }
+                        }
+                        else if (typeName === "mat3x2" || typeName === "mat3x2f" || typeName === "mat3x2h") {
+                            if (idx < 3 && value.data.length === 2) {
+                                v.data[idx * 2] = value.data[0];
+                                v.data[idx * 2 + 1] = value.data[1];
+                            }
+                            else {
+                                console.error(`Invalid assignment to ${name}. Line ${node.line}`);
+                                return;
+                            }
+                        }
+                        else if (typeName === "mat3x3" || typeName === "mat3x3f" || typeName === "mat3x3h") {
+                            if (idx < 3 && value.data.length === 3) {
+                                v.data[idx * 3] = value.data[0];
+                                v.data[idx * 3 + 1] = value.data[1];
+                                v.data[idx * 3 + 2] = value.data[2];
+                            }
+                            else {
+                                console.error(`Invalid assignment to ${name}. Line ${node.line}`);
+                                return;
+                            }
+                        }
+                        else if (typeName === "mat3x4" || typeName === "mat3x4f" || typeName === "mat3x4h") {
+                            if (idx < 3 && value.data.length === 4) {
+                                v.data[idx * 4] = value.data[0];
+                                v.data[idx * 4 + 1] = value.data[1];
+                                v.data[idx * 4 + 2] = value.data[2];
+                                v.data[idx * 4 + 3] = value.data[3];
+                            }
+                            else {
+                                console.error(`Invalid assignment to ${name}. Line ${node.line}`);
+                                return;
+                            }
+                        }
+                        else if (typeName === "mat4x2" || typeName === "mat4x2f" || typeName === "mat4x2h") {
+                            if (idx < 4 && value.data.length === 2) {
+                                v.data[idx * 2] = value.data[0];
+                                v.data[idx * 2 + 1] = value.data[1];
+                            }
+                            else {
+                                console.error(`Invalid assignment to ${name}. Line ${node.line}`);
+                                return;
+                            }
+                        }
+                        else if (typeName === "mat4x3" || typeName === "mat4x3f" || typeName === "mat4x3h") {
+                            if (idx < 4 && value.data.length === 3) {
+                                v.data[idx * 3] = value.data[0];
+                                v.data[idx * 3 + 1] = value.data[1];
+                                v.data[idx * 3 + 2] = value.data[2];
+                            }
+                            else {
+                                console.error(`Invalid assignment to ${name}. Line ${node.line}`);
+                                return;
+                            }
+                        }
+                        else if (typeName === "mat4x4" || typeName === "mat4x4f" || typeName === "mat4x4h") {
+                            if (idx < 4 && value.data.length === 4) {
+                                v.data[idx * 4] = value.data[0];
+                                v.data[idx * 4 + 1] = value.data[1];
+                                v.data[idx * 4 + 2] = value.data[2];
+                                v.data[idx * 4 + 3] = value.data[3];
+                            }
+                            else {
+                                console.error(`Invalid assignment to ${name}. Line ${node.line}`);
+                                return;
+                            }
+                        }
+                        else {
+                            console.error(`Invalid assignment to ${name}. Line ${node.line}`);
+                            return;
+                        }
+                    }
+                    else {
+                        console.error(`Invalid assignment to ${name}. Line ${node.line}`);
+                        return;
+                    }
+                }
+                else {
+                    console.error(`Invalid assignment to ${name}. Line ${node.line}`);
+                    return;
+                }
+            }
+            else if (postfix instanceof StringExpr) {
+                const member = postfix.value;
+                if (!(v instanceof VectorData)) {
+                    console.error(`Invalid assignment to ${member}. Variable ${name} is not a vector. Line ${node.line}`);
+                    return;
+                }
+                if (value instanceof ScalarData) {
+                    if (member.length > 1) {
+                        console.error(`Invalid assignment to ${member} for variable ${name}. Line ${node.line}`);
+                        return;
+                    }
+                    if (member === "x") {
+                        v.data[0] = value.value;
+                    }
+                    else if (member === "y") {
+                        if (v.data.length < 2) {
+                            console.error(`Invalid assignment to ${member} for variable ${name}. Line ${node.line}`);
+                            return;
+                        }
+                        v.data[1] = value.value;
+                    }
+                    else if (member === "z") {
+                        if (v.data.length < 3) {
+                            console.error(`Invalid assignment to ${member} for variable ${name}. Line ${node.line}`);
+                            return;
+                        }
+                        v.data[2] = value.value;
+                    }
+                    else if (member === "w") {
+                        if (v.data.length < 4) {
+                            console.error(`Invalid assignment to ${member} for variable ${name}. Line ${node.line}`);
+                            return;
+                        }
+                        v.data[3] = value.value;
+                    }
+                }
+                else if (value instanceof VectorData) {
+                    if (member.length !== value.data.length) {
+                        console.error(`Invalid assignment to ${member} for variable ${name}. Line ${node.line}`);
+                        return;
+                    }
+                    for (let i = 0; i < member.length; ++i) {
+                        const m = member[i];
+                        if (m === "x" || m === "r") {
+                            v.data[0] = value.data[i];
+                        }
+                        else if (m === "y" || m === "g") {
+                            if (value.data.length < 2) {
+                                console.error(`Invalid assignment to ${m} for variable ${name}. Line ${node.line}`);
+                                return;
+                            }
+                            v.data[1] = value.data[i];
+                        }
+                        else if (m === "z" || m === "b") {
+                            if (value.data.length < 3) {
+                                console.error(`Invalid assignment to ${m} for variable ${name}. Line ${node.line}`);
+                                return;
+                            }
+                            v.data[2] = value.data[i];
+                        }
+                        else if (m === "w" || m === "a") {
+                            if (value.data.length < 4) {
+                                console.error(`Invalid assignment to ${m} for variable ${name}. Line ${node.line}`);
+                                return;
+                            }
+                            v.data[3] = value.data[i];
+                        }
+                        else {
+                            console.error(`Invalid assignment to ${m} for variable ${name}. Line ${node.line}`);
+                            return;
+                        }
+                    }
+                }
+                else {
+                    console.error(`Invalid assignment to ${name}. Line ${node.line}`);
+                    return;
+                }
+            }
+        }
+        else {
+            if (v instanceof ScalarData && value instanceof ScalarData) {
+                v.value = value.value;
+            }
+            else if (v instanceof VectorData && value instanceof VectorData) {
+                v.data.set(value.data);
+            }
+            else if (v instanceof MatrixData && value instanceof MatrixData) {
+                v.data.set(value.data);
+            }
+            else {
+                console.error(`Invalid assignment to ${name}. Line ${node.line}`);
+            }
+            //v.value = value;
+        }
+        return;
+    }
+    _function(node, context) {
+        const f = new FunctionRef(node);
+        context.functions.set(node.name, f);
+    }
+    _const(node, context) {
+        let value = null;
+        if (node.value !== null) {
+            value = this.evalExpression(node.value, context);
+        }
+        context.createVariable(node.name, value, node);
+    }
+    _override(node, context) {
+        // Only set override value if it hasn't been provided as a constant override
+        const v = context.getVariable(node.name);
+        if (v === null || v.value === null) {
+            let value = null;
+            if (node.value !== null) {
+                value = this.evalExpression(node.value, context);
+            }
+            context.createVariable(node.name, value, node);
+        }
+    }
+    _let(node, context) {
+        let value = null;
+        if (node.value !== null) {
+            value = this.evalExpression(node.value, context);
+            if (value === null) {
+                console.error(`Invalid value for variable ${node.name}. Line ${node.line}`);
+                return;
+            }
+            if (!(node.value instanceof UnaryOperator)) {
+                value = value.clone();
+            }
+        }
+        else {
+            const typeName = node.type.name;
+            if (typeName === "f32" || typeName === "i32" || typeName === "u32" ||
+                typeName === "bool" || typeName === "f16" ||
+                typeName === "vec2" || typeName === "vec3" || typeName === "vec4" ||
+                typeName === "vec2f" || typeName === "vec3f" || typeName === "vec4f" ||
+                typeName === "vec2i" || typeName === "vec3i" || typeName === "vec4i" ||
+                typeName === "vec2u" || typeName === "vec3u" || typeName === "vec4u" ||
+                typeName === "vec2h" || typeName === "vec3h" || typeName === "vec4h" ||
+                typeName === "vec2b" || typeName === "vec3b" || typeName === "vec4b" ||
+                typeName === "mat2x2" || typeName === "mat2x3" || typeName === "mat2x4" ||
+                typeName === "mat3x2" || typeName === "mat3x3" || typeName === "mat3x4" ||
+                typeName === "mat4x2" || typeName === "mat4x3" || typeName === "mat4x4" ||
+                typeName === "mat2x2f" || typeName === "mat2x3f" || typeName === "mat2x4f" ||
+                typeName === "mat3x2f" || typeName === "mat3x3f" || typeName === "mat3x4f" ||
+                typeName === "mat4x2f" || typeName === "mat4x3f" || typeName === "mat4x4f" ||
+                typeName === "mat2x2h" || typeName === "mat2x3h" || typeName === "mat2x4h" ||
+                typeName === "mat3x2h" || typeName === "mat3x3h" || typeName === "mat3x4h" ||
+                typeName === "mat4x2h" || typeName === "mat4x3h" || typeName === "mat4x4h" ||
+                typeName === "array") {
+                const defType = new CreateExpr(node.type, []);
+                value = this._evalCreate(defType, context);
+            }
+        }
+        context.createVariable(node.name, value, node);
+    }
+    _var(node, context) {
+        let value = null;
+        if (node.value !== null) {
+            value = this.evalExpression(node.value, context);
+            if (value === null) {
+                console.error(`Invalid value for variable ${node.name}. Line ${node.line}`);
+                return;
+            }
+            if (!(node.value instanceof UnaryOperator)) {
+                value = value.clone();
+            }
+        }
+        else {
+            if (node.type === null) {
+                console.error(`Variable ${node.name} has no type. Line ${node.line}`);
+                return;
+            }
+            const typeName = node.type.name;
+            if (typeName === "f32" || typeName === "i32" || typeName === "u32" ||
+                typeName === "bool" || typeName === "f16" ||
+                typeName === "vec2" || typeName === "vec3" || typeName === "vec4" ||
+                typeName === "vec2f" || typeName === "vec3f" || typeName === "vec4f" ||
+                typeName === "vec2i" || typeName === "vec3i" || typeName === "vec4i" ||
+                typeName === "vec2u" || typeName === "vec3u" || typeName === "vec4u" ||
+                typeName === "vec2h" || typeName === "vec3h" || typeName === "vec4h" ||
+                typeName === "vec2b" || typeName === "vec3b" || typeName === "vec4b" ||
+                typeName === "mat2x2" || typeName === "mat2x3" || typeName === "mat2x4" ||
+                typeName === "mat3x2" || typeName === "mat3x3" || typeName === "mat3x4" ||
+                typeName === "mat4x2" || typeName === "mat4x3" || typeName === "mat4x4" ||
+                typeName === "mat2x2f" || typeName === "mat2x3f" || typeName === "mat2x4f" ||
+                typeName === "mat3x2f" || typeName === "mat3x3f" || typeName === "mat3x4f" ||
+                typeName === "mat4x2f" || typeName === "mat4x3f" || typeName === "mat4x4f" ||
+                typeName === "mat2x2h" || typeName === "mat2x3h" || typeName === "mat2x4h" ||
+                typeName === "mat3x2h" || typeName === "mat3x3h" || typeName === "mat3x4h" ||
+                typeName === "mat4x2h" || typeName === "mat4x3h" || typeName === "mat4x4h" ||
+                node.type instanceof ArrayType || node.type instanceof Struct || node.type instanceof TemplateType) {
+                const defType = new CreateExpr(node.type, []);
+                value = this._evalCreate(defType, context);
+            }
+        }
+        context.createVariable(node.name, value, node);
+    }
+    _switch(node, context) {
+        context = context.clone();
+        const condition = this.evalExpression(node.condition, context);
+        if (!(condition instanceof ScalarData)) {
+            console.error(`Invalid if condition. Line ${node.line}`);
+            return null;
+        }
+        let defaultCase = null;
+        for (const c of node.cases) {
+            if (c instanceof Case) {
+                for (const selector of c.selectors) {
+                    if (selector instanceof DefaultSelector) {
+                        defaultCase = c;
+                        continue;
+                    }
+                    const selectorValue = this.evalExpression(selector, context);
+                    if (!(selectorValue instanceof ScalarData)) {
+                        console.error(`Invalid case selector. Line ${node.line}`);
+                        return null;
+                    }
+                    if (selectorValue.value === condition.value) {
+                        return this._execStatements(c.body, context);
+                    }
+                }
+            }
+            else if (c instanceof Default) {
+                defaultCase = c;
+            }
+        }
+        if (defaultCase) {
+            return this._execStatements(defaultCase.body, context);
+        }
+        return null;
+    }
+    _if(node, context) {
+        context = context.clone();
+        const condition = this.evalExpression(node.condition, context);
+        if (!(condition instanceof ScalarData)) {
+            console.error(`Invalid if condition. Line ${node.line}`);
+            return null;
+        }
+        if (condition.value) {
+            return this._execStatements(node.body, context);
+        }
+        for (const e of node.elseif) {
+            const condition = this.evalExpression(e.condition, context);
+            if (!(condition instanceof ScalarData)) {
+                console.error(`Invalid if condition. Line ${node.line}`);
+                return null;
+            }
+            if (condition.value) {
+                return this._execStatements(e.body, context);
+            }
+        }
+        if (node.else) {
+            return this._execStatements(node.else, context);
+        }
+        return null;
+    }
+    _getScalarValue(v) {
+        if (v instanceof ScalarData) {
+            return v.value;
+        }
+        console.error(`Expected scalar value.`, v);
+        return 0;
+    }
+    _for(node, context) {
+        context = context.clone();
+        this.execStatement(node.init, context);
+        while (this._getScalarValue(this.evalExpression(node.condition, context))) {
+            const res = this._execStatements(node.body, context);
+            if (res === WgslExec._breakObj) {
+                break;
+            }
+            if (res !== null && res !== WgslExec._continueObj) {
+                return res;
+            }
+            this.execStatement(node.increment, context);
+        }
+        return null;
+    }
+    _loop(node, context) {
+        context = context.clone();
+        while (true) {
+            const res = this._execStatements(node.body, context);
+            if (res === WgslExec._breakObj) {
+                break;
+            }
+            else if (res === WgslExec._continueObj) {
+                if (node.continuing) {
+                    const cres = this._execStatements(node.continuing.body, context);
+                    if (cres === WgslExec._breakObj) {
+                        break;
+                    }
+                }
+            }
+            else if (res !== null) {
+                return res;
+            }
+        }
+        return null;
+    }
+    _while(node, context) {
+        context = context.clone();
+        while (this._getScalarValue(this.evalExpression(node.condition, context))) {
+            const res = this._execStatements(node.body, context);
+            if (res === WgslExec._breakObj) {
+                break;
+            }
+            else if (res === WgslExec._continueObj) {
+                continue;
+            }
+            else if (res !== null) {
+                return res;
+            }
+        }
+        return null;
+    }
+    _evalBitcast(node, context) {
+        const value = this.evalExpression(node.value, context);
+        const type = node.type;
+        if (value instanceof ScalarData) {
+            const v = castScalar(value.value, value.typeInfo.name, type.name);
+            return new ScalarData(v, this.getTypeInfo(type));
+        }
+        if (value instanceof VectorData) {
+            const fromType = value.typeInfo.getTypeName();
+            let fromCast = "";
+            if (fromType.endsWith("f")) {
+                fromCast = "f32";
+            }
+            else if (fromType.endsWith("i")) {
+                fromCast = "i32";
+            }
+            else if (fromType.endsWith("u")) {
+                fromCast = "u32";
+            }
+            else if (fromType.endsWith("b")) {
+                fromCast = "bool";
+            }
+            else if (fromType.endsWith("h")) {
+                fromCast = "f16";
+            }
+            else {
+                console.error(`Unknown vector type ${fromType}. Line ${node.line}`);
+                return null;
+            }
+            const toType = type.getTypeName();
+            let toCast = "";
+            if (toType.endsWith("f")) {
+                toCast = "f32";
+            }
+            else if (toType.endsWith("i")) {
+                toCast = "i32";
+            }
+            else if (toType.endsWith("u")) {
+                toCast = "u32";
+            }
+            else if (toType.endsWith("b")) {
+                toCast = "bool";
+            }
+            else if (toType.endsWith("h")) {
+                toCast = "f16";
+            }
+            else {
+                console.error(`Unknown vector type ${toCast}. Line ${node.line}`);
+                return null;
+            }
+            const v = castVector(Array.from(value.data), fromCast, toCast);
+            return new VectorData(v, this.getTypeInfo(type));
+        }
+        console.error(`TODO: bitcast for ${value.typeInfo.name}. Line ${node.line}`);
+        return null;
+    }
+    _evalConst(node, context) {
+        const data = context.getVariableValue(node.name).clone();
+        return data.getSubData(this, node.postfix, context);
+    }
+    _evalCreate(node, context) {
+        var _a;
+        if (node instanceof CreateExpr) {
+            if (node.type === null) {
+                return VoidData.void;
+            }
+            const typeName = node.type.getTypeName();
+            switch (typeName) {
+                // Constructor Built-in Functions
+                // Value Constructor Built-in Functions
+                case "bool":
+                case "i32":
+                case "u32":
+                case "f32":
+                case "f16":
+                    return this._callConstructorValue(node, context);
+                case "vec2":
+                case "vec3":
+                case "vec4":
+                case "vec2f":
+                case "vec3f":
+                case "vec4f":
+                case "vec2h":
+                case "vec3h":
+                case "vec4h":
+                case "vec2i":
+                case "vec3i":
+                case "vec4i":
+                case "vec2u":
+                case "vec3u":
+                case "vec4u":
+                case "vec2b":
+                case "vec3b":
+                case "vec4b":
+                    return this._callConstructorVec(node, context);
+                case "mat2x2":
+                case "mat2x2f":
+                case "mat2x2h":
+                case "mat2x3":
+                case "mat2x3f":
+                case "mat2x3h":
+                case "mat2x4":
+                case "mat2x4f":
+                case "mat2x4h":
+                case "mat3x2":
+                case "mat3x2f":
+                case "mat3x2h":
+                case "mat3x3":
+                case "mat3x3f":
+                case "mat3x3h":
+                case "mat3x4":
+                case "mat3x4f":
+                case "mat3x4h":
+                case "mat4x2":
+                case "mat4x2f":
+                case "mat4x2h":
+                case "mat4x3":
+                case "mat4x3f":
+                case "mat4x3h":
+                case "mat4x4":
+                case "mat4x4f":
+                case "mat4x4h":
+                    return this._callConstructorMatrix(node, context);
+            }
+        }
+        const typeName = (node instanceof CreateExpr) ? node.type.name : node.name;
+        const typeInfo = (node instanceof CreateExpr) ? this.getTypeInfo(node.type) : this.getTypeInfo(node.name);
+        if (typeInfo === null) {
+            console.error(`Unknown type ${typeName}. Line ${node.line}`);
+            return null;
+        }
+        if (typeInfo.size === 0) {
+            return null;
+        }
+        const data = new TypedData(new ArrayBuffer(typeInfo.size), typeInfo, 0);
+        // Assign the values in node.args to the data.
+        if (typeInfo instanceof StructInfo) {
+            if (node.args) {
+                for (let i = 0; i < node.args.length; ++i) {
+                    const memberInfo = typeInfo.members[i];
+                    const arg = node.args[i];
+                    const value = this.evalExpression(arg, context);
+                    data.setData(this, value, memberInfo.type, memberInfo.offset, context);
+                }
+            }
+        }
+        else if (typeInfo instanceof ArrayInfo) {
+            let offset = 0;
+            if (node.args) {
+                for (let i = 0; i < node.args.length; ++i) {
+                    const arg = node.args[i];
+                    const value = this.evalExpression(arg, context);
+                    if (typeInfo.format === null) {
+                        if (((_a = value.typeInfo) === null || _a === void 0 ? void 0 : _a.name) === "x32") {
+                            typeInfo.format = this.getTypeInfo("i32");
+                        }
+                        else {
+                            typeInfo.format = value.typeInfo;
+                        }
+                    }
+                    data.setData(this, value, typeInfo.format, offset, context);
+                    offset += typeInfo.stride;
+                }
+            }
+        }
+        else {
+            console.error(`Unknown type "${typeName}". Line ${node.line}`);
+        }
+        if (node instanceof CreateExpr) {
+            return data.getSubData(this, node.postfix, context);
+        }
+        return data;
+    }
+    _evalLiteral(node, context) {
+        const typeInfo = this.getTypeInfo(node.type);
+        const typeName = typeInfo.name;
+        if (typeName === "x32" || typeName === "u32" || typeName === "f32" || typeName === "f16" ||
+            typeName === "i32" || typeName === "bool") {
+            const data = new ScalarData(node.scalarValue, typeInfo);
+            return data;
+        }
+        if (typeName === "vec2" || typeName === "vec3" || typeName === "vec4" ||
+            typeName === "vec2f" || typeName === "vec3f" || typeName === "vec4f" ||
+            typeName === "vec2h" || typeName === "vec3h" || typeName === "vec4h" ||
+            typeName === "vec2i" || typeName === "vec3i" || typeName === "vec4i" ||
+            typeName === "vec2u" || typeName === "vec3u" || typeName === "vec4u") {
+            return this._callConstructorVec(node, context);
+        }
+        if (typeName === "mat2x2" || typeName === "mat2x3" || typeName === "mat2x4" ||
+            typeName === "mat3x2" || typeName === "mat3x3" || typeName === "mat3x4" ||
+            typeName === "mat4x2" || typeName === "mat4x3" || typeName === "mat4x4" ||
+            typeName === "mat2x2f" || typeName === "mat2x3f" || typeName === "mat2x4f" ||
+            typeName === "mat3x2f" || typeName === "mat3x3f" || typeName === "mat3x4f" ||
+            typeName === "mat4x2f" || typeName === "mat4x3f" || typeName === "mat4x4f" ||
+            typeName === "mat2x2h" || typeName === "mat2x3h" || typeName === "mat2x4h" ||
+            typeName === "mat3x2h" || typeName === "mat3x3h" || typeName === "mat3x4h" ||
+            typeName === "mat4x2h" || typeName === "mat4x3h" || typeName === "mat4x4h") {
+            return this._callConstructorMatrix(node, context);
+        }
+        return node.value;
+    }
+    _evalVariable(node, context) {
+        const value = context.getVariableValue(node.name);
+        if (value === null) {
+            return value;
+        }
+        return value.getSubData(this, node.postfix, context);
+    }
+    _maxFormatTypeInfo(x) {
+        let t = x[0];
+        if (t.name === "f32") {
+            return t;
+        }
+        for (let i = 1; i < x.length; ++i) {
+            const tv = WgslExec._priority.get(t.name);
+            const xv = WgslExec._priority.get(x[i].name);
+            if (xv < tv) {
+                t = x[i];
+            }
+        }
+        if (t.name === "x32") {
+            return this.getTypeInfo("i32");
+        }
+        return t;
+    }
+    _evalUnaryOp(node, context) {
+        const _r = this.evalExpression(node.right, context);
+        if (node.operator === "&") {
+            return new PointerData(_r);
+        }
+        else if (node.operator === "*") {
+            if (_r instanceof PointerData) {
+                return _r.reference.getSubData(this, node.postfix, context);
+            }
+            console.error(`Invalid dereference. Line ${node.line}`);
+            return null;
+        }
+        const r = _r instanceof ScalarData ? _r.value :
+            _r instanceof VectorData ? Array.from(_r.data) : null;
+        switch (node.operator) {
+            case "+": {
+                if (isArray(r)) {
+                    const ra = r;
+                    const result = ra.map((x, i) => +x);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const rn = r;
+                const t = this._maxFormatTypeInfo([_r.typeInfo, _r.typeInfo]);
+                return new ScalarData(+rn, t);
+            }
+            case "-": {
+                if (isArray(r)) {
+                    const ra = r;
+                    const result = ra.map((x, i) => -x);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const rn = r;
+                const t = this._maxFormatTypeInfo([_r.typeInfo, _r.typeInfo]);
+                return new ScalarData(-rn, t);
+            }
+            case "!": {
+                if (isArray(r)) {
+                    const ra = r;
+                    const result = ra.map((x, i) => !x ? 1 : 0);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const rn = r;
+                const t = this._maxFormatTypeInfo([_r.typeInfo, _r.typeInfo]);
+                return new ScalarData(!rn ? 1 : 0, t);
+            }
+            case "~": {
+                if (isArray(r)) {
+                    const ra = r;
+                    const result = ra.map((x, i) => ~x);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const rn = r;
+                const t = this._maxFormatTypeInfo([_r.typeInfo, _r.typeInfo]);
+                return new ScalarData(~rn, t);
+            }
+        }
+        console.error(`Invalid unary operator ${node.operator}. Line ${node.line}`);
+        return null;
+    }
+    _isMatrixType(data) {
+        const typeName = data.typeInfo.getTypeName();
+        return typeName.startsWith("mat");
+    }
+    _isVectorType(data) {
+        const typeName = data.typeInfo.getTypeName();
+        return typeName.startsWith("vec");
+    }
+    _evalBinaryOp(node, context) {
+        const _l = this.evalExpression(node.left, context);
+        const _r = this.evalExpression(node.right, context);
+        const l = _l instanceof ScalarData ? _l.value :
+            _l instanceof VectorData ? Array.from(_l.data) :
+                _l instanceof MatrixData ? Array.from(_l.data) :
+                    _l instanceof TypedData ? _l.toArray() :
+                        null;
+        const r = _r instanceof ScalarData ? _r.value :
+            _r instanceof VectorData ? Array.from(_r.data) :
+                _r instanceof MatrixData ? Array.from(_r.data) :
+                    _r instanceof TypedData ? _r.toArray() :
+                        null;
+        switch (node.operator) {
+            case "+": {
+                if (isArray(l) && isArray(r)) {
+                    const la = l;
+                    const ra = r;
+                    if (la.length !== ra.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    const result = la.map((x, i) => x + ra[i]);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x + rn);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln + x);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                const t = this._maxFormatTypeInfo([_l.typeInfo, _r.typeInfo]);
+                return new ScalarData(ln + rn, t);
+            }
+            case "-": {
+                if (isArray(l) && isArray(r)) {
+                    const la = l;
+                    const ra = r;
+                    if (la.length !== ra.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    const result = la.map((x, i) => x - ra[i]);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x - rn);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln - x);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                const t = this._maxFormatTypeInfo([_l.typeInfo, _r.typeInfo]);
+                return new ScalarData(ln - rn, t);
+            }
+            case "*": {
+                if (isArray(l) && isArray(r)) {
+                    const la = l;
+                    const ra = r;
+                    if (this._isMatrixType(_l) && this._isMatrixType(_r)) {
+                        const result = matrixMultiply(la, _l.typeInfo, ra, _r.typeInfo);
+                        if (result === null) {
+                            console.error(`Matrix multiplication failed. Line ${node.line}.`);
+                            return null;
+                        }
+                        const colsB = MatrixTypeSize[_r.typeInfo.name][0];
+                        const rowsA = MatrixTypeSize[_l.typeInfo.name][1];
+                        const type = this.getTypeInfo(`mat${colsB}x${rowsA}f`);
+                        return new MatrixData(result, type);
+                    }
+                    else if (this._isMatrixType(_l) && this._isVectorType(_r)) {
+                        const result = matrixVectorMultiply(la, _l.typeInfo, ra, _r.typeInfo);
+                        if (result === null) {
+                            console.error(`Matrix vector multiplication failed. Line ${node.line}.`);
+                            return null;
+                        }
+                        return new VectorData(result, _r.typeInfo);
+                    }
+                    else if (this._isVectorType(_l) && this._isMatrixType(_r)) {
+                        const result = vectorMatrixMultiply(la, _l.typeInfo, ra, _r.typeInfo);
+                        if (result === null) {
+                            console.error(`Matrix vector multiplication failed. Line ${node.line}.`);
+                            return null;
+                        }
+                        return new VectorData(result, _l.typeInfo);
+                    }
+                    else {
+                        if (la.length !== ra.length) {
+                            console.error(`Vector length mismatch. Line ${node.line}.`);
+                            return null;
+                        }
+                        const result = la.map((x, i) => x * ra[i]);
+                        return new VectorData(result, _l.typeInfo);
+                    }
+                }
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x * rn);
+                    if (this._isMatrixType(_l)) {
+                        return new MatrixData(result, _l.typeInfo);
+                    }
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln * x);
+                    if (_r instanceof MatrixData) {
+                        return new MatrixData(result, _r.typeInfo);
+                    }
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                const t = this._maxFormatTypeInfo([_l.typeInfo, _r.typeInfo]);
+                return new ScalarData(ln * rn, t);
+            }
+            case "%": {
+                if (isArray(l) && isArray(r)) {
+                    const la = l;
+                    const ra = r;
+                    if (la.length !== ra.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    const result = la.map((x, i) => x % ra[i]);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x % rn);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln % x);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                const t = this._maxFormatTypeInfo([_l.typeInfo, _r.typeInfo]);
+                return new ScalarData(ln % rn, t);
+            }
+            case "/": {
+                if (isArray(l) && isArray(r)) {
+                    const la = l;
+                    const ra = r;
+                    if (la.length !== ra.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    const result = la.map((x, i) => x / ra[i]);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x / rn);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln / x);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                const t = this._maxFormatTypeInfo([_l.typeInfo, _r.typeInfo]);
+                return new ScalarData(ln / rn, t);
+            }
+            case "&": {
+                if (isArray(l) && isArray(r)) {
+                    const la = l;
+                    const ra = r;
+                    if (la.length !== ra.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    const result = la.map((x, i) => x & ra[i]);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x & rn);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln & x);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                const t = this._maxFormatTypeInfo([_l.typeInfo, _r.typeInfo]);
+                return new ScalarData(ln & rn, t);
+            }
+            case "|": {
+                if (isArray(l) && isArray(r)) {
+                    const la = l;
+                    const ra = r;
+                    if (la.length !== ra.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    const result = la.map((x, i) => x | ra[i]);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x | rn);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln | x);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                const t = this._maxFormatTypeInfo([_l.typeInfo, _r.typeInfo]);
+                return new ScalarData(ln | rn, t);
+            }
+            case "^": {
+                if (isArray(l) && isArray(r)) {
+                    const la = l;
+                    const ra = r;
+                    if (la.length !== ra.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    const result = la.map((x, i) => x ^ ra[i]);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x ^ rn);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln ^ x);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                const t = this._maxFormatTypeInfo([_l.typeInfo, _r.typeInfo]);
+                return new ScalarData(ln ^ rn, t);
+            }
+            case "<<": {
+                if (isArray(l) && isArray(r)) {
+                    const la = l;
+                    const ra = r;
+                    if (la.length !== ra.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    const result = la.map((x, i) => x << ra[i]);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x << rn);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln << x);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                const t = this._maxFormatTypeInfo([_l.typeInfo, _r.typeInfo]);
+                return new ScalarData(ln << rn, t);
+            }
+            case ">>": {
+                if (isArray(l) && isArray(r)) {
+                    const la = l;
+                    const ra = r;
+                    if (la.length !== ra.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    const result = la.map((x, i) => x >> ra[i]);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x >> rn);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln >> x);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                const t = this._maxFormatTypeInfo([_l.typeInfo, _r.typeInfo]);
+                return new ScalarData(ln >> rn, t);
+            }
+            case ">": {
+                if (isArray(l) && isArray(r)) {
+                    const la = l;
+                    const ra = r;
+                    if (la.length !== ra.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    const result = la.map((x, i) => x > ra[i] ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x > rn ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln > x ? 1 : 0);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                return new ScalarData(ln > rn ? 1 : 0, this.getTypeInfo("bool"));
+            }
+            case "<":
+                if (isArray(l) && isArray(r)) {
+                    const la = l;
+                    const ra = r;
+                    if (la.length !== ra.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    const result = la.map((x, i) => x < ra[i] ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x < rn ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln < x ? 1 : 0);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                return new ScalarData(ln < rn ? 1 : 0, this.getTypeInfo("bool"));
+            case "==": {
+                if (isArray(l) && isArray(r)) {
+                    const la = l;
+                    const ra = r;
+                    if (la.length !== ra.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    const result = la.map((x, i) => x === ra[i] ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x == rn ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln == x ? 1 : 0);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                return new ScalarData(ln === rn ? 1 : 0, this.getTypeInfo("bool"));
+            }
+            case "!=": {
+                if (isArray(l) && isArray(r)) {
+                    const la = l;
+                    const ra = r;
+                    if (la.length !== ra.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    const result = la.map((x, i) => x !== ra[i] ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x !== rn ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln !== x ? 1 : 0);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                return new ScalarData(ln !== rn ? 1 : 0, this.getTypeInfo("bool"));
+            }
+            case ">=": {
+                if (isArray(l) && isArray(r)) {
+                    const la = l;
+                    const ra = r;
+                    if (la.length !== ra.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    const result = la.map((x, i) => x >= ra[i] ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x >= rn ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln >= x ? 1 : 0);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                return new ScalarData(ln >= rn ? 1 : 0, this.getTypeInfo("bool"));
+            }
+            case "<=": {
+                if (isArray(l) && isArray(r)) {
+                    const la = l;
+                    const ra = r;
+                    if (la.length !== ra.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    const result = la.map((x, i) => x <= ra[i] ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x <= rn ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln <= x ? 1 : 0);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                return new ScalarData(ln <= rn ? 1 : 0, this.getTypeInfo("bool"));
+            }
+            case "&&": {
+                if (isArray(l) && isArray(r)) {
+                    const la = l;
+                    const ra = r;
+                    if (la.length !== ra.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    const result = la.map((x, i) => x && ra[i] ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x && rn ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln && x ? 1 : 0);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                return new ScalarData(ln && rn ? 1 : 0, this.getTypeInfo("bool"));
+            }
+            case "||": {
+                if (isArray(l) && isArray(r)) {
+                    const la = l;
+                    const ra = r;
+                    if (la.length !== ra.length) {
+                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        return null;
+                    }
+                    const result = la.map((x, i) => x || ra[i] ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(l)) {
+                    const la = l;
+                    const rn = r;
+                    const result = la.map((x, i) => x || rn ? 1 : 0);
+                    return new VectorData(result, _l.typeInfo);
+                }
+                else if (isArray(r)) {
+                    const ln = l;
+                    const ra = r;
+                    const result = ra.map((x, i) => ln || x ? 1 : 0);
+                    return new VectorData(result, _r.typeInfo);
+                }
+                const ln = l;
+                const rn = r;
+                return new ScalarData(ln || rn ? 1 : 0, this.getTypeInfo("bool"));
+            }
+        }
+        console.error(`Unknown operator ${node.operator}. Line ${node.line}`);
+        return null;
+    }
+    _evalCall(node, context) {
+        if (node.cachedReturnValue !== null) {
+            return node.cachedReturnValue;
+        }
+        const subContext = context.clone();
+        subContext.currentFunctionName = node.name;
+        const f = context.getFunction(node.name);
+        if (!f) {
+            if (node.isBuiltin) {
+                return this._callBuiltinFunction(node, subContext);
+            }
+            const typeInfo = this.getTypeInfo(node.name);
+            if (typeInfo) {
+                return this._evalCreate(node, context);
+            }
+            console.error(`Unknown function "${node.name}". Line ${node.line}`);
+            return null;
+        }
+        for (let ai = 0; ai < f.node.args.length; ++ai) {
+            const arg = f.node.args[ai];
+            const value = this.evalExpression(node.args[ai], subContext);
+            subContext.createVariable(arg.name, value, arg);
+        }
+        return this._execStatements(f.node.body, subContext);
+    }
+    _callBuiltinFunction(node, context) {
+        switch (node.name) {
+            // Logical Built-in Functions
+            case "all":
+                return this.builtins.All(node, context);
+            case "any":
+                return this.builtins.Any(node, context);
+            case "select":
+                return this.builtins.Select(node, context);
+            // Array Built-in Functions
+            case "arrayLength":
+                return this.builtins.ArrayLength(node, context);
+            // Numeric Built-in Functions
+            case "abs":
+                return this.builtins.Abs(node, context);
+            case "acos":
+                return this.builtins.Acos(node, context);
+            case "acosh":
+                return this.builtins.Acosh(node, context);
+            case "asin":
+                return this.builtins.Asin(node, context);
+            case "asinh":
+                return this.builtins.Asinh(node, context);
+            case "atan":
+                return this.builtins.Atan(node, context);
+            case "atanh":
+                return this.builtins.Atanh(node, context);
+            case "atan2":
+                return this.builtins.Atan2(node, context);
+            case "ceil":
+                return this.builtins.Ceil(node, context);
+            case "clamp":
+                return this.builtins.Clamp(node, context);
+            case "cos":
+                return this.builtins.Cos(node, context);
+            case "cosh":
+                return this.builtins.Cosh(node, context);
+            case "countLeadingZeros":
+                return this.builtins.CountLeadingZeros(node, context);
+            case "countOneBits":
+                return this.builtins.CountOneBits(node, context);
+            case "countTrailingZeros":
+                return this.builtins.CountTrailingZeros(node, context);
+            case "cross":
+                return this.builtins.Cross(node, context);
+            case "degrees":
+                return this.builtins.Degrees(node, context);
+            case "determinant":
+                return this.builtins.Determinant(node, context);
+            case "distance":
+                return this.builtins.Distance(node, context);
+            case "dot":
+                return this.builtins.Dot(node, context);
+            case "dot4U8Packed":
+                return this.builtins.Dot4U8Packed(node, context);
+            case "dot4I8Packed":
+                return this.builtins.Dot4I8Packed(node, context);
+            case "exp":
+                return this.builtins.Exp(node, context);
+            case "exp2":
+                return this.builtins.Exp2(node, context);
+            case "extractBits":
+                return this.builtins.ExtractBits(node, context);
+            case "faceForward":
+                return this.builtins.FaceForward(node, context);
+            case "firstLeadingBit":
+                return this.builtins.FirstLeadingBit(node, context);
+            case "firstTrailingBit":
+                return this.builtins.FirstTrailingBit(node, context);
+            case "floor":
+                return this.builtins.Floor(node, context);
+            case "fma":
+                return this.builtins.Fma(node, context);
+            case "fract":
+                return this.builtins.Fract(node, context);
+            case "frexp":
+                return this.builtins.Frexp(node, context);
+            case "insertBits":
+                return this.builtins.InsertBits(node, context);
+            case "inverseSqrt":
+                return this.builtins.InverseSqrt(node, context);
+            case "ldexp":
+                return this.builtins.Ldexp(node, context);
+            case "length":
+                return this.builtins.Length(node, context);
+            case "log":
+                return this.builtins.Log(node, context);
+            case "log2":
+                return this.builtins.Log2(node, context);
+            case "max":
+                return this.builtins.Max(node, context);
+            case "min":
+                return this.builtins.Min(node, context);
+            case "mix":
+                return this.builtins.Mix(node, context);
+            case "modf":
+                return this.builtins.Modf(node, context);
+            case "normalize":
+                return this.builtins.Normalize(node, context);
+            case "pow":
+                return this.builtins.Pow(node, context);
+            case "quantizeToF16":
+                return this.builtins.QuantizeToF16(node, context);
+            case "radians":
+                return this.builtins.Radians(node, context);
+            case "reflect":
+                return this.builtins.Reflect(node, context);
+            case "refract":
+                return this.builtins.Refract(node, context);
+            case "reverseBits":
+                return this.builtins.ReverseBits(node, context);
+            case "round":
+                return this.builtins.Round(node, context);
+            case "saturate":
+                return this.builtins.Saturate(node, context);
+            case "sign":
+                return this.builtins.Sign(node, context);
+            case "sin":
+                return this.builtins.Sin(node, context);
+            case "sinh":
+                return this.builtins.Sinh(node, context);
+            case "smoothstep":
+                return this.builtins.SmoothStep(node, context);
+            case "sqrt":
+                return this.builtins.Sqrt(node, context);
+            case "step":
+                return this.builtins.Step(node, context);
+            case "tan":
+                return this.builtins.Tan(node, context);
+            case "tanh":
+                return this.builtins.Tanh(node, context);
+            case "transpose":
+                return this.builtins.Transpose(node, context);
+            case "trunc":
+                return this.builtins.Trunc(node, context);
+            // Derivative Built-in Functions
+            case "dpdx":
+                return this.builtins.Dpdx(node, context);
+            case "dpdxCoarse":
+                return this.builtins.DpdxCoarse(node, context);
+            case "dpdxFine":
+                return this.builtins.DpdxFine(node, context);
+            case "dpdy":
+                return this.builtins.Dpdy(node, context);
+            case "dpdyCoarse":
+                return this.builtins.DpdyCoarse(node, context);
+            case "dpdyFine":
+                return this.builtins.DpdyFine(node, context);
+            case "fwidth":
+                return this.builtins.Fwidth(node, context);
+            case "fwidthCoarse":
+                return this.builtins.FwidthCoarse(node, context);
+            case "fwidthFine":
+                return this.builtins.FwidthFine(node, context);
+            // Texture Built-in Functions
+            case "textureDimensions":
+                return this.builtins.TextureDimensions(node, context);
+            case "textureGather":
+                return this.builtins.TextureGather(node, context);
+            case "textureGatherCompare":
+                return this.builtins.TextureGatherCompare(node, context);
+            case "textureLoad":
+                return this.builtins.TextureLoad(node, context);
+            case "textureNumLayers":
+                return this.builtins.TextureNumLayers(node, context);
+            case "textureNumLevels":
+                return this.builtins.TextureNumLevels(node, context);
+            case "textureNumSamples":
+                return this.builtins.TextureNumSamples(node, context);
+            case "textureSample":
+                return this.builtins.TextureSample(node, context);
+            case "textureSampleBias":
+                return this.builtins.TextureSampleBias(node, context);
+            case "textureSampleCompare":
+                return this.builtins.TextureSampleCompare(node, context);
+            case "textureSampleCompareLevel":
+                return this.builtins.TextureSampleCompareLevel(node, context);
+            case "textureSampleGrad":
+                return this.builtins.TextureSampleGrad(node, context);
+            case "textureSampleLevel":
+                return this.builtins.TextureSampleLevel(node, context);
+            case "textureSampleBaseClampToEdge":
+                return this.builtins.TextureSampleBaseClampToEdge(node, context);
+            case "textureStore":
+                return this.builtins.TextureStore(node, context);
+            // Atomic Built-in Functions
+            case "atomicLoad":
+                return this.builtins.AtomicLoad(node, context);
+            case "atomicStore":
+                return this.builtins.AtomicStore(node, context);
+            case "atomicAdd":
+                return this.builtins.AtomicAdd(node, context);
+            case "atomicSub":
+                return this.builtins.AtomicSub(node, context);
+            case "atomicMax":
+                return this.builtins.AtomicMax(node, context);
+            case "atomicMin":
+                return this.builtins.AtomicMin(node, context);
+            case "atomicAnd":
+                return this.builtins.AtomicAnd(node, context);
+            case "atomicOr":
+                return this.builtins.AtomicOr(node, context);
+            case "atomicXor":
+                return this.builtins.AtomicXor(node, context);
+            case "atomicExchange":
+                return this.builtins.AtomicExchange(node, context);
+            case "atomicCompareExchangeWeak":
+                return this.builtins.AtomicCompareExchangeWeak(node, context);
+            // Data Packing Built-in Functions
+            case "pack4x8snorm":
+                return this.builtins.Pack4x8snorm(node, context);
+            case "pack4x8unorm":
+                return this.builtins.Pack4x8unorm(node, context);
+            case "pack4xI8":
+                return this.builtins.Pack4xI8(node, context);
+            case "pack4xU8":
+                return this.builtins.Pack4xU8(node, context);
+            case "pack4x8Clamp":
+                return this.builtins.Pack4x8Clamp(node, context);
+            case "pack4xU8Clamp":
+                return this.builtins.Pack4xU8Clamp(node, context);
+            case "pack2x16snorm":
+                return this.builtins.Pack2x16snorm(node, context);
+            case "pack2x16unorm":
+                return this.builtins.Pack2x16unorm(node, context);
+            case "pack2x16float":
+                return this.builtins.Pack2x16float(node, context);
+            // Data Unpacking Built-in Functions
+            case "unpack4x8snorm":
+                return this.builtins.Unpack4x8snorm(node, context);
+            case "unpack4x8unorm":
+                return this.builtins.Unpack4x8unorm(node, context);
+            case "unpack4xI8":
+                return this.builtins.Unpack4xI8(node, context);
+            case "unpack4xU8":
+                return this.builtins.Unpack4xU8(node, context);
+            case "unpack2x16snorm":
+                return this.builtins.Unpack2x16snorm(node, context);
+            case "unpack2x16unorm":
+                return this.builtins.Unpack2x16unorm(node, context);
+            case "unpack2x16float":
+                return this.builtins.Unpack2x16float(node, context);
+            // Synchronization Built-in Functions
+            case "storageBarrier":
+                return this.builtins.StorageBarrier(node, context);
+            case "textureBarrier":
+                return this.builtins.TextureBarrier(node, context);
+            case "workgroupBarrier":
+                return this.builtins.WorkgroupBarrier(node, context);
+            case "workgroupUniformLoad":
+                return this.builtins.WorkgroupUniformLoad(node, context);
+            // Subgroup Built-in Functions
+            case "subgroupAdd":
+                return this.builtins.SubgroupAdd(node, context);
+            case "subgroupExclusiveAdd":
+                return this.builtins.SubgroupExclusiveAdd(node, context);
+            case "subgroupInclusiveAdd":
+                return this.builtins.SubgroupInclusiveAdd(node, context);
+            case "subgroupAll":
+                return this.builtins.SubgroupAll(node, context);
+            case "subgroupAnd":
+                return this.builtins.SubgroupAnd(node, context);
+            case "subgroupAny":
+                return this.builtins.SubgroupAny(node, context);
+            case "subgroupBallot":
+                return this.builtins.SubgroupBallot(node, context);
+            case "subgroupBroadcast":
+                return this.builtins.SubgroupBroadcast(node, context);
+            case "subgroupBroadcastFirst":
+                return this.builtins.SubgroupBroadcastFirst(node, context);
+            case "subgroupElect":
+                return this.builtins.SubgroupElect(node, context);
+            case "subgroupMax":
+                return this.builtins.SubgroupMax(node, context);
+            case "subgroupMin":
+                return this.builtins.SubgroupMin(node, context);
+            case "subgroupMul":
+                return this.builtins.SubgroupMul(node, context);
+            case "subgroupExclusiveMul":
+                return this.builtins.SubgroupExclusiveMul(node, context);
+            case "subgroupInclusiveMul":
+                return this.builtins.SubgroupInclusiveMul(node, context);
+            case "subgroupOr":
+                return this.builtins.SubgroupOr(node, context);
+            case "subgroupShuffle":
+                return this.builtins.SubgroupShuffle(node, context);
+            case "subgroupShuffleDown":
+                return this.builtins.SubgroupShuffleDown(node, context);
+            case "subgroupShuffleUp":
+                return this.builtins.SubgroupShuffleUp(node, context);
+            case "subgroupShuffleXor":
+                return this.builtins.SubgroupShuffleXor(node, context);
+            case "subgroupXor":
+                return this.builtins.SubgroupXor(node, context);
+            // Quad Operations
+            case "quadBroadcast":
+                return this.builtins.QuadBroadcast(node, context);
+            case "quadSwapDiagonal":
+                return this.builtins.QuadSwapDiagonal(node, context);
+            case "quadSwapX":
+                return this.builtins.QuadSwapX(node, context);
+            case "quadSwapY":
+                return this.builtins.QuadSwapY(node, context);
+        }
+        const f = context.getFunction(node.name);
+        if (f) {
+            const subContext = context.clone();
+            for (let ai = 0; ai < f.node.args.length; ++ai) {
+                const arg = f.node.args[ai];
+                const value = this.evalExpression(node.args[ai], subContext);
+                subContext.setVariable(arg.name, value, arg);
+            }
+            return this._execStatements(f.node.body, subContext);
+        }
+        //console.error(`Function ${node.name} not found. Line ${node.line}`);
+        return null;
+    }
+    _callConstructorValue(node, context) {
+        if (!node.args || node.args.length === 0) {
+            return new ScalarData(0, this.getTypeInfo(node.type));
+        }
+        const v = this.evalExpression(node.args[0], context);
+        v.typeInfo = this.getTypeInfo(node.type);
+        return v.getSubData(this, node.postfix, context).clone();
+    }
+    _callConstructorVec(node, context) {
+        const typeInfo = this.getTypeInfo(node.type);
+        const typeName = node.type.getTypeName();
+        const count = VectorTypeSize[typeName];
+        if (count === undefined) {
+            console.error(`Invalid vec constructor ${typeName}. Line ${node.line}`);
+            return null;
+        }
+        const values = [];
+        if (node instanceof LiteralExpr) {
+            if (node.isVector) {
+                const a = node.vectorValue;
+                for (const v of a) {
+                    values.push(v);
+                }
+            }
+            else {
+                values.push(node.scalarValue);
+            }
+        }
+        else {
+            if (node.args) {
+                for (const arg of node.args) {
+                    const argValue = this.evalExpression(arg, context);
+                    if (argValue instanceof VectorData) {
+                        const vd = argValue.data;
+                        for (let i = 0; i < vd.length; ++i) {
+                            let e = vd[i];
+                            values.push(e);
+                        }
+                    }
+                    else if (argValue instanceof ScalarData) {
+                        let v = argValue.value;
+                        values.push(v);
+                    }
+                }
+            }
+        }
+        if (node.type instanceof TemplateType && node.type.format === null) {
+            node.type.format = TemplateType.f32; // TODO: get the format from the type of the arg.
+        }
+        if (values.length === 0) {
+            const values = new Array(count).fill(0);
+            return new VectorData(values, typeInfo).getSubData(this, node.postfix, context);
+        }
+        if (values.length === 1) {
+            while (values.length < count) {
+                values.push(values[0]);
+            }
+        }
+        if (values.length < count) {
+            console.error(`Invalid vec constructor. Line ${node.line}`);
+            return null;
+        }
+        const data = new VectorData(values.length > count ? values.slice(0, count) : values, typeInfo);
+        return data.getSubData(this, node.postfix, context);
+    }
+    _callConstructorMatrix(node, context) {
+        const typeInfo = this.getTypeInfo(node.type);
+        const typeName = node.type.getTypeName();
+        const count = MatrixTypeSize[typeName];
+        if (count === undefined) {
+            console.error(`Invalid matrix constructor ${typeName}. Line ${node.line}`);
+            return null;
+        }
+        const values = [];
+        if (node instanceof LiteralExpr) {
+            if (node.isVector) {
+                const a = node.vectorValue;
+                for (const v of a) {
+                    values.push(v);
+                }
+            }
+            else {
+                values.push(node.scalarValue);
+            }
+        }
+        else {
+            if (node.args) {
+                for (const arg of node.args) {
+                    const argValue = this.evalExpression(arg, context);
+                    if (argValue instanceof VectorData) {
+                        values.push(...argValue.data);
+                    }
+                    else if (argValue instanceof ScalarData) {
+                        values.push(argValue.value);
+                    }
+                    else if (argValue instanceof MatrixData) {
+                        values.push(...argValue.data);
+                    }
+                }
+            }
+        }
+        if ((typeInfo instanceof TemplateInfo) && typeInfo.format === null) {
+            typeInfo.format = this.getTypeInfo("f32");
+        }
+        if (values.length === 0) {
+            const values = new Array(count[2]).fill(0);
+            return new MatrixData(values, typeInfo).getSubData(this, node.postfix, context);
+        }
+        if (values.length !== count[2]) {
+            console.error(`Invalid matrix constructor. Line ${node.line}`);
+            return null;
+        }
+        return new MatrixData(values, typeInfo).getSubData(this, node.postfix, context);
+    }
+}
+WgslExec._breakObj = new Data(new TypeInfo("BREAK", null), null);
+WgslExec._continueObj = new Data(new TypeInfo("CONTINUE", null), null);
+WgslExec._priority = new Map([["f32", 0], ["f16", 1], ["u32", 2], ["i32", 3], ["x32", 3]]);
+
+class ParseContext {
+    constructor() {
+        this.constants = new Map();
+        this.aliases = new Map();
+        this.structs = new Map();
+    }
+}
+
+/// Parse a sequence of tokens from the WgslScanner into an Abstract Syntax Tree (AST).
+class WgslParser {
+    constructor() {
+        this._tokens = [];
+        this._current = 0;
+        this._currentLine = 1;
+        this._deferArrayCountEval = [];
+        this._currentLoop = [];
+        this._context = new ParseContext();
+        this._exec = new WgslExec();
+        this._forwardTypeCount = 0;
+    }
+    ;
+    parse(tokensOrCode) {
+        this._initialize(tokensOrCode);
+        this._deferArrayCountEval.length = 0;
+        const statements = [];
+        while (!this._isAtEnd()) {
+            const statement = this._global_decl_or_directive();
+            if (!statement) {
+                break;
+            }
+            statements.push(statement);
+        }
+        // Since constants can be declared after they are used, and
+        // constants can be used to size arrays, defer calculating the
+        // size until after the shader has finished parsing.
+        if (this._deferArrayCountEval.length > 0) {
+            for (const arrayDecl of this._deferArrayCountEval) {
+                const arrayType = arrayDecl["arrayType"];
+                const countNode = arrayDecl["countNode"];
+                if (countNode instanceof VariableExpr) {
+                    const variable = countNode;
+                    const name = variable.name;
+                    const constant = this._context.constants.get(name);
+                    if (constant) {
+                        try {
+                            const count = constant.constEvaluate(this._exec);
+                            arrayType.count = count;
+                        }
+                        catch (e) {
+                        }
+                    }
+                }
+            }
+            this._deferArrayCountEval.length = 0;
+        }
+        if (this._forwardTypeCount > 0) {
+            for (const statement of statements) {
+                statement.search((node) => {
+                    if (node instanceof Member) {
+                        node.type = this._forwardType(node.type);
+                    }
+                    else if (node instanceof PointerType) {
+                        node.type = this._forwardType(node.type);
+                    }
+                    else if (node instanceof ArrayType) {
+                        node.format = this._forwardType(node.format);
+                    }
+                    else if (node instanceof Var || node instanceof Let || node instanceof Const) {
+                        node.type = this._forwardType(node.type);
+                    }
+                    else if (node instanceof Function) {
+                        node.returnType = this._forwardType(node.returnType);
+                    }
+                    else if (node instanceof Argument) {
+                        node.type = this._forwardType(node.type);
+                    }
+                });
+            }
+        }
+        return statements;
+    }
+    _forwardType(t) {
+        if (t instanceof ForwardType) {
+            const ft = this._getType(t.name);
+            if (ft) {
+                return ft;
+            }
+        }
+        else if (t instanceof PointerType) {
+            t.type = this._forwardType(t.type);
+        }
+        else if (t instanceof ArrayType) {
+            t.format = this._forwardType(t.format);
+        }
+        return t;
+    }
+    _initialize(tokensOrCode) {
+        if (tokensOrCode) {
+            if (typeof tokensOrCode == "string") {
+                const scanner = new WgslScanner(tokensOrCode);
+                this._tokens = scanner.scanTokens();
+            }
+            else {
+                this._tokens = tokensOrCode;
+            }
+        }
+        else {
+            this._tokens = [];
+        }
+        this._current = 0;
+    }
+    _updateNode(n, l) {
+        n.line = l !== null && l !== void 0 ? l : this._currentLine;
+        return n;
+    }
+    _error(token, message) {
+        return {
+            token,
+            message,
+            toString: function () {
+                return `${message}`;
+            },
+        };
+    }
+    _isAtEnd() {
+        return (this._current >= this._tokens.length ||
+            this._peek().type == TokenTypes.eof);
+    }
+    _match(types) {
+        if (types instanceof TokenType) {
+            if (this._check(types)) {
+                this._advance();
+                return true;
+            }
+            return false;
+        }
+        for (let i = 0, l = types.length; i < l; ++i) {
+            const type = types[i];
+            if (this._check(type)) {
+                this._advance();
+                return true;
+            }
+        }
+        return false;
+    }
+    _consume(types, message) {
+        if (this._check(types)) {
+            return this._advance();
+        }
+        throw this._error(this._peek(), `${message}. Line:${this._currentLine}`);
+    }
+    _check(types) {
+        if (this._isAtEnd()) {
+            return false;
+        }
+        const tk = this._peek();
+        if (types instanceof Array) {
+            const t = tk.type;
+            let hasNameType = false;
+            for (const type of types) {
+                if (t === type) {
+                    return true;
+                }
+                if (type === TokenTypes.tokens.name) {
+                    hasNameType = true;
+                }
+            }
+            if (hasNameType) {
+                // ident can include any of the other keywords, so special case it.
+                const match = TokenTypes.tokens.name.rule.exec(tk.lexeme);
+                if (match && match.index == 0 && match[0] == tk.lexeme) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        if (tk.type === types) {
+            return true;
+        }
+        // ident can include any of the other keywords, so special case it.
+        if (types === TokenTypes.tokens.name) {
+            const match = TokenTypes.tokens.name.rule.exec(tk.lexeme);
+            return match && match.index == 0 && match[0] == tk.lexeme;
+        }
+        return false;
+    }
+    _advance() {
+        var _a, _b;
+        this._currentLine = (_b = (_a = this._peek()) === null || _a === void 0 ? void 0 : _a.line) !== null && _b !== void 0 ? _b : -1;
+        if (!this._isAtEnd()) {
+            this._current++;
+        }
+        return this._previous();
+    }
+    _peek() {
+        return this._tokens[this._current];
+    }
+    _previous() {
+        return this._tokens[this._current - 1];
+    }
+    _global_decl_or_directive() {
+        // semicolon
+        // global_variable_decl semicolon
+        // global_constant_decl semicolon
+        // type_alias semicolon
+        // struct_decl
+        // function_decl
+        // enable_directive
+        // Ignore any stand-alone semicolons
+        while (this._match(TokenTypes.tokens.semicolon) && !this._isAtEnd())
+            ;
+        if (this._match(TokenTypes.keywords.alias)) {
+            const type = this._type_alias();
+            this._consume(TokenTypes.tokens.semicolon, "Expected ';'");
+            this._exec.reflection.updateAST([type]);
+            return type;
+        }
+        if (this._match(TokenTypes.keywords.diagnostic)) {
+            const directive = this._diagnostic();
+            this._consume(TokenTypes.tokens.semicolon, "Expected ';'");
+            this._exec.reflection.updateAST([directive]);
+            return directive;
+        }
+        if (this._match(TokenTypes.keywords.requires)) {
+            const requires = this._requires_directive();
+            this._consume(TokenTypes.tokens.semicolon, "Expected ';'");
+            this._exec.reflection.updateAST([requires]);
+            return requires;
+        }
+        if (this._match(TokenTypes.keywords.enable)) {
+            const enable = this._enable_directive();
+            this._consume(TokenTypes.tokens.semicolon, "Expected ';'");
+            this._exec.reflection.updateAST([enable]);
+            return enable;
+        }
+        // The following statements have an optional attribute*
+        const attrs = this._attribute();
+        if (this._check(TokenTypes.keywords.var)) {
+            const _var = this._global_variable_decl();
+            if (_var != null) {
+                _var.attributes = attrs;
+            }
+            this._consume(TokenTypes.tokens.semicolon, "Expected ';'.");
+            this._exec.reflection.updateAST([_var]);
+            return _var;
+        }
+        if (this._check(TokenTypes.keywords.override)) {
+            const _override = this._override_variable_decl();
+            if (_override != null) {
+                _override.attributes = attrs;
+            }
+            this._consume(TokenTypes.tokens.semicolon, "Expected ';'.");
+            this._exec.reflection.updateAST([_override]);
+            return _override;
+        }
+        if (this._check(TokenTypes.keywords.let)) {
+            const _let = this._global_let_decl();
+            if (_let != null) {
+                _let.attributes = attrs;
+            }
+            this._consume(TokenTypes.tokens.semicolon, "Expected ';'.");
+            this._exec.reflection.updateAST([_let]);
+            return _let;
+        }
+        if (this._check(TokenTypes.keywords.const)) {
+            const _const = this._global_const_decl();
+            if (_const != null) {
+                _const.attributes = attrs;
+            }
+            this._consume(TokenTypes.tokens.semicolon, "Expected ';'.");
+            this._exec.reflection.updateAST([_const]);
+            return _const;
+        }
+        if (this._check(TokenTypes.keywords.struct)) {
+            const _struct = this._struct_decl();
+            if (_struct != null) {
+                _struct.attributes = attrs;
+            }
+            this._exec.reflection.updateAST([_struct]);
+            return _struct;
+        }
+        if (this._check(TokenTypes.keywords.fn)) {
+            const _fn = this._function_decl();
+            if (_fn != null) {
+                _fn.attributes = attrs;
+            }
+            this._exec.reflection.updateAST([_fn]);
+            return _fn;
+        }
+        return null;
+    }
+    _function_decl() {
+        // attribute* function_header compound_statement
+        // function_header: fn ident paren_left param_list? paren_right (arrow attribute* type_decl)?
+        if (!this._match(TokenTypes.keywords.fn)) {
+            return null;
+        }
+        const startLine = this._currentLine;
+        const name = this._consume(TokenTypes.tokens.ident, "Expected function name.").toString();
+        this._consume(TokenTypes.tokens.paren_left, "Expected '(' for function arguments.");
+        const args = [];
+        if (!this._check(TokenTypes.tokens.paren_right)) {
+            do {
+                if (this._check(TokenTypes.tokens.paren_right)) {
+                    break;
+                }
+                const argAttrs = this._attribute();
+                const name = this._consume(TokenTypes.tokens.name, "Expected argument name.").toString();
+                this._consume(TokenTypes.tokens.colon, "Expected ':' for argument type.");
+                const typeAttrs = this._attribute();
+                const type = this._type_decl();
+                if (type != null) {
+                    type.attributes = typeAttrs;
+                    args.push(this._updateNode(new Argument(name, type, argAttrs)));
+                }
+            } while (this._match(TokenTypes.tokens.comma));
+        }
+        this._consume(TokenTypes.tokens.paren_right, "Expected ')' after function arguments.");
+        let _return = null;
+        if (this._match(TokenTypes.tokens.arrow)) {
+            const attrs = this._attribute();
+            _return = this._type_decl();
+            if (_return != null) {
+                _return.attributes = attrs;
+            }
+        }
+        const body = this._compound_statement();
+        const endLine = this._currentLine;
+        return this._updateNode(new Function(name, args, _return, body, startLine, endLine), startLine);
+    }
+    _compound_statement() {
+        // brace_left statement* brace_right
+        const statements = [];
+        this._consume(TokenTypes.tokens.brace_left, "Expected '{' for block.");
+        while (!this._check(TokenTypes.tokens.brace_right)) {
+            const statement = this._statement();
+            if (statement !== null) {
+                statements.push(statement);
+            }
+        }
+        this._consume(TokenTypes.tokens.brace_right, "Expected '}' for block.");
+        return statements;
+    }
+    _statement() {
+        // semicolon
+        // return_statement semicolon
+        // if_statement
+        // switch_statement
+        // loop_statement
+        // for_statement
+        // func_call_statement semicolon
+        // variable_statement semicolon
+        // break_statement semicolon
+        // continue_statement semicolon
+        // continuing_statement compound_statement
+        // discard semicolon
+        // assignment_statement semicolon
+        // compound_statement
+        // increment_statement semicolon
+        // decrement_statement semicolon
+        // static_assert_statement semicolon
+        // Ignore any stand-alone semicolons
+        while (this._match(TokenTypes.tokens.semicolon) && !this._isAtEnd())
+            ;
+        if (this._check(TokenTypes.tokens.attr)) {
+            this._attribute();
+        }
+        if (this._check(TokenTypes.keywords.if)) {
+            return this._if_statement();
+        }
+        if (this._check(TokenTypes.keywords.switch)) {
+            return this._switch_statement();
+        }
+        if (this._check(TokenTypes.keywords.loop)) {
+            return this._loop_statement();
+        }
+        if (this._check(TokenTypes.keywords.for)) {
+            return this._for_statement();
+        }
+        if (this._check(TokenTypes.keywords.while)) {
+            return this._while_statement();
+        }
+        if (this._check(TokenTypes.keywords.continuing)) {
+            return this._continuing_statement();
+        }
+        if (this._check(TokenTypes.keywords.static_assert)) {
+            return this._static_assert_statement();
+        }
+        if (this._check(TokenTypes.tokens.brace_left)) {
+            return this._compound_statement();
+        }
+        let result = null;
+        if (this._check(TokenTypes.keywords.return)) {
+            result = this._return_statement();
+        }
+        else if (this._check([TokenTypes.keywords.var, TokenTypes.keywords.let, TokenTypes.keywords.const])) {
+            result = this._variable_statement();
+        }
+        else if (this._match(TokenTypes.keywords.discard)) {
+            result = this._updateNode(new Discard());
+        }
+        else if (this._match(TokenTypes.keywords.break)) {
+            const breakStmt = this._updateNode(new Break());
+            if (this._currentLoop.length > 0) {
+                const loop = this._currentLoop[this._currentLoop.length - 1];
+                breakStmt.loopId = loop.id;
+            }
+            result = breakStmt;
+            if (this._check(TokenTypes.keywords.if)) {
+                // break-if
+                this._advance();
+                breakStmt.condition = this._optional_paren_expression();
+            }
+        }
+        else if (this._match(TokenTypes.keywords.continue)) {
+            const continueStmt = this._updateNode(new Continue());
+            if (this._currentLoop.length > 0) {
+                const loop = this._currentLoop[this._currentLoop.length - 1];
+                continueStmt.loopId = loop.id;
+            }
+            else {
+                // This continue statement is not inside a loop.
+                throw this._error(this._peek(), `Continue statement must be inside a loop. Line: ${continueStmt.line}`);
+            }
+            result = continueStmt;
+        }
+        else {
+            result =
+                this._increment_decrement_statement() ||
+                    this._func_call_statement() ||
+                    this._assignment_statement();
+        }
+        if (result != null) {
+            this._consume(TokenTypes.tokens.semicolon, "Expected ';' after statement.");
+        }
+        return result;
+    }
+    _static_assert_statement() {
+        if (!this._match(TokenTypes.keywords.static_assert)) {
+            return null;
+        }
+        const line = this._currentLine;
+        const expression = this._optional_paren_expression();
+        return this._updateNode(new StaticAssert(expression), line);
+    }
+    _while_statement() {
+        if (!this._match(TokenTypes.keywords.while)) {
+            return null;
+        }
+        const whileLoop = this._updateNode(new While(null, null));
+        this._currentLoop.push(whileLoop);
+        whileLoop.condition = this._optional_paren_expression();
+        if (this._check(TokenTypes.tokens.attr)) {
+            this._attribute();
+        }
+        whileLoop.body = this._compound_statement();
+        this._currentLoop.pop();
+        return whileLoop;
+    }
+    _continuing_statement() {
+        const loopId = this._currentLoop.length > 0 ? this._currentLoop[this._currentLoop.length - 1].id : -1;
+        if (!this._match(TokenTypes.keywords.continuing)) {
+            return null;
+        }
+        const line = this._currentLine;
+        const block = this._compound_statement();
+        return this._updateNode(new Continuing(block, loopId), line);
+    }
+    _for_statement() {
+        // for paren_left for_header paren_right compound_statement
+        if (!this._match(TokenTypes.keywords.for)) {
+            return null;
+        }
+        this._consume(TokenTypes.tokens.paren_left, "Expected '('.");
+        const forLoop = this._updateNode(new For(null, null, null, null));
+        this._currentLoop.push(forLoop);
+        // for_header: (variable_statement assignment_statement func_call_statement)? semicolon short_circuit_or_expression? semicolon (assignment_statement func_call_statement)?
+        forLoop.init = !this._check(TokenTypes.tokens.semicolon)
+            ? this._for_init()
+            : null;
+        this._consume(TokenTypes.tokens.semicolon, "Expected ';'.");
+        forLoop.condition = !this._check(TokenTypes.tokens.semicolon)
+            ? this._short_circuit_or_expression()
+            : null;
+        this._consume(TokenTypes.tokens.semicolon, "Expected ';'.");
+        forLoop.increment = !this._check(TokenTypes.tokens.paren_right)
+            ? this._for_increment()
+            : null;
+        this._consume(TokenTypes.tokens.paren_right, "Expected ')'.");
+        if (this._check(TokenTypes.tokens.attr)) {
+            this._attribute();
+        }
+        forLoop.body = this._compound_statement();
+        this._currentLoop.pop();
+        return forLoop;
+    }
+    _for_init() {
+        // (variable_statement assignment_statement func_call_statement)?
+        return (this._variable_statement() ||
+            this._func_call_statement() ||
+            this._assignment_statement());
+    }
+    _for_increment() {
+        // (assignment_statement func_call_statement increment_statement)?
+        return (this._func_call_statement() ||
+            this._increment_decrement_statement() ||
+            this._assignment_statement());
+    }
+    _variable_statement() {
+        // variable_decl
+        // variable_decl equal short_circuit_or_expression
+        // let (ident variable_ident_decl) equal short_circuit_or_expression
+        // const (ident variable_ident_decl) equal short_circuit_or_expression
+        if (this._check(TokenTypes.keywords.var)) {
+            const _var = this._variable_decl();
+            if (_var === null) {
+                throw this._error(this._peek(), "Variable declaration expected.");
+            }
+            let value = null;
+            if (this._match(TokenTypes.tokens.equal)) {
+                value = this._short_circuit_or_expression();
+            }
+            return this._updateNode(new Var(_var.name, _var.type, _var.storage, _var.access, value), _var.line);
+        }
+        if (this._match(TokenTypes.keywords.let)) {
+            const line = this._currentLine;
+            const name = this._consume(TokenTypes.tokens.name, "Expected name for let.").toString();
+            let type = null;
+            if (this._match(TokenTypes.tokens.colon)) {
+                const typeAttrs = this._attribute();
+                type = this._type_decl();
+                if (type != null) {
+                    type.attributes = typeAttrs;
+                }
+            }
+            this._consume(TokenTypes.tokens.equal, "Expected '=' for let.");
+            const value = this._short_circuit_or_expression();
+            return this._updateNode(new Let(name, type, null, null, value), line);
+        }
+        if (this._match(TokenTypes.keywords.const)) {
+            const line = this._currentLine;
+            const name = this._consume(TokenTypes.tokens.name, "Expected name for const.").toString();
+            let type = null;
+            if (this._match(TokenTypes.tokens.colon)) {
+                const typeAttrs = this._attribute();
+                type = this._type_decl();
+                if (type != null) {
+                    type.attributes = typeAttrs;
+                }
+            }
+            this._consume(TokenTypes.tokens.equal, "Expected '=' for const.");
+            const value = this._short_circuit_or_expression();
+            if (type === null && value instanceof LiteralExpr) {
+                type = value.type;
+            }
+            return this._updateNode(new Const(name, type, null, null, value), line);
+        }
+        return null;
+    }
+    _increment_decrement_statement() {
+        const savedPos = this._current;
+        const _var = this._unary_expression();
+        if (_var == null) {
+            return null;
+        }
+        if (!this._check(TokenTypes.increment_operators)) {
+            this._current = savedPos;
+            return null;
+        }
+        const token = this._consume(TokenTypes.increment_operators, "Expected increment operator");
+        return this._updateNode(new Increment(token.type === TokenTypes.tokens.plus_plus
+            ? exports.IncrementOperator.increment
+            : exports.IncrementOperator.decrement, _var));
+    }
+    _assignment_statement() {
+        // (unary_expression underscore) equal short_circuit_or_expression
+        let _var = null;
+        const line = this._currentLine;
+        if (this._check(TokenTypes.tokens.brace_right)) {
+            return null;
+        }
+        let isUnderscore = this._match(TokenTypes.tokens.underscore);
+        if (!isUnderscore) {
+            _var = this._unary_expression();
+        }
+        if (!isUnderscore && _var == null) {
+            return null;
+        }
+        const type = this._consume(TokenTypes.assignment_operators, "Expected assignment operator.");
+        const value = this._short_circuit_or_expression();
+        return this._updateNode(new Assign(exports.AssignOperator.parse(type.lexeme), _var, value), line);
+    }
+    _func_call_statement() {
+        // ident argument_expression_list
+        if (!this._check(TokenTypes.tokens.ident)) {
+            return null;
+        }
+        const line = this._currentLine;
+        const savedPos = this._current;
+        const name = this._consume(TokenTypes.tokens.ident, "Expected function name.");
+        const args = this._argument_expression_list();
+        if (args === null) {
+            this._current = savedPos;
+            return null;
+        }
+        return this._updateNode(new Call(name.lexeme, args), line);
+    }
+    _loop_statement() {
+        // loop brace_left statement* continuing_statement? brace_right
+        if (!this._match(TokenTypes.keywords.loop)) {
+            return null;
+        }
+        if (this._check(TokenTypes.tokens.attr)) {
+            this._attribute();
+        }
+        this._consume(TokenTypes.tokens.brace_left, "Expected '{' for loop.");
+        const loop = this._updateNode(new Loop([], null));
+        this._currentLoop.push(loop);
+        // statement*
+        let statement = this._statement();
+        while (statement !== null) {
+            if (Array.isArray(statement)) {
+                for (let s of statement) {
+                    loop.body.push(s);
+                }
+            }
+            else {
+                loop.body.push(statement);
+            }
+            // Keep continuing in the loop body statements so it can be
+            // executed in the stackframe of the body statements.
+            if (statement instanceof Continuing) {
+                loop.continuing = statement;
+                // Continuing should be the last statement in the loop.
+                break;
+            }
+            statement = this._statement();
+        }
+        this._currentLoop.pop();
+        this._consume(TokenTypes.tokens.brace_right, "Expected '}' for loop.");
+        return loop;
+    }
+    _switch_statement() {
+        // switch optional_paren_expression brace_left switch_body+ brace_right
+        if (!this._match(TokenTypes.keywords.switch)) {
+            return null;
+        }
+        const switchStmt = this._updateNode(new Switch(null, []));
+        this._currentLoop.push(switchStmt);
+        switchStmt.condition = this._optional_paren_expression();
+        if (this._check(TokenTypes.tokens.attr)) {
+            this._attribute();
+        }
+        this._consume(TokenTypes.tokens.brace_left, "Expected '{' for switch.");
+        switchStmt.cases = this._switch_body();
+        if (switchStmt.cases == null || switchStmt.cases.length == 0) {
+            throw this._error(this._previous(), "Expected 'case' or 'default'.");
+        }
+        this._consume(TokenTypes.tokens.brace_right, "Expected '}' for switch.");
+        this._currentLoop.pop();
+        return switchStmt;
+    }
+    _switch_body() {
+        // case case_selectors optional_colon brace_left case_body? brace_right
+        // default optional_colon brace_left case_body? brace_right
+        const cases = [];
+        let hasDefault = false;
+        while (this._check([TokenTypes.keywords.default, TokenTypes.keywords.case])) {
+            if (this._match(TokenTypes.keywords.case)) {
+                const selectors = this._case_selectors();
+                for (const selector of selectors) {
+                    if (selector instanceof DefaultSelector) {
+                        if (hasDefault) {
+                            throw this._error(this._previous(), "Multiple default cases in switch statement.");
+                        }
+                        hasDefault = true;
+                        break;
+                    }
+                }
+                this._match(TokenTypes.tokens.colon); // colon is optional
+                if (this._check(TokenTypes.tokens.attr)) {
+                    this._attribute();
+                }
+                this._consume(TokenTypes.tokens.brace_left, "Exected '{' for switch case.");
+                const body = this._case_body();
+                this._consume(TokenTypes.tokens.brace_right, "Exected '}' for switch case.");
+                cases.push(this._updateNode(new Case(selectors, body)));
+            }
+            if (this._match(TokenTypes.keywords.default)) {
+                if (hasDefault) {
+                    throw this._error(this._previous(), "Multiple default cases in switch statement.");
+                }
+                this._match(TokenTypes.tokens.colon); // colon is optional
+                if (this._check(TokenTypes.tokens.attr)) {
+                    this._attribute();
+                }
+                this._consume(TokenTypes.tokens.brace_left, "Exected '{' for switch default.");
+                const body = this._case_body();
+                this._consume(TokenTypes.tokens.brace_right, "Exected '}' for switch default.");
+                cases.push(this._updateNode(new Default(body)));
+            }
+        }
+        return cases;
+    }
+    _case_selectors() {
+        // case_selector (comma case_selector)* comma?
+        // case_selector: expression | default
+        const selectors = [];
+        if (this._match(TokenTypes.keywords.default)) {
+            selectors.push(this._updateNode(new DefaultSelector()));
+        }
+        else {
+            selectors.push(this._shift_expression());
+        }
+        while (this._match(TokenTypes.tokens.comma)) {
+            if (this._match(TokenTypes.keywords.default)) {
+                selectors.push(this._updateNode(new DefaultSelector()));
+            }
+            else {
+                selectors.push(this._shift_expression());
+            }
+        }
+        return selectors;
+    }
+    _case_body() {
+        // statement case_body?
+        // fallthrough semicolon
+        if (this._match(TokenTypes.keywords.fallthrough)) {
+            this._consume(TokenTypes.tokens.semicolon, "Expected ';'");
+            return [];
+        }
+        let statement = this._statement();
+        if (statement == null) {
+            return [];
+        }
+        if (!(statement instanceof Array)) {
+            statement = [statement];
+        }
+        const nextStatement = this._case_body();
+        if (nextStatement.length == 0) {
+            return statement;
+        }
+        return [...statement, nextStatement[0]];
+    }
+    _if_statement() {
+        // if optional_paren_expression compound_statement elseif_statement? else_statement?
+        if (!this._match(TokenTypes.keywords.if)) {
+            return null;
+        }
+        const line = this._currentLine;
+        const condition = this._optional_paren_expression();
+        if (this._check(TokenTypes.tokens.attr)) {
+            this._attribute();
+        }
+        const block = this._compound_statement();
+        let elseif = [];
+        if (this._match_elseif()) {
+            if (this._check(TokenTypes.tokens.attr)) {
+                this._attribute();
+            }
+            elseif = this._elseif_statement(elseif);
+        }
+        let _else = null;
+        if (this._match(TokenTypes.keywords.else)) {
+            if (this._check(TokenTypes.tokens.attr)) {
+                this._attribute();
+            }
+            _else = this._compound_statement();
+        }
+        return this._updateNode(new If(condition, block, elseif, _else), line);
+    }
+    _match_elseif() {
+        if (this._tokens[this._current].type === TokenTypes.keywords.else &&
+            this._tokens[this._current + 1].type === TokenTypes.keywords.if) {
+            this._advance();
+            this._advance();
+            return true;
+        }
+        return false;
+    }
+    _elseif_statement(elseif = []) {
+        // else_if optional_paren_expression compound_statement elseif_statement?
+        const condition = this._optional_paren_expression();
+        const block = this._compound_statement();
+        elseif.push(this._updateNode(new ElseIf(condition, block)));
+        if (this._match_elseif()) {
+            if (this._check(TokenTypes.tokens.attr)) {
+                this._attribute();
+            }
+            this._elseif_statement(elseif);
+        }
+        return elseif;
+    }
+    _return_statement() {
+        // return short_circuit_or_expression?
+        if (!this._match(TokenTypes.keywords.return)) {
+            return null;
+        }
+        const value = this._short_circuit_or_expression();
+        return this._updateNode(new Return(value));
+    }
+    _short_circuit_or_expression() {
+        // short_circuit_and_expression
+        // short_circuit_or_expression or_or short_circuit_and_expression
+        let expr = this._short_circuit_and_expr();
+        while (this._match(TokenTypes.tokens.or_or)) {
+            expr = this._updateNode(new BinaryOperator(this._previous().toString(), expr, this._short_circuit_and_expr()));
+        }
+        return expr;
+    }
+    _short_circuit_and_expr() {
+        // inclusive_or_expression
+        // short_circuit_and_expression and_and inclusive_or_expression
+        let expr = this._inclusive_or_expression();
+        while (this._match(TokenTypes.tokens.and_and)) {
+            expr = this._updateNode(new BinaryOperator(this._previous().toString(), expr, this._inclusive_or_expression()));
+        }
+        return expr;
+    }
+    _inclusive_or_expression() {
+        // exclusive_or_expression
+        // inclusive_or_expression or exclusive_or_expression
+        let expr = this._exclusive_or_expression();
+        while (this._match(TokenTypes.tokens.or)) {
+            expr = this._updateNode(new BinaryOperator(this._previous().toString(), expr, this._exclusive_or_expression()));
+        }
+        return expr;
+    }
+    _exclusive_or_expression() {
+        // and_expression
+        // exclusive_or_expression xor and_expression
+        let expr = this._and_expression();
+        while (this._match(TokenTypes.tokens.xor)) {
+            expr = this._updateNode(new BinaryOperator(this._previous().toString(), expr, this._and_expression()));
+        }
+        return expr;
+    }
+    _and_expression() {
+        // equality_expression
+        // and_expression and equality_expression
+        let expr = this._equality_expression();
+        while (this._match(TokenTypes.tokens.and)) {
+            expr = this._updateNode(new BinaryOperator(this._previous().toString(), expr, this._equality_expression()));
+        }
+        return expr;
+    }
+    _equality_expression() {
+        // relational_expression
+        // relational_expression equal_equal relational_expression
+        // relational_expression not_equal relational_expression
+        const expr = this._relational_expression();
+        if (this._match([TokenTypes.tokens.equal_equal, TokenTypes.tokens.not_equal])) {
+            return this._updateNode(new BinaryOperator(this._previous().toString(), expr, this._relational_expression()));
+        }
+        return expr;
+    }
+    _relational_expression() {
+        // shift_expression
+        // relational_expression less_than shift_expression
+        // relational_expression greater_than shift_expression
+        // relational_expression less_than_equal shift_expression
+        // relational_expression greater_than_equal shift_expression
+        let expr = this._shift_expression();
+        while (this._match([
+            TokenTypes.tokens.less_than,
+            TokenTypes.tokens.greater_than,
+            TokenTypes.tokens.less_than_equal,
+            TokenTypes.tokens.greater_than_equal,
+        ])) {
+            expr = this._updateNode(new BinaryOperator(this._previous().toString(), expr, this._shift_expression()));
+        }
+        return expr;
+    }
+    _shift_expression() {
+        // additive_expression
+        // shift_expression shift_left additive_expression
+        // shift_expression shift_right additive_expression
+        let expr = this._additive_expression();
+        while (this._match([TokenTypes.tokens.shift_left, TokenTypes.tokens.shift_right])) {
+            expr = this._updateNode(new BinaryOperator(this._previous().toString(), expr, this._additive_expression()));
+        }
+        return expr;
+    }
+    _additive_expression() {
+        // multiplicative_expression
+        // additive_expression plus multiplicative_expression
+        // additive_expression minus multiplicative_expression
+        let expr = this._multiplicative_expression();
+        while (this._match([TokenTypes.tokens.plus, TokenTypes.tokens.minus])) {
+            expr = this._updateNode(new BinaryOperator(this._previous().toString(), expr, this._multiplicative_expression()));
+        }
+        return expr;
+    }
+    _multiplicative_expression() {
+        // unary_expression
+        // multiplicative_expression star unary_expression
+        // multiplicative_expression forward_slash unary_expression
+        // multiplicative_expression modulo unary_expression
+        let expr = this._unary_expression();
+        while (this._match([
+            TokenTypes.tokens.star,
+            TokenTypes.tokens.forward_slash,
+            TokenTypes.tokens.modulo,
+        ])) {
+            expr = this._updateNode(new BinaryOperator(this._previous().toString(), expr, this._unary_expression()));
+        }
+        return expr;
+    }
+    _unary_expression() {
+        // singular_expression
+        // minus unary_expression
+        // bang unary_expression
+        // tilde unary_expression
+        // star unary_expression
+        // and unary_expression
+        if (this._match([
+            TokenTypes.tokens.minus,
+            TokenTypes.tokens.bang,
+            TokenTypes.tokens.tilde,
+            TokenTypes.tokens.star,
+            TokenTypes.tokens.and,
+        ])) {
+            return this._updateNode(new UnaryOperator(this._previous().toString(), this._unary_expression()));
+        }
+        return this._singular_expression();
+    }
+    _singular_expression() {
+        // primary_expression postfix_expression ?
+        const expr = this._primary_expression();
+        const p = this._postfix_expression();
+        if (p) {
+            expr.postfix = p;
+        }
+        return expr;
+    }
+    _postfix_expression() {
+        // bracket_left short_circuit_or_expression bracket_right postfix_expression?
+        if (this._match(TokenTypes.tokens.bracket_left)) {
+            const expr = this._short_circuit_or_expression();
+            this._consume(TokenTypes.tokens.bracket_right, "Expected ']'.");
+            const arrayIndex = this._updateNode(new ArrayIndex(expr));
+            const p = this._postfix_expression();
+            if (p) {
+                arrayIndex.postfix = p;
+            }
+            return arrayIndex;
+        }
+        // period ident postfix_expression?
+        if (this._match(TokenTypes.tokens.period)) {
+            const name = this._consume(TokenTypes.tokens.name, "Expected member name.");
+            const p = this._postfix_expression();
+            const expr = this._updateNode(new StringExpr(name.lexeme));
+            if (p) {
+                expr.postfix = p;
+            }
+            return expr;
+        }
+        return null;
+    }
+    _getStruct(name) {
+        if (this._context.aliases.has(name)) {
+            const alias = this._context.aliases.get(name).type;
+            return alias;
+        }
+        if (this._context.structs.has(name)) {
+            const struct = this._context.structs.get(name);
+            return struct;
+        }
+        return null;
+    }
+    _getType(name) {
+        const struct = this._getStruct(name);
+        if (struct !== null) {
+            return struct;
+        }
+        switch (name) {
+            case "void":
+                return Type.void;
+            case "bool":
+                return Type.bool;
+            case "i32":
+                return Type.i32;
+            case "u32":
+                return Type.u32;
+            case "f32":
+                return Type.f32;
+            case "f16":
+                return Type.f16;
+            case "vec2f":
+                return TemplateType.vec2f;
+            case "vec3f":
+                return TemplateType.vec3f;
+            case "vec4f":
+                return TemplateType.vec4f;
+            case "vec2i":
+                return TemplateType.vec2i;
+            case "vec3i":
+                return TemplateType.vec3i;
+            case "vec4i":
+                return TemplateType.vec4i;
+            case "vec2u":
+                return TemplateType.vec2u;
+            case "vec3u":
+                return TemplateType.vec3u;
+            case "vec4u":
+                return TemplateType.vec4u;
+            case "vec2h":
+                return TemplateType.vec2h;
+            case "vec3h":
+                return TemplateType.vec3h;
+            case "vec4h":
+                return TemplateType.vec4h;
+            case "mat2x2f":
+                return TemplateType.mat2x2f;
+            case "mat2x3f":
+                return TemplateType.mat2x3f;
+            case "mat2x4f":
+                return TemplateType.mat2x4f;
+            case "mat3x2f":
+                return TemplateType.mat3x2f;
+            case "mat3x3f":
+                return TemplateType.mat3x3f;
+            case "mat3x4f":
+                return TemplateType.mat3x4f;
+            case "mat4x2f":
+                return TemplateType.mat4x2f;
+            case "mat4x3f":
+                return TemplateType.mat4x3f;
+            case "mat4x4f":
+                return TemplateType.mat4x4f;
+            case "mat2x2h":
+                return TemplateType.mat2x2h;
+            case "mat2x3h":
+                return TemplateType.mat2x3h;
+            case "mat2x4h":
+                return TemplateType.mat2x4h;
+            case "mat3x2h":
+                return TemplateType.mat3x2h;
+            case "mat3x3h":
+                return TemplateType.mat3x3h;
+            case "mat3x4h":
+                return TemplateType.mat3x4h;
+            case "mat4x2h":
+                return TemplateType.mat4x2h;
+            case "mat4x3h":
+                return TemplateType.mat4x3h;
+            case "mat4x4h":
+                return TemplateType.mat4x4h;
+            case "mat2x2i":
+                return TemplateType.mat2x2i;
+            case "mat2x3i":
+                return TemplateType.mat2x3i;
+            case "mat2x4i":
+                return TemplateType.mat2x4i;
+            case "mat3x2i":
+                return TemplateType.mat3x2i;
+            case "mat3x3i":
+                return TemplateType.mat3x3i;
+            case "mat3x4i":
+                return TemplateType.mat3x4i;
+            case "mat4x2i":
+                return TemplateType.mat4x2i;
+            case "mat4x3i":
+                return TemplateType.mat4x3i;
+            case "mat4x4i":
+                return TemplateType.mat4x4i;
+            case "mat2x2u":
+                return TemplateType.mat2x2u;
+            case "mat2x3u":
+                return TemplateType.mat2x3u;
+            case "mat2x4u":
+                return TemplateType.mat2x4u;
+            case "mat3x2u":
+                return TemplateType.mat3x2u;
+            case "mat3x3u":
+                return TemplateType.mat3x3u;
+            case "mat3x4u":
+                return TemplateType.mat3x4u;
+            case "mat4x2u":
+                return TemplateType.mat4x2u;
+            case "mat4x3u":
+                return TemplateType.mat4x3u;
+            case "mat4x4u":
+                return TemplateType.mat4x4u;
+        }
+        return null;
+    }
+    _validateTypeRange(value, type) {
+        if (type.name === "i32") {
+            if (value < -2147483648 || value > 2147483647) {
+                throw this._error(this._previous(), `Value out of range for i32: ${value}. Line: ${this._currentLine}.`);
+            }
+        }
+        else if (type.name === "u32") {
+            if (value < 0 || value > 4294967295) {
+                throw this._error(this._previous(), `Value out of range for u32: ${value}. Line: ${this._currentLine}.`);
+            }
+        }
+    }
+    _primary_expression() {
+        // ident argument_expression_list?
+        if (this._match(TokenTypes.tokens.ident)) {
+            const name = this._previous().toString();
+            if (this._check(TokenTypes.tokens.paren_left)) {
+                const args = this._argument_expression_list();
+                const type = this._getType(name);
+                if (type !== null) {
+                    return this._updateNode(new CreateExpr(type, args));
+                }
+                return this._updateNode(new CallExpr(name, args));
+            }
+            if (this._context.constants.has(name)) {
+                const c = this._context.constants.get(name);
+                return this._updateNode(new ConstExpr(name, c.value));
+            }
+            return this._updateNode(new VariableExpr(name));
+        }
+        // const_literal
+        if (this._match(TokenTypes.tokens.int_literal)) {
+            const s = this._previous().toString();
+            let type = s.endsWith("i") || s.endsWith("i") ? Type.i32 :
+                s.endsWith("u") || s.endsWith("U") ? Type.u32 : Type.x32;
+            const i = parseInt(s);
+            this._validateTypeRange(i, type);
+            return this._updateNode(new LiteralExpr(new ScalarData(i, this._exec.getTypeInfo(type)), type));
+        }
+        else if (this._match(TokenTypes.tokens.uint_literal)) {
+            const u = parseInt(this._previous().toString());
+            this._validateTypeRange(u, Type.u32);
+            return this._updateNode(new LiteralExpr(new ScalarData(u, this._exec.getTypeInfo(Type.u32)), Type.u32));
+        }
+        else if (this._match([TokenTypes.tokens.decimal_float_literal, TokenTypes.tokens.hex_float_literal])) {
+            let fs = this._previous().toString();
+            let isF16 = fs.endsWith("h");
+            if (isF16) {
+                fs = fs.substring(0, fs.length - 1);
+            }
+            const f = parseFloat(fs);
+            this._validateTypeRange(f, isF16 ? Type.f16 : Type.f32);
+            const type = isF16 ? Type.f16 : Type.f32;
+            return this._updateNode(new LiteralExpr(new ScalarData(f, this._exec.getTypeInfo(type)), type));
+        }
+        else if (this._match([TokenTypes.keywords.true, TokenTypes.keywords.false])) {
+            let b = this._previous().toString() === TokenTypes.keywords.true.rule;
+            return this._updateNode(new LiteralExpr(new ScalarData(b ? 1 : 0, this._exec.getTypeInfo(Type.bool)), Type.bool));
+        }
+        // paren_expression
+        if (this._check(TokenTypes.tokens.paren_left)) {
+            return this._paren_expression();
+        }
+        // bitcast less_than type_decl greater_than paren_expression
+        if (this._match(TokenTypes.keywords.bitcast)) {
+            this._consume(TokenTypes.tokens.less_than, "Expected '<'.");
+            const type = this._type_decl();
+            this._consume(TokenTypes.tokens.greater_than, "Expected '>'.");
+            const value = this._paren_expression();
+            return this._updateNode(new BitcastExpr(type, value));
+        }
+        // type_decl argument_expression_list
+        const type = this._type_decl();
+        const args = this._argument_expression_list();
+        return this._updateNode(new CreateExpr(type, args));
+    }
+    _argument_expression_list() {
+        // paren_left ((short_circuit_or_expression comma)* short_circuit_or_expression comma?)? paren_right
+        if (!this._match(TokenTypes.tokens.paren_left)) {
+            return null;
+        }
+        const args = [];
+        do {
+            if (this._check(TokenTypes.tokens.paren_right)) {
+                break;
+            }
+            const arg = this._short_circuit_or_expression();
+            args.push(arg);
+        } while (this._match(TokenTypes.tokens.comma));
+        this._consume(TokenTypes.tokens.paren_right, "Expected ')' for argument list");
+        return args;
+    }
+    _optional_paren_expression() {
+        // [paren_left] short_circuit_or_expression [paren_right]
+        let hasParen = this._match(TokenTypes.tokens.paren_left);
+        const expr = this._short_circuit_or_expression();
+        expr.hasParen = hasParen;
+        if (hasParen) {
+            this._consume(TokenTypes.tokens.paren_right, "Expected ')'.");
+        }
+        return expr;
+    }
+    _paren_expression() {
+        // paren_left short_circuit_or_expression paren_right
+        this._consume(TokenTypes.tokens.paren_left, "Expected '('.");
+        const expr = this._short_circuit_or_expression();
+        this._consume(TokenTypes.tokens.paren_right, "Expected ')'.");
+        expr.hasParen = true;
+        return expr;
+    }
+    _struct_decl() {
+        // attribute* struct ident struct_body_decl
+        if (!this._match(TokenTypes.keywords.struct)) {
+            return null;
+        }
+        const startLine = this._currentLine;
+        const name = this._consume(TokenTypes.tokens.ident, "Expected name for struct.").toString();
+        // struct_body_decl: brace_left (struct_member comma)* struct_member comma? brace_right
+        this._consume(TokenTypes.tokens.brace_left, "Expected '{' for struct body.");
+        const members = [];
+        while (!this._check(TokenTypes.tokens.brace_right)) {
+            // struct_member: attribute* variable_ident_decl
+            const memberAttrs = this._attribute();
+            const memberName = this._consume(TokenTypes.tokens.name, "Expected variable name.").toString();
+            this._consume(TokenTypes.tokens.colon, "Expected ':' for struct member type.");
+            const typeAttrs = this._attribute();
+            const memberType = this._type_decl();
+            if (memberType != null) {
+                memberType.attributes = typeAttrs;
+            }
+            if (!this._check(TokenTypes.tokens.brace_right)) {
+                this._consume(TokenTypes.tokens.comma, "Expected ',' for struct member.");
+            }
+            else {
+                this._match(TokenTypes.tokens.comma); // trailing comma optional.
+            }
+            members.push(this._updateNode(new Member(memberName, memberType, memberAttrs)));
+        }
+        this._consume(TokenTypes.tokens.brace_right, "Expected '}' after struct body.");
+        const endLine = this._currentLine;
+        const structNode = this._updateNode(new Struct(name, members, startLine, endLine), startLine);
+        this._context.structs.set(name, structNode);
+        return structNode;
+    }
+    _global_variable_decl() {
+        // attribute* variable_decl (equal const_expression)?
+        const _var = this._variable_decl();
+        if (!_var) {
+            return null;
+        }
+        if (this._match(TokenTypes.tokens.equal)) {
+            const expr = this._const_expression();
+            _var.value = expr;
+        }
+        if (_var.type !== null && _var.value instanceof LiteralExpr) {
+            if (_var.value.type.name !== "x32") {
+                const t1 = _var.type.getTypeName();
+                const t2 = _var.value.type.getTypeName();
+                if (t1 !== t2) {
+                    throw this._error(this._peek(), `Invalid cast from ${_var.value.type.name} to ${_var.type.name}. Line:${this._currentLine}`);
+                }
+            }
+            if (_var.value.isScalar) {
+                this._validateTypeRange(_var.value.scalarValue, _var.type);
+            }
+            _var.value.type = _var.type;
+        }
+        else if (_var.type === null && _var.value instanceof LiteralExpr) {
+            _var.type = _var.value.type.name === "x32" ? Type.i32 : _var.value.type;
+            if (_var.value.isScalar) {
+                this._validateTypeRange(_var.value.scalarValue, _var.type);
+            }
+        }
+        return _var;
+    }
+    _override_variable_decl() {
+        // attribute* override_decl (equal const_expression)?
+        const _override = this._override_decl();
+        if (_override && this._match(TokenTypes.tokens.equal)) {
+            _override.value = this._const_expression();
+        }
+        return _override;
+    }
+    _global_const_decl() {
+        var _a;
+        // attribute* const (ident variable_ident_decl) global_const_initializer?
+        if (!this._match(TokenTypes.keywords.const)) {
+            return null;
+        }
+        const name = this._consume(TokenTypes.tokens.name, "Expected variable name");
+        const line = this._currentLine;
+        let type = null;
+        if (this._match(TokenTypes.tokens.colon)) {
+            const attrs = this._attribute();
+            type = this._type_decl();
+            if (type != null) {
+                type.attributes = attrs;
+            }
+        }
+        let value = null;
+        this._consume(TokenTypes.tokens.equal, "const declarations require an assignment");
+        const valueExpr = this._short_circuit_or_expression();
+        try {
+            let type = [Type.f32];
+            let constValue = valueExpr.constEvaluate(this._exec, type);
+            if (constValue instanceof ScalarData) {
+                this._validateTypeRange(constValue.value, type[0]);
+            }
+            if (type[0] instanceof TemplateType && type[0].format === null &&
+                constValue.typeInfo instanceof TemplateInfo && constValue.typeInfo.format !== null) {
+                if (constValue.typeInfo.format.name === "f16") {
+                    type[0].format = Type.f16;
+                }
+                else if (constValue.typeInfo.format.name === "f32") {
+                    type[0].format = Type.f32;
+                }
+                else if (constValue.typeInfo.format.name === "i32") {
+                    type[0].format = Type.i32;
+                }
+                else if (constValue.typeInfo.format.name === "u32") {
+                    type[0].format = Type.u32;
+                }
+                else if (constValue.typeInfo.format.name === "bool") {
+                    type[0].format = Type.bool;
+                }
+                else {
+                    console.error(`TODO: impelement template format type ${constValue.typeInfo.format.name}`);
+                }
+            }
+            value = this._updateNode(new LiteralExpr(constValue, type[0]));
+            this._exec.context.setVariable(name.toString(), constValue);
+        }
+        catch (_b) {
+            value = valueExpr;
+        }
+        if (type !== null && value instanceof LiteralExpr) {
+            if (value.type.name !== "x32") {
+                const t1 = type.getTypeName();
+                const t2 = value.type.getTypeName();
+                if (t1 !== t2) {
+                    throw this._error(this._peek(), `Invalid cast from ${value.type.name} to ${type.name}. Line:${this._currentLine}`);
+                }
+            }
+            value.type = type;
+            if (value.isScalar) {
+                this._validateTypeRange(value.scalarValue, value.type);
+            }
+        }
+        else if (type === null && value instanceof LiteralExpr) {
+            type = (_a = value === null || value === void 0 ? void 0 : value.type) !== null && _a !== void 0 ? _a : Type.f32;
+            if (type === Type.x32) {
+                type = Type.i32;
+            }
+        }
+        const c = this._updateNode(new Const(name.toString(), type, "", "", value), line);
+        this._context.constants.set(c.name, c);
+        return c;
+    }
+    _global_let_decl() {
+        // attribute* let (ident variable_ident_decl) global_const_initializer?
+        if (!this._match(TokenTypes.keywords.let)) {
+            return null;
+        }
+        const line = this._currentLine;
+        const name = this._consume(TokenTypes.tokens.name, "Expected variable name");
+        let type = null;
+        if (this._match(TokenTypes.tokens.colon)) {
+            const attrs = this._attribute();
+            type = this._type_decl();
+            if (type != null) {
+                type.attributes = attrs;
+            }
+        }
+        let value = null;
+        if (this._match(TokenTypes.tokens.equal)) {
+            value = this._const_expression();
+        }
+        if (type !== null && value instanceof LiteralExpr) {
+            if (value.type.name !== "x32") {
+                const t1 = type.getTypeName();
+                const t2 = value.type.getTypeName();
+                if (t1 !== t2) {
+                    throw this._error(this._peek(), `Invalid cast from ${value.type.name} to ${type.name}. Line:${this._currentLine}`);
+                }
+            }
+            value.type = type;
+        }
+        else if (type === null && value instanceof LiteralExpr) {
+            type = value.type.name === "x32" ? Type.i32 : value.type;
+        }
+        if (value instanceof LiteralExpr) {
+            if (value.isScalar) {
+                this._validateTypeRange(value.scalarValue, type);
+            }
+        }
+        return this._updateNode(new Let(name.toString(), type, "", "", value), line);
+    }
+    _const_expression() {
+        // type_decl paren_left ((const_expression comma)* const_expression comma?)? paren_right
+        // const_literal
+        return this._short_circuit_or_expression();
+    }
+    _variable_decl() {
+        // var variable_qualifier? (ident variable_ident_decl)
+        if (!this._match(TokenTypes.keywords.var)) {
+            return null;
+        }
+        const line = this._currentLine;
+        // variable_qualifier: less_than storage_class (comma access_mode)? greater_than
+        let storage = "";
+        let access = "";
+        if (this._match(TokenTypes.tokens.less_than)) {
+            storage = this._consume(TokenTypes.storage_class, "Expected storage_class.").toString();
+            if (this._match(TokenTypes.tokens.comma))
+                access = this._consume(TokenTypes.access_mode, "Expected access_mode.").toString();
+            this._consume(TokenTypes.tokens.greater_than, "Expected '>'.");
+        }
+        const name = this._consume(TokenTypes.tokens.name, "Expected variable name");
+        let type = null;
+        if (this._match(TokenTypes.tokens.colon)) {
+            const attrs = this._attribute();
+            type = this._type_decl();
+            if (type != null) {
+                type.attributes = attrs;
+            }
+        }
+        return this._updateNode(new Var(name.toString(), type, storage, access, null), line);
+    }
+    _override_decl() {
+        // override (ident variable_ident_decl)
+        if (!this._match(TokenTypes.keywords.override)) {
+            return null;
+        }
+        const name = this._consume(TokenTypes.tokens.name, "Expected variable name");
+        let type = null;
+        if (this._match(TokenTypes.tokens.colon)) {
+            const attrs = this._attribute();
+            type = this._type_decl();
+            if (type != null) {
+                type.attributes = attrs;
+            }
+        }
+        return this._updateNode(new Override(name.toString(), type, null));
+    }
+    _diagnostic() {
+        // diagnostic(severity_control_name, diagnostic_rule_name)
+        this._consume(TokenTypes.tokens.paren_left, "Expected '('");
+        const severity = this._consume(TokenTypes.tokens.ident, "Expected severity control name.");
+        this._consume(TokenTypes.tokens.comma, "Expected ','");
+        const rule = this._consume(TokenTypes.tokens.ident, "Expected diagnostic rule name.");
+        let ruleMessage = rule.toString();
+        if (this._match(TokenTypes.tokens.period)) {
+            const message = this._consume(TokenTypes.tokens.ident, "Expected diagnostic message.");
+            ruleMessage += `.${message.toString()}`;
+        }
+        this._consume(TokenTypes.tokens.paren_right, "Expected ')'");
+        return this._updateNode(new Diagnostic(severity.toString(), ruleMessage));
+    }
+    _enable_directive() {
+        // enable ident semicolon
+        const name = this._consume(TokenTypes.tokens.ident, "identity expected.");
+        return this._updateNode(new Enable(name.toString()));
+    }
+    _requires_directive() {
+        // requires extension [, extension]* semicolon
+        const extensions = [this._consume(TokenTypes.tokens.ident, "identity expected.").toString()];
+        while (this._match(TokenTypes.tokens.comma)) {
+            const name = this._consume(TokenTypes.tokens.ident, "identity expected.");
+            extensions.push(name.toString());
+        }
+        return this._updateNode(new Requires(extensions));
+    }
+    _type_alias() {
+        // type ident equal type_decl
+        const name = this._consume(TokenTypes.tokens.ident, "identity expected.");
+        this._consume(TokenTypes.tokens.equal, "Expected '=' for type alias.");
+        let aliasType = this._type_decl();
+        if (aliasType === null) {
+            throw this._error(this._peek(), "Expected Type for Alias.");
+        }
+        if (this._context.aliases.has(aliasType.name)) {
+            aliasType = this._context.aliases.get(aliasType.name).type;
+        }
+        const aliasNode = this._updateNode(new Alias(name.toString(), aliasType));
+        this._context.aliases.set(aliasNode.name, aliasNode);
+        return aliasNode;
+    }
+    _type_decl() {
+        // ident
+        // bool
+        // float32
+        // int32
+        // uint32
+        // vec2 less_than type_decl greater_than
+        // vec3 less_than type_decl greater_than
+        // vec4 less_than type_decl greater_than
+        // mat2x2 less_than type_decl greater_than
+        // mat2x3 less_than type_decl greater_than
+        // mat2x4 less_than type_decl greater_than
+        // mat3x2 less_than type_decl greater_than
+        // mat3x3 less_than type_decl greater_than
+        // mat3x4 less_than type_decl greater_than
+        // mat4x2 less_than type_decl greater_than
+        // mat4x3 less_than type_decl greater_than
+        // mat4x4 less_than type_decl greater_than
+        // atomic less_than type_decl greater_than
+        // pointer less_than storage_class comma type_decl (comma access_mode)? greater_than
+        // array_type_decl
+        // texture_sampler_types
+        if (this._check([
+            TokenTypes.tokens.ident,
+            ...TokenTypes.texel_format,
+            TokenTypes.keywords.bool,
+            TokenTypes.keywords.f32,
+            TokenTypes.keywords.i32,
+            TokenTypes.keywords.u32,
+        ])) {
+            const type = this._advance();
+            const typeName = type.toString();
+            if (this._context.structs.has(typeName)) {
+                return this._context.structs.get(typeName);
+            }
+            if (this._context.aliases.has(typeName)) {
+                return this._context.aliases.get(typeName).type;
+            }
+            const t = this._getType(typeName);
+            // Don't "forward declare" built-in types
+            if (!t) {
+                const node = this._updateNode(new ForwardType(typeName));
+                this._forwardTypeCount++;
+                return node;
+            }
+            return this._updateNode(new Type(typeName));
+        }
+        // texture_sampler_types
+        let type = this._texture_sampler_types();
+        if (type) {
+            return type;
+        }
+        if (this._check(TokenTypes.template_types)) {
+            let type = this._advance().toString();
+            let format = null;
+            let access = null;
+            if (this._match(TokenTypes.tokens.less_than)) {
+                format = this._type_decl();
+                access = null;
+                if (this._match(TokenTypes.tokens.comma)) {
+                    access = this._consume(TokenTypes.access_mode, "Expected access_mode for pointer").toString();
+                }
+                this._consume(TokenTypes.tokens.greater_than, "Expected '>' for type.");
+            }
+            const node = this._updateNode(new TemplateType(type, format, access));
+            return node;
+        }
+        // pointer less_than storage_class comma type_decl (comma access_mode)? greater_than
+        if (this._match(TokenTypes.keywords.ptr)) {
+            let pointer = this._previous().toString();
+            this._consume(TokenTypes.tokens.less_than, "Expected '<' for pointer.");
+            const storage = this._consume(TokenTypes.storage_class, "Expected storage_class for pointer");
+            this._consume(TokenTypes.tokens.comma, "Expected ',' for pointer.");
+            const decl = this._type_decl();
+            let access = null;
+            if (this._match(TokenTypes.tokens.comma)) {
+                access = this._consume(TokenTypes.access_mode, "Expected access_mode for pointer").toString();
+            }
+            this._consume(TokenTypes.tokens.greater_than, "Expected '>' for pointer.");
+            const node = this._updateNode(new PointerType(pointer, storage.toString(), decl, access));
+            return node;
+        }
+        // The following type_decl's have an optional attribyte_list*
+        const attrs = this._attribute();
+        // attribute* array
+        // attribute* array less_than type_decl (comma element_count_expression)? greater_than
+        if (this._match(TokenTypes.keywords.array)) {
+            let format = null;
+            let countInt = -1;
+            const array = this._previous();
+            let countNode = null;
+            if (this._match(TokenTypes.tokens.less_than)) {
+                format = this._type_decl();
+                if (this._context.aliases.has(format.name)) {
+                    format = this._context.aliases.get(format.name).type;
+                }
+                let count = "";
+                if (this._match(TokenTypes.tokens.comma)) {
+                    countNode = this._shift_expression();
+                    // If we can't evaluate the node, defer evaluating it until after the shader has
+                    // finished being parsed, because const statements can be declared **after** they
+                    // are used.
+                    try {
+                        count = countNode.constEvaluate(this._exec).toString();
+                        countNode = null;
+                    }
+                    catch (e) {
+                        count = "1";
+                    }
+                }
+                this._consume(TokenTypes.tokens.greater_than, "Expected '>' for array.");
+                countInt = count ? parseInt(count) : 0;
+            }
+            const arrayType = this._updateNode(new ArrayType(array.toString(), attrs, format, countInt));
+            if (countNode) {
+                this._deferArrayCountEval.push({ arrayType, countNode });
+            }
+            return arrayType;
+        }
+        return null;
+    }
+    _texture_sampler_types() {
+        // sampler_type
+        if (this._match(TokenTypes.sampler_type)) {
+            return this._updateNode(new SamplerType(this._previous().toString(), null, null));
+        }
+        // depth_texture_type
+        if (this._match(TokenTypes.depth_texture_type)) {
+            return this._updateNode(new SamplerType(this._previous().toString(), null, null));
+        }
+        // sampled_texture_type less_than type_decl greater_than
+        // multisampled_texture_type less_than type_decl greater_than
+        if (this._match(TokenTypes.sampled_texture_type) ||
+            this._match(TokenTypes.multisampled_texture_type)) {
+            const sampler = this._previous();
+            this._consume(TokenTypes.tokens.less_than, "Expected '<' for sampler type.");
+            const format = this._type_decl();
+            this._consume(TokenTypes.tokens.greater_than, "Expected '>' for sampler type.");
+            return this._updateNode(new SamplerType(sampler.toString(), format, null));
+        }
+        // storage_texture_type less_than texel_format comma access_mode greater_than
+        if (this._match(TokenTypes.storage_texture_type)) {
+            const sampler = this._previous();
+            this._consume(TokenTypes.tokens.less_than, "Expected '<' for sampler type.");
+            const format = this._consume(TokenTypes.texel_format, "Invalid texel format.").toString();
+            this._consume(TokenTypes.tokens.comma, "Expected ',' after texel format.");
+            const access = this._consume(TokenTypes.access_mode, "Expected access mode for storage texture type.").toString();
+            this._consume(TokenTypes.tokens.greater_than, "Expected '>' for sampler type.");
+            return this._updateNode(new SamplerType(sampler.toString(), format, access));
+        }
+        return null;
+    }
+    _attribute() {
+        // attr ident paren_left (literal_or_ident comma)* literal_or_ident paren_right
+        // attr ident
+        let attributes = [];
+        while (this._match(TokenTypes.tokens.attr)) {
+            const name = this._consume(TokenTypes.attribute_name, "Expected attribute name");
+            const attr = this._updateNode(new Attribute(name.toString(), null));
+            if (this._match(TokenTypes.tokens.paren_left)) {
+                // literal_or_ident
+                attr.value = this._consume(TokenTypes.literal_or_ident, "Expected attribute value").toString();
+                if (this._check(TokenTypes.tokens.comma)) {
+                    this._advance();
+                    do {
+                        const v = this._consume(TokenTypes.literal_or_ident, "Expected attribute value").toString();
+                        if (!(attr.value instanceof Array)) {
+                            attr.value = [attr.value];
+                        }
+                        attr.value.push(v);
+                    } while (this._match(TokenTypes.tokens.comma));
+                }
+                this._consume(TokenTypes.tokens.paren_right, "Expected ')'");
+            }
+            attributes.push(attr);
+        }
+        if (attributes.length == 0) {
+            return null;
+        }
+        return attributes;
+    }
+}
+
+class WgslReflect extends Reflect {
+    constructor(code) {
+        super();
+        if (code) {
+            this.update(code);
+        }
+    }
+    update(code) {
+        const parser = new WgslParser();
+        const ast = parser.parse(code);
+        this.updateAST(ast);
+    }
+}
+
+class Command {
+    get line() { return -1; }
+}
+class StatementCommand extends Command {
+    constructor(node) {
+        super();
+        this.node = node;
+    }
+    get line() { return this.node.line; }
+}
+class CallExprCommand extends Command {
+    constructor(node, statement) {
+        super();
+        this.node = node;
+        this.statement = statement;
+    }
+    get line() { return this.statement.line; }
+}
+class ContinueTargetCommand extends Command {
+    constructor(id) {
+        super();
+        this.id = id;
+    }
+}
+class BreakTargetCommand extends Command {
+    constructor(id) {
+        super();
+        this.id = id;
+    }
+}
+class ContinueCommand extends Command {
+    constructor(id, node) {
+        super();
+        this.id = id;
+        this.node = node;
+    }
+    get line() { return this.node.line; }
+}
+class BreakCommand extends Command {
+    constructor(id, condition, node) {
+        super();
+        this.id = id;
+        this.condition = condition;
+        this.node = node;
+    }
+    get line() { return this.node.line; }
+}
+class GotoCommand extends Command {
+    constructor(condition, position, line) {
+        super();
+        this.lineNo = -1;
+        this.condition = condition;
+        this.position = position;
+        this.lineNo = line;
+    }
+    get line() {
+        var _a, _b;
+        return (_b = (_a = this.condition) === null || _a === void 0 ? void 0 : _a.line) !== null && _b !== void 0 ? _b : this.lineNo;
+    }
+}
+class BlockCommand extends Command {
+    constructor(statements) {
+        super();
+        this.statements = [];
+        this.statements = statements;
+    }
+    get line() {
+        return this.statements.length > 0 ? this.statements[0].line : -1;
+    }
+}
+
+class StackFrame {
+    constructor(context, parent) {
+        this.parent = null;
+        this.commands = [];
+        this.current = 0;
+        this.parentCallExpr = null;
+        this.context = context;
+        this.parent = parent !== null && parent !== void 0 ? parent : null;
+    }
+    get isAtEnd() { return this.current >= this.commands.length; }
+    getNextCommand() {
+        if (this.current >= this.commands.length) {
+            return null;
+        }
+        const command = this.commands[this.current];
+        this.current++;
+        return command;
+    }
+    getCurrentCommand() {
+        if (this.current >= this.commands.length) {
+            return null;
+        }
+        return this.commands[this.current];
+    }
+}
+
+class ExecStack {
+    constructor() {
+        this.states = [];
+    }
+    get isEmpty() { return this.states.length == 0; }
+    get last() { var _a; return (_a = this.states[this.states.length - 1]) !== null && _a !== void 0 ? _a : null; }
+    pop() {
+        this.states.pop();
+    }
+}
+
+class WgslDebug {
+    constructor(code, runStateCallback) {
+        this._runTimer = null;
+        this.breakpoints = new Set();
+        this.runStateCallback = null;
+        this._code = code;
+        const parser = new WgslParser();
+        const ast = parser.parse(code);
+        this._exec = new WgslExec(ast);
+        this.runStateCallback = runStateCallback !== null && runStateCallback !== void 0 ? runStateCallback : null;
+    }
+    getVariableValue(name) {
+        var _a, _b;
+        const context = this.context;
+        const v = (_b = (_a = context.getVariable(name)) === null || _a === void 0 ? void 0 : _a.value) !== null && _b !== void 0 ? _b : null;
+        if (v === null) {
+            return null;
+        }
+        if (v instanceof ScalarData) {
+            return v.value;
+        }
+        if (v instanceof VectorData) {
+            return Array.from(v.data);
+        }
+        if (v instanceof MatrixData) {
+            return Array.from(v.data);
+        }
+        console.error(`Unsupported return variable type ${v.typeInfo.name}`);
+        return null;
+    }
+    reset() {
+        this._exec = new WgslExec(this._exec.ast);
+        this.startDebug();
+    }
+    startDebug() {
+        this._execStack = new ExecStack();
+        const state = this._createState(this._exec.ast, this._exec.context);
+        this._execStack.states.push(state);
+    }
+    get context() {
+        const state = this.currentState;
+        if (state === null) {
+            return this._exec.context;
+        }
+        return state.context;
+    }
+    get currentState() {
+        while (true) {
+            if (this._execStack.isEmpty) {
+                return null;
+            }
+            let state = this._execStack.last;
+            if (state === null) {
+                return null;
+            }
+            if (state.isAtEnd) {
+                this._execStack.pop();
+                if (this._execStack.isEmpty) {
+                    return null;
+                }
+                state = this._execStack.last;
+            }
+            return state;
+        }
+    }
+    get currentCommand() {
+        while (true) {
+            if (this._execStack.isEmpty) {
+                return null;
+            }
+            let state = this._execStack.last;
+            if (state === null) {
+                return null;
+            }
+            if (state.isAtEnd) {
+                this._execStack.pop();
+                if (this._execStack.isEmpty) {
+                    return null;
+                }
+                state = this._execStack.last;
+            }
+            const command = state.getCurrentCommand();
+            if (command === null) {
+                continue;
+            }
+            return command;
+        }
+    }
+    toggleBreakpoint(line) {
+        if (this.breakpoints.has(line)) {
+            this.breakpoints.delete(line);
+        }
+        else {
+            this.breakpoints.add(line);
+        }
+    }
+    clearBreakpoints() {
+        this.breakpoints.clear();
+    }
+    get isRunning() {
+        return this._runTimer !== null;
+    }
+    run() {
+        if (this.isRunning) {
+            return;
+        }
+        this._runTimer = setInterval(() => {
+            const command = this.currentCommand;
+            if (command) {
+                if (this.breakpoints.has(command.line)) {
+                    clearInterval(this._runTimer);
+                    this._runTimer = null;
+                    if (this.runStateCallback !== null) {
+                        this.runStateCallback();
+                    }
+                    return;
+                }
+            }
+            if (!this.stepNext(true)) {
+                clearInterval(this._runTimer);
+                this._runTimer = null;
+                if (this.runStateCallback !== null) {
+                    this.runStateCallback();
+                }
+            }
+        }, 0);
+        if (this.runStateCallback !== null) {
+            this.runStateCallback();
+        }
+    }
+    pause() {
+        if (this._runTimer !== null) {
+            clearInterval(this._runTimer);
+            this._runTimer = null;
+            if (this.runStateCallback !== null) {
+                this.runStateCallback();
+            }
+        }
+    }
+    _setOverrides(constants, context) {
+        for (const k in constants) {
+            const v = constants[k];
+            const override = this._exec.reflection.getOverrideInfo(k);
+            if (override !== null) {
+                if (override.type === null) {
+                    override.type = this._exec.getTypeInfo("u32");
+                }
+                if (override.type.name === "u32" || override.type.name === "i32" || override.type.name === "f32" || override.type.name === "f16") {
+                    context.setVariable(k, new ScalarData(v, override.type));
+                }
+                else if (override.type.name === "bool") {
+                    context.setVariable(k, new ScalarData(v ? 1 : 0, override.type));
+                }
+                else if (override.type.name === "vec2" || override.type.name === "vec3" || override.type.name === "vec4" ||
+                    override.type.name === "vec2f" || override.type.name === "vec3f" || override.type.name === "vec4f" ||
+                    override.type.name === "vec2i" || override.type.name === "vec3i" || override.type.name === "vec4i" ||
+                    override.type.name === "vec2u" || override.type.name === "vec3u" || override.type.name === "vec4u" ||
+                    override.type.name === "vec2h" || override.type.name === "vec3h" || override.type.name === "vec4h") {
+                    context.setVariable(k, new VectorData(v, override.type));
+                }
+                else {
+                    console.error(`Invalid constant type for ${k}`);
+                }
+            }
+            else {
+                console.error(`Override ${k} does not exist in the shader.`);
+            }
+        }
+    }
+    debugWorkgroup(kernel, dispatchId, dispatchCount, bindGroups, config) {
+        this._execStack = new ExecStack();
+        const context = this._exec.context;
+        context.currentFunctionName = kernel;
+        this._dispatchId = dispatchId;
+        config = config !== null && config !== void 0 ? config : {};
+        if (config["constants"]) {
+            this._setOverrides(config["constants"], context);
+        }
+        // Use this to debug the top level statements, otherwise call _execStatements.
+        /*const state = new _ExecState(this._exec.context);
+        this._execStack.states.push(state);
+        for (const statement of this._exec.ast) {
+            state.commands.push(new Command(CommandType.Statement, statement));
+        }*/
+        this._exec._execStatements(this._exec.ast, context);
+        const kernelFn = context.getFunction(kernel);
+        if (!kernelFn) {
+            console.error(`Function ${kernel} not found`);
+            return false;
+        }
+        const kernelRefl = this._exec.reflection.getFunctionInfo(kernel);
+        if (typeof dispatchCount === "number") {
+            dispatchCount = [dispatchCount, 1, 1];
+        }
+        else if (dispatchCount.length === 0) {
+            console.error(`Invalid dispatch count`);
+            return false;
+        }
+        else if (dispatchCount.length === 1) {
+            dispatchCount = [dispatchCount[0], 1, 1];
+        }
+        else if (dispatchCount.length === 2) {
+            dispatchCount = [dispatchCount[0], dispatchCount[1], 1];
+        }
+        else if (dispatchCount.length > 3) {
+            dispatchCount = [dispatchCount[0], dispatchCount[1], dispatchCount[2]];
+        }
+        const depth = dispatchCount[2];
+        const height = dispatchCount[1];
+        const width = dispatchCount[0];
+        const vec3u = this._exec.typeInfo["vec3u"];
+        context.setVariable("@num_workgroups", new VectorData(dispatchCount, vec3u));
+        for (const set in bindGroups) {
+            for (const binding in bindGroups[set]) {
+                const entry = bindGroups[set][binding];
+                context.variables.forEach((v) => {
+                    var _a;
+                    const node = v.node;
+                    if (node === null || node === void 0 ? void 0 : node.attributes) {
+                        let b = null;
+                        let s = null;
+                        for (const attr of node.attributes) {
+                            if (attr.name === "binding") {
+                                b = attr.value;
+                            }
+                            else if (attr.name === "group") {
+                                s = attr.value;
+                            }
+                        }
+                        if (binding == b && set == s) {
+                            let found = false;
+                            for (const resource of kernelRefl.resources) {
+                                if (resource.name === v.name && resource.group === parseInt(set) && resource.binding === parseInt(binding)) {
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (found) {
+                                const typeInfo = this._exec.getTypeInfo(node.type);
+                                if (entry.texture !== undefined && entry.descriptor !== undefined) {
+                                    // Texture
+                                    v.value = new TextureData(entry.texture, typeInfo, entry.descriptor, (_a = entry.texture.view) !== null && _a !== void 0 ? _a : null);
+                                }
+                                else if (entry.uniform !== undefined) {
+                                    // Uniform buffer
+                                    v.value = new TypedData(entry.uniform, typeInfo);
+                                }
+                                else {
+                                    if (typeInfo.isStruct || typeInfo.isArray) {
+                                        // Storage buffer
+                                        v.value = new TypedData(entry, typeInfo);
+                                    }
+                                    else {
+                                        // all other types
+                                        // trashy, create an array size one and pull the first element, couldn't find a better way to support a ton of types.
+                                        const arrayType = new ArrayType(`array<${node.type.name}>`, [], node.type, 1);
+                                        let i32 = this._exec.getTypeInfo('i32');
+                                        const index = new ArrayIndex(new LiteralExpr(new ScalarData(new Int32Array([0]), i32), Type.u32));
+                                        v.value = new TypedData(entry, this._exec.getTypeInfo(arrayType)).getSubData(new WgslExec(), index, null);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        let found = false;
+        for (let z = 0; z < depth && !found; ++z) {
+            for (let y = 0; y < height && !found; ++y) {
+                for (let x = 0; x < width && !found; ++x) {
+                    context.setVariable("@workgroup_id", new VectorData([x, y, z], vec3u));
+                    if (this._dispatchWorkgroup(kernelFn, [x, y, z], context)) {
+                        found = true;
+                        break;
+                    }
+                }
+            }
+        }
+        return found;
+    }
+    _shouldExecuteNextCommand() {
+        const command = this.currentCommand;
+        if (command === null) {
+            return false;
+        }
+        if (command instanceof GotoCommand) {
+            if (command.condition === null) {
+                return true;
+            }
+        }
+        else if (command instanceof ContinueTargetCommand || command instanceof BreakTargetCommand) {
+            return true;
+        }
+        return false;
+    }
+    stepInto() {
+        if (this.isRunning) {
+            return;
+        }
+        this.stepNext(true);
+    }
+    stepOver() {
+        if (this.isRunning) {
+            return;
+        }
+        this.stepNext(false);
+    }
+    stepOut() {
+        const state = this.currentState;
+        if (state === null) {
+            return;
+        }
+        const parentState = state.parent;
+        if (this.isRunning) {
+            clearInterval(this._runTimer);
+            this._runTimer = null;
+        }
+        this._runTimer = setInterval(() => {
+            const command = this.currentCommand;
+            if (command) {
+                if (this.breakpoints.has(command.line)) {
+                    clearInterval(this._runTimer);
+                    this._runTimer = null;
+                    if (this.runStateCallback !== null) {
+                        this.runStateCallback();
+                    }
+                    return;
+                }
+            }
+            if (!this.stepNext(true)) {
+                clearInterval(this._runTimer);
+                this._runTimer = null;
+                if (this.runStateCallback !== null) {
+                    this.runStateCallback();
+                }
+            }
+            const state = this.currentState;
+            if (state === parentState) {
+                clearInterval(this._runTimer);
+                this._runTimer = null;
+                if (this.runStateCallback !== null) {
+                    this.runStateCallback();
+                }
+            }
+        }, 0);
+        if (this.runStateCallback !== null) {
+            this.runStateCallback();
+        }
+    }
+    // Returns true if execution is not finished, false if execution is complete.
+    stepNext(stepInto = true) {
+        if (!this._execStack) {
+            this._execStack = new ExecStack();
+            const state = this._createState(this._exec.ast, this._exec.context);
+            this._execStack.states.push(state);
+        }
+        while (true) {
+            if (this._execStack.isEmpty) {
+                return false;
+            }
+            let state = this._execStack.last;
+            if (state === null) {
+                return false;
+            }
+            if (state.isAtEnd) {
+                this._execStack.pop();
+                if (this._execStack.isEmpty) {
+                    return false;
+                }
+                state = this._execStack.last;
+            }
+            const command = state.getNextCommand();
+            if (command === null) {
+                continue;
+            }
+            if (stepInto && command instanceof CallExprCommand) {
+                const node = command.node;
+                const fn = state.context.getFunction(node.name);
+                if (!fn) {
+                    continue; // it's not a custom function, step over it
+                }
+                const fnState = this._createState(fn.node.body, state.context.clone(), state);
+                for (let ai = 0; ai < fn.node.args.length; ++ai) {
+                    const arg = fn.node.args[ai];
+                    const value = this._exec.evalExpression(node.args[ai], fnState.context);
+                    fnState.context.createVariable(arg.name, value, arg);
+                }
+                fnState.parentCallExpr = node;
+                this._execStack.states.push(fnState);
+                fnState.context.currentFunctionName = fn.name;
+                if (this._shouldExecuteNextCommand()) {
+                    continue;
+                }
+                return true;
+            }
+            else if (command instanceof StatementCommand) {
+                const node = command.node;
+                if (stepInto && node instanceof Call) {
+                    const fn = state.context.getFunction(node.name);
+                    // We want to step into custom functions, not directly execute them
+                    if (fn) {
+                        const fnState = this._createState(fn.node.body, state.context.clone(), state);
+                        for (let ai = 0; ai < fn.node.args.length; ++ai) {
+                            const arg = fn.node.args[ai];
+                            const value = this._exec.evalExpression(node.args[ai], fnState.context);
+                            fnState.context.createVariable(arg.name, value, arg);
+                        }
+                        this._execStack.states.push(fnState);
+                        fnState.context.currentFunctionName = fn.name;
+                        if (this._shouldExecuteNextCommand()) {
+                            continue;
+                        }
+                        return true;
+                    }
+                }
+                const res = this._exec.execStatement(node, state.context);
+                if (res !== null && res !== undefined && !(res instanceof VoidData)) {
+                    let s = state;
+                    // Find the CallExpr to store the return value in.
+                    while (s) {
+                        if (s.parentCallExpr) {
+                            s.parentCallExpr.setCachedReturnValue(res);
+                            break;
+                        }
+                        s = s.parent;
+                    }
+                    if (s === null) {
+                        console.error("Could not find CallExpr to store return value in");
+                    }
+                    if (this._shouldExecuteNextCommand()) {
+                        continue;
+                    }
+                    return true;
+                }
+            }
+            else if (command instanceof ContinueTargetCommand) {
+                continue;
+            }
+            else if (command instanceof BreakTargetCommand) {
+                continue;
+            }
+            else if (command instanceof ContinueCommand) {
+                const targetId = command.id;
+                while (!this._execStack.isEmpty) {
+                    state = this._execStack.last;
+                    for (let i = state.commands.length - 1; i >= 0; --i) {
+                        const cmd = state.commands[i];
+                        if (cmd instanceof ContinueTargetCommand) {
+                            if (cmd.id === targetId) {
+                                state.current = i + 1;
+                                return true;
+                            }
+                        }
+                    }
+                    // No Goto -1 found (loop), pop the current state and continue searching.
+                    this._execStack.pop();
+                }
+                // If we got here, we've reached the end of the stack and didn't find a -1.
+                // That means a continue was used outside of a loop, so we're done.
+                console.error("Continue statement used outside of a loop");
+                return false;
+            }
+            else if (command instanceof BreakCommand) {
+                const targetId = command.id;
+                // break-if conditional break 
+                if (command.condition) {
+                    const res = this._exec.evalExpression(command.condition, state.context);
+                    if (!(res instanceof ScalarData)) {
+                        console.error("Condition must be a scalar");
+                        return false;
+                    }
+                    // If the condition is false, then we should not the break.
+                    if (!res.value) {
+                        if (this._shouldExecuteNextCommand()) {
+                            continue;
+                        }
+                        return true;
+                    }
+                }
+                while (!this._execStack.isEmpty) {
+                    state = this._execStack.last;
+                    for (let i = state.commands.length - 1; i >= 0; --i) {
+                        const cmd = state.commands[i];
+                        if (cmd instanceof BreakTargetCommand) {
+                            if (cmd.id === targetId) {
+                                state.current = i + 1;
+                                return true;
+                            }
+                        }
+                    }
+                    // No Goto -2 found (loop), pop the current state and continue searching.
+                    this._execStack.pop();
+                }
+                // If we got here, we've reached the end of the stack and didn't find a BreakTarget.
+                // That means a break was used outside of a loop, so we're done.
+                console.error("Break statement used outside of a loop");
+                return false;
+            }
+            else if (command instanceof GotoCommand) {
+                if (command.condition) {
+                    const res = this._exec.evalExpression(command.condition, state.context);
+                    if (!(res instanceof ScalarData)) {
+                        console.error("Condition must be a scalar");
+                        return false;
+                    }
+                    // If the GOTO condition value is true, then continue to the next command.
+                    // Otherwise, jump to the specified position.
+                    if (res.value) {
+                        if (this._shouldExecuteNextCommand()) {
+                            continue;
+                        }
+                        return true;
+                    }
+                }
+                state.current = command.position;
+                if (this._shouldExecuteNextCommand()) {
+                    continue;
+                }
+                return true;
+            }
+            else if (command instanceof BlockCommand) {
+                const blockState = this._createState(command.statements, state.context.clone(), state);
+                this._execStack.states.push(blockState);
+                continue; // step into the first statement of the block
+            }
+            if (state.isAtEnd) {
+                this._execStack.pop();
+                if (this._execStack.isEmpty) {
+                    return false;
+                }
+            }
+            if (this._shouldExecuteNextCommand()) {
+                continue;
+            }
+            return true;
+        }
+    }
+    _dispatchWorkgroup(f, workgroup_id, context) {
+        const workgroupSize = [1, 1, 1];
+        for (const attr of f.node.attributes) {
+            if (attr.name === "workgroup_size") {
+                if (Array.isArray(attr.value)) {
+                    if (attr.value.length > 0) {
+                        // The value could be an override constant
+                        const v = context.getVariableValue(attr.value[0]);
+                        if (v instanceof ScalarData) {
+                            workgroupSize[0] = v.value;
+                        }
+                        else {
+                            workgroupSize[0] = parseInt(attr.value[0]);
+                        }
+                    }
+                    if (attr.value.length > 1) {
+                        const v = context.getVariableValue(attr.value[1]);
+                        if (v instanceof ScalarData) {
+                            workgroupSize[1] = v.value;
+                        }
+                        else {
+                            workgroupSize[1] = parseInt(attr.value[1]);
+                        }
+                    }
+                    if (attr.value.length > 2) {
+                        const v = context.getVariableValue(attr.value[2]);
+                        if (v instanceof ScalarData) {
+                            workgroupSize[2] = v.value;
+                        }
+                        else {
+                            workgroupSize[2] = parseInt(attr.value[2]);
+                        }
+                    }
+                }
+                else {
+                    const v = context.getVariableValue(attr.value);
+                    if (v instanceof ScalarData) {
+                        workgroupSize[0] = v.value;
+                    }
+                    else if (v instanceof VectorData) {
+                        workgroupSize[0] = v.data[0];
+                        workgroupSize[1] = v.data.length > 1 ? v.data[1] : 1;
+                        workgroupSize[2] = v.data.length > 2 ? v.data[2] : 1;
+                    }
+                    else {
+                        workgroupSize[0] = parseInt(attr.value);
+                    }
+                }
+            }
+        }
+        const vec3u = this._exec.typeInfo["vec3u"];
+        const u32 = this._exec.typeInfo["u32"];
+        context.setVariable("@workgroup_size", new VectorData(workgroupSize, vec3u));
+        const width = workgroupSize[0];
+        const height = workgroupSize[1];
+        const depth = workgroupSize[2];
+        let found = false;
+        for (let z = 0, li = 0; z < depth && !found; ++z) {
+            for (let y = 0; y < height && !found; ++y) {
+                for (let x = 0; x < width && !found; ++x, ++li) {
+                    const local_invocation_id = [x, y, z];
+                    const global_invocation_id = [
+                        x + workgroup_id[0] * workgroupSize[0],
+                        y + workgroup_id[1] * workgroupSize[1],
+                        z + workgroup_id[2] * workgroupSize[2]
+                    ];
+                    context.setVariable("@local_invocation_id", new VectorData(local_invocation_id, vec3u));
+                    context.setVariable("@global_invocation_id", new VectorData(global_invocation_id, vec3u));
+                    context.setVariable("@local_invocation_index", new ScalarData(li, u32));
+                    if (global_invocation_id[0] === this._dispatchId[0] &&
+                        global_invocation_id[1] === this._dispatchId[1] &&
+                        global_invocation_id[2] === this._dispatchId[2]) {
+                        found = true;
+                        break;
+                    }
+                }
+            }
+        }
+        if (found) {
+            this._dispatchExec(f, context);
+        }
+        return found;
+    }
+    _dispatchExec(f, context) {
+        // Update any built-in input args.
+        // TODO: handle input structs.
+        for (const arg of f.node.args) {
+            for (const attr of arg.attributes) {
+                if (attr.name === "builtin") {
+                    const globalName = `@${attr.value}`;
+                    const globalVar = context.getVariable(globalName);
+                    if (globalVar !== null) {
+                        context.variables.set(arg.name, globalVar);
+                    }
+                }
+            }
+        }
+        const state = this._createState(f.node.body, context);
+        this._execStack.states.push(state);
+    }
+    _createState(ast, context, parent) {
+        const state = new StackFrame(context, parent !== null && parent !== void 0 ? parent : null);
+        for (const statement of ast) {
+            // A statement may have expressions that include function calls.
+            // Gather all of the internal function calls from the statement.
+            // We can then include them as commands to step through, storing their
+            // values with the call node so that when it is evaluated, it uses that
+            // already computed value. This allows us to step into the function
+            if (statement instanceof Let ||
+                statement instanceof Var ||
+                statement instanceof Const ||
+                statement instanceof Override ||
+                statement instanceof Assign) {
+                const functionCalls = [];
+                this._collectFunctionCalls(statement.value, functionCalls);
+                for (const call of functionCalls) {
+                    state.commands.push(new CallExprCommand(call, statement));
+                }
+                state.commands.push(new StatementCommand(statement));
+            }
+            else if (statement instanceof Call) {
+                const functionCalls = [];
+                for (const arg of statement.args) {
+                    this._collectFunctionCalls(arg, functionCalls);
+                }
+                for (const call of functionCalls) {
+                    state.commands.push(new CallExprCommand(call, statement));
+                }
+                state.commands.push(new StatementCommand(statement));
+            }
+            else if (statement instanceof Return) {
+                const functionCalls = [];
+                this._collectFunctionCalls(statement.value, functionCalls);
+                for (const call of functionCalls) {
+                    state.commands.push(new CallExprCommand(call, statement));
+                }
+                state.commands.push(new StatementCommand(statement));
+            }
+            else if (statement instanceof Increment) {
+                state.commands.push(new StatementCommand(statement));
+            }
+            else if (statement instanceof Function) {
+                const f = new FunctionRef(statement);
+                state.context.functions.set(statement.name, f);
+                continue;
+            }
+            else if (statement instanceof If) {
+                const functionCalls = [];
+                this._collectFunctionCalls(statement.condition, functionCalls);
+                for (const call of functionCalls) {
+                    state.commands.push(new CallExprCommand(call, statement));
+                }
+                let conditionCmd = new GotoCommand(statement.condition, 0, statement.line);
+                state.commands.push(conditionCmd);
+                if (statement.body.length > 0) {
+                    state.commands.push(new BlockCommand(statement.body));
+                }
+                const gotoEnd = new GotoCommand(null, 0, statement.line);
+                state.commands.push(gotoEnd);
+                for (const elseIf of statement.elseif) {
+                    conditionCmd.position = state.commands.length;
+                    const functionCalls = [];
+                    this._collectFunctionCalls(elseIf.condition, functionCalls);
+                    for (const call of functionCalls) {
+                        state.commands.push(new CallExprCommand(call, statement));
+                    }
+                    conditionCmd = new GotoCommand(elseIf.condition, 0, elseIf.line);
+                    state.commands.push(conditionCmd);
+                    if (elseIf.body.length > 0) {
+                        state.commands.push(new BlockCommand(elseIf.body));
+                    }
+                    state.commands.push(gotoEnd);
+                }
+                conditionCmd.position = state.commands.length;
+                if (statement.else) {
+                    state.commands.push(new BlockCommand(statement.else));
+                }
+                gotoEnd.position = state.commands.length;
+            }
+            else if (statement instanceof Switch) {
+                const functionCalls = [];
+                this._collectFunctionCalls(statement.condition, functionCalls);
+                for (const call of functionCalls) {
+                    state.commands.push(new CallExprCommand(call, statement));
+                }
+                let defaultCase = null;
+                for (const c of statement.cases) {
+                    if (c instanceof Default) {
+                        defaultCase = c;
+                        break;
+                    }
+                    else if (c instanceof Case) {
+                        for (const selector of c.selectors) {
+                            if (selector instanceof DefaultSelector) {
+                                defaultCase = c;
+                                break;
+                            }
+                        }
+                    }
+                }
+                const gotoEndCommands = [];
+                for (const c of statement.cases) {
+                    if (c === defaultCase) {
+                        continue;
+                    }
+                    if (!(c instanceof Case)) {
+                        continue;
+                    }
+                    let lastCondition = null;
+                    for (const selector of c.selectors) {
+                        let conditionExpr = new BinaryOperator("==", statement.condition, selector);
+                        if (lastCondition) {
+                            conditionExpr = new BinaryOperator("||", lastCondition, conditionExpr);
+                        }
+                        lastCondition = conditionExpr;
+                    }
+                    const gotoCommand = new GotoCommand(lastCondition, 0, c.line);
+                    state.commands.push(gotoCommand);
+                    if (c.body.length > 0) {
+                        state.commands.push(new BlockCommand(c.body));
+                    }
+                    const gotoEndCommand = new GotoCommand(null, 0, c.line);
+                    gotoEndCommands.push(gotoEndCommand);
+                    state.commands.push(gotoEndCommand);
+                    gotoCommand.position = state.commands.length;
+                }
+                if (defaultCase) {
+                    state.commands.push(new BlockCommand(defaultCase.body));
+                }
+                state.commands.push(new BreakTargetCommand(statement.id));
+                const commandPos = state.commands.length;
+                for (let i = 0; i < gotoEndCommands.length; ++i) {
+                    gotoEndCommands[i].position = commandPos;
+                }
+            }
+            else if (statement instanceof While) {
+                const functionCalls = [];
+                state.commands.push(new ContinueTargetCommand(statement.id));
+                this._collectFunctionCalls(statement.condition, functionCalls);
+                for (const call of functionCalls) {
+                    state.commands.push(new CallExprCommand(call, statement));
+                }
+                const conditionCmd = new GotoCommand(statement.condition, 0, statement.line);
+                state.commands.push(conditionCmd);
+                let lastLine = statement.line;
+                if (statement.body.length > 0) {
+                    state.commands.push(new BlockCommand(statement.body));
+                    lastLine = statement.body[statement.body.length - 1].line;
+                }
+                state.commands.push(new GotoCommand(statement.condition, 0, lastLine));
+                state.commands.push(new BreakTargetCommand(statement.id));
+                conditionCmd.position = state.commands.length;
+            }
+            else if (statement instanceof For) {
+                if (statement.init) {
+                    state.commands.push(new StatementCommand(statement.init));
+                }
+                let conditionPos = state.commands.length;
+                if (statement.increment === null) {
+                    state.commands.push(new ContinueTargetCommand(statement.id));
+                }
+                let conditionCmd = null;
+                if (statement.condition) {
+                    const functionCalls = [];
+                    this._collectFunctionCalls(statement.condition, functionCalls);
+                    for (const call of functionCalls) {
+                        state.commands.push(new CallExprCommand(call, statement));
+                    }
+                    conditionCmd = new GotoCommand(statement.condition, 0, statement.line);
+                    state.commands.push(conditionCmd);
+                }
+                let lastLine = statement.line;
+                if (statement.body.length > 0) {
+                    state.commands.push(new BlockCommand(statement.body));
+                    lastLine = statement.body[statement.body.length - 1].line;
+                }
+                if (statement.increment) {
+                    state.commands.push(new ContinueTargetCommand(statement.id));
+                    state.commands.push(new StatementCommand(statement.increment));
+                }
+                state.commands.push(new GotoCommand(null, conditionPos, lastLine));
+                state.commands.push(new BreakTargetCommand(statement.id));
+                conditionCmd.position = state.commands.length;
+            }
+            else if (statement instanceof Loop) {
+                let loopStartPos = state.commands.length;
+                if (!statement.continuing) {
+                    state.commands.push(new ContinueTargetCommand(statement.id));
+                }
+                let lastLine = statement.line;
+                if (statement.body.length > 0) {
+                    state.commands.push(new BlockCommand(statement.body));
+                    lastLine = statement.body[statement.body.length - 1].line;
+                }
+                state.commands.push(new GotoCommand(null, loopStartPos, lastLine));
+                state.commands.push(new BreakTargetCommand(statement.id));
+            }
+            else if (statement instanceof Continuing) {
+                state.commands.push(new ContinueTargetCommand(statement.loopId));
+                state.commands.push(new BlockCommand(statement.body));
+            }
+            else if (statement instanceof Continue) {
+                state.commands.push(new ContinueCommand(statement.loopId, statement));
+            }
+            else if (statement instanceof Break) {
+                state.commands.push(new BreakCommand(statement.loopId, statement.condition, statement));
+            }
+            else if (statement instanceof StaticAssert) {
+                state.commands.push(new StatementCommand(statement));
+            }
+            else if (statement instanceof Struct) ;
+            else {
+                console.error(`TODO: statement type ${statement.constructor.name}`);
+            }
+        }
+        return state;
+    }
+    _collectFunctionCalls(node, functionCalls) {
+        if (node instanceof CallExpr) {
+            if (node.args) {
+                for (const arg of node.args) {
+                    this._collectFunctionCalls(arg, functionCalls);
+                }
+            }
+            // Only collect custom function calls, not built-in functions.
+            if (!node.isBuiltin) {
+                functionCalls.push(node);
+            }
+        }
+        else if (node instanceof BinaryOperator) {
+            this._collectFunctionCalls(node.left, functionCalls);
+            this._collectFunctionCalls(node.right, functionCalls);
+        }
+        else if (node instanceof UnaryOperator) {
+            this._collectFunctionCalls(node.right, functionCalls);
+        }
+        else if (node instanceof CreateExpr) {
+            if (node.args) {
+                for (const arg of node.args) {
+                    this._collectFunctionCalls(arg, functionCalls);
+                }
+            }
+        }
+        else if (node instanceof BitcastExpr) {
+            this._collectFunctionCalls(node.value, functionCalls);
+        }
+        else if (node instanceof ArrayIndex) {
+            this._collectFunctionCalls(node.index, functionCalls);
+        }
+        else if (LiteralExpr) ;
+        else {
+            console.error(`TODO: expression type ${node.constructor.name}`);
+        }
+    }
+}
+
+exports.Alias = Alias;
+exports.AliasInfo = AliasInfo;
+exports.Argument = Argument;
+exports.ArgumentInfo = ArgumentInfo;
+exports.ArrayIndex = ArrayIndex;
+exports.ArrayInfo = ArrayInfo;
+exports.ArrayType = ArrayType;
+exports.Assign = Assign;
+exports.Attribute = Attribute;
+exports.BinaryOperator = BinaryOperator;
+exports.BitcastExpr = BitcastExpr;
+exports.Break = Break;
+exports.Call = Call;
+exports.CallExpr = CallExpr;
+exports.Case = Case;
+exports.Const = Const;
+exports.ConstExpr = ConstExpr;
+exports.Continue = Continue;
+exports.Continuing = Continuing;
+exports.CreateExpr = CreateExpr;
+exports.Data = Data;
+exports.Default = Default;
+exports.DefaultSelector = DefaultSelector;
+exports.Diagnostic = Diagnostic;
+exports.Discard = Discard;
+exports.ElseIf = ElseIf;
+exports.Enable = Enable;
+exports.EntryFunctions = EntryFunctions;
+exports.Expression = Expression;
+exports.For = For;
+exports.ForwardType = ForwardType;
+exports.Function = Function;
+exports.FunctionInfo = FunctionInfo;
+exports.If = If;
+exports.Increment = Increment;
+exports.InputInfo = InputInfo;
+exports.Let = Let;
+exports.LiteralExpr = LiteralExpr;
+exports.Loop = Loop;
+exports.MatrixData = MatrixData;
+exports.Member = Member;
+exports.MemberInfo = MemberInfo;
+exports.Node = Node;
+exports.Operator = Operator;
+exports.OutputInfo = OutputInfo;
+exports.Override = Override;
+exports.OverrideInfo = OverrideInfo;
+exports.PointerData = PointerData;
+exports.PointerInfo = PointerInfo;
+exports.PointerType = PointerType;
+exports.Requires = Requires;
+exports.Return = Return;
+exports.SamplerType = SamplerType;
+exports.ScalarData = ScalarData;
+exports.Statement = Statement;
+exports.StaticAssert = StaticAssert;
+exports.StringExpr = StringExpr;
+exports.Struct = Struct;
+exports.StructInfo = StructInfo;
+exports.Switch = Switch;
+exports.SwitchCase = SwitchCase;
+exports.TemplateInfo = TemplateInfo;
+exports.TemplateType = TemplateType;
+exports.TextureData = TextureData;
+exports.Token = Token;
+exports.TokenType = TokenType;
+exports.TokenTypes = TokenTypes;
+exports.Type = Type;
+exports.TypeInfo = TypeInfo;
+exports.TypecastExpr = TypecastExpr;
+exports.TypedData = TypedData;
+exports.UnaryOperator = UnaryOperator;
+exports.Var = Var;
+exports.VariableExpr = VariableExpr;
+exports.VariableInfo = VariableInfo;
+exports.VectorData = VectorData;
+exports.VoidData = VoidData;
+exports.WgslDebug = WgslDebug;
+exports.WgslExec = WgslExec;
+exports.WgslParser = WgslParser;
+exports.WgslReflect = WgslReflect;
+exports.WgslScanner = WgslScanner;
+exports.While = While;
+exports._BlockEnd = _BlockEnd;
+exports._BlockStart = _BlockStart;
 //# sourceMappingURL=wgsl_reflect.node.js.map

@@ -498,6 +498,7 @@ export declare class SamplerType extends Type {
  */
 export declare class Expression extends Node {
     postfix: Expression | null;
+    hasParen: boolean;
     constructor();
 }
 /**

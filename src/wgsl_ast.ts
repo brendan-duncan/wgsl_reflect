@@ -1200,6 +1200,7 @@ export class SamplerType extends Type {
  */
 export class Expression extends Node {
   postfix: Expression | null = null;
+  hasParen: boolean = false;
 
   constructor() {
     super();
