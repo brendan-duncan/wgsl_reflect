@@ -1,4 +1,4 @@
-import { TypeInfo } from '../reflect/info';
+import { TypeInfo } from '../reflect/info.js';
 
 export const VectorTypeSize = {
     "vec2": 2, "vec2f": 2, "vec2i": 2, "vec2u": 2, "vec2b": 2, "vec2h": 2,

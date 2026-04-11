@@ -629,8 +629,8 @@ export class BuiltinFunctions {
 
     Reflect(node: CallExpr | Call, context: ExecContext): Data | null {
         // e1 - 2 * dot(e2, e1) * e2
-        let e1 = this.exec.evalExpression(node.args[0], context);
-        let e2 = this.exec.evalExpression(node.args[1], context);
+        const e1 = this.exec.evalExpression(node.args[0], context);
+        const e2 = this.exec.evalExpression(node.args[1], context);
         if (e1 instanceof VectorData && e2 instanceof VectorData) {
             const dot = this._dot(e1.data, e2.data);
             return new VectorData(e1.data.map((v: number, i: number) => v - 2 * dot * e2.data[i]), e1.typeInfo);
@@ -640,9 +640,9 @@ export class BuiltinFunctions {
     }
 
     Refract(node: CallExpr | Call, context: ExecContext): Data | null {
-        let e1 = this.exec.evalExpression(node.args[0], context);
-        let e2 = this.exec.evalExpression(node.args[1], context);
-        let e3 = this.exec.evalExpression(node.args[2], context);
+        const e1 = this.exec.evalExpression(node.args[0], context);
+        const e2 = this.exec.evalExpression(node.args[1], context);
+        const e3 = this.exec.evalExpression(node.args[2], context);
         if (e1 instanceof VectorData && e2 instanceof VectorData && e3 instanceof ScalarData) {
             const dot = this._dot(e2.data, e1.data);
             return new VectorData(e1.data.map((v: number, i: number) => {
