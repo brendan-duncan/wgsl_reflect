@@ -1,4 +1,4 @@
-import { TypeInfo } from '../reflect/info';
+import { TypeInfo } from '../reflect/info.js';
 export declare const VectorTypeSize: {
     vec2: number;
     vec2f: number;
