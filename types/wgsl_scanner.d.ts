@@ -149,6 +149,7 @@ export declare class TokenTypes {
         rgba32sint: TokenType;
         rgba32float: TokenType;
         static_assert: TokenType;
+        const_assert: TokenType;
     };
     static readonly tokens: {
         decimal_float_literal: TokenType;

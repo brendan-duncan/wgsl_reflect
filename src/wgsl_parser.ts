@@ -209,9 +209,17 @@ export class WgslParser {
     // struct_decl
     // function_decl
     // enable_directive
+    // global_assert
 
     // Ignore any stand-alone semicolons
     while (this._match(TokenTypes.tokens.semicolon) && !this._isAtEnd());
+
+    if (this._match(TokenTypes.keywords.const_assert)) {
+      const assertion = this._global_assert();
+      this._consume(TokenTypes.tokens.semicolon, "Expected ';'");
+      this._exec.reflection.updateAST([assertion]);
+      return assertion;
+    }
 
     if (this._match(TokenTypes.keywords.alias)) {
       const type = this._type_alias();
@@ -503,6 +511,12 @@ export class WgslParser {
     }
     const line = this._currentLine;
     const expression = this._optional_paren_expression();
+    return this._updateNode(new AST.StaticAssert(expression), line);
+  }
+
+  _global_assert(): AST.StaticAssert {
+    const line = this._currentLine;
+    const expression = this._short_circuit_or_expression();
     return this._updateNode(new AST.StaticAssert(expression), line);
   }
 

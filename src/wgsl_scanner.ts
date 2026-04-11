@@ -254,6 +254,11 @@ export class TokenTypes {
       TokenClass.keyword,
       "static_assert"
     ),
+    const_assert: new TokenType(
+      "const_assert",
+      TokenClass.keyword,
+      "const_assert"
+    ),
 
     // WGSL grammar has a few keywords that have different token names than the strings they
     // represent. Aliasing them here.

@@ -620,6 +620,15 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
           }`);
     });
 
+    await test("const_assert at module level", async function (test) {
+      const parser = new WgslParser();
+      const t = parser.parse(`const_assert true;
+          const_assert 1 == 1;
+          const_assert 5 > 3;
+          `);
+      test.equals(t.length, 3);
+    });
+
     await test("for incrementer", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse(`fn foo() {
