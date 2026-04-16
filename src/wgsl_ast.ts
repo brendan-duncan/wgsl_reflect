@@ -125,7 +125,7 @@ const BuiltinFunctionNames = new Set([
   "sign",
   "sin",
   "sinh",
-  "smoothStep",
+  "smoothstep",
   "sqrt",
   "step",
   "tan",
