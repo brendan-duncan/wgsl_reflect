@@ -1282,8 +1282,143 @@ export class CallExpr extends Expression {
   }
 
   constEvaluate(context: WgslExec, type?: Type[]): Data {
-    return context.evalExpression(this, context.context);
+    const value = context.evalExpression(this, context.context);
+    if (type !== undefined) {
+      this._resolveReturnType(context, type);
+    }
+    return value;
   }
+
+  _resolveReturnType(context: WgslExec, type: Type[]): void {
+    // User-defined function: look up the function's declared return type.
+    const fn = context.context.getFunction(this.name);
+    if (fn !== null) {
+      if (fn.node.returnType !== null) {
+        type[0] = fn.node.returnType;
+      }
+      return;
+    }
+
+    // Builtin with a fixed return type (e.g. all() -> bool, arrayLength() -> u32).
+    const fixed = CallExpr._builtinFixedReturnType.get(this.name);
+    if (fixed !== undefined) {
+      type[0] = fixed;
+      return;
+    }
+
+    // Builtin whose return type matches a specific argument (e.g. abs(x) -> typeof x).
+    const sameAsArg = CallExpr._builtinSameAsArg.get(this.name);
+    if (sameAsArg !== undefined && this.args && this.args[sameAsArg]) {
+      this.args[sameAsArg].constEvaluate(context, type);
+      return;
+    }
+
+    // Builtin whose return type is the component type of a vector/matrix argument
+    // (e.g. length(vec3f) -> f32, determinant(mat2x2f) -> f32).
+    const componentOfArg = CallExpr._builtinComponentOfArg.get(this.name);
+    if (componentOfArg !== undefined && this.args && this.args[componentOfArg]) {
+      const argType: Type[] = [Type.f32];
+      this.args[componentOfArg].constEvaluate(context, argType);
+      if (argType[0] instanceof TemplateType && argType[0].format !== null) {
+        type[0] = argType[0].format;
+      } else {
+        type[0] = argType[0];
+      }
+      return;
+    }
+  }
+
+  static _builtinFixedReturnType = new Map<string, Type>([
+    ["all", Type.bool],
+    ["any", Type.bool],
+    ["arrayLength", Type.u32],
+    ["dot4U8Packed", Type.u32],
+    ["dot4I8Packed", Type.i32],
+    ["pack4x8snorm", Type.u32],
+    ["pack4x8unorm", Type.u32],
+    ["pack4xI8", Type.u32],
+    ["pack4xU8", Type.u32],
+    ["pack4x8Clamp", Type.u32],
+    ["pack4xU8Clamp", Type.u32],
+    ["pack2x16snorm", Type.u32],
+    ["pack2x16unorm", Type.u32],
+    ["pack2x16float", Type.u32],
+    ["unpack4x8snorm", TemplateType.vec4f],
+    ["unpack4x8unorm", TemplateType.vec4f],
+    ["unpack4xI8", TemplateType.vec4i],
+    ["unpack4xU8", TemplateType.vec4u],
+    ["unpack2x16snorm", TemplateType.vec2f],
+    ["unpack2x16unorm", TemplateType.vec2f],
+    ["unpack2x16float", TemplateType.vec2f],
+    ["storageBarrier", Type.void],
+    ["textureBarrier", Type.void],
+    ["workgroupBarrier", Type.void],
+    ["atomicStore", Type.void],
+  ]);
+
+  static _builtinSameAsArg = new Map<string, number>([
+    ["abs", 0], ["acos", 0], ["acosh", 0], ["asin", 0], ["asinh", 0],
+    ["atan", 0], ["atanh", 0], ["atan2", 0],
+    ["ceil", 0], ["clamp", 0],
+    ["cos", 0], ["cosh", 0],
+    ["countLeadingZeros", 0], ["countOneBits", 0], ["countTrailingZeros", 0],
+    ["cross", 0],
+    ["degrees", 0],
+    ["exp", 0], ["exp2", 0],
+    ["extractBits", 0],
+    ["faceForward", 0],
+    ["firstLeadingBit", 0], ["firstTrailingBit", 0],
+    ["floor", 0],
+    ["fma", 0], ["fract", 0],
+    ["insertBits", 0],
+    ["inverseSqrt", 0],
+    ["ldexp", 0],
+    ["log", 0], ["log2", 0],
+    ["max", 0], ["min", 0], ["mix", 0],
+    ["normalize", 0],
+    ["pow", 0],
+    ["quantizeToF16", 0],
+    ["radians", 0],
+    ["reflect", 0], ["refract", 0],
+    ["reverseBits", 0],
+    ["round", 0],
+    ["saturate", 0],
+    ["sign", 0],
+    ["sin", 0], ["sinh", 0],
+    ["smoothstep", 2],
+    ["sqrt", 0],
+    ["step", 1],
+    ["tan", 0], ["tanh", 0],
+    ["trunc", 0],
+    ["dpdx", 0], ["dpdxCoarse", 0], ["dpdxFine", 0],
+    ["dpdy", 0], ["dpdyCoarse", 0], ["dpdyFine", 0],
+    ["fwidth", 0], ["fwidthCoarse", 0], ["fwidthFine", 0],
+    ["select", 0],
+    ["workgroupUniformLoad", 0],
+    ["atomicLoad", 0],
+    ["atomicAdd", 1], ["atomicSub", 1],
+    ["atomicMax", 1], ["atomicMin", 1],
+    ["atomicAnd", 1], ["atomicOr", 1], ["atomicXor", 1],
+    ["atomicExchange", 1],
+    ["subgroupAdd", 0], ["subgroupExclusiveAdd", 0], ["subgroupInclusiveAdd", 0],
+    ["subgroupAnd", 0],
+    ["subgroupBroadcast", 0], ["subgroupBroadcastFirst", 0],
+    ["subgroupMax", 0], ["subgroupMin", 0],
+    ["subgroupMul", 0], ["subgroupExclusiveMul", 0], ["subgroupInclusiveMul", 0],
+    ["subgroupOr", 0],
+    ["subgroupShuffle", 0], ["subgroupShuffleDown", 0],
+    ["subgroupShuffleUp", 0], ["subgroupShuffleXor", 0],
+    ["subgroupXor", 0],
+    ["quadBroadcast", 0],
+    ["quadSwapDiagonal", 0], ["quadSwapX", 0], ["quadSwapY", 0],
+  ]);
+
+  static _builtinComponentOfArg = new Map<string, number>([
+    ["length", 0],
+    ["distance", 0],
+    ["dot", 0],
+    ["determinant", 0],
+  ]);
 
   search(callback: (node: Node) => void) {
     for (const node of this.args) {
@@ -1318,7 +1453,14 @@ export class VariableExpr extends Expression {
   }
 
   constEvaluate(context: WgslExec, type?: Type[]): Data {
-    return context.evalExpression(this, context.context);
+    const value = context.evalExpression(this, context.context);
+    if (type !== undefined && this.postfix === null) {
+      const v = context.context.getVariable(this.name);
+      if (v !== null && v.node !== null && v.node.type !== null) {
+        type[0] = v.node.type;
+      }
+    }
+    return value;
   }
 }
 
@@ -1343,6 +1485,9 @@ export class ConstExpr extends Expression {
 
   constEvaluate(context: WgslExec, type?: Type[]): Data | null {
     const data = context.evalExpression(this.initializer, context.context);
+    if (type !== undefined) {
+      this.initializer.constEvaluate(context, type);
+    }
     if (data !== null && this.postfix) {
       return data.getSubData(context, this.postfix, context.context);
     }
@@ -1452,6 +1597,9 @@ export class TypecastExpr extends Expression {
   }
 
   constEvaluate(context: WgslExec, type?: Type[]): Data | null {
+    if (type !== undefined && this.type !== null) {
+      type[0] = this.type;
+    }
     return context.evalExpression(this, context.context);
   }
 
@@ -1509,7 +1657,15 @@ export class UnaryOperator extends Operator {
   }
 
   constEvaluate(context: WgslExec, type?: Type[]): Data | null {
-    return context.evalExpression(this, context.context);
+    const value = context.evalExpression(this, context.context);
+    if (type !== undefined) {
+      if (this.operator === "!") {
+        type[0] = Type.bool;
+      } else {
+        this.right.constEvaluate(context, type);
+      }
+    }
+    return value;
   }
 
   search(callback: (node: Node) => void): void {
@@ -1553,7 +1709,30 @@ export class BinaryOperator extends Operator {
   }
 
   constEvaluate(context: WgslExec, type?: Type[]): Data | null {
-    return context.evalExpression(this, context.context);
+    const value = context.evalExpression(this, context.context);
+    if (type !== undefined) {
+      switch (this.operator) {
+        case "==":
+        case "!=":
+        case "<":
+        case ">":
+        case "<=":
+        case ">=":
+        case "&&":
+        case "||":
+          type[0] = Type.bool;
+          break;
+        default: {
+          const leftType: Type[] = [Type.f32];
+          const rightType: Type[] = [Type.f32];
+          this.left.constEvaluate(context, leftType);
+          this.right.constEvaluate(context, rightType);
+          type[0] = this._getPromotedType(leftType[0], rightType[0]);
+          break;
+        }
+      }
+    }
+    return value;
   }
 
   search(callback: (node: Node) => void): void {

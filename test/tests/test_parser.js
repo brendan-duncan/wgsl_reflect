@@ -3,6 +3,18 @@ import { WgslParser } from "../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Parser", async function () {
+    await test("const vec3 division", async function (test) {
+      const parser = new WgslParser();
+      const t = parser.parse(`const cv3: vec3<f32> = vec3<f32>(1.0) / vec3<f32>(2.0);`);
+      test.equals(t.length, 1);
+    });
+
+    await test("const division", async function (test) {
+      const parser = new WgslParser();
+      const t = parser.parse(`const a = 10 / 2;`);
+      test.equals(t.length, 1);
+    });
+
     await test("deferred struct definition", async function (test) {
       const parser = new WgslParser();
       const t = parser.parse(`
@@ -969,6 +981,151 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
         if (condition) { discard; }
       }`);
       test.equals(t[0].body[0].body[0].astNodeType, "discard");
+    });
+  });
+
+  await group("Const evaluation type inference", async function () {
+    // Each test parses one or more `const` declarations with no type annotation,
+    // forcing the parser to derive each Const's `type` from constEvaluate's
+    // `type[0]` out-parameter. Verifies the various AST nodes populate type[0]
+    // correctly when their result type is non-default.
+
+    function typeName(node) {
+      const t = node.type;
+      if (!t) return null;
+      if (t.format) return `${t.name}<${t.format.name}>`;
+      return t.name;
+    }
+
+    await test("UnaryOperator: ! -> bool", async function (test) {
+      const t = new WgslParser().parse(`const a = !true;`);
+      test.equals(typeName(t[0]), "bool");
+    });
+
+    await test("UnaryOperator: - preserves operand type", async function (test) {
+      const t = new WgslParser().parse(`
+        const i = -5;
+        const f = -5.0;`);
+      test.equals(typeName(t[0]), "i32", "neg int");
+      test.equals(typeName(t[1]), "f32", "neg float");
+    });
+
+    await test("UnaryOperator: ~ preserves operand type", async function (test) {
+      const t = new WgslParser().parse(`const a = ~5u;`);
+      test.equals(typeName(t[0]), "u32");
+    });
+
+    await test("BinaryOperator: comparison/logical -> bool", async function (test) {
+      const t = new WgslParser().parse(`
+        const eq = 1 == 2;
+        const ne = 1 != 2;
+        const lt = 1 < 2;
+        const gt = 1 > 2;
+        const le = 1 <= 2;
+        const ge = 1 >= 2;
+        const aa = true && false;
+        const oo = true || false;`);
+      for (let i = 0; i < t.length; ++i) {
+        test.equals(typeName(t[i]), "bool", `op ${i}`);
+      }
+    });
+
+    await test("BinaryOperator: arithmetic promotes to f32", async function (test) {
+      const t = new WgslParser().parse(`
+        const a = 1 + 2.0;
+        const b = 2.0 * 3;
+        const c = 5 / 2.0;`);
+      test.equals(typeName(t[0]), "f32", "i32+f32");
+      test.equals(typeName(t[1]), "f32", "f32*i32");
+      test.equals(typeName(t[2]), "f32", "i32/f32");
+    });
+
+    await test("BinaryOperator: arithmetic stays integer", async function (test) {
+      const t = new WgslParser().parse(`
+        const a = 3u + 4u;
+        const b = 3i * 4i;`);
+      test.equals(typeName(t[0]), "u32");
+      test.equals(typeName(t[1]), "i32");
+    });
+
+    await test("TypecastExpr: i32(...), u32(...), f32(...)", async function (test) {
+      const t = new WgslParser().parse(`
+        const a = i32(1.5);
+        const b = u32(2);
+        const c = f32(3);`);
+      test.equals(typeName(t[0]), "i32");
+      test.equals(typeName(t[1]), "u32");
+      test.equals(typeName(t[2]), "f32");
+    });
+
+    await test("VariableExpr: ref to another const preserves type", async function (test) {
+      const t = new WgslParser().parse(`
+        const src: u32 = 7;
+        const ref = src;`);
+      test.equals(typeName(t[1]), "u32");
+    });
+
+    await test("CallExpr builtin (fixed): all/any -> bool", async function (test) {
+      const t = new WgslParser().parse(`
+        const a = all(vec3<bool>(true, true, true));
+        const b = any(vec3<bool>(false, false, true));`);
+      test.equals(typeName(t[0]), "bool", "all");
+      test.equals(typeName(t[1]), "bool", "any");
+    });
+
+    await test("CallExpr builtin (fixed): pack -> u32", async function (test) {
+      const t = new WgslParser().parse(`
+        const a = pack4x8snorm(vec4f(0.0, 0.5, -0.5, 1.0));
+        const b = pack2x16float(vec2f(1.0, 2.0));`);
+      test.equals(typeName(t[0]), "u32", "pack4x8snorm");
+      test.equals(typeName(t[1]), "u32", "pack2x16float");
+    });
+
+    await test("CallExpr builtin (fixed): unpack -> vec", async function (test) {
+      const t = new WgslParser().parse(`
+        const a = unpack4x8snorm(0u);
+        const b = unpack4xU8(0u);
+        const c = unpack2x16float(0u);`);
+      test.equals(typeName(t[0]), "vec4<f32>", "unpack4x8snorm");
+      test.equals(typeName(t[1]), "vec4<u32>", "unpack4xU8");
+      test.equals(typeName(t[2]), "vec2<f32>", "unpack2x16float");
+    });
+
+    await test("CallExpr builtin (same-as-arg): math fns preserve operand type", async function (test) {
+      const t = new WgslParser().parse(`
+        const a = abs(-5);
+        const b = sin(1.0);
+        const c = clamp(5u, 0u, 10u);
+        const d = min(2i, 3i);`);
+      test.equals(typeName(t[0]), "i32", "abs(i32)");
+      test.equals(typeName(t[1]), "f32", "sin(f32)");
+      test.equals(typeName(t[2]), "u32", "clamp(u32)");
+      test.equals(typeName(t[3]), "i32", "min(i32)");
+    });
+
+    await test("CallExpr builtin (same-as-arg, non-zero index): step/smoothstep", async function (test) {
+      // step's type matches arg[1]; smoothstep matches arg[2].
+      const t = new WgslParser().parse(`
+        const a = step(0.5, 1.0);
+        const b = smoothstep(0.0, 1.0, 0.5);`);
+      test.equals(typeName(t[0]), "f32", "step");
+      test.equals(typeName(t[1]), "f32", "smoothstep");
+    });
+
+    await test("CallExpr builtin (component-of-arg): length/distance/dot", async function (test) {
+      const t = new WgslParser().parse(`
+        const a = length(vec3f(1.0, 2.0, 2.0));
+        const b = distance(vec2f(0.0, 0.0), vec2f(3.0, 4.0));
+        const c = dot(vec3f(1.0, 2.0, 3.0), vec3f(4.0, 5.0, 6.0));`);
+      test.equals(typeName(t[0]), "f32", "length");
+      test.equals(typeName(t[1]), "f32", "distance");
+      test.equals(typeName(t[2]), "f32", "dot");
+    });
+
+    await test("CallExpr builtin: nested call propagates type", async function (test) {
+      // radians returns same-as-arg (f32), sin returns same-as-arg, so f32.
+      const t = new WgslParser().parse(`const a = sin(radians(90.0));`);
+      test.equals(typeName(t[0]), "f32");
     });
   });
 }

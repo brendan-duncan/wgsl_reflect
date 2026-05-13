@@ -536,6 +536,10 @@ export declare class CallExpr extends Expression {
     setCachedReturnValue(value: any): void;
     get isBuiltin(): boolean;
     constEvaluate(context: WgslExec, type?: Type[]): Data;
+    _resolveReturnType(context: WgslExec, type: Type[]): void;
+    static _builtinFixedReturnType: Map<string, Type>;
+    static _builtinSameAsArg: Map<string, number>;
+    static _builtinComponentOfArg: Map<string, number>;
     search(callback: (node: Node) => void): void;
 }
 /**
