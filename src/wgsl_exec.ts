@@ -1050,6 +1050,17 @@ export class WgslExec extends ExecInterface {
                 const defType = new CreateExpr(node.type, []);
                 value = this._evalCreate(defType, context);
             }
+            if (value === null) {
+                // Runtime-sized arrays (e.g. `var<storage> x: array<T>`) have
+                // size 0 until a binding is supplied, so _evalCreate returns
+                // null. Create a zero-byte placeholder so the variable still
+                // has a Data with a typeInfo — downstream consumers (the
+                // bind-group loop, the watch view) assume value is non-null.
+                const typeInfo = this.getTypeInfo(node.type);
+                if (typeInfo !== null) {
+                    value = new TypedData(new ArrayBuffer(0), typeInfo, 0);
+                }
+            }
         }
 
         context.createVariable(node.name, value, node);
