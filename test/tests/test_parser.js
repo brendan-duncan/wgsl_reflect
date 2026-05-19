@@ -982,6 +982,160 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
       }`);
       test.equals(t[0].body[0].body[0].astNodeType, "discard");
     });
+
+    // Verify attribute nodes are recorded with the right name + value(s).
+    // The parser accepts any ident as the attribute name, so these assertions
+    // are what guards against an attribute being silently dropped.
+    await test("@interpolate attribute", async function (test) {
+      const parser = new WgslParser();
+      const t = parser.parse(`struct V {
+        @location(0) @interpolate(flat) value: f32,
+        @location(1) @interpolate(perspective, centroid) uv: vec2f,
+      }`);
+      const m0 = t[0].members[0];
+      const m1 = t[0].members[1];
+      const interp0 = m0.attributes.find(a => a.name === "interpolate");
+      const interp1 = m1.attributes.find(a => a.name === "interpolate");
+      test.notNull(interp0);
+      test.equals(interp0.value, "flat");
+      test.notNull(interp1);
+      test.equals(interp1.value, ["perspective", "centroid"]);
+    });
+
+    await test("@invariant and @must_use attributes", async function (test) {
+      const parser = new WgslParser();
+      const t = parser.parse(`@must_use fn add_one(x: i32) -> i32 { return x + 1; }
+        struct V {
+          @builtin(position) @invariant pos: vec4f,
+        }`);
+      test.equals(t[0].attributes.find(a => a.name === "must_use").value, null);
+      const inv = t[1].members[0].attributes.find(a => a.name === "invariant");
+      test.notNull(inv);
+      test.equals(inv.value, null);
+    });
+
+    await test("@align/@size/@offset member attributes", async function (test) {
+      const parser = new WgslParser();
+      const t = parser.parse(`struct S {
+        @align(16) @size(8) a: f32,
+        @offset(32) b: u32,
+      }`);
+      const m0 = t[0].members[0];
+      const m1 = t[0].members[1];
+      test.equals(m0.attributes.find(a => a.name === "align").value, "16");
+      test.equals(m0.attributes.find(a => a.name === "size").value, "8");
+      test.equals(m1.attributes.find(a => a.name === "offset").value, "32");
+    });
+
+    await test("@stride on storage array binding", async function (test) {
+      const parser = new WgslParser();
+      const t = parser.parse(
+        `@group(0) @binding(0) var<storage, read> data: @stride(16) array<vec4f>;`
+      );
+      // @stride lands as a type attribute on the array.
+      const typeAttrs = t[0].type.attributes ?? [];
+      const stride = typeAttrs.find(a => a.name === "stride");
+      test.notNull(stride);
+      test.equals(stride.value, "16");
+    });
+
+    // Real WGSL `break if cond;` form — the existing "break-if" test actually
+    // exercises `if (...) { break; }` and asserts on the if-condition, not the
+    // break statement.
+    await test("break if statement", async function (test) {
+      const parser = new WgslParser();
+      const t = parser.parse(`fn test() {
+        var i = 0;
+        loop {
+          continuing {
+            i = i + 1;
+            break if i >= 4;
+          }
+        }
+      }`);
+      const continuing = t[0].body[1].continuing;
+      const brk = continuing.body[continuing.body.length - 1];
+      test.equals(brk.astNodeType, "break");
+      test.notNull(brk.condition);
+      test.equals(brk.condition.astNodeType, "binaryOp");
+    });
+
+    await test("for-loop with omitted slots", async function (test) {
+      const parser = new WgslParser();
+      const t = parser.parse(`fn test() {
+        for (;;) { break; }
+        for (var i = 0; ;) { break; }
+        for (; i < 10; ) { i = i + 1; }
+      }`);
+      const f0 = t[0].body[0];
+      const f1 = t[0].body[1];
+      const f2 = t[0].body[2];
+      test.isNull(f0.init);
+      test.isNull(f0.condition);
+      test.isNull(f0.increment);
+      test.notNull(f1.init);
+      test.isNull(f1.condition);
+      test.isNull(f1.increment);
+      test.isNull(f2.init);
+      test.notNull(f2.condition);
+      test.isNull(f2.increment);
+    });
+
+    await test("pointer address spaces", async function (test) {
+      const parser = new WgslParser();
+      const t = parser.parse(`fn a(p: ptr<private, f32>) {}
+        fn b(p: ptr<workgroup, atomic<u32>>) {}
+        fn c(p: ptr<storage, f32, read_write>) {}
+        fn d(p: ptr<uniform, vec3f>) {}`);
+      test.equals(t[0].args[0].type.astNodeType, "pointer");
+      test.equals(t[0].args[0].type.storage, "private");
+      test.equals(t[1].args[0].type.storage, "workgroup");
+      test.equals(t[2].args[0].type.storage, "storage");
+      test.equals(t[2].args[0].type.access, "read_write");
+      test.equals(t[3].args[0].type.storage, "uniform");
+    });
+
+    await test("diagnostic severity variants", async function (test) {
+      const parser = new WgslParser();
+      const t = parser.parse(`diagnostic(error, derivative_uniformity);
+        diagnostic(warning, foo.bar);
+        diagnostic(info, baz);
+        diagnostic(off, qux);`);
+      test.equals(t[0].severity, "error");
+      test.equals(t[1].severity, "warning");
+      test.equals(t[2].severity, "info");
+      test.equals(t[3].severity, "off");
+    });
+
+    await test("requires with multiple extensions", async function (test) {
+      const parser = new WgslParser();
+      const t = parser.parse(`requires readonly_and_readwrite_storage_textures, packed_4x8_integer_dot_product;`);
+      test.equals(t[0].astNodeType, "requires");
+      test.equals(t[0].extensions.length, 2);
+      test.equals(t[0].extensions[0], "readonly_and_readwrite_storage_textures");
+      test.equals(t[0].extensions[1], "packed_4x8_integer_dot_product");
+    });
+
+    await test("texture type variants", async function (test) {
+      const parser = new WgslParser();
+      const t = parser.parse(`@group(0) @binding(0) var t1: texture_1d<f32>;
+        @group(0) @binding(1) var t3: texture_3d<f32>;
+        @group(0) @binding(2) var tc: texture_cube<f32>;
+        @group(0) @binding(3) var tca: texture_cube_array<f32>;
+        @group(0) @binding(4) var ts1: texture_storage_1d<r32uint, write>;
+        @group(0) @binding(5) var ts3: texture_storage_3d<rgba8unorm, read_write>;
+        @group(0) @binding(6) var sc: sampler_comparison;`);
+      test.equals(t[0].type.name, "texture_1d");
+      test.equals(t[1].type.name, "texture_3d");
+      test.equals(t[2].type.name, "texture_cube");
+      test.equals(t[3].type.name, "texture_cube_array");
+      test.equals(t[4].type.name, "texture_storage_1d");
+      test.equals(t[4].type.format, "r32uint");
+      test.equals(t[4].type.access, "write");
+      test.equals(t[5].type.name, "texture_storage_3d");
+      test.equals(t[5].type.access, "read_write");
+      test.equals(t[6].type.name, "sampler_comparison");
+    });
   });
 
   await group("Const evaluation type inference", async function () {

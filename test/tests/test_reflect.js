@@ -1490,5 +1490,124 @@ export async function run() {
       test.equals(logFunc.arguments.length, 0);
       test.equals(logFunc.returnType, null);
     });
+
+    await test("getFunctionInfo / getStructInfo / getOverrideInfo", function (test) {
+      const reflect = new WgslReflect(`
+        struct Params { count: u32, scale: f32 }
+        override threshold: f32 = 0.5;
+        fn helper(x: f32) -> f32 { return x * threshold; }
+        @group(0) @binding(0) var<uniform> p: Params;
+        @compute @workgroup_size(1) fn main() { _ = helper(p.scale); }`);
+      test.notNull(reflect.getStructInfo("Params"));
+      test.equals(reflect.getStructInfo("Params").members.length, 2);
+      test.isNull(reflect.getStructInfo("Missing"));
+      test.notNull(reflect.getFunctionInfo("helper"));
+      test.equals(reflect.getFunctionInfo("helper").arguments[0].name, "x");
+      test.notNull(reflect.getFunctionInfo("main"));
+      test.isNull(reflect.getFunctionInfo("absent"));
+      test.notNull(reflect.getOverrideInfo("threshold"));
+      test.equals(reflect.getOverrideInfo("threshold").type.name, "f32");
+      test.isNull(reflect.getOverrideInfo("absent"));
+    });
+
+    await test("findResource", function (test) {
+      const reflect = new WgslReflect(`
+        @group(0) @binding(0) var<uniform> u0: f32;
+        @group(0) @binding(1) var t0: texture_2d<f32>;
+        @group(1) @binding(0) var<storage, read> s0: array<u32>;
+        @compute @workgroup_size(1) fn main() {
+          _ = u0;
+          _ = textureDimensions(t0);
+          _ = s0[0];
+        }`);
+      test.equals(reflect.findResource(0, 0).name, "u0");
+      test.equals(reflect.findResource(0, 1).name, "t0");
+      test.equals(reflect.findResource(1, 0).name, "s0");
+      test.isNull(reflect.findResource(2, 0));
+      // Entry-scoped lookup goes through the per-entry resource list.
+      test.equals(reflect.findResource(0, 0, "main").name, "u0");
+    });
+
+    await test("runtime-sized array has count 0", function (test) {
+      const reflect = new WgslReflect(`
+        @group(0) @binding(0) var<storage> a: array<u32>;
+        @group(0) @binding(1) var<storage> b: array<vec3f>;
+        @compute @workgroup_size(1) fn main() { _ = a[0]; _ = b[0]; }`);
+      test.equals(reflect.storage[0].type.name, "array");
+      test.equals(reflect.storage[0].type.count, 0);
+      test.equals(reflect.storage[1].type.count, 0);
+      // Stride should still be populated for sizing readbacks.
+      test.true(reflect.storage[1].type.stride > 0);
+    });
+
+    await test("StructInfo.align is populated", function (test) {
+      const reflect = new WgslReflect(`
+        struct S {
+          a: f32,
+          b: vec4f,
+          c: u32,
+        }
+        @group(0) @binding(0) var<uniform> s: S;
+        @compute @workgroup_size(1) fn main() { _ = s.a; }`);
+      const info = reflect.getStructInfo("S");
+      test.notNull(info);
+      // vec4f drives the align up to 16 bytes.
+      test.equals(info.align, 16);
+      test.true(info.size >= 32);
+    });
+
+    await test("sampler_comparison is reflected as a sampler", function (test) {
+      const reflect = new WgslReflect(`
+        @group(0) @binding(0) var t: texture_depth_2d;
+        @group(0) @binding(1) var samp: sampler_comparison;
+        @fragment fn fs(@location(0) uv: vec2f) -> @location(0) f32 {
+          return textureSampleCompare(t, samp, uv, 0.5);
+        }`);
+      test.equals(reflect.samplers.length, 1);
+      test.equals(reflect.samplers[0].name, "samp");
+      test.equals(reflect.samplers[0].type.name, "sampler_comparison");
+    });
+
+    await test("storage texture with read access", function (test) {
+      const reflect = new WgslReflect(`
+        @group(0) @binding(0) var tex: texture_storage_2d<r32float, read>;
+        @compute @workgroup_size(1) fn main(@builtin(global_invocation_id) id: vec3u) {
+          _ = textureLoad(tex, vec2i(id.xy));
+        }`);
+      test.equals(reflect.storage.length, 1);
+      test.equals(reflect.storage[0].access, "read");
+      test.equals(reflect.storage[0].resourceType, ResourceType.StorageTexture);
+    });
+
+    await test("PointerInfo from function arg type", function (test) {
+      const reflect = new WgslReflect(`
+        fn write_back(p: ptr<function, vec3f>, v: vec3f) { *p = v; }`);
+      const fn = reflect.functions[0];
+      const argType = fn.arguments[0].type;
+      test.equals(argType.isPointer, true);
+      test.notNull(argType.format);
+      test.equals(argType.format.name, "vec3f");
+      test.equals(argType.getTypeName(), "&vec3f");
+    });
+
+    await test("@interpolate populates InputInfo.interpolation", function (test) {
+      // Regression: reflect.ts previously looked up attribute name "interpolation"
+      // (WGSL spells it "interpolate"), so the field was always null.
+      const reflect = new WgslReflect(`
+        struct VsIn {
+          @location(0) @interpolate(flat) v: f32,
+          @location(1) @interpolate(perspective, centroid) uv: vec2f,
+        }
+        @vertex fn vs(i: VsIn) -> @builtin(position) vec4f { return vec4f(0); }`);
+      const entry = reflect.entry.vertex[0];
+      const flat = entry.inputs.find(x => x.name === "v");
+      const persp = entry.inputs.find(x => x.name === "uv");
+      test.notNull(flat);
+      test.equals(flat.interpolation, "flat");
+      test.notNull(persp);
+      // Multi-arg @interpolate is stored as the first token after the parser
+      // promotes it to an array; _parseString takes [0].
+      test.equals(persp.interpolation, "perspective");
+    });
   });
 }
