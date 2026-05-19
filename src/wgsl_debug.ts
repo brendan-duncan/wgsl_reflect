@@ -704,6 +704,12 @@ export class WgslDebug {
             // We can then include them as commands to step through, storing their
             // values with the call node so that when it is evaluated, it uses that
             // already computed value. This allows us to step into the function
+            if (Array.isArray(statement)) {
+                // Bare compound block `{ ... }` — the parser returns it as a raw
+                // Statement[] embedded in the parent body.
+                state.commands.push(new BlockCommand(statement));
+                continue;
+            }
             if (statement instanceof AST.Let ||
                 statement instanceof AST.Var ||
                 statement instanceof AST.Const ||
