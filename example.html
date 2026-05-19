@@ -1,26 +1,271 @@
-<html>
-  <body>
-    <h1>WGSL Reflection Library</h1>
-    <h1>Shader</h1>
-    <textarea id="shader" style="width: 100%; height: 300px"></textarea>
-    <button id="parse" style="margin-top: 10px; width: 100px; background-color: #afa">COMPILE</button>
-    <h1>Reflection Info</h1>
-    <div
-      id="shader_info"
-      style="width: 100%; background-color: #eee; padding: 10px; border: 1px solid #888;"></div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>WGSL Reflection</title>
+  <style>
+    :root {
+      --bg: #f5f6f8;
+      --panel: #ffffff;
+      --border: #d8dde5;
+      --text: #1f2530;
+      --muted: #6b7180;
+      --accent: #3b6ef0;
+      --accent-soft: #e8eefd;
+      --code: #f1f3f7;
+      --vertex: #2c8a4d;
+      --fragment: #c25400;
+      --compute: #6b3aa0;
+      --err: #c0392b;
+      --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    }
 
-    <script type="module">
-      import * as wgsl from "./wgsl_reflect.module.js";
+    * { box-sizing: border-box; }
 
-      const shader = `
-struct ViewUniforms {
-    viewProjection: mat4x4<f32>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    header {
+      padding: 14px 24px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+    }
+    header h1 { margin: 0; font-size: 18px; font-weight: 600; }
+    header .subtitle { color: var(--muted); font-size: 13px; }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(320px, 1fr) minmax(420px, 1.4fr);
+      gap: 16px;
+      padding: 16px 24px;
+      min-height: calc(100vh - 56px);
+    }
+    @media (max-width: 1000px) { main { grid-template-columns: 1fr; } }
+
+    .pane {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .pane-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .pane-header h2 { margin: 0; font-size: 15px; font-weight: 600; }
+    .pane-header .meta { color: var(--muted); font-size: 12px; }
+
+    #shader {
+      flex: 1;
+      width: 100%;
+      min-height: 480px;
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.45;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 10px 12px;
+      resize: vertical;
+      background: #fafbfc;
+      color: var(--text);
+      tab-size: 2;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    button {
+      font: inherit;
+      padding: 6px 14px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover { filter: brightness(1.08); }
+    .timing { color: var(--muted); font-size: 12px; }
+
+    #info { overflow-y: auto; }
+
+    .error {
+      background: #fff0ee;
+      border: 1px solid #f5b5ad;
+      color: var(--err);
+      padding: 12px 14px;
+      border-radius: 4px;
+      font-family: var(--mono);
+      white-space: pre-wrap;
+    }
+
+    section {
+      margin-bottom: 18px;
+    }
+    section > h3 {
+      margin: 0 0 8px 0;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+    }
+    section > h3 .count {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 6px;
+      font-size: 11px;
+      background: var(--code);
+      color: var(--text);
+      border-radius: 10px;
+      font-weight: 500;
+      letter-spacing: 0;
+    }
+
+    .card {
+      background: #fbfcfd;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+    }
+    .card-title {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .card-title .name {
+      font-weight: 600;
+      font-family: var(--mono);
+    }
+    .card-title .type {
+      font-family: var(--mono);
+      color: var(--accent);
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      padding: 1px 6px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      background: var(--code);
+      color: var(--muted);
+    }
+    .badge.vertex { background: #e3f2e9; color: var(--vertex); }
+    .badge.fragment { background: #fdeede; color: var(--fragment); }
+    .badge.compute { background: #efe6f7; color: var(--compute); }
+    .badge.access { background: var(--accent-soft); color: var(--accent); }
+
+    .kv {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      gap: 2px 14px;
+      font-size: 12.5px;
+    }
+    .kv .k { color: var(--muted); }
+    .kv .v { font-family: var(--mono); }
+
+    table.members {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      margin-top: 6px;
+    }
+    table.members th, table.members td {
+      text-align: left;
+      padding: 4px 8px;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--mono);
+    }
+    table.members th {
+      font-family: inherit;
+      font-weight: 500;
+      color: var(--muted);
+      font-size: 11.5px;
+      background: var(--code);
+    }
+    table.members tr:last-child td { border-bottom: none; }
+    table.members td.num { text-align: right; color: var(--muted); }
+
+    .type-tree {
+      margin-top: 6px;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      background: var(--code);
+      padding: 8px 10px;
+      border-radius: 4px;
+      white-space: pre;
+      overflow-x: auto;
+    }
+
+    ul.plain {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 12.5px;
+    }
+    ul.plain li { margin: 2px 0; }
+    ul.plain code { font-family: var(--mono); }
+
+    .nothing { color: var(--muted); font-style: italic; padding: 6px 0; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>WGSL Reflection</h1>
+    <span class="subtitle">Inspect entry points, bindings, structs, and bind groups from any WGSL shader.</span>
+  </header>
+
+  <main>
+    <div class="pane">
+      <div class="pane-header">
+        <h2>Shader</h2>
+        <div class="toolbar">
+          <button id="parse">Reflect</button>
+          <span class="timing" id="timing"></span>
+          <span class="meta" id="size_info"></span>
+        </div>
+      </div>
+      <textarea id="shader" spellcheck="false"></textarea>
+    </div>
+
+    <div class="pane">
+      <div class="pane-header">
+        <h2>Reflection</h2>
+      </div>
+      <div id="info"></div>
+    </div>
+  </main>
+
+  <script type="module">
+    import * as wgsl from "./wgsl_reflect.module.js";
+
+    const DEFAULT_SHADER = `struct ViewUniforms {
+    viewProjection: mat4x4<f32>,
 }
 
 struct ModelUniforms {
     model: mat4x4<f32>,
     color: vec4<f32>,
-    intensity: f32
+    intensity: f32,
 }
 
 @binding(0) @group(0) var<uniform> viewUniforms: ViewUniforms;
@@ -28,238 +273,373 @@ struct ModelUniforms {
 @binding(2) @group(0) var u_sampler: sampler;
 @binding(3) @group(0) var u_texture: texture_2d<f32>;
 
+override SHADOW_BIAS: f32 = 0.005;
+
 struct VertexInput {
     @location(0) a_position: vec3<f32>,
     @location(1) a_normal: vec3<f32>,
     @location(2) a_color: vec4<f32>,
-    @location(3) a_uv: vec2<f32>
+    @location(3) a_uv: vec2<f32>,
 }
 
 struct VertexOutput {
     @builtin(position) Position: vec4<f32>,
-    @location(0) v_position: vec4<f32>,
+    @location(0) @interpolate(perspective) v_position: vec4<f32>,
     @location(1) v_normal: vec3<f32>,
     @location(2) v_color: vec4<f32>,
-    @location(3) v_uv: vec2<f32>
+    @location(3) v_uv: vec2<f32>,
+}
+
+fn applyBias(v: vec4<f32>) -> vec4<f32> {
+    return v + vec4<f32>(0.0, 0.0, SHADOW_BIAS, 0.0);
 }
 
 @vertex
-fn main(input: VertexInput) -> VertexOutput {
+fn vs_main(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
-    output.Position = viewUniforms.viewProjection * modelUniforms.model * vec4<f32>(input.a_position, 1.0);
+    output.Position = applyBias(viewUniforms.viewProjection * modelUniforms.model * vec4<f32>(input.a_position, 1.0));
     output.v_position = output.Position;
     output.v_normal = input.a_normal;
     output.v_color = input.a_color * modelUniforms.color * modelUniforms.intensity;
     output.v_uv = input.a_uv;
     return output;
+}
+
+@fragment
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+    let sampled = textureSample(u_texture, u_sampler, in.v_uv);
+    return sampled * in.v_color;
 }`;
 
-      const shadercode = document.getElementById("shader");
-      shadercode.value = shader;
+    const shaderInput = document.getElementById("shader");
+    const infoEl = document.getElementById("info");
+    const timingEl = document.getElementById("timing");
+    const sizeEl = document.getElementById("size_info");
+    shaderInput.value = DEFAULT_SHADER;
 
-      const shaderInfo = document.getElementById("shader_info");
+    // ---- helpers ---------------------------------------------------------
 
-      function getTypeName(type) {
-        if (type === null) {
-          return "i32";
+    const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[c]));
+
+    function getTypeName(type) {
+      if (!type) return "void";
+      if (type.isPointer) return `&amp;${getTypeName(type.format)}`;
+      if (type.isArray) {
+        const n = type.count ? type.count : "";
+        return `array&lt;${getTypeName(type.format)}${n ? ", " + n : ""}&gt;`;
+      }
+      if (type.format) {
+        return `${esc(type.name)}&lt;${getTypeName(type.format)}&gt;`;
+      }
+      return esc(type.name);
+    }
+
+    function fmtAttribute(attr) {
+      if (!attr.value) return `@${esc(attr.name)}`;
+      const v = Array.isArray(attr.value) ? attr.value.join(", ") : attr.value;
+      return `@${esc(attr.name)}(${esc(v)})`;
+    }
+
+    function fmtAttributes(attrs) {
+      if (!attrs || !attrs.length) return "";
+      return attrs.map(fmtAttribute).join(" ");
+    }
+
+    function getWorkgroupSize(fn) {
+      const a = (fn.attributes || []).find(x => x.name === "workgroup_size");
+      if (!a) return null;
+      return Array.isArray(a.value) ? a.value.join(", ") : a.value;
+    }
+
+    function resourceTypeName(rt) {
+      const map = {
+        [wgsl.ResourceType.Uniform]: "uniform",
+        [wgsl.ResourceType.Storage]: "storage",
+        [wgsl.ResourceType.Texture]: "texture",
+        [wgsl.ResourceType.Sampler]: "sampler",
+        [wgsl.ResourceType.StorageTexture]: "storage texture",
+      };
+      return map[rt] ?? `type ${rt}`;
+    }
+
+    function renderTypeTree(type, indent = 0) {
+      // Multi-line pretty print of a TypeInfo.
+      const pad = "  ".repeat(indent);
+      if (!type) return `${pad}void`;
+      if (type.isStruct) {
+        const head = `${pad}struct ${esc(type.name)} { size: ${type.size}, align: ${type.align} }`;
+        const lines = [head];
+        for (const m of type.members) {
+          const attr = m.attributes && m.attributes.length ? ` ${fmtAttributes(m.attributes)}` : "";
+          lines.push(`${pad}  [+${String(m.offset).padStart(3)} :${String(m.size).padStart(3)}]${attr} ${esc(m.name)}: ${getTypeName(m.type)}`);
+          if (m.type.isStruct || m.type.isArray) {
+            lines.push(renderTypeTree(m.type, indent + 2));
+          }
         }
-        let name = type.name;
-        if (type.format) {
-          name += `&lt;${getTypeName(type.format)}&gt;`;
+        return lines.join("\n");
+      }
+      if (type.isArray) {
+        const cnt = type.count ? type.count : "runtime";
+        const head = `${pad}array<${getTypeName(type.format)}, ${cnt}>  stride: ${type.stride}`;
+        if (type.format && (type.format.isStruct || type.format.isArray)) {
+          return `${head}\n${renderTypeTree(type.format, indent + 1)}`;
         }
-        return name;
+        return head;
+      }
+      return `${pad}${getTypeName(type)}`;
+    }
+
+    function membersTable(members) {
+      if (!members || !members.length) return "";
+      const rows = members.map(m => {
+        const attrs = m.attributes && m.attributes.length ? fmtAttributes(m.attributes) : "";
+        return `<tr>
+          <td class="num">${m.offset}</td>
+          <td class="num">${m.size}</td>
+          <td>${esc(m.name)}</td>
+          <td>${getTypeName(m.type)}</td>
+          <td>${attrs}</td>
+        </tr>`;
+      }).join("");
+      return `<table class="members">
+        <thead><tr><th>off</th><th>size</th><th>name</th><th>type</th><th>attrs</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+    }
+
+    function ioRow(io) {
+      const loc = io.locationType === "builtin"
+        ? `@builtin(${esc(io.location)})`
+        : `@location(${esc(io.location)})`;
+      const interp = io.interpolation
+        ? ` <span class="badge">${esc(io.interpolation)}</span>`
+        : "";
+      return `<li><code>${loc}</code> ${esc(io.name)}: <code>${getTypeName(io.type)}</code>${interp}</li>`;
+    }
+
+    function resourceRow(r) {
+      const accessBadge = r.access ? `<span class="badge access">${esc(r.access)}</span>` : "";
+      return `<li><code>@group(${r.group}) @binding(${r.binding})</code> ${esc(r.name)}: <code>${getTypeName(r.type)}</code> <span class="badge">${esc(resourceTypeName(r.resourceType))}</span> ${accessBadge}</li>`;
+    }
+
+    function entryCard(fn) {
+      const stage = fn.stage || "function";
+      const wg = getWorkgroupSize(fn);
+      const inputs = fn.inputs.length
+        ? `<ul class="plain">${fn.inputs.map(ioRow).join("")}</ul>`
+        : `<div class="nothing">no inputs</div>`;
+      const outputs = fn.outputs.length
+        ? `<ul class="plain">${fn.outputs.map(ioRow).join("")}</ul>`
+        : `<div class="nothing">no outputs</div>`;
+      const resources = fn.resources.length
+        ? `<ul class="plain">${fn.resources.map(resourceRow).join("")}</ul>`
+        : `<div class="nothing">no bound resources</div>`;
+      const calls = fn.calls && fn.calls.size
+        ? `<ul class="plain">${[...fn.calls].map(c => `<li><code>${esc(c.name)}</code></li>`).join("")}</ul>`
+        : "";
+      const overrides = fn.overrides && fn.overrides.length
+        ? `<ul class="plain">${fn.overrides.map(o => `<li><code>${esc(o.name)}</code>: <code>${getTypeName(o.type)}</code></li>`).join("")}</ul>`
+        : "";
+
+      return `<div class="card">
+        <div class="card-title">
+          <span class="name">${esc(fn.name)}</span>
+          <span class="badge ${stage}">${esc(stage)}</span>
+          ${wg ? `<span class="badge">workgroup_size(${esc(wg)})</span>` : ""}
+          <span class="meta" style="margin-left:auto; color:var(--muted); font-size:12px;">lines ${fn.startLine}–${fn.endLine}</span>
+        </div>
+        <div class="kv">
+          <div class="k">Inputs</div><div>${inputs}</div>
+          <div class="k">Outputs</div><div>${outputs}</div>
+          <div class="k">Resources</div><div>${resources}</div>
+          ${overrides ? `<div class="k">Overrides</div><div>${overrides}</div>` : ""}
+          ${calls ? `<div class="k">Calls</div><div>${calls}</div>` : ""}
+        </div>
+      </div>`;
+    }
+
+    function bindingCard(b) {
+      const isStructured = b.type && (b.type.isStruct || b.type.isArray);
+      const access = b.access ? `<span class="badge access">${esc(b.access)}</span>` : "";
+      const fmt = b.type?.format?.name ? `<span class="badge">${esc(b.type.format.name)}</span>` : "";
+      return `<div class="card">
+        <div class="card-title">
+          <span class="name">${esc(b.name)}</span>
+          <span class="type">${getTypeName(b.type)}</span>
+          ${access}
+          ${fmt}
+          <span class="meta" style="margin-left:auto; color:var(--muted); font-size:12px;">@group(${b.group}) @binding(${b.binding})</span>
+        </div>
+        <div class="kv">
+          <div class="k">Resource type</div><div>${esc(resourceTypeName(b.resourceType))}</div>
+          ${b.type.size ? `<div class="k">Size</div><div>${b.type.size} bytes</div>` : ""}
+          ${b.type.isStruct ? `<div class="k">Align</div><div>${b.type.align} bytes</div>` : ""}
+          ${b.type.isArray ? `<div class="k">Stride</div><div>${b.type.stride} bytes</div>` : ""}
+          ${b.type.isArray ? `<div class="k">Count</div><div>${b.type.count || "runtime"}</div>` : ""}
+        </div>
+        ${isStructured ? `<div class="type-tree">${renderTypeTree(b.type)}</div>` : ""}
+      </div>`;
+    }
+
+    function structCard(s) {
+      return `<div class="card">
+        <div class="card-title">
+          <span class="name">${esc(s.name)}</span>
+          <span class="meta" style="margin-left:auto; color:var(--muted); font-size:12px;">size ${s.size} · align ${s.align}${s.inUse ? "" : " · unused"}</span>
+        </div>
+        ${membersTable(s.members)}
+      </div>`;
+    }
+
+    function fnCard(fn) {
+      const args = fn.arguments.map(a => `${esc(a.name)}: ${getTypeName(a.type)}`).join(", ");
+      const ret = fn.returnType ? ` -&gt; ${getTypeName(fn.returnType)}` : "";
+      const calls = fn.calls && fn.calls.size
+        ? `<div class="kv"><div class="k">Calls</div><div>${[...fn.calls].map(c => `<code>${esc(c.name)}</code>`).join(", ")}</div></div>`
+        : "";
+      return `<div class="card">
+        <div class="card-title">
+          <span class="name">${esc(fn.name)}(${args})${ret}</span>
+          <span class="meta" style="margin-left:auto; color:var(--muted); font-size:12px;">lines ${fn.startLine}–${fn.endLine}${fn.inUse ? "" : " · unused"}</span>
+        </div>
+        ${calls}
+      </div>`;
+    }
+
+    function bindGroupsSection(reflect) {
+      const groups = reflect.getBindGroups();
+      if (!groups.length) return "";
+      const lines = groups.map((g, gi) => {
+        if (!g || !g.length) return `<div class="kv"><div class="k">@group(${gi})</div><div class="nothing">empty</div></div>`;
+        const rows = g.map((r, bi) => {
+          if (!r) return `<li><code>@binding(${bi})</code>: <span class="nothing">unbound</span></li>`;
+          return `<li><code>@binding(${r.binding})</code> ${esc(r.name)}: <code>${getTypeName(r.type)}</code> <span class="badge">${esc(resourceTypeName(r.resourceType))}</span></li>`;
+        }).join("");
+        return `<div class="card">
+          <div class="card-title"><span class="name">@group(${gi})</span></div>
+          <ul class="plain">${rows}</ul>
+        </div>`;
+      }).join("");
+      return `<section><h3>Bind Groups <span class="count">${groups.length}</span></h3>${lines}</section>`;
+    }
+
+    function totalEntries(reflect) {
+      return reflect.entry.vertex.length + reflect.entry.fragment.length + reflect.entry.compute.length;
+    }
+
+    function summaryRow(reflect) {
+      const s = [
+        ["entry points", totalEntries(reflect)],
+        ["functions", reflect.functions.length],
+        ["structs", reflect.structs.length],
+        ["uniforms", reflect.uniforms.length],
+        ["storage", reflect.storage.length],
+        ["textures", reflect.textures.length],
+        ["samplers", reflect.samplers.length],
+        ["overrides", reflect.overrides.length],
+        ["aliases", reflect.aliases.length],
+      ];
+      const cells = s.map(([k, v]) =>
+        `<div><div class="k">${k}</div><div class="v" style="font-size:16px">${v}</div></div>`
+      ).join("");
+      return `<section><div class="card" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(80px, 1fr)); gap:10px;">${cells}</div></section>`;
+    }
+
+    // ---- main render -----------------------------------------------------
+
+    function render(reflect) {
+      let html = "";
+      html += summaryRow(reflect);
+
+      // Entry points (grouped by stage)
+      const allEntries = [
+        ...reflect.entry.vertex,
+        ...reflect.entry.fragment,
+        ...reflect.entry.compute,
+      ];
+      if (allEntries.length) {
+        html += `<section><h3>Entry Points <span class="count">${allEntries.length}</span></h3>${allEntries.map(entryCard).join("")}</section>`;
       }
 
-      function getStructInfo(type, offset) {
-        let info = "";
-        info += `<li><b>Size:</b> ${type.size}</li>`;
-        info += `<li><b>Members:</b></li>`;
-        info += "<ul>";
-        for (let m in type.members) {
-          info += `<li><b>${type.members[m].name}</b> : <b>${getTypeName(type.members[m].type)}</b></li>`;
-          info += "<ul>";
-          info += `<li><b>Offset:</b>${type.members[m].offset}</li>`;
-          if (type.members[m].type.isArray) {
-            info += getArrayInfo(type.members[m].type, offset + type.members[m].offset);
-          } else if (type.members[m].type.isStruct) {
-            info += `<li><b>Size:</b>${type.members[m].size}</li>`;
-            info += getStructInfo(type.members[m].type, offset + type.members[m].offset);
-          } else {
-            info += `<li><b>Size:</b>${type.members[m].size}</li>`;
-          }
-          info += "</ul>";
+      html += bindGroupsSection(reflect);
+
+      if (reflect.uniforms.length) {
+        html += `<section><h3>Uniforms <span class="count">${reflect.uniforms.length}</span></h3>${reflect.uniforms.map(bindingCard).join("")}</section>`;
+      }
+      if (reflect.storage.length) {
+        html += `<section><h3>Storage <span class="count">${reflect.storage.length}</span></h3>${reflect.storage.map(bindingCard).join("")}</section>`;
+      }
+      if (reflect.immediates.length) {
+        html += `<section><h3>Immediates <span class="count">${reflect.immediates.length}</span></h3>${reflect.immediates.map(bindingCard).join("")}</section>`;
+      }
+      if (reflect.textures.length) {
+        html += `<section><h3>Textures <span class="count">${reflect.textures.length}</span></h3>${reflect.textures.map(bindingCard).join("")}</section>`;
+      }
+      if (reflect.samplers.length) {
+        html += `<section><h3>Samplers <span class="count">${reflect.samplers.length}</span></h3>${reflect.samplers.map(bindingCard).join("")}</section>`;
+      }
+      if (reflect.overrides.length) {
+        html += `<section><h3>Overrides <span class="count">${reflect.overrides.length}</span></h3>`;
+        for (const o of reflect.overrides) {
+          html += `<div class="card">
+            <div class="card-title">
+              <span class="name">${esc(o.name)}</span>
+              <span class="type">${getTypeName(o.type)}</span>
+              <span class="badge">id ${o.id}</span>
+            </div>
+          </div>`;
         }
-        info += "</ul>";
-        return info;
+        html += "</section>";
+      }
+      if (reflect.structs.length) {
+        html += `<section><h3>Structs <span class="count">${reflect.structs.length}</span></h3>${reflect.structs.map(structCard).join("")}</section>`;
+      }
+      if (reflect.aliases.length) {
+        html += `<section><h3>Aliases <span class="count">${reflect.aliases.length}</span></h3>
+          <div class="card"><ul class="plain">${reflect.aliases.map(a => `<li><code>${esc(a.name)}</code> = <code>${getTypeName(a.type)}</code></li>`).join("")}</ul></div>
+        </section>`;
       }
 
-      function getArrayInfo(type, offset) {
-        let info = "";
-        info += `<li><b>Size:</b> ${type.size}</li>`;
-        info += `<li><b>Count:</b> ${type.count}</li>`;
-        info += `<li><b>Stride:</b> ${type.stride}</li>`;
-        info += `<li><b>Format:</b> <b>${getTypeName(type.format)}</b></li>`;
-        info += "<ul>";
-        if (type.format.isArray) {
-          info += getArrayInfo(type.format, offset);
-        } else if (type.format.isStruct) {
-          info += getStructInfo(type.format, offset);
-        }
-        info += "</ul>";
-        return info;
+      // Non-entry functions
+      const nonEntry = reflect.functions.filter(f => !f.stage);
+      if (nonEntry.length) {
+        html += `<section><h3>Functions <span class="count">${nonEntry.length}</span></h3>${nonEntry.map(fnCard).join("")}</section>`;
       }
 
-      function parse() {
-        let info = "";
-        const t1 = performance.now();
-        let reflect;
-        try {
-          reflect = new wgsl.WgslReflect(shadercode.value);
-        } catch (e) {
-          let msg = e.message;
-          if (e.token) {
-            msg += ` Line ${e.token.line}. Found: '${e.token}'.`;
-          }
-          shaderInfo.innerHTML = `<h2 style="color:#f00;">${msg}</h2>`;
-          return;
+      infoEl.innerHTML = html || `<div class="nothing">No reflection data.</div>`;
+    }
+
+    function parse() {
+      sizeEl.textContent = `${shaderInput.value.length} chars`;
+      const t0 = performance.now();
+      let reflect;
+      try {
+        reflect = new wgsl.WgslReflect(shaderInput.value);
+      } catch (e) {
+        let msg = e.message;
+        if (e.token) {
+          msg += `\nLine ${e.token.line}. Found: '${e.token}'.`;
         }
-        const t2 = performance.now();
-
-        info += "<b>Entry Points</b>";
-        info += "<ul>";
-        for (let s in reflect.entry) {
-          for (let e of reflect.entry[s]) {
-            info += `<li><b>${e.name}</b>: ${s}</li>`;
-            if (e.inputs.length) {
-              info += "<ul>";
-              info += "<li><b>Inputs</b></li>";
-              info += "<ul>";
-              for (let ei of e.inputs) {
-                info += `<li><b>${ei.name}</b>: <b>${getTypeName(ei.type)}</b>  location:<b> ${ei.location}</b></li>`;
-              }
-              info += "</ul>";
-              info += "</ul>";
-            }
-          }
-        }
-        info += "</ul>";
-
-        if (reflect.overrides.length) {
-          info += `<b>Overrides</b><p>`;
-          info += "<ul>";
-          for (const o of reflect.overrides) {
-            info += `<li><b>${o.name}</b>: <b>${getTypeName(o.type)}</b></li>`;
-            let first = true;
-            for (const f of reflect.functions) {
-              if (f.overrides.indexOf(o) !== -1) {
-                if (first) {
-                  info += `<ul><li><b>Functions</b></li><ul>`;
-                  first = false;
-                }
-                info += `<li><b>Function:</b> ${f.name}</li>`;
-              }
-            }
-            if (!first) {
-              info += "</ul></ul>";
-            }
-          }
-          info += "</ul>";
-        }
-
-        if (reflect.textures.length) {
-          info += `<b>Textures</b><p>`;
-          info += "<ul>";
-          for (let s of reflect.textures) {
-            info += `<li><b>${s.name}</b>: <b>${s.type.name}</b></li>`;
-            info += "<ul>";
-            info += `<li><b>Group:</b> ${s.group}</li>`;
-            info += `<li><b>Binding:</b> ${s.binding}</li>`;
-            info += `<li><b>Format:</b> ${s.type?.format?.name ?? "<unknown>"}</li>`;
-            info += `<li><b>Access:</b> ${s.access}</li>`;
-            info += "</ul>";
-          }
-          info += "</ul>";
-        }
-
-        if (reflect.samplers.length) {
-          info += `<b>Samplers</b><p>`;
-          info += "<ul>";
-          for (let s of reflect.samplers) {
-            info += `<li><b>${s.name}</b>: <b>${s.type.name}</b></li>`;
-            info += "<ul>";
-            info += `<li><b>Group:</b> ${s.group}</li>`;
-            info += `<li><b>Binding:</b> ${s.binding}</li>`;
-            info += "</ul>";
-          }
-          info += "</ul>";
-        }
-
-        if (reflect.storage.length) {
-          info += `<b>Storage Buffers</b><p>`;
-          info += "<ul>";
-          for (let s of reflect.storage) {
-            info += `<li><b>${s.name}</b>: <b>${s.type.name}</b></li>`;
-            info += "<ul>";
-            info += `<li><b>Group:</b> ${s.group}</li>`;
-            info += `<li><b>Binding:</b> ${s.binding}</li>`;
-            info += `<li><b>Access:</b> ${s.access}</li>`;
-            if (s.type.isStruct) {
-              info += getStructInfo(s.type, 0);
-            } else if (s.type.isArray) {
-              info += getArrayInfo(s.type, 0);
-            }
-            info += "</ul>";
-          }
-          info += "</ul>";
-        }
-
-        if (reflect.immediates.length) {
-          info += `<b>Immediate Buffers</b><p>`;
-          info += "<ul>";
-          for (let s of reflect.immediates) {
-            info += `<li><b>${s.name}</b>: <b>${s.type.name}</b></li>`;
-            info += "<ul>";
-            info += `<li><b>Group:</b> ${s.group}</li>`;
-            info += `<li><b>Binding:</b> ${s.binding}</li>`;
-            info += `<li><b>Access:</b> ${s.access}</li>`;
-            if (s.type.isStruct) {
-              info += getStructInfo(s.type, 0);
-            } else if (s.type.isArray) {
-              info += getArrayInfo(s.type, 0);
-            }
-            info += "</ul>";
-          }
-          info += "</ul>";
-        }
-
-        if (reflect.uniforms.length) {
-          info += `<b>Uniforms</b><p>`;
-          info += "<ul>";
-          for (let s of reflect.uniforms) {
-            info += `<li><b>${s.name}</b>: <b>${s.type.name}</b></li>`;
-
-            info += "<ul>";
-            info += `<li><b>Buffer Size:</b> ${s.type.size}</li>`;
-            info += `<li><b>Group:</b> ${s.group}</li>`;
-            info += `<li><b>Binding:</b> ${s.binding}</li>`;
-            if (s.type.isStruct) {
-              info += getStructInfo(s.type, 0);
-            } else if (s.type.isArray) {
-              info += getArrayInfo(s.type, 0);
-            }
-            info += "</ul>";
-          }
-          info += "</ul>";
-        }
-
-        shaderInfo.innerHTML = info;
+        infoEl.innerHTML = `<div class="error">${esc(msg)}</div>`;
+        timingEl.textContent = "";
+        return;
       }
-      parse();
+      const t1 = performance.now();
+      render(reflect);
+      timingEl.textContent = `Parsed in ${(t1 - t0).toFixed(1)} ms`;
+    }
 
-      const parseButton = document.getElementById("parse");
-      parseButton.addEventListener("click", function () {
-        parse();
-      });
-    </script>
-  </body>
+    document.getElementById("parse").addEventListener("click", parse);
+
+    // Live re-parse with a small debounce on edits.
+    let debounce = null;
+    shaderInput.addEventListener("input", () => {
+      clearTimeout(debounce);
+      debounce = setTimeout(parse, 250);
+    });
+
+    parse();
+  </script>
+</body>
 </html>
