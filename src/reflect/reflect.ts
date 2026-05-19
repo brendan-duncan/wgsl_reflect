@@ -635,7 +635,7 @@ export class Reflect {
       this._getAttribute(node, "location") ||
       this._getAttribute(node, "builtin");
     if (location !== null) {
-      const interpolation = this._getAttribute(node, "interpolation");
+      const interpolation = this._getAttribute(node, "interpolate");
       const type = this.getTypeInfo(node.type, node.attributes);
       const locationValue = this._parseInt(location.value);
       const info = new InputInfo(node.name, type, location.name, locationValue);
