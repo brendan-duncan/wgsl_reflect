@@ -50,6 +50,7 @@ export declare class WgslExec extends ExecInterface {
     _evalLiteral(node: LiteralExpr, context: ExecContext): Data | null;
     _evalVariable(node: VariableExpr, context: ExecContext): Data | null;
     static _priority: Map<string, number>;
+    _resolveAtomicType(typeInfo: TypeInfo): TypeInfo;
     _maxFormatTypeInfo(x: TypeInfo[]): TypeInfo | null;
     _evalUnaryOp(node: UnaryOperator, context: ExecContext): Data | null;
     _isMatrixType(data: Data): boolean;

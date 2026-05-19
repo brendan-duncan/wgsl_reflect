@@ -1183,6 +1183,47 @@ export async function run() {
                 test.equals(histogramBuffer, webgpuData);
         });
 
+        await test("atomic array", async function (test) {
+            // Exercises atomic-aware paths in WgslExec that aren't reached by
+            // the existing nested-array atomic test:
+            //   - atomicAdd/atomicStore on a directly-bound array<atomic<u32>, N>
+            //     and array<atomic<i32>, N> (i32 atomics are new),
+            //   - _maxFormatTypeInfo resolving the atomic<u32> type of atomicLoad
+            //     result when used as a binary-op operand (b + 3u),
+            //   - default zero-init of a var<workgroup> atomic<u32> via the
+            //     atomic<u32>() constructor path in _evalCreate.
+            const shader = `
+                @group(0) @binding(0) var<storage, read_write> bins: array<atomic<u32>, 4>;
+                @group(0) @binding(1) var<storage, read_write> signed: array<atomic<i32>, 3>;
+                var<workgroup> scratch: atomic<u32>;
+                @compute @workgroup_size(1) fn main() {
+                    atomicStore(&scratch, 0u);
+                    atomicAdd(&bins[0], 1u);
+                    atomicAdd(&bins[1], 2u);
+                    let b = atomicLoad(&bins[2]);
+                    atomicStore(&bins[2], b + 3u);
+                    atomicAdd(&bins[3], 4u);
+                    atomicStore(&signed[0], -1);
+                    atomicStore(&signed[1], -2);
+                    atomicAdd(&signed[2], -3);
+                }`;
+            const binsBuffer = new Uint32Array([0, 0, 0, 0]);
+            const signedBuffer = new Int32Array([0, 0, 0]);
+            const bg = {0: {0: binsBuffer, 1: signedBuffer}};
+
+            const _data = await webgpuDispatch(shader, "main", 1, bg);
+            const webgpuBins = new Uint32Array(_data[0]);
+            const webgpuSigned = new Int32Array(_data[1]);
+
+            const wgsl = _newWgslExec(shader);
+            wgsl.dispatchWorkgroups("main", 1, bg);
+
+            test.equals(binsBuffer, webgpuBins);
+            test.equals(signedBuffer, webgpuSigned);
+            test.equals(Array.from(binsBuffer), [1, 2, 3, 4]);
+            test.equals(Array.from(signedBuffer), [-1, -2, -3]);
+        });
+
         await test("atomic", async function (test) {
             const shader = `
                 @group(0) @binding(0) var<storage, read_write> bins: array<array<atomic<u32>, 3>>;

@@ -101,11 +101,12 @@ export class WgslExec extends ExecInterface {
         }
         if (v instanceof TypedData) {
             if (v.typeInfo instanceof ArrayInfo) {
-                if (v.typeInfo.format.name === "u32") {
+                const formatName = this._resolveAtomicType(v.typeInfo.format).name;
+                if (formatName === "u32") {
                     return Array.from(new Uint32Array(v.buffer, v.offset, v.typeInfo.count));
-                } else if (v.typeInfo.format.name === "i32") {
+                } else if (formatName === "i32") {
                     return Array.from(new Int32Array(v.buffer, v.offset, v.typeInfo.count));
-                } else if (v.typeInfo.format.name === "f32") {
+                } else if (formatName === "f32") {
                     return Array.from(new Float32Array(v.buffer, v.offset, v.typeInfo.count));
                 }
             }
@@ -1260,6 +1261,10 @@ export class WgslExec extends ExecInterface {
                 case "f32":
                 case "f16":
                     return this._callConstructorValue(node, context);
+                case "atomic<u32>":
+                    return new ScalarData(0, this.getTypeInfo("u32"));
+                case "atomic<i32>":
+                    return new ScalarData(0, this.getTypeInfo("i32"));
                 case "vec2":
                 case "vec3":
                 case "vec4":
@@ -1399,8 +1404,18 @@ export class WgslExec extends ExecInterface {
     }
 
     static _priority = new Map<string, number>([["f32", 0], ["f16", 1], ["u32", 2], ["i32", 3], ["x32", 3]]);
+    _resolveAtomicType(typeInfo: TypeInfo): TypeInfo {
+        if (typeInfo instanceof TemplateInfo && typeInfo.name === "atomic" && typeInfo.format) {
+            return typeInfo.format;
+        }
+        return typeInfo;
+    }
     _maxFormatTypeInfo(x: TypeInfo[]): TypeInfo | null {
+        x = x.map(t => this._resolveAtomicType(t));
         let t = x[0];
+        if (t === null || t === undefined) {
+            return null;
+        }
         if (t.name === "f32") {
             return t;
         }
