@@ -115,6 +115,8 @@ export declare class BuiltinFunctions {
     AtomicXor(node: CallExpr | Call, context: ExecContext): Data | null;
     AtomicExchange(node: CallExpr | Call, context: ExecContext): Data | null;
     AtomicCompareExchangeWeak(node: CallExpr | Call, context: ExecContext): Data | null;
+    _packSnormByte(v: number): number;
+    _packUnormByte(v: number): number;
     Pack4x8snorm(node: CallExpr | Call, context: ExecContext): Data | null;
     Pack4x8unorm(node: CallExpr | Call, context: ExecContext): Data | null;
     Pack4xI8(node: CallExpr | Call, context: ExecContext): Data | null;
@@ -131,6 +133,10 @@ export declare class BuiltinFunctions {
     Unpack2x16snorm(node: CallExpr | Call, context: ExecContext): Data | null;
     Unpack2x16unorm(node: CallExpr | Call, context: ExecContext): Data | null;
     Unpack2x16float(node: CallExpr | Call, context: ExecContext): Data | null;
+    static _f32Convert: Float32Array<ArrayBuffer>;
+    static _u32View: Uint32Array<ArrayBuffer>;
+    static _f32ToF16Bits(val: number): number;
+    static _f16BitsToF32(bits: number): number;
     StorageBarrier(node: CallExpr | Call, context: ExecContext): Data | null;
     TextureBarrier(node: CallExpr | Call, context: ExecContext): Data | null;
     WorkgroupBarrier(node: CallExpr | Call, context: ExecContext): Data | null;

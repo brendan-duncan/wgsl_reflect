@@ -264,6 +264,7 @@ export class BuiltinFunctions {
     }
 
     Determinant(node: CallExpr | Call, context: ExecContext): Data | null {
+        // WGSL only defines determinant() for square matrices (matNxN).
         const m = this.exec.evalExpression(node.args[0], context);
         if (m instanceof MatrixData) {
             const mv = m.data;
@@ -272,25 +273,31 @@ export class BuiltinFunctions {
             const formatType = isHalf ? this.getTypeInfo("f16") : this.getTypeInfo("f32");
             if (mt === "mat2x2" || mt === "mat2x2f" || mt === "mat2x2h") {
                 return new ScalarData(mv[0] * mv[3] - mv[1] * mv[2], formatType);
-            } else if (mt === "mat2x3" || mt === "mat2x3f" || mt === "mat2x3h") {
-                return new ScalarData(mv[0] * (mv[4] * mv[8] - mv[5] * mv[7]) -
-                        mv[1] * (mv[3] * mv[8] - mv[5] * mv[6]) + mv[2] * (mv[3] * mv[7] - mv[4] * mv[6]), formatType);
-            } else if (mt === "mat2x4" || mt === "mat2x4f" || mt === "mat2x4h") {
-                console.error(`TODO: Determinant for ${mt}`);
-            } else if (mt === "mat3x2" || mt === "mat3x2f" || mt === "mat3x2h") {
-                console.error(`TODO: Determinant for ${mt}`);
             } else if (mt === "mat3x3" || mt === "mat3x3f" || mt === "mat3x3h") {
                 return new ScalarData(mv[0] * (mv[4] * mv[8] - mv[5] * mv[7]) -
                         mv[1] * (mv[3] * mv[8] - mv[5] * mv[6]) + mv[2] * (mv[3] * mv[7] - mv[4] * mv[6]), formatType);
-            } else if (mt === "mat3x4" || mt === "mat3x4f" || mt === "mat3x4h") {
-                console.error(`TODO: Determinant for ${mt}`);
-            } else if (mt === "mat4x2" || mt === "mat4x2f" || mt === "mat4x2h") {
-                console.error(`TODO: Determinant for ${mt}`);
-            } else if (mt === "mat4x3" || mt === "mat4x3f" || mt === "mat4x3h") {
-                console.error(`TODO: Determinant for ${mt}`);
             } else if (mt === "mat4x4" || mt === "mat4x4f" || mt === "mat4x4h") {
-                console.error(`TODO: Determinant for ${mt}`);
+                // Column-major: m[c, r] = mv[c*4 + r].
+                const m00 = mv[0], m01 = mv[1], m02 = mv[2], m03 = mv[3];
+                const m10 = mv[4], m11 = mv[5], m12 = mv[6], m13 = mv[7];
+                const m20 = mv[8], m21 = mv[9], m22 = mv[10], m23 = mv[11];
+                const m30 = mv[12], m31 = mv[13], m32 = mv[14], m33 = mv[15];
+                const s0 = m00 * m11 - m10 * m01;
+                const s1 = m00 * m12 - m10 * m02;
+                const s2 = m00 * m13 - m10 * m03;
+                const s3 = m01 * m12 - m11 * m02;
+                const s4 = m01 * m13 - m11 * m03;
+                const s5 = m02 * m13 - m12 * m03;
+                const c5 = m22 * m33 - m32 * m23;
+                const c4 = m21 * m33 - m31 * m23;
+                const c3 = m21 * m32 - m31 * m22;
+                const c2 = m20 * m33 - m30 * m23;
+                const c1 = m20 * m32 - m30 * m22;
+                const c0 = m20 * m31 - m30 * m21;
+                return new ScalarData(s0 * c5 - s1 * c4 + s2 * c3 + s3 * c2 - s4 * c1 + s5 * c0, formatType);
             }
+            console.error(`Determinant: unsupported matrix type ${mt}. Line ${node.line}`);
+            return null;
         }
         console.error(`Determinant expects a matrix argument. Line ${node.line}`);
         return null;
@@ -330,13 +337,28 @@ export class BuiltinFunctions {
     }
 
     Dot4U8Packed(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error(`TODO: dot4U8Packed. Line ${node.line}`);
-        return null;
+        const a = this.exec.evalExpression(node.args[0], context) as ScalarData;
+        const b = this.exec.evalExpression(node.args[1], context) as ScalarData;
+        const ua = a.value >>> 0;
+        const ub = b.value >>> 0;
+        let sum = 0;
+        for (let i = 0; i < 4; ++i) {
+            sum += ((ua >>> (i * 8)) & 0xff) * ((ub >>> (i * 8)) & 0xff);
+        }
+        return new ScalarData(sum >>> 0, this.getTypeInfo("u32"));
     }
 
     Dot4I8Packed(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error(`TODO: dot4I8Packed. Line ${node.line}`);
-        return null;
+        const a = this.exec.evalExpression(node.args[0], context) as ScalarData;
+        const b = this.exec.evalExpression(node.args[1], context) as ScalarData;
+        const ua = a.value >>> 0;
+        const ub = b.value >>> 0;
+        const sext = (x: number) => (x & 0x80) ? x - 256 : x;
+        let sum = 0;
+        for (let i = 0; i < 4; ++i) {
+            sum += sext((ua >>> (i * 8)) & 0xff) * sext((ub >>> (i * 8)) & 0xff);
+        }
+        return new ScalarData(sum | 0, this.getTypeInfo("i32"));
     }
 
     Exp(node: CallExpr | Call, context: ExecContext): Data | null {
@@ -468,8 +490,21 @@ export class BuiltinFunctions {
     }
 
     Frexp(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error(`TODO: frexp. Line ${node.line}`);
-        return null;
+        // WGSL frexp returns __frexp_result_{f32,f16,vecN<...>}. Struct returns from builtins
+        // aren't wired through the type system here (see Modf), so we return only the fract
+        // component as a Data of matching shape; the .exp field isn't surfaceable in shaders
+        // until the parser learns the result struct names.
+        const value = this.exec.evalExpression(node.args[0], context);
+        const fract = (x: number) => {
+            if (x === 0 || !isFinite(x) || isNaN(x)) return x;
+            const e = Math.floor(Math.log2(Math.abs(x))) + 1;
+            return x / Math.pow(2, e);
+        };
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v: number) => fract(v)), value.typeInfo);
+        }
+        const s = value as ScalarData;
+        return new ScalarData(fract(s.value), value.typeInfo);
     }
 
     InsertBits(node: CallExpr | Call, context: ExecContext): Data | null {
@@ -508,8 +543,14 @@ export class BuiltinFunctions {
     }
 
     Ldexp(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error(`TODO: ldexp. Line ${node.line}`);
-        return null;
+        const e1 = this.exec.evalExpression(node.args[0], context);
+        const e2 = this.exec.evalExpression(node.args[1], context);
+        if (e1 instanceof VectorData && e2 instanceof VectorData) {
+            return new VectorData(e1.data.map((v: number, i: number) => v * Math.pow(2, e2.data[i])), e1.typeInfo);
+        }
+        const a = e1 as ScalarData;
+        const b = e2 as ScalarData;
+        return new ScalarData(a.value * Math.pow(2, b.value), e1.typeInfo);
     }
 
     Length(node: CallExpr | Call, context: ExecContext): Data | null {
@@ -609,13 +650,13 @@ export class BuiltinFunctions {
     }
 
     QuantizeToF16(node: CallExpr | Call, context: ExecContext): Data | null {
-        // TODO: actually quantize the f32 to f16
         const value = this.exec.evalExpression(node.args[0], context);
+        const q = (v: number) => BuiltinFunctions._f16BitsToF32(BuiltinFunctions._f32ToF16Bits(v));
         if (value instanceof VectorData) {
-            return new VectorData(value.data.map((v: number) => v), value.typeInfo);
+            return new VectorData(value.data.map((v: number) => q(v)), value.typeInfo);
         }
         const s = value as ScalarData;
-        return new ScalarData(s.value, value.typeInfo);
+        return new ScalarData(q(s.value), value.typeInfo);
     }
 
     Radians(node: CallExpr | Call, context: ExecContext): Data | null {
@@ -660,8 +701,20 @@ export class BuiltinFunctions {
     }
 
     ReverseBits(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error(`TODO: reverseBits. Line ${node.line}`);
-        return null;
+        const value = this.exec.evalExpression(node.args[0], context);
+        const reverse = (n: number) => {
+            let x = n >>> 0;
+            x = ((x & 0x55555555) << 1) | ((x >>> 1) & 0x55555555);
+            x = ((x & 0x33333333) << 2) | ((x >>> 2) & 0x33333333);
+            x = ((x & 0x0f0f0f0f) << 4) | ((x >>> 4) & 0x0f0f0f0f);
+            x = ((x & 0x00ff00ff) << 8) | ((x >>> 8) & 0x00ff00ff);
+            return ((x << 16) | (x >>> 16)) >>> 0;
+        };
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map((v: number) => reverse(v)), value.typeInfo);
+        }
+        const s = value as ScalarData;
+        return new ScalarData(reverse(s.value), value.typeInfo);
     }
 
     Round(node: CallExpr | Call, context: ExecContext): Data | null {
@@ -1381,90 +1434,326 @@ export class BuiltinFunctions {
     }
 
     AtomicCompareExchangeWeak(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: atomicCompareExchangeWeak");
-        return null;
+        // WGSL atomicCompareExchangeWeak returns a struct __atomic_compare_exchange_result<T>
+        // { old_value: T, exchanged: bool }. Struct returns from builtins aren't wired through
+        // the type system here (see also Modf), so we model the spec's "exchanged: true on
+        // match" path by performing the swap and returning the prior value as a ScalarData.
+        let l = node.args[0];
+        if (l instanceof UnaryOperator) {
+            l = l.right;
+        }
+
+        const name = this.exec.getVariableName(l, context);
+        const v = context.getVariable(name);
+
+        const cmp = this.exec.evalExpression(node.args[1], context);
+        const value = this.exec.evalExpression(node.args[2], context);
+
+        const currentValue = v.value.getSubData(this.exec, l.postfix, context);
+        const originalValue = new ScalarData((currentValue as ScalarData).value, currentValue.typeInfo);
+
+        if (currentValue instanceof ScalarData && cmp instanceof ScalarData && value instanceof ScalarData) {
+            if (currentValue.value === cmp.value) {
+                currentValue.value = value.value;
+                if (v.value instanceof TypedData) {
+                    v.value.setDataValue(this.exec, currentValue, l.postfix, context);
+                }
+            }
+        }
+
+        return originalValue;
     }
 
     // Data Packing Built-in Functions
+    _packSnormByte(v: number): number {
+        // clamp(round(v * 127), -128, 127) as signed 8-bit
+        const s = Math.round(v * 127);
+        const c = s < -128 ? -128 : s > 127 ? 127 : s;
+        return c & 0xff;
+    }
+
+    _packUnormByte(v: number): number {
+        // clamp(round(v * 255), 0, 255) as unsigned 8-bit
+        const u = Math.round(v * 255);
+        const c = u < 0 ? 0 : u > 255 ? 255 : u;
+        return c & 0xff;
+    }
+
     Pack4x8snorm(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: pack4x8snorm");
-        return null;
+        const e = this.exec.evalExpression(node.args[0], context);
+        if (!(e instanceof VectorData)) {
+            console.error(`Pack4x8snorm() expects a vec4<f32> argument. Line ${node.line}`);
+            return null;
+        }
+        const d = e.data;
+        const result = (this._packSnormByte(d[0])
+                | (this._packSnormByte(d[1]) << 8)
+                | (this._packSnormByte(d[2]) << 16)
+                | (this._packSnormByte(d[3]) << 24)) >>> 0;
+        return new ScalarData(result, this.getTypeInfo("u32"));
     }
 
     Pack4x8unorm(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: pack4x8unorm");
-        return null;
+        const e = this.exec.evalExpression(node.args[0], context);
+        if (!(e instanceof VectorData)) {
+            console.error(`Pack4x8unorm() expects a vec4<f32> argument. Line ${node.line}`);
+            return null;
+        }
+        const d = e.data;
+        const result = (this._packUnormByte(d[0])
+                | (this._packUnormByte(d[1]) << 8)
+                | (this._packUnormByte(d[2]) << 16)
+                | (this._packUnormByte(d[3]) << 24)) >>> 0;
+        return new ScalarData(result, this.getTypeInfo("u32"));
     }
 
     Pack4xI8(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: pack4xI8");
-        return null;
+        const e = this.exec.evalExpression(node.args[0], context);
+        if (!(e instanceof VectorData)) {
+            console.error(`Pack4xI8() expects a vec4<i32> argument. Line ${node.line}`);
+            return null;
+        }
+        const d = e.data;
+        const result = ((d[0] & 0xff)
+                | ((d[1] & 0xff) << 8)
+                | ((d[2] & 0xff) << 16)
+                | ((d[3] & 0xff) << 24)) >>> 0;
+        return new ScalarData(result, this.getTypeInfo("u32"));
     }
 
     Pack4xU8(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: pack4xU8");
-        return null;
+        const e = this.exec.evalExpression(node.args[0], context);
+        if (!(e instanceof VectorData)) {
+            console.error(`Pack4xU8() expects a vec4<u32> argument. Line ${node.line}`);
+            return null;
+        }
+        const d = e.data;
+        const result = ((d[0] & 0xff)
+                | ((d[1] & 0xff) << 8)
+                | ((d[2] & 0xff) << 16)
+                | ((d[3] & 0xff) << 24)) >>> 0;
+        return new ScalarData(result, this.getTypeInfo("u32"));
     }
 
     Pack4x8Clamp(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: pack4x8Clamp");
-        return null;
+        // Signed-i8 clamp variant (matches the WGSL name used by this codebase).
+        const e = this.exec.evalExpression(node.args[0], context);
+        if (!(e instanceof VectorData)) {
+            console.error(`Pack4x8Clamp() expects a vec4<i32> argument. Line ${node.line}`);
+            return null;
+        }
+        const d = e.data;
+        const clamp = (v: number) => (v < -128 ? -128 : v > 127 ? 127 : v) & 0xff;
+        const result = (clamp(d[0])
+                | (clamp(d[1]) << 8)
+                | (clamp(d[2]) << 16)
+                | (clamp(d[3]) << 24)) >>> 0;
+        return new ScalarData(result, this.getTypeInfo("u32"));
     }
 
     Pack4xU8Clamp(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: pack4xU8Clamp");
-        return null;
+        const e = this.exec.evalExpression(node.args[0], context);
+        if (!(e instanceof VectorData)) {
+            console.error(`Pack4xU8Clamp() expects a vec4<u32> argument. Line ${node.line}`);
+            return null;
+        }
+        const d = e.data;
+        const clamp = (v: number) => (v < 0 ? 0 : v > 255 ? 255 : v) & 0xff;
+        const result = (clamp(d[0])
+                | (clamp(d[1]) << 8)
+                | (clamp(d[2]) << 16)
+                | (clamp(d[3]) << 24)) >>> 0;
+        return new ScalarData(result, this.getTypeInfo("u32"));
     }
 
     Pack2x16snorm(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: pack2x16snorm");
-        return null;
+        const e = this.exec.evalExpression(node.args[0], context);
+        if (!(e instanceof VectorData)) {
+            console.error(`Pack2x16snorm() expects a vec2<f32> argument. Line ${node.line}`);
+            return null;
+        }
+        const d = e.data;
+        const half = (v: number) => {
+            const s = Math.round(v * 32767);
+            const c = s < -32768 ? -32768 : s > 32767 ? 32767 : s;
+            return c & 0xffff;
+        };
+        const result = (half(d[0]) | (half(d[1]) << 16)) >>> 0;
+        return new ScalarData(result, this.getTypeInfo("u32"));
     }
 
     Pack2x16unorm(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: pack2x16unorm");
-        return null;
+        const e = this.exec.evalExpression(node.args[0], context);
+        if (!(e instanceof VectorData)) {
+            console.error(`Pack2x16unorm() expects a vec2<f32> argument. Line ${node.line}`);
+            return null;
+        }
+        const d = e.data;
+        const half = (v: number) => {
+            const u = Math.round(v * 65535);
+            return (u < 0 ? 0 : u > 65535 ? 65535 : u) & 0xffff;
+        };
+        const result = (half(d[0]) | (half(d[1]) << 16)) >>> 0;
+        return new ScalarData(result, this.getTypeInfo("u32"));
     }
 
     Pack2x16float(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: pack2x16float");
-        return null;
+        const e = this.exec.evalExpression(node.args[0], context);
+        if (!(e instanceof VectorData)) {
+            console.error(`Pack2x16float() expects a vec2<f32> argument. Line ${node.line}`);
+            return null;
+        }
+        const d = e.data;
+        const result = (BuiltinFunctions._f32ToF16Bits(d[0])
+                | (BuiltinFunctions._f32ToF16Bits(d[1]) << 16)) >>> 0;
+        return new ScalarData(result, this.getTypeInfo("u32"));
     }
 
     // Data Unpacking Built-in Functions
     Unpack4x8snorm(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: unpack4x8snorm");
-        return null;
+        const e = this.exec.evalExpression(node.args[0], context);
+        if (!(e instanceof ScalarData)) {
+            console.error(`Unpack4x8snorm() expects a u32 argument. Line ${node.line}`);
+            return null;
+        }
+        const u = e.value >>> 0;
+        const toSnorm = (b: number) => {
+            const s = b & 0x80 ? b - 256 : b;
+            const f = s / 127;
+            return f < -1 ? -1 : f > 1 ? 1 : f;
+        };
+        return new VectorData([toSnorm(u & 0xff), toSnorm((u >>> 8) & 0xff),
+                toSnorm((u >>> 16) & 0xff), toSnorm((u >>> 24) & 0xff)],
+                this.getTypeInfo("vec4f"));
     }
 
     Unpack4x8unorm(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: unpack4x8unorm");
-        return null;
+        const e = this.exec.evalExpression(node.args[0], context);
+        if (!(e instanceof ScalarData)) {
+            console.error(`Unpack4x8unorm() expects a u32 argument. Line ${node.line}`);
+            return null;
+        }
+        const u = e.value >>> 0;
+        return new VectorData([(u & 0xff) / 255, ((u >>> 8) & 0xff) / 255,
+                ((u >>> 16) & 0xff) / 255, ((u >>> 24) & 0xff) / 255],
+                this.getTypeInfo("vec4f"));
     }
 
     Unpack4xI8(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: unpack4xI8");
-        return null;
+        const e = this.exec.evalExpression(node.args[0], context);
+        if (!(e instanceof ScalarData)) {
+            console.error(`Unpack4xI8() expects a u32 argument. Line ${node.line}`);
+            return null;
+        }
+        const u = e.value >>> 0;
+        const sext = (b: number) => (b & 0x80) ? b - 256 : b;
+        return new VectorData([sext(u & 0xff), sext((u >>> 8) & 0xff),
+                sext((u >>> 16) & 0xff), sext((u >>> 24) & 0xff)],
+                this.getTypeInfo("vec4i"));
     }
 
     Unpack4xU8(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: unpack4xU8");
-        return null;
+        const e = this.exec.evalExpression(node.args[0], context);
+        if (!(e instanceof ScalarData)) {
+            console.error(`Unpack4xU8() expects a u32 argument. Line ${node.line}`);
+            return null;
+        }
+        const u = e.value >>> 0;
+        return new VectorData([u & 0xff, (u >>> 8) & 0xff,
+                (u >>> 16) & 0xff, (u >>> 24) & 0xff],
+                this.getTypeInfo("vec4u"));
     }
 
     Unpack2x16snorm(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: unpack2x16snorm");
-        return null;
+        const e = this.exec.evalExpression(node.args[0], context);
+        if (!(e instanceof ScalarData)) {
+            console.error(`Unpack2x16snorm() expects a u32 argument. Line ${node.line}`);
+            return null;
+        }
+        const u = e.value >>> 0;
+        const toSnorm = (h: number) => {
+            const s = h & 0x8000 ? h - 0x10000 : h;
+            const f = s / 32767;
+            return f < -1 ? -1 : f > 1 ? 1 : f;
+        };
+        return new VectorData([toSnorm(u & 0xffff), toSnorm((u >>> 16) & 0xffff)],
+                this.getTypeInfo("vec2f"));
     }
 
     Unpack2x16unorm(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: unpack2x16unorm");
-        return null;
+        const e = this.exec.evalExpression(node.args[0], context);
+        if (!(e instanceof ScalarData)) {
+            console.error(`Unpack2x16unorm() expects a u32 argument. Line ${node.line}`);
+            return null;
+        }
+        const u = e.value >>> 0;
+        return new VectorData([(u & 0xffff) / 65535, ((u >>> 16) & 0xffff) / 65535],
+                this.getTypeInfo("vec2f"));
     }
 
     Unpack2x16float(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: unpack2x16float");
-        return null;
+        const e = this.exec.evalExpression(node.args[0], context);
+        if (!(e instanceof ScalarData)) {
+            console.error(`Unpack2x16float() expects a u32 argument. Line ${node.line}`);
+            return null;
+        }
+        const u = e.value >>> 0;
+        return new VectorData([BuiltinFunctions._f16BitsToF32(u & 0xffff),
+                BuiltinFunctions._f16BitsToF32((u >>> 16) & 0xffff)],
+                this.getTypeInfo("vec2f"));
+    }
+
+    static _f32Convert = new Float32Array(1);
+    static _u32View = new Uint32Array(BuiltinFunctions._f32Convert.buffer);
+
+    static _f32ToF16Bits(val: number): number {
+        BuiltinFunctions._f32Convert[0] = val;
+        const bits = BuiltinFunctions._u32View[0];
+        const sign = (bits >>> 16) & 0x8000;
+        let exp = ((bits >>> 23) & 0xff) - 127 + 15;
+        const mantissa = bits & 0x7fffff;
+        if (((bits >>> 23) & 0xff) === 0xff) {
+            // NaN / Inf
+            return sign | 0x7c00 | (mantissa ? 0x200 : 0);
+        }
+        if (exp >= 31) {
+            return sign | 0x7c00; // Inf (overflow)
+        }
+        if (exp <= 0) {
+            if (exp < -10) {
+                return sign;
+            }
+            const m = (mantissa | 0x800000) >>> (14 - exp);
+            return sign | m;
+        }
+        return sign | (exp << 10) | (mantissa >>> 13);
+    }
+
+    static _f16BitsToF32(bits: number): number {
+        const sign = (bits & 0x8000) << 16;
+        const exp = (bits >>> 10) & 0x1f;
+        const mantissa = bits & 0x3ff;
+        let u32bits = 0;
+        if (exp === 0) {
+            if (mantissa === 0) {
+                u32bits = sign;
+            } else {
+                let m = mantissa;
+                let e = -14;
+                while ((m & 0x400) === 0) {
+                    m <<= 1;
+                    e--;
+                }
+                m &= 0x3ff;
+                u32bits = sign | ((e + 127) << 23) | (m << 13);
+            }
+        } else if (exp === 31) {
+            u32bits = sign | 0x7f800000 | (mantissa << 13);
+        } else {
+            u32bits = sign | ((exp - 15 + 127) << 23) | (mantissa << 13);
+        }
+        BuiltinFunctions._u32View[0] = u32bits;
+        return BuiltinFunctions._f32Convert[0];
     }
 
     // Synchronization Functions
@@ -1489,129 +1778,122 @@ export class BuiltinFunctions {
     }
 
     // Subgroup Functions
+    // WgslExec runs one invocation at a time, so subgroup operations are modelled as if the
+    // subgroup contained only the current lane: reductions/scans return the input value,
+    // broadcasts/shuffles return the operand, predicates return its truthiness, and ballot
+    // returns 1. This lets compute shaders that mention these builtins execute, but the
+    // result will not match real hardware that has multi-lane subgroups.
     SubgroupAdd(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: subgroupAdd");
-        return null;
+        return this.exec.evalExpression(node.args[0], context);
     }
 
     SubgroupExclusiveAdd(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: subgroupExclusiveAdd");
-        return null;
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map(() => 0), value.typeInfo);
+        }
+        return new ScalarData(0, value.typeInfo);
     }
 
     SubgroupInclusiveAdd(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: subgroupInclusiveAdd");
-        return null;
+        return this.exec.evalExpression(node.args[0], context);
     }
 
     SubgroupAll(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: subgroupAll");
-        return null;
+        const value = this.exec.evalExpression(node.args[0], context) as ScalarData;
+        return new ScalarData(value.value ? 1 : 0, this.getTypeInfo("bool"));
     }
 
     SubgroupAnd(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: subgroupAnd");
-        return null;
+        return this.exec.evalExpression(node.args[0], context);
     }
 
     SubgroupAny(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: subgroupAny");
-        return null;
+        const value = this.exec.evalExpression(node.args[0], context) as ScalarData;
+        return new ScalarData(value.value ? 1 : 0, this.getTypeInfo("bool"));
     }
 
     SubgroupBallot(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: subgroupBallot");
-        return null;
+        const value = this.exec.evalExpression(node.args[0], context) as ScalarData;
+        const bit = value.value ? 1 : 0;
+        return new VectorData([bit, 0, 0, 0], this.getTypeInfo("vec4u"));
     }
 
     SubgroupBroadcast(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: subgroupBroadcast");
-        return null;
+        return this.exec.evalExpression(node.args[0], context);
     }
 
     SubgroupBroadcastFirst(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: subgroupBroadcastFirst");
-        return null;
+        return this.exec.evalExpression(node.args[0], context);
     }
 
     SubgroupElect(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: subgroupElect");
-        return null;
+        return new ScalarData(1, this.getTypeInfo("bool"));
     }
 
     SubgroupMax(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: subgroupMax");
-        return null;
+        return this.exec.evalExpression(node.args[0], context);
     }
 
     SubgroupMin(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: subgroupMin");
-        return null;
+        return this.exec.evalExpression(node.args[0], context);
     }
 
     SubgroupMul(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: subgroupMul");
-        return null;
+        return this.exec.evalExpression(node.args[0], context);
     }
 
     SubgroupExclusiveMul(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: subgroupExclusiveMul");
-        return null;
+        const value = this.exec.evalExpression(node.args[0], context);
+        if (value instanceof VectorData) {
+            return new VectorData(value.data.map(() => 1), value.typeInfo);
+        }
+        return new ScalarData(1, value.typeInfo);
     }
 
     SubgroupInclusiveMul(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: subgroupInclusiveMul");
-        return null;
+        return this.exec.evalExpression(node.args[0], context);
     }
 
     SubgroupOr(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: subgroupOr");
-        return null;
+        return this.exec.evalExpression(node.args[0], context);
     }
 
     SubgroupShuffle(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: subgroupShuffle");
-        return null;
+        return this.exec.evalExpression(node.args[0], context);
     }
 
     SubgroupShuffleDown(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: subgroupShuffleDown");
-        return null;
+        return this.exec.evalExpression(node.args[0], context);
     }
 
     SubgroupShuffleUp(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: subgroupShuffleUp");
-        return null;
+        return this.exec.evalExpression(node.args[0], context);
     }
 
     SubgroupShuffleXor(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: subgroupShuffleXor");
-        return null;
+        return this.exec.evalExpression(node.args[0], context);
     }
 
     SubgroupXor(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: subgroupXor");
-        return null;
+        return this.exec.evalExpression(node.args[0], context);
     }
 
     // Quad Functions
+    // As with subgroups, modelled as identity for a quad of size 1.
     QuadBroadcast(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: quadBroadcast");
-        return null;
+        return this.exec.evalExpression(node.args[0], context);
     }
 
     QuadSwapDiagonal(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: quadSwapDiagonal");
-        return null;
+        return this.exec.evalExpression(node.args[0], context);
     }
 
     QuadSwapX(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: quadSwapX");
-        return null;
+        return this.exec.evalExpression(node.args[0], context);
     }
 
     QuadSwapY(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: quadSwapY");
-        return null;
+        return this.exec.evalExpression(node.args[0], context);
     }
 }

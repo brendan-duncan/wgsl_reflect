@@ -1395,5 +1395,197 @@ export async function run() {
             //const t4 = performance.now();
             //console.log("dbg time: ", t4 - t3);
         });
+
+        await test("pack/unpack 8-bit", async function (test) {
+            const shader = `
+                let psn = pack4x8snorm(vec4f(-1.0, -0.5, 0.5, 1.0));
+                let pun = pack4x8unorm(vec4f(0.0, 0.25, 0.75, 1.0));
+                let pi8 = pack4xI8(vec4i(1, -1, 127, -128));
+                let pu8 = pack4xU8(vec4u(1u, 2u, 254u, 255u));
+                let pi8c = pack4x8Clamp(vec4i(200, -200, 50, -50));
+                let pu8c = pack4xU8Clamp(vec4u(300u, 1u, 0u, 256u));
+                let usn = unpack4x8snorm(psn);
+                let uun = unpack4x8unorm(pun);
+                let ui8 = unpack4xI8(pi8);
+                let uu8 = unpack4xU8(pu8);`;
+            const wgsl = _newWgslExec(shader);
+            wgsl.execute();
+            // pack4x8snorm: round(x*127) clamped, packed little-endian per component.
+            const psn = (((-127) & 0xff)
+                | (((Math.round(-0.5*127)) & 0xff) << 8)
+                | (((Math.round(0.5*127)) & 0xff) << 16)
+                | ((127 & 0xff) << 24)) >>> 0;
+            test.equals(wgsl.getVariableValue("psn"), psn);
+            const pun = ((0 & 0xff)
+                | ((Math.round(0.25*255) & 0xff) << 8)
+                | ((Math.round(0.75*255) & 0xff) << 16)
+                | ((255 & 0xff) << 24)) >>> 0;
+            test.equals(wgsl.getVariableValue("pun"), pun);
+            test.equals(wgsl.getVariableValue("pi8"),
+                ((1) | ((-1 & 0xff) << 8) | (127 << 16) | ((-128 & 0xff) << 24)) >>> 0);
+            test.equals(wgsl.getVariableValue("pu8"),
+                (1 | (2 << 8) | (254 << 16) | (255 << 24)) >>> 0);
+            // Signed clamp(200) = 127, clamp(-200) = -128.
+            test.equals(wgsl.getVariableValue("pi8c"),
+                (127 | ((-128 & 0xff) << 8) | (50 << 16) | ((-50 & 0xff) << 24)) >>> 0);
+            // Unsigned clamp(300) = 255, clamp(256) = 255.
+            test.equals(wgsl.getVariableValue("pu8c"),
+                (255 | (1 << 8) | (0 << 16) | (255 << 24)) >>> 0);
+            test.closeTo(wgsl.getVariableValue("usn"), [-1, Math.round(-0.5*127)/127, Math.round(0.5*127)/127, 1], 1e-6);
+            test.closeTo(wgsl.getVariableValue("uun"), [0, Math.round(0.25*255)/255, Math.round(0.75*255)/255, 1], 1e-6);
+            test.equals(wgsl.getVariableValue("ui8"), [1, -1, 127, -128]);
+            test.equals(wgsl.getVariableValue("uu8"), [1, 2, 254, 255]);
+        });
+
+        await test("pack/unpack 16-bit", async function (test) {
+            const shader = `
+                let psn = pack2x16snorm(vec2f(-1.0, 1.0));
+                let pun = pack2x16unorm(vec2f(0.25, 1.0));
+                let pf  = pack2x16float(vec2f(1.0, 0.5));
+                let usn = unpack2x16snorm(psn);
+                let uun = unpack2x16unorm(pun);
+                let uf  = unpack2x16float(pf);`;
+            const wgsl = _newWgslExec(shader);
+            wgsl.execute();
+            test.equals(wgsl.getVariableValue("psn"), ((-32767 & 0xffff) | (32767 << 16)) >>> 0);
+            test.equals(wgsl.getVariableValue("pun"), ((Math.round(0.25*65535) & 0xffff) | (65535 << 16)) >>> 0);
+            // f16 bits: 1.0 -> 0x3c00, 0.5 -> 0x3800.
+            test.equals(wgsl.getVariableValue("pf"), (0x3c00 | (0x3800 << 16)) >>> 0);
+            test.closeTo(wgsl.getVariableValue("usn"), [-1, 1], 1e-6);
+            test.closeTo(wgsl.getVariableValue("uun"), [Math.round(0.25*65535)/65535, 1], 1e-6);
+            test.closeTo(wgsl.getVariableValue("uf"), [1.0, 0.5], 1e-6);
+        });
+
+        await test("dot4 packed", async function (test) {
+            // a = (1,2,3,4), b = (5,6,7,8); dot = 5+12+21+32 = 70.
+            const shader = `
+                let a = (1u) | (2u << 8) | (3u << 16) | (4u << 24);
+                let b = (5u) | (6u << 8) | (7u << 16) | (8u << 24);
+                let u = dot4U8Packed(a, b);
+                // Signed: pack -1 (=0xff) and -2 (=0xfe) in low bytes of c, multiplied by 5,6 -> -5 + -12 = -17.
+                let c = (0xffu) | (0xfeu << 8) | (3u << 16) | (4u << 24);
+                let i = dot4I8Packed(c, b);`;
+            const wgsl = _newWgslExec(shader);
+            wgsl.execute();
+            test.equals(wgsl.getVariableValue("u"), 70);
+            test.equals(wgsl.getVariableValue("i"), -5 + -12 + 21 + 32);
+        });
+
+        await test("reverseBits", async function (test) {
+            const shader = `
+                let a = reverseBits(1u);
+                let b = reverseBits(0x80000000u);
+                let c = reverseBits(0xdeadbeefu);`;
+            const wgsl = _newWgslExec(shader);
+            wgsl.execute();
+            test.equals(wgsl.getVariableValue("a"), 0x80000000);
+            test.equals(wgsl.getVariableValue("b"), 1);
+            // Bit-reverse 0xdeadbeef -> 0xf77db57b.
+            test.equals(wgsl.getVariableValue("c"), 0xf77db57b);
+        });
+
+        await test("ldexp", async function (test) {
+            const shader = `
+                let a = ldexp(1.5, 4);
+                let b = ldexp(vec3f(1.0, 2.0, -0.5), vec3i(2, -1, 3));`;
+            const wgsl = _newWgslExec(shader);
+            wgsl.execute();
+            test.closeTo(wgsl.getVariableValue("a"), 24.0, 1e-6);
+            test.closeTo(wgsl.getVariableValue("b"), [4.0, 1.0, -4.0], 1e-6);
+        });
+
+        await test("frexp", async function (test) {
+            // Only the fract component is observable until the parser learns
+            // __frexp_result_* struct names; full struct return is still TODO.
+            const shader = `
+                let a = frexp(6.0);
+                let b = frexp(vec2f(0.25, -8.0));
+                let z = frexp(0.0);`;
+            const wgsl = _newWgslExec(shader);
+            wgsl.execute();
+            // 6 = 0.75 * 2^3.
+            test.closeTo(wgsl.getVariableValue("a"), 0.75, 1e-6);
+            // 0.25 = 0.5 * 2^-1, -8 = -0.5 * 2^4.
+            test.closeTo(wgsl.getVariableValue("b"), [0.5, -0.5], 1e-6);
+            test.closeTo(wgsl.getVariableValue("z"), 0, 1e-6);
+        });
+
+        await test("quantizeToF16", async function (test) {
+            const shader = `
+                let a = quantizeToF16(1.0);
+                let b = quantizeToF16(0.5);
+                let c = quantizeToF16(1.0 + 1.0 / 2048.0);
+                let d = quantizeToF16(vec2f(2.0, -3.5));`;
+            const wgsl = _newWgslExec(shader);
+            wgsl.execute();
+            test.closeTo(wgsl.getVariableValue("a"), 1.0, 1e-6);
+            test.closeTo(wgsl.getVariableValue("b"), 0.5, 1e-6);
+            // 1 + 1/2048 is below the f16 ULP at 1.0 (1/1024), so it rounds back to 1.0.
+            test.closeTo(wgsl.getVariableValue("c"), 1.0, 1e-6);
+            test.closeTo(wgsl.getVariableValue("d"), [2.0, -3.5], 1e-6);
+        });
+
+        await test("determinant mat4x4", async function (test) {
+            const shader = `
+                let d_id = determinant(mat4x4f(1.0, 0.0, 0.0, 0.0,
+                                               0.0, 1.0, 0.0, 0.0,
+                                               0.0, 0.0, 1.0, 0.0,
+                                               0.0, 0.0, 0.0, 1.0));
+                let d_diag = determinant(mat4x4f(2.0, 0.0, 0.0, 0.0,
+                                                 0.0, 3.0, 0.0, 0.0,
+                                                 0.0, 0.0, 4.0, 0.0,
+                                                 0.0, 0.0, 0.0, 5.0));
+                // Singular matrix: two equal columns -> det 0.
+                let d_zero = determinant(mat4x4f(1.0, 2.0, 3.0, 4.0,
+                                                 1.0, 2.0, 3.0, 4.0,
+                                                 5.0, 6.0, 7.0, 8.0,
+                                                 9.0, 8.0, 7.0, 6.0));`;
+            const wgsl = _newWgslExec(shader);
+            wgsl.execute();
+            test.closeTo(wgsl.getVariableValue("d_id"), 1.0, 1e-6);
+            test.closeTo(wgsl.getVariableValue("d_diag"), 120.0, 1e-6);
+            test.closeTo(wgsl.getVariableValue("d_zero"), 0.0, 1e-5);
+        });
+
+        await test("atomicCompareExchangeWeak", async function (test) {
+            const shader = `
+                @group(0) @binding(0) var<storage, read_write> data: array<atomic<u32>, 4>;
+                @compute @workgroup_size(1) fn main() {
+                    // data starts as [10, 20, 30, 40].
+                    // Match: data[0] == 10 -> swap to 99, store old 10 in slot 2 below.
+                    let r0 = atomicCompareExchangeWeak(&data[0], 10u, 99u);
+                    // Miss: data[1] == 20, cmp=5 -> no swap, return old value 20.
+                    let r1 = atomicCompareExchangeWeak(&data[1], 5u, 77u);
+                    // Use the returned old-value to confirm the swap path executed correctly.
+                    atomicStore(&data[2], r0);
+                    atomicStore(&data[3], r1);
+                }`;
+            const dataBuffer = new Uint32Array([10, 20, 30, 40]);
+            const bg = {0: {0: dataBuffer}};
+            const wgsl = _newWgslExec(shader);
+            wgsl.dispatchWorkgroups("main", 1, bg);
+            test.equals(Array.from(dataBuffer), [99, 20, 10, 20]);
+        });
+
+        await test("subgroup ops single-lane identities", async function (test) {
+            // WgslExec models subgroups as size-1; reductions/scans/broadcasts return the
+            // input. This test just verifies the builtins don't error and produce the
+            // documented single-lane values.
+            const shader = `
+                @group(0) @binding(0) var<storage, read_write> data: array<u32, 6>;
+                @compute @workgroup_size(1) fn main() {
+                    data[0] = subgroupAdd(7u);
+                    data[1] = subgroupExclusiveAdd(7u);
+                    data[2] = subgroupInclusiveAdd(7u);
+                    data[3] = subgroupMax(3u);
+                    data[4] = subgroupBroadcastFirst(42u);
+                    data[5] = select(0u, 1u, subgroupElect());
+                }`;
+            const dataBuffer = new Uint32Array(6);
+            const bg = {0: {0: dataBuffer}};
+            const wgsl = _newWgslExec(shader);
+            wgsl.dispatchWorkgroups("main", 1, bg);
+            test.equals(Array.from(dataBuffer), [7, 0, 7, 3, 42, 1]);
+        });
     }, true);
 }
