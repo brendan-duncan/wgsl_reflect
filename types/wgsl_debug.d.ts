@@ -1,7 +1,9 @@
 import * as AST from "./wgsl_ast.js";
+import { WgslExec } from "./wgsl_exec.js";
 import { ExecContext, FunctionRef } from "./exec/exec_context.js";
 import { Command } from "./exec/command.js";
 import { StackFrame } from "./exec/stack_frame.js";
+import { ExecStack } from "./exec/exec_stack.js";
 type RuntimeStateCallbackType = () => void;
 interface BindingEntry {
     texture?: {
@@ -25,6 +27,7 @@ export declare class WgslDebug {
     reset(): void;
     startDebug(): void;
     get context(): ExecContext;
+    private _resolveState;
     private _resolveCurrentState;
     get currentState(): StackFrame | null;
     get currentCommand(): Command | null;
@@ -36,11 +39,15 @@ export declare class WgslDebug {
     pause(): void;
     _setOverrides(constants: Record<string, unknown>, context: ExecContext): void;
     debugWorkgroup(kernel: string, dispatchId: number[], dispatchCount: number | number[], bindGroups: Record<string, Record<string, BindingEntry>>, config?: Record<string, unknown>): boolean;
-    _shouldExecuteNextCommand(): boolean;
+    _shouldExecuteNextCommand(stack?: ExecStack): boolean;
     stepInto(): void;
     stepOver(): void;
     stepOut(): void;
     stepNext(stepInto?: boolean): boolean;
+    stepStack(stack: ExecStack, stepInto?: boolean): boolean;
+    get exec(): WgslExec;
+    applyOverrides(constants: Record<string, unknown>, context: ExecContext): void;
+    createStackFrame(body: AST.Node[], context: ExecContext, parent?: StackFrame): StackFrame;
     _dispatchWorkgroup(f: FunctionRef, workgroup_id: number[], context: ExecContext): boolean;
     _dispatchExec(f: FunctionRef, context: ExecContext): void;
     _createState(ast: AST.Node[], context: ExecContext, parent?: StackFrame): StackFrame;

@@ -4,3 +4,4 @@ export * from "./wgsl_reflect.js";
 export * from "./wgsl_scanner.js";
 export * from "./wgsl_exec.js";
 export * from "./wgsl_debug.js";
+export * from "./exec/race_detector.js";

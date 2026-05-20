@@ -79,19 +79,23 @@ export class WgslDebug {
         return state.context;
     }
 
-    // Walks the exec stack, popping any frames that have run to completion.
+    // Walks an exec stack, popping any frames that have run to completion.
     // Returns the topmost frame with at least one remaining command, or null
-    // if execution is done. Shared by currentState/currentCommand/stepNext and
+    // if execution is done. Shared by currentState/currentCommand/stepStack and
     // the slice loops so the walk-and-pop logic only lives in one place.
-    private _resolveCurrentState(): StackFrame | null {
-        while (!this._execStack.isEmpty) {
-            const state = this._execStack.last!;
+    private _resolveState(stack: ExecStack): StackFrame | null {
+        while (!stack.isEmpty) {
+            const state = stack.last!;
             if (!state.isAtEnd) {
                 return state;
             }
-            this._execStack.pop();
+            stack.pop();
         }
         return null;
+    }
+
+    private _resolveCurrentState(): StackFrame | null {
+        return this._resolveState(this._execStack);
     }
 
     get currentState(): StackFrame | null {
@@ -321,8 +325,9 @@ export class WgslDebug {
         return found;
     }
 
-    _shouldExecuteNextCommand(): boolean {
-        const command = this.currentCommand;
+    _shouldExecuteNextCommand(stack?: ExecStack): boolean {
+        const resolved = this._resolveState(stack ?? this._execStack);
+        const command = resolved === null ? null : resolved.getCurrentCommand();
         if (command === null) {
             return false;
         }
@@ -399,9 +404,17 @@ export class WgslDebug {
             const state = this._createState(this._exec.ast, this._exec.context);
             this._execStack.states.push(state);
         }
+        return this.stepStack(this._execStack, stepInto);
+    }
 
+    // Advance a single command on an arbitrary ExecStack. This is the same
+    // interpreter engine as stepNext, but re-entrant: a scheduler can own
+    // several ExecStacks (one per concurrent compute invocation) and interleave
+    // them by calling stepStack on each in turn. Returns false once `stack` has
+    // finished. See exec/race_detector.ts for the lockstep workgroup scheduler.
+    stepStack(stack: ExecStack, stepInto = true): boolean {
         while (true) {
-            let state = this._resolveCurrentState();
+            let state = this._resolveState(stack);
             if (state === null) {
                 return false;
             }
@@ -426,10 +439,10 @@ export class WgslDebug {
                 }
 
                 fnState.parentCallExpr = node;
-                this._execStack.states.push(fnState);
+                stack.states.push(fnState);
                 fnState.context.currentFunctionName = fn.name;
 
-                if (this._shouldExecuteNextCommand()) {
+                if (this._shouldExecuteNextCommand(stack)) {
                     continue;
                 }
                 return true;
@@ -447,10 +460,10 @@ export class WgslDebug {
                             fnState.context.createVariable(arg.name, value, arg);
                         }
 
-                        this._execStack.states.push(fnState);
+                        stack.states.push(fnState);
                         fnState.context.currentFunctionName = fn.name;
 
-                        if (this._shouldExecuteNextCommand()) {
+                        if (this._shouldExecuteNextCommand(stack)) {
                             continue;
                         }
                         return true;
@@ -471,7 +484,7 @@ export class WgslDebug {
                     if (s === null) {
                         console.error("Could not find CallExpr to store return value in");
                     }
-                    if (this._shouldExecuteNextCommand()) {
+                    if (this._shouldExecuteNextCommand(stack)) {
                         continue;
                     }
                     return true;
@@ -482,8 +495,8 @@ export class WgslDebug {
                 continue;
             } else if (command instanceof ContinueCommand) {
                 const targetId = command.id;
-                while (!this._execStack.isEmpty) {
-                    state = this._execStack.last;
+                while (!stack.isEmpty) {
+                    state = stack.last;
                     for (let i = state.commands.length - 1; i >= 0; --i) {
                         const cmd = state.commands[i];
                         if (cmd instanceof ContinueTargetCommand) {
@@ -494,7 +507,7 @@ export class WgslDebug {
                         }
                     }
                     // No Goto -1 found (loop), pop the current state and continue searching.
-                    this._execStack.pop();
+                    stack.pop();
                 }
                 // If we got here, we've reached the end of the stack and didn't find a -1.
                 // That means a continue was used outside of a loop, so we're done.
@@ -511,15 +524,15 @@ export class WgslDebug {
                     }
                     // If the condition is false, then we should not the break.
                     if (!res.value) {
-                        if (this._shouldExecuteNextCommand()) {
+                        if (this._shouldExecuteNextCommand(stack)) {
                             continue;
                         }
                         return true;
                     }
                 }
 
-                while (!this._execStack.isEmpty) {
-                    state = this._execStack.last;
+                while (!stack.isEmpty) {
+                    state = stack.last;
                     for (let i = state.commands.length - 1; i >= 0; --i) {
                         const cmd = state.commands[i];
                         if (cmd instanceof BreakTargetCommand) {
@@ -530,7 +543,7 @@ export class WgslDebug {
                         }
                     }
                     // No Goto -2 found (loop), pop the current state and continue searching.
-                    this._execStack.pop();
+                    stack.pop();
                 }
                 // If we got here, we've reached the end of the stack and didn't find a BreakTarget.
                 // That means a break was used outside of a loop, so we're done.
@@ -546,30 +559,48 @@ export class WgslDebug {
                     // If the GOTO condition value is true, then continue to the next command.
                     // Otherwise, jump to the specified position.
                     if (res.value) {
-                        if (this._shouldExecuteNextCommand()) {
+                        if (this._shouldExecuteNextCommand(stack)) {
                             continue;
                         }
                         return true;
                     }
                 }
                 state.current = command.position;
-                if (this._shouldExecuteNextCommand()) {
+                if (this._shouldExecuteNextCommand(stack)) {
                     continue;
                 }
                 return true;
             } else if (command instanceof BlockCommand) {
                 const blockState = this._createState(command.statements, state.context.clone(), state);
-                this._execStack.states.push(blockState);
+                stack.states.push(blockState);
                 continue; // step into the first statement of the block
             }
 
-            if (this._shouldExecuteNextCommand()) {
+            if (this._shouldExecuteNextCommand(stack)) {
                 continue;
             }
-            // Empty frames are popped by _resolveCurrentState; if it unwinds the
+            // Empty frames are popped by _resolveState; if it unwinds the
             // whole stack there is nothing left to step, so report completion.
-            return this._resolveCurrentState() !== null;
+            return this._resolveState(stack) !== null;
         }
+    }
+
+    // --- Public API for external schedulers (see exec/race_detector.ts) ---
+
+    // The underlying execution engine: global memory, bound resources, functions.
+    get exec(): WgslExec {
+        return this._exec;
+    }
+
+    // Apply override-constant values to a context (public form of _setOverrides).
+    applyOverrides(constants: Record<string, unknown>, context: ExecContext): void {
+        this._setOverrides(constants, context);
+    }
+
+    // Lower a statement body into a StackFrame (command list). Used to seed an
+    // independent ExecStack per concurrent invocation.
+    createStackFrame(body: AST.Node[], context: ExecContext, parent?: StackFrame): StackFrame {
+        return this._createState(body, context, parent);
     }
 
     _dispatchWorkgroup(f: FunctionRef, workgroup_id: number[], context: ExecContext): boolean {

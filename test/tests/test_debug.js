@@ -1,5 +1,5 @@
 import { test, group } from "../test.js";
-import { WgslDebug } from "../../wgsl_reflect.module.js";
+import { WgslDebug, detectRaces } from "../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Debug", async function () {
@@ -318,6 +318,57 @@ export async function run() {
 
       // Test that we only executed the [1, 0, 0] global_invocation_id.
       test.equals(buffer, [1, 4, 6, 0]);
+    });
+  }, true);
+
+  await group("Race Detection", async function () {
+    await test("detect missing workgroupBarrier", async function (test) {
+      // Each lane writes tile[lid] then reads tile[3-lid], which another lane
+      // wrote. With no workgroupBarrier between the write and the read the two
+      // accesses are unordered -> data race on `tile`.
+      const shader = `
+          @group(0) @binding(0) var<storage, read_write> data: array<u32>;
+          var<workgroup> tile: array<u32, 4>;
+          @compute @workgroup_size(4)
+          fn main(@builtin(local_invocation_index) lid: u32) {
+            tile[lid] = data[lid];
+            data[lid] = tile[3u - lid];
+          }`;
+      const buffer = new Uint32Array([10, 20, 30, 40]);
+      const { races } = detectRaces(shader, "main", [1, 1, 1], { 0: { 0: buffer } });
+      test.true(races.length > 0, "expected a data race");
+      test.true(races.some((r) => r.bufferId === "tile"), "race should be on 'tile'");
+    });
+
+    await test("no race with workgroupBarrier", async function (test) {
+      // Same kernel, but the barrier separates the writes from the reads into
+      // two phases -> no race.
+      const shader = `
+          @group(0) @binding(0) var<storage, read_write> data: array<u32>;
+          var<workgroup> tile: array<u32, 4>;
+          @compute @workgroup_size(4)
+          fn main(@builtin(local_invocation_index) lid: u32) {
+            tile[lid] = data[lid];
+            workgroupBarrier();
+            data[lid] = tile[3u - lid];
+          }`;
+      const buffer = new Uint32Array([10, 20, 30, 40]);
+      const { races, errors } = detectRaces(shader, "main", [1, 1, 1], { 0: { 0: buffer } });
+      test.equals(races.length, 0);
+      test.equals(errors.length, 0);
+    });
+
+    await test("no false race for atomics", async function (test) {
+      // Many lanes hit the same atomic bins; atomic-vs-atomic never races.
+      const shader = `
+          @group(0) @binding(0) var<storage, read_write> hist: array<atomic<u32>, 4>;
+          @compute @workgroup_size(8)
+          fn main(@builtin(local_invocation_index) lid: u32) {
+            atomicAdd(&hist[lid % 4u], 1u);
+          }`;
+      const buffer = new Uint32Array([0, 0, 0, 0]);
+      const { races } = detectRaces(shader, "main", [1, 1, 1], { 0: { 0: buffer } });
+      test.equals(races.length, 0);
     });
   }, true);
 }
