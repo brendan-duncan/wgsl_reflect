@@ -21,7 +21,11 @@ export class WgslDebug {
     private _exec: WgslExec;
     private _execStack: ExecStack;
     private _dispatchId: number[];
-    private _runTimer: ReturnType<typeof setInterval> | null = null;
+    private _runTimer: ReturnType<typeof setTimeout> | null = null;
+    // Number of commands processed synchronously per scheduler slice before
+    // yielding to the event loop. Larger = higher throughput, smaller = more
+    // responsive pause/UI. 1000 is a good default for most kernels.
+    runSliceSize: number = 1000;
     readonly breakpoints: Set<number> = new Set();
     runStateCallback: RuntimeStateCallbackType | null = null;
 
@@ -138,30 +142,37 @@ export class WgslDebug {
         return this._runTimer !== null;
     }
 
+    private _stopRunning(): void {
+        if (this._runTimer !== null) {
+            clearTimeout(this._runTimer);
+            this._runTimer = null;
+        }
+        if (this.runStateCallback !== null) {
+            this.runStateCallback();
+        }
+    }
+
     run(): void {
         if (this.isRunning) {
             return;
         }
-        this._runTimer = setInterval(() => {
-            const command = this.currentCommand;
-            if (command) {
-                if (this.breakpoints.has(command.line)) {
-                    clearInterval(this._runTimer!);
-                    this._runTimer = null;
-                    if (this.runStateCallback !== null) {
-                        this.runStateCallback();
-                    }
+        const runSlice = () => {
+            for (let i = 0; i < this.runSliceSize; ++i) {
+                const command = this.currentCommand;
+                if (command !== null && this.breakpoints.has(command.line)) {
+                    this._stopRunning();
+                    return;
+                }
+                if (!this.stepNext(true)) {
+                    this._stopRunning();
                     return;
                 }
             }
-            if (!this.stepNext(true)) {
-                clearInterval(this._runTimer!);
-                this._runTimer = null;
-                if (this.runStateCallback !== null) {
-                    this.runStateCallback();
-                }
-            }
-        }, 0);
+            // Yield to the event loop so pause()/UI can interject between slices.
+            this._runTimer = setTimeout(runSlice, 0);
+        };
+
+        this._runTimer = setTimeout(runSlice, 0);
         if (this.runStateCallback !== null) {
             this.runStateCallback();
         }
@@ -169,7 +180,7 @@ export class WgslDebug {
 
     pause(): void {
         if (this._runTimer !== null) {
-            clearInterval(this._runTimer);
+            clearTimeout(this._runTimer);
             this._runTimer = null;
             if (this.runStateCallback !== null) {
                 this.runStateCallback();
@@ -356,40 +367,31 @@ export class WgslDebug {
         }
         const parentState = state.parent;
 
-        if (this.isRunning) {
-            clearInterval(this._runTimer);
+        if (this._runTimer !== null) {
+            clearTimeout(this._runTimer);
             this._runTimer = null;
         }
 
-        this._runTimer = setInterval(() => {
-            const command = this.currentCommand;
-            if (command) {
-                if (this.breakpoints.has(command.line)) {
-                    clearInterval(this._runTimer!);
-                    this._runTimer = null;
-                    if (this.runStateCallback !== null) {
-                        this.runStateCallback();
-                    }
+        const stepOutSlice = () => {
+            for (let i = 0; i < this.runSliceSize; ++i) {
+                const command = this.currentCommand;
+                if (command !== null && this.breakpoints.has(command.line)) {
+                    this._stopRunning();
+                    return;
+                }
+                if (!this.stepNext(true)) {
+                    this._stopRunning();
+                    return;
+                }
+                if (this.currentState === parentState) {
+                    this._stopRunning();
                     return;
                 }
             }
-            if (!this.stepNext(true)) {
-                clearInterval(this._runTimer!);
-                this._runTimer = null;
-                if (this.runStateCallback !== null) {
-                    this.runStateCallback();
-                }
-            }
+            this._runTimer = setTimeout(stepOutSlice, 0);
+        };
 
-            const state = this.currentState;
-            if (state === parentState) {
-                clearInterval(this._runTimer!);
-                this._runTimer = null;
-                if (this.runStateCallback !== null) {
-                    this.runStateCallback();
-                }
-            }
-        }, 0);
+        this._runTimer = setTimeout(stepOutSlice, 0);
         if (this.runStateCallback !== null) {
             this.runStateCallback();
         }

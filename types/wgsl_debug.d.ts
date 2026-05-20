@@ -16,6 +16,7 @@ export declare class WgslDebug {
     private _execStack;
     private _dispatchId;
     private _runTimer;
+    runSliceSize: number;
     readonly breakpoints: Set<number>;
     runStateCallback: RuntimeStateCallbackType | null;
     constructor(code: string, runStateCallback?: RuntimeStateCallbackType);
@@ -28,6 +29,7 @@ export declare class WgslDebug {
     toggleBreakpoint(line: number): void;
     clearBreakpoints(): void;
     get isRunning(): boolean;
+    private _stopRunning;
     run(): void;
     pause(): void;
     _setOverrides(constants: Record<string, unknown>, context: ExecContext): void;
