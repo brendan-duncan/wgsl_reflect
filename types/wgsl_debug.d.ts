@@ -25,6 +25,7 @@ export declare class WgslDebug {
     reset(): void;
     startDebug(): void;
     get context(): ExecContext;
+    private _resolveCurrentState;
     get currentState(): StackFrame | null;
     get currentCommand(): Command | null;
     toggleBreakpoint(line: number): void;

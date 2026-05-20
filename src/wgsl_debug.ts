@@ -79,55 +79,28 @@ export class WgslDebug {
         return state.context;
     }
 
-    get currentState(): StackFrame | null {
-        while (true) {
-            if (this._execStack.isEmpty) {
-                return null;
+    // Walks the exec stack, popping any frames that have run to completion.
+    // Returns the topmost frame with at least one remaining command, or null
+    // if execution is done. Shared by currentState/currentCommand/stepNext and
+    // the slice loops so the walk-and-pop logic only lives in one place.
+    private _resolveCurrentState(): StackFrame | null {
+        while (!this._execStack.isEmpty) {
+            const state = this._execStack.last!;
+            if (!state.isAtEnd) {
+                return state;
             }
-
-            let state = this._execStack.last;
-            if (state === null) {
-                return null;
-            }
-
-            if (state.isAtEnd) {
-                this._execStack.pop();
-                if (this._execStack.isEmpty) {
-                    return null;
-                }
-                state = this._execStack.last;
-            }
-
-            return state;
+            this._execStack.pop();
         }
+        return null;
+    }
+
+    get currentState(): StackFrame | null {
+        return this._resolveCurrentState();
     }
 
     get currentCommand(): Command | null {
-        while (true) {
-            if (this._execStack.isEmpty) {
-                return null;
-            }
-
-            let state = this._execStack.last;
-            if (state === null) {
-                return null;
-            }
-
-            if (state.isAtEnd) {
-                this._execStack.pop();
-                if (this._execStack.isEmpty) {
-                    return null;
-                }
-                state = this._execStack.last;
-            }
-
-            const command = state.getCurrentCommand();
-            if (command === null) {
-                continue;
-            }
-
-            return command;
-        }
+        const state = this._resolveCurrentState();
+        return state === null ? null : state.getCurrentCommand();
     }
 
     toggleBreakpoint(line: number): void {
@@ -162,8 +135,16 @@ export class WgslDebug {
         }
         const runSlice = () => {
             for (let i = 0; i < this.runSliceSize; ++i) {
-                const command = this.currentCommand;
-                if (command !== null && this.breakpoints.has(command.line)) {
+                // Peek the next user-visible command directly off the resolved
+                // state to avoid going through the currentCommand getter (which
+                // would walk the stack a second time after stepNext re-walks).
+                const state = this._resolveCurrentState();
+                if (state === null) {
+                    this._stopRunning();
+                    return;
+                }
+                const peek = state.getCurrentCommand();
+                if (peek !== null && this.breakpoints.has(peek.line)) {
                     this._stopRunning();
                     return;
                 }
@@ -378,8 +359,13 @@ export class WgslDebug {
 
         const stepOutSlice = () => {
             for (let i = 0; i < this.runSliceSize; ++i) {
-                const command = this.currentCommand;
-                if (command !== null && this.breakpoints.has(command.line)) {
+                const peekState = this._resolveCurrentState();
+                if (peekState === null) {
+                    this._stopRunning();
+                    return;
+                }
+                const peek = peekState.getCurrentCommand();
+                if (peek !== null && this.breakpoints.has(peek.line)) {
                     this._stopRunning();
                     return;
                 }
@@ -387,7 +373,7 @@ export class WgslDebug {
                     this._stopRunning();
                     return;
                 }
-                if (this.currentState === parentState) {
+                if (this._resolveCurrentState() === parentState) {
                     this._stopRunning();
                     return;
                 }
@@ -410,24 +396,12 @@ export class WgslDebug {
         }
 
         while (true) {
-            if (this._execStack.isEmpty) {
-                return false;
-            }
-
-            let state = this._execStack.last;
+            let state = this._resolveCurrentState();
             if (state === null) {
                 return false;
             }
 
-            if (state.isAtEnd) {
-                this._execStack.pop();
-                if (this._execStack.isEmpty) {
-                    return false;
-                }
-                state = this._execStack.last;
-            }
-
-            const command = state!.getNextCommand();
+            const command = state.getNextCommand();
             if (command === null) {
                 continue;
             }
@@ -584,17 +558,12 @@ export class WgslDebug {
                 continue; // step into the first statement of the block
             }
 
-            if (state.isAtEnd) {
-                this._execStack.pop();
-                if (this._execStack.isEmpty) {
-                    return false;
-                }
-            }
-
             if (this._shouldExecuteNextCommand()) {
                 continue;
             }
-            return true;
+            // Empty frames are popped by _resolveCurrentState; if it unwinds the
+            // whole stack there is nothing left to step, so report completion.
+            return this._resolveCurrentState() !== null;
         }
     }
 
