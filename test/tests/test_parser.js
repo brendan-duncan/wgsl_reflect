@@ -1152,12 +1152,12 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
     }
 
     await test("UnaryOperator: ! -> bool", async function (test) {
-      const t = new WgslParser().parse(`const a = !true;`);
+      const t = WgslParser.Parse(`const a = !true;`);
       test.equals(typeName(t[0]), "bool");
     });
 
     await test("UnaryOperator: - preserves operand type", async function (test) {
-      const t = new WgslParser().parse(`
+      const t = WgslParser.Parse(`
         const i = -5;
         const f = -5.0;`);
       test.equals(typeName(t[0]), "i32", "neg int");
@@ -1165,12 +1165,12 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
     });
 
     await test("UnaryOperator: ~ preserves operand type", async function (test) {
-      const t = new WgslParser().parse(`const a = ~5u;`);
+      const t = WgslParser.Parse(`const a = ~5u;`);
       test.equals(typeName(t[0]), "u32");
     });
 
     await test("BinaryOperator: comparison/logical -> bool", async function (test) {
-      const t = new WgslParser().parse(`
+      const t = WgslParser.Parse(`
         const eq = 1 == 2;
         const ne = 1 != 2;
         const lt = 1 < 2;
@@ -1185,7 +1185,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
     });
 
     await test("BinaryOperator: arithmetic promotes to f32", async function (test) {
-      const t = new WgslParser().parse(`
+      const t = WgslParser.Parse(`
         const a = 1 + 2.0;
         const b = 2.0 * 3;
         const c = 5 / 2.0;`);
@@ -1195,7 +1195,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
     });
 
     await test("BinaryOperator: arithmetic stays integer", async function (test) {
-      const t = new WgslParser().parse(`
+      const t = WgslParser.Parse(`
         const a = 3u + 4u;
         const b = 3i * 4i;`);
       test.equals(typeName(t[0]), "u32");
@@ -1203,7 +1203,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
     });
 
     await test("TypecastExpr: i32(...), u32(...), f32(...)", async function (test) {
-      const t = new WgslParser().parse(`
+      const t = WgslParser.Parse(`
         const a = i32(1.5);
         const b = u32(2);
         const c = f32(3);`);
@@ -1213,14 +1213,14 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
     });
 
     await test("VariableExpr: ref to another const preserves type", async function (test) {
-      const t = new WgslParser().parse(`
+      const t = WgslParser.Parse(`
         const src: u32 = 7;
         const ref = src;`);
       test.equals(typeName(t[1]), "u32");
     });
 
     await test("CallExpr builtin (fixed): all/any -> bool", async function (test) {
-      const t = new WgslParser().parse(`
+      const t = WgslParser.Parse(`
         const a = all(vec3<bool>(true, true, true));
         const b = any(vec3<bool>(false, false, true));`);
       test.equals(typeName(t[0]), "bool", "all");
@@ -1228,7 +1228,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
     });
 
     await test("CallExpr builtin (fixed): pack -> u32", async function (test) {
-      const t = new WgslParser().parse(`
+      const t = WgslParser.Parse(`
         const a = pack4x8snorm(vec4f(0.0, 0.5, -0.5, 1.0));
         const b = pack2x16float(vec2f(1.0, 2.0));`);
       test.equals(typeName(t[0]), "u32", "pack4x8snorm");
@@ -1236,7 +1236,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
     });
 
     await test("CallExpr builtin (fixed): unpack -> vec", async function (test) {
-      const t = new WgslParser().parse(`
+      const t = WgslParser.Parse(`
         const a = unpack4x8snorm(0u);
         const b = unpack4xU8(0u);
         const c = unpack2x16float(0u);`);
@@ -1246,7 +1246,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
     });
 
     await test("CallExpr builtin (same-as-arg): math fns preserve operand type", async function (test) {
-      const t = new WgslParser().parse(`
+      const t = WgslParser.Parse(`
         const a = abs(-5);
         const b = sin(1.0);
         const c = clamp(5u, 0u, 10u);
@@ -1259,7 +1259,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
 
     await test("CallExpr builtin (same-as-arg, non-zero index): step/smoothstep", async function (test) {
       // step's type matches arg[1]; smoothstep matches arg[2].
-      const t = new WgslParser().parse(`
+      const t = WgslParser.Parse(`
         const a = step(0.5, 1.0);
         const b = smoothstep(0.0, 1.0, 0.5);`);
       test.equals(typeName(t[0]), "f32", "step");
@@ -1267,7 +1267,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
     });
 
     await test("CallExpr builtin (component-of-arg): length/distance/dot", async function (test) {
-      const t = new WgslParser().parse(`
+      const t = WgslParser.Parse(`
         const a = length(vec3f(1.0, 2.0, 2.0));
         const b = distance(vec2f(0.0, 0.0), vec2f(3.0, 4.0));
         const c = dot(vec3f(1.0, 2.0, 3.0), vec3f(4.0, 5.0, 6.0));`);
@@ -1278,7 +1278,7 @@ let out_of_range = (0x1ffffffff / 8u); // u32 - 20
 
     await test("CallExpr builtin: nested call propagates type", async function (test) {
       // radians returns same-as-arg (f32), sin returns same-as-arg, so f32.
-      const t = new WgslParser().parse(`const a = sin(radians(90.0));`);
+      const t = WgslParser.Parse(`const a = sin(radians(90.0));`);
       test.equals(typeName(t[0]), "f32");
     });
   });

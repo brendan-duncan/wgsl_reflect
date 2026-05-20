@@ -16,6 +16,12 @@ export class WgslParser {
   _exec = new WgslExec();
   _forwardTypeCount: number = 0;
 
+  // Convenience short-hand for new WgslParser().parse(code);
+  static Parse(tokensOrCode: Token[] | string): AST.Statement[] {
+    const parser = new WgslParser();
+    return parser.parse(tokensOrCode);
+  }
+
   parse(tokensOrCode: Token[] | string): AST.Statement[] {
     this._initialize(tokensOrCode);
 

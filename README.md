@@ -1,12 +1,30 @@
 # WebGPU Shading Language Reflection Library
 
-A WebGPU Shading Language parser and reflection library for Typescript and Javascript.
+A WebGPU Shading Language (WGSL) parser, reflection, execution, and debugging library for Typescript and Javascript.
 
-**wgsl_reflect** can parse a WGSL shader and analyze its contents, providing information about the shader. It can determine the bind group layout of the shader, resource bindings, uniform buffers, the members of a uniform buffer, their names, types, sizes, offsets into the buffer.
+### [Live reflection example](https://brendan-duncan.github.io/wgsl_reflect/example.html)
 
-## Usage
+---
 
-From NPM
+**wgsl_reflect** is a self-contained toolkit for working with WGSL shaders without a GPU:
+
+- **Reflection** — parse a WGSL shader and analyze its contents: bind group layout, resource bindings, uniform and storage buffers, struct members with their names, types, sizes, and byte offsets, entry points, and inter-stage inputs/outputs.
+- **Execution** — run a WGSL shader on the CPU. `WgslExec` emulates compute dispatches and produces the same buffer results a GPU would, which is useful for testing shaders without a device.
+- **Debugging** — step through a shader one statement at a time with `WgslDebug`: breakpoints, step into/over/out, and variable inspection — the building blocks of a shader debugger.
+- **Race condition detection** — `detectRaces` runs every invocation of a workgroup in lockstep to catch missing `workgroupBarrier()`/`storageBarrier()` calls that cause data races.
+
+## Contents
+
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Documentation](#documentation)
+- [Reflection API Reference](#reflection-api-reference)
+- [Reflection Examples](#reflection-examples)
+
+## Installation
+
+From NPM:
+
 ```
 npm install wgsl_reflect
 ```
@@ -15,17 +33,43 @@ The _wgsl_reflect.module.js_ file is a self-contained roll-up of the library tha
 
 ```javascript
 import { WgslReflect } from "wgsl_reflect/wgsl_reflect.module.js";
-const reflect = new WgslReflect(shader_code);
+// Parsees the WGSL in shaderCode, extracs information about it.
+const reflect = new WgslReflect(shaderCode);
 ```
 
-## Example
+## Quick Start
 
-[WGSL Reflect Example](https://brendan-duncan.github.io/wgsl_reflect/example.html)
+```javascript
+import { WgslReflect } from "wgsl_reflect/wgsl_reflect.module.js";
+
+// Parsees the WGSL in shader_code, extracs information about it.
+const reflect = new WgslReflect(shaderCode);
+
+// What resources does the shader bind?
+const groups = reflect.getBindGroups();
+
+// What are the compute/vertex/fragment entry points?
+console.log(reflect.entry.compute.map(fn => fn.name));
+```
 
 ## Documentation
 
+The reflection API is documented below. The execution, debugging, and race
+detection features each have a dedicated guide in the [docs](./docs) folder:
+
+- [Shader Execution](./docs/shader-execution.md) — run WGSL shaders on the CPU and emulate compute dispatches with `WgslExec`.
+- [Shader Debugging](./docs/shader-debugging.md) — step through a shader, set breakpoints, and inspect state with `WgslDebug`.
+- [Race Condition Detection](./docs/race-condition-detection.md) — find missing barriers in compute shaders with `detectRaces`.
+
+## Reflection API Reference
+
 ```javascript
+
 // A collection of gathered reflection information about the shader.
+//
+// This is the top level of the reflection system, parsing the shader
+// code provided to the constructor, and extracting useful information
+// about the contents of the shader.
 class WgslReflect {
   // All top-level uniform vars in the shader.
   uniforms: Array<VariableInfo>;
@@ -285,7 +329,7 @@ class ArgumentInfo {
 }
 ```
 
-## Examples
+## Reflection Examples
 
 Calculate the bind group information in the shader:
 

@@ -2,7 +2,7 @@ import { test, group, webgpuDispatch } from "../test.js";
 import { WgslExec, WgslParser } from "../../wgsl_reflect.module.js";
 
 function _newWgslExec(code) {
-    return new WgslExec(new WgslParser().parse(code));
+    return new WgslExec(WgslParser.Parse(code));
 }
 
 export async function run() {
