@@ -28,6 +28,10 @@ export class WgslDebug {
     runSliceSize: number = 1000;
     readonly breakpoints: Set<number> = new Set();
     runStateCallback: RuntimeStateCallbackType | null = null;
+    // Memoizes _createState's command list per AST body. Commands are pure
+    // functions of the AST and immutable once built (positions patched at build
+    // time), so re-entering the same function/block reuses the cached array.
+    private _commandCache: WeakMap<AST.Node[], Command[]> = new WeakMap();
 
     constructor(code: string, runStateCallback?: RuntimeStateCallbackType) {
         this._code = code;
@@ -700,6 +704,21 @@ export class WgslDebug {
     _createState(ast: AST.Node[], context: ExecContext, parent?: StackFrame): StackFrame {
         const state = new StackFrame(context, parent ?? null);
 
+        // Register function declarations into the context. This is a scope side
+        // effect (not a command), so it runs on every entry — including cache hits.
+        for (const statement of ast) {
+            if (statement instanceof AST.Function) {
+                const f = new FunctionRef(statement);
+                context.functions.set(statement.name, f);
+            }
+        }
+
+        const cached = this._commandCache.get(ast);
+        if (cached !== undefined) {
+            state.commands = cached;
+            return state;
+        }
+
         for (const statement of ast) {
             // A statement may have expressions that include function calls.
             // Gather all of the internal function calls from the statement.
@@ -742,8 +761,7 @@ export class WgslDebug {
             } else if (statement instanceof AST.Increment) {
                 state.commands.push(new StatementCommand(statement));
             } else if (statement instanceof AST.Function) {
-                const f = new FunctionRef(statement);
-                state.context.functions.set(statement.name, f);
+                // Already registered into context above; no command emitted.
                 continue;
             } else if (statement instanceof AST.If) {
                 const functionCalls = [];
@@ -930,6 +948,7 @@ export class WgslDebug {
             }
         }
 
+        this._commandCache.set(ast, state.commands);
         return state;
     }
 

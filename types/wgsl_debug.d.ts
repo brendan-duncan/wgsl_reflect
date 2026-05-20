@@ -19,6 +19,7 @@ export declare class WgslDebug {
     runSliceSize: number;
     readonly breakpoints: Set<number>;
     runStateCallback: RuntimeStateCallbackType | null;
+    private _commandCache;
     constructor(code: string, runStateCallback?: RuntimeStateCallbackType);
     getVariableValue(name: string): number | number[] | null;
     reset(): void;
