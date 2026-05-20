@@ -210,10 +210,15 @@ export class WgslExec extends ExecInterface {
             }
         }
 
+        const workgroupId = new VectorData([0, 0, 0], vec3u);
+        context.setVariable("@workgroup_id", workgroupId);
+
         for (let z = 0; z < depth; ++z) {
             for (let y = 0; y < height; ++y) {
                 for (let x = 0; x < width; ++x) {
-                    context.setVariable("@workgroup_id", new VectorData([x, y, z], this.getTypeInfo("vec3u")));
+                    workgroupId.data[0] = x;
+                    workgroupId.data[1] = y;
+                    workgroupId.data[2] = z;
                     this._dispatchWorkgroup(f, [x, y, z], context);
                 }
             }
@@ -381,18 +386,26 @@ export class WgslExec extends ExecInterface {
         const height = workgroupSize[1];
         const depth = workgroupSize[2];
 
+        // Reuse single Data instances for the per-invocation builtins; only the
+        // values change between invocations. let/var bindings clone, so a kernel
+        // that captures a builtin keeps an independent copy.
+        const localId = new VectorData([0, 0, 0], vec3u);
+        const globalId = new VectorData([0, 0, 0], vec3u);
+        const localIndex = new ScalarData(0, u32);
+        context.setVariable("@local_invocation_id", localId);
+        context.setVariable("@global_invocation_id", globalId);
+        context.setVariable("@local_invocation_index", localIndex);
+
         for (let z = 0, li = 0; z < depth; ++z) {
             for (let y = 0; y < height; ++y) {
                 for (let x = 0; x < width; ++x, ++li) {
-                    const local_invocation_id = [x, y, z];
-                    const global_invocation_id = [
-                        x + workgroup_id[0] * workgroupSize[0],
-                        y + workgroup_id[1] * workgroupSize[1],
-                        z + workgroup_id[2] * workgroupSize[2]];
-
-                    context.setVariable("@local_invocation_id", new VectorData(local_invocation_id, vec3u));
-                    context.setVariable("@global_invocation_id", new VectorData(global_invocation_id, vec3u));
-                    context.setVariable("@local_invocation_index", new ScalarData(li, u32));
+                    localId.data[0] = x;
+                    localId.data[1] = y;
+                    localId.data[2] = z;
+                    globalId.data[0] = x + workgroup_id[0] * workgroupSize[0];
+                    globalId.data[1] = y + workgroup_id[1] * workgroupSize[1];
+                    globalId.data[2] = z + workgroup_id[2] * workgroupSize[2];
+                    localIndex.value = li;
 
                     this._dispatchExec(f, context);
                 }

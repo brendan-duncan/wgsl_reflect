@@ -300,11 +300,16 @@ export class WgslDebug {
             }
         }
 
+        const workgroupId = new VectorData([0, 0, 0], vec3u);
+        context.setVariable("@workgroup_id", workgroupId);
+
         let found = false;
         for (let z = 0; z < depth && !found; ++z) {
             for (let y = 0; y < height && !found; ++y) {
                 for (let x = 0; x < width && !found; ++x) {
-                    context.setVariable("@workgroup_id", new VectorData([x, y, z], vec3u));
+                    workgroupId.data[0] = x;
+                    workgroupId.data[1] = y;
+                    workgroupId.data[2] = z;
                     if (this._dispatchWorkgroup(kernelFn, [x, y, z], context)) {
                         found = true;
                         break;
@@ -620,23 +625,34 @@ export class WgslDebug {
         const height = workgroupSize[1];
         const depth = workgroupSize[2];
 
+        // The loop only searches for the invocation matching the debugged
+        // dispatch id; reuse single Data instances and populate them once the
+        // match is found rather than allocating on every iteration.
+        const localId = new VectorData([0, 0, 0], vec3u);
+        const globalId = new VectorData([0, 0, 0], vec3u);
+        const localIndex = new ScalarData(0, u32);
+        context.setVariable("@local_invocation_id", localId);
+        context.setVariable("@global_invocation_id", globalId);
+        context.setVariable("@local_invocation_index", localIndex);
+
         let found = false;
         for (let z = 0, li = 0; z < depth && !found; ++z) {
             for (let y = 0; y < height && !found; ++y) {
                 for (let x = 0; x < width && !found; ++x, ++li) {
-                    const local_invocation_id = [x, y, z];
-                    const global_invocation_id = [
-                        x + workgroup_id[0] * workgroupSize[0],
-                        y + workgroup_id[1] * workgroupSize[1],
-                        z + workgroup_id[2] * workgroupSize[2]];
+                    const gx = x + workgroup_id[0] * workgroupSize[0];
+                    const gy = y + workgroup_id[1] * workgroupSize[1];
+                    const gz = z + workgroup_id[2] * workgroupSize[2];
 
-                    context.setVariable("@local_invocation_id", new VectorData(local_invocation_id, vec3u));
-                    context.setVariable("@global_invocation_id", new VectorData(global_invocation_id, vec3u));
-                    context.setVariable("@local_invocation_index", new ScalarData(li, u32));
-
-                    if (global_invocation_id[0] === this._dispatchId[0] &&
-                        global_invocation_id[1] === this._dispatchId[1] &&
-                        global_invocation_id[2] === this._dispatchId[2]) {
+                    if (gx === this._dispatchId[0] &&
+                        gy === this._dispatchId[1] &&
+                        gz === this._dispatchId[2]) {
+                        localId.data[0] = x;
+                        localId.data[1] = y;
+                        localId.data[2] = z;
+                        globalId.data[0] = gx;
+                        globalId.data[1] = gy;
+                        globalId.data[2] = gz;
+                        localIndex.value = li;
                         found = true;
                         break;
                     }
