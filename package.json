@@ -1,6 +1,6 @@
 {
   "name": "wgsl_reflect",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "WGSL Parser and Reflection library",
   "author": "Brendan Duncan",
   "license": "MIT",
