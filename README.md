@@ -2,7 +2,7 @@
 
 A WebGPU Shading Language (WGSL) parser, reflection, execution, and debugging library for Typescript and Javascript.
 
-### [Live reflection example](https://brendan-duncan.github.io/wgsl_reflect/example.html)
+### [Example](https://brendan-duncan.github.io/wgsl_reflect/example.html)
 
 ---
 
@@ -12,6 +12,7 @@ A WebGPU Shading Language (WGSL) parser, reflection, execution, and debugging li
 - **Execution** — run a WGSL shader on the CPU. `WgslExec` emulates compute dispatches and produces the same buffer results a GPU would, which is useful for testing shaders without a device.
 - **Debugging** — step through a shader one statement at a time with `WgslDebug`: breakpoints, step into/over/out, and variable inspection — the building blocks of a shader debugger.
 - **Race condition detection** — `detectRaces` runs every invocation of a workgroup in lockstep to catch missing `workgroupBarrier()`/`storageBarrier()` calls that cause data races.
+- **Static performance analysis** — `analyzePerformance` flags potential bottlenecks in vertex, fragment, and compute shaders, such as expensive math, division, atomics, and barriers inside loops.
 
 ## Contents
 
@@ -54,12 +55,14 @@ console.log(reflect.entry.compute.map(fn => fn.name));
 
 ## Documentation
 
-The reflection API is documented below. The execution, debugging, and race
-detection features each have a dedicated guide in the [docs](./docs) folder:
+The reflection API is documented below. The execution, debugging, race
+detection, and performance analysis features each have a dedicated guide in the
+[docs](./docs) folder:
 
 - [Shader Execution](./docs/shader-execution.md) — run WGSL shaders on the CPU and emulate compute dispatches with `WgslExec`.
 - [Shader Debugging](./docs/shader-debugging.md) — step through a shader, set breakpoints, and inspect state with `WgslDebug`.
 - [Race Condition Detection](./docs/race-condition-detection.md) — find missing barriers in compute shaders with `detectRaces`.
+- [Static Performance Analysis](./docs/shader-analysis.md) — flag potential performance bottlenecks in shaders with `analyzePerformance`.
 
 ## Reflection API Reference
 

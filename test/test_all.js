@@ -9,6 +9,7 @@ import * as reflect from './tests/test_reflect.js'
 import * as struct_layout from './tests/struct_layout.js'
 import * as exec from './tests/test_exec.js'
 import * as debug from './tests/test_debug.js'
+import * as perf from './tests/test_perf.js'
 
 export function displayResults () {
   document.body.appendChild(document.createElement('p'))
@@ -36,6 +37,7 @@ export async function runTests () {
     await struct_layout.run();
     await exec.run();
     await debug.run();
+    await perf.run();
     displayResults();
   } finally {
     await shutdownDevice();

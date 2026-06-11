@@ -174,6 +174,13 @@
     .badge.fragment { background: #fdeede; color: var(--fragment); }
     .badge.compute { background: #efe6f7; color: var(--compute); }
     .badge.access { background: var(--accent-soft); color: var(--accent); }
+    .badge.sev-high { background: #fdecea; color: #c0392b; }
+    .badge.sev-medium { background: #fdeede; color: var(--fragment); }
+    .badge.sev-low { background: var(--accent-soft); color: var(--accent); }
+    .badge.sev-info { background: var(--code); color: var(--muted); }
+
+    .finding-msg { font-size: 12.5px; line-height: 1.45; }
+    .finding-msg code { font-family: var(--mono); }
 
     .kv {
       display: grid;
@@ -231,7 +238,7 @@
 <body>
   <header>
     <h1>WGSL Reflection</h1>
-    <span class="subtitle">Inspect entry points, bindings, structs, and bind groups from any WGSL shader.</span>
+    <span class="subtitle">Inspect entry points, bindings, structs, bind groups, and performance findings from any WGSL shader.</span>
   </header>
 
   <main>
@@ -309,6 +316,19 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let sampled = textureSample(u_texture, u_sampler, in.v_uv);
     return sampled * in.v_color;
+}
+
+@group(1) @binding(0) var<storage, read_write> data: array<f32>;
+
+@compute @workgroup_size(64)
+fn cs_main(@builtin(global_invocation_id) id: vec3u) {
+    var acc = 0.0;
+    for (var i = 0u; i < 256u; i++) {
+        // pow() is an expensive builtin and '/ id.y' is a non-constant divide,
+        // both inside a loop — the performance analyzer flags them.
+        acc += pow(data[id.x], f32(i)) / id.y;
+    }
+    data[id.x] = acc;
 }`;
 
     const shaderInput = document.getElementById("shader");
@@ -524,6 +544,33 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
       return `<section><h3>Bind Groups <span class="count">${groups.length}</span></h3>${lines}</section>`;
     }
 
+    function perfCard(f) {
+      const stage = f.stage ? `<span class="badge ${f.stage}">${esc(f.stage)}</span>` : "";
+      return `<div class="card">
+        <div class="card-title">
+          <span class="badge sev-${esc(f.severity)}">${esc(f.severity)}</span>
+          <span class="name">${esc(f.rule)}</span>
+          ${stage}
+          <span class="badge">confidence ${esc(f.confidence)}</span>
+          <span class="meta" style="margin-left:auto; color:var(--muted); font-size:12px;">${esc(f.function)} · line ${f.line}</span>
+        </div>
+        <div class="finding-msg">${esc(f.message)}</div>
+      </div>`;
+    }
+
+    function perfSection(code) {
+      let findings;
+      try {
+        findings = wgsl.analyzePerformance(code).findings;
+      } catch (e) {
+        return "";
+      }
+      if (!findings.length) {
+        return `<section><h3>Performance</h3><div class="nothing">No performance findings.</div></section>`;
+      }
+      return `<section><h3>Performance <span class="count">${findings.length}</span></h3>${findings.map(perfCard).join("")}</section>`;
+    }
+
     function totalEntries(reflect) {
       return reflect.entry.vertex.length + reflect.entry.fragment.length + reflect.entry.compute.length;
     }
@@ -548,9 +595,10 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
     // ---- main render -----------------------------------------------------
 
-    function render(reflect) {
+    function render(reflect, code) {
       let html = "";
       html += summaryRow(reflect);
+      html += perfSection(code);
 
       // Entry points (grouped by stage)
       const allEntries = [
@@ -626,7 +674,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         return;
       }
       const t1 = performance.now();
-      render(reflect);
+      render(reflect, shaderInput.value);
       timingEl.textContent = `Parsed in ${(t1 - t0).toFixed(1)} ms`;
     }
 
