@@ -5,7 +5,11 @@ export declare enum PerfRuleId {
     CostlyArithmeticInLoop = 2,
     LoopInvariantExpression = 3,
     AtomicInLoop = 4,
-    BarrierInLoop = 5
+    BarrierInLoop = 5,
+    AtomicStorageRead = 6,
+    WorkgroupArrayThreadPrivate = 7,
+    WorkgroupStorageOversized = 8,
+    SerialScanEmulation = 9
 }
 export declare const PerfRuleNames: Record<PerfRuleId, string>;
 export interface PerfFinding {

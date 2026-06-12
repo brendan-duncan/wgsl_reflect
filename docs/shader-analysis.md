@@ -4,7 +4,11 @@ Some shader performance problems are not bugs — the shader produces the correc
 result — but they cost more GPU time than they need to. `analyzePerformance()`
 is a *static* analyzer: it parses a WGSL shader and flags constructs with a
 well-known GPU cost, such as expensive math inside a loop, integer division by a
-non-constant, or atomics and barriers in a loop.
+non-constant, or atomics and barriers in a loop. It also flags
+[translation-aware](#translation-aware-rules) pathologies — patterns that are
+cheap in native HLSL/D3D but become expensive once translated to WGSL (atomic
+buffers whose every read is an RMW, oversized workgroup storage, serial scan
+emulations), which are best caught by running this over the translated WGSL.
 
 Unlike [`detectRaces`](./race-condition-detection.md), it does **not** execute
 the shader. It needs no bind groups, no inputs, and no dispatch size — just the
@@ -101,6 +105,8 @@ interface PerfFinding {
 
 Each rule has a stable id in the `PerfRuleId` enum.
 
+### Loop-cost rules
+
 | `PerfRuleId` | `rule` | What it flags |
 | ------------ | ------ | ------------- |
 | `ExpensiveBuiltinInLoop` | `expensive-builtin-in-loop` | A transcendental / special-function builtin (`pow`, `exp`, `log`, `sin`, `sqrt`, `normalize`, …) called inside a loop. |
@@ -113,6 +119,25 @@ An expensive expression that is *also* loop-invariant is reported once, as
 `loop-invariant-expression` (the more actionable finding), never double-counted
 as `expensive-builtin-in-loop`. Division by a compile-time constant (a literal,
 `const`, or `override`) is **not** flagged — the compiler can optimize that.
+
+### Translation-aware rules
+
+These flag patterns that are cheap in native HLSL/D3D but become expensive after
+an HLSL→Tint→WGSL translation. They are most useful run over the **translated
+WGSL** a tool like WebGPU Inspector already has in hand — not the original HLSL,
+where the pathology does not yet exist.
+
+| `PerfRuleId` | `rule` | What it flags |
+| ------------ | ------ | ------------- |
+| `AtomicStorageRead` | `atomic-storage-read` | An `atomicLoad` of a storage buffer typed `atomic<T>`. WGSL has no mixed plain/atomic access, so every *read* of such a buffer is atomic; Tint lowers `atomicLoad` to `InterlockedOr(dest, 0)` — a full read-modify-write that is free on D3D11 but a GPU-wide serializer on WebGPU. Fix: split the read-only data into its own non-atomic binding. |
+| `WorkgroupArrayThreadPrivate` | `workgroup-array-thread-private` | A `var<workgroup>` array indexed only by the local invocation id in every access — each thread touches only its own slot, so it shares nothing. A register spill in disguise; use a local variable. |
+| `WorkgroupStorageOversized` | `workgroup-storage-oversized` | Total `var<workgroup>` bytes exceeding WebGPU's default `maxComputeWorkgroupStorageSize` (16 KB), which fails to compile on a default device and otherwise caps occupancy. |
+| `SerialScanEmulation` | `serial-scan-emulation` | A loop that serially accumulates workgroup memory into a local (`for (i..localID) prefix += lds[i];`) — the O(n) no-wave fallback shipped in ported HLSL middleware. Suggests a log-step (Hillis-Steele) scan or WGSL subgroups. |
+
+The serial-scan rule distinguishes the bad O(n) form (accumulating into a *local*
+scalar) from a correct log-step scan (accumulating *into* the workgroup array),
+and is reported with high confidence when the loop's trip count derives from the
+local invocation id.
 
 ## Filtering the results
 
@@ -169,7 +194,14 @@ analyzePerformance(code, {
   another invocation could change).
 - **Intra-function only.** Findings are reported per function; cost is not
   propagated across calls, and a cheap-looking call to an expensive helper is not
-  charged to the call site.
+  charged to the call site. The translation-aware rules
+  (`workgroup-array-thread-private`, `serial-scan-emulation`) inspect accesses
+  within a single entry function and recognize the local invocation id only when
+  it arrives as a direct `@builtin` parameter, not when passed through a call.
+- **Workgroup sizing is approximate.** `workgroup-storage-oversized` estimates
+  `var<workgroup>` sizes with std-layout rules and skips any type it cannot
+  resolve (e.g. an array whose length is an unresolved override), so it is meant
+  to catch gross overruns (the 16 KB limit), not to be byte-exact.
 - **Memory access patterns are out of scope.** Uncoalesced global memory access
   and workgroup bank conflicts depend on the actual per-invocation addresses and
   are better suited to a dynamic analysis built on the

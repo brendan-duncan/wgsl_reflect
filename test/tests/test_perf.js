@@ -188,5 +188,112 @@ export async function run() {
       });
       test.true(findings.every(f => f.confidence === "high" && f.id !== PerfRuleId.AtomicInLoop));
     });
+
+    // --- translation-aware rules (HLSL->Tint->WGSL pathologies) --------------
+
+    await test("#1 atomicLoad of an atomic storage buffer is flagged once per buffer", function (test) {
+      const { byRule } = findingsByRule(`
+        @group(0) @binding(0) var<storage, read_write> TransferBuffer: array<atomic<u32>>;
+        @compute @workgroup_size(64)
+        fn main(@builtin(local_invocation_index) lid: u32) {
+          let a = bitcast<f32>(atomicLoad(&TransferBuffer[160]));
+          let b = atomicLoad(&TransferBuffer[lid]);
+          atomicAdd(&TransferBuffer[0], 1u);
+        }`);
+      const f = byRule["atomic-storage-read"];
+      test.notNull(f, "expected an atomic-storage-read finding");
+      test.equals(f.length, 1, "one finding per buffer, not per read site");
+      test.equals(f[0].id, PerfRuleId.AtomicStorageRead);
+    });
+
+    await test("#1 plain reads of a non-atomic buffer are not flagged", function (test) {
+      const { byRule } = findingsByRule(`
+        @group(0) @binding(0) var<storage, read_write> Counter: array<atomic<u32>>;
+        @group(0) @binding(1) var<storage, read> Histogram: array<u32>;
+        @compute @workgroup_size(64)
+        fn main(@builtin(local_invocation_index) lid: u32) {
+          let a = Histogram[160];
+          atomicAdd(&Counter[0], 1u);
+        }`);
+      test.true(byRule["atomic-storage-read"] === undefined,
+        "reading a separate non-atomic buffer should not be flagged");
+    });
+
+    await test("#2a workgroup array indexed only by local id is flagged", function (test) {
+      const { byRule } = findingsByRule(`
+        var<workgroup> staged: array<u32, 128>;
+        @compute @workgroup_size(128)
+        fn main(@builtin(local_invocation_id) tid: vec3u) {
+          staged[tid.x] = tid.x * 2u;
+          workgroupBarrier();
+          let v = staged[tid.x];
+        }`);
+      test.notNull(byRule["workgroup-array-thread-private"]);
+    });
+
+    await test("#2a workgroup array with cross-thread access is not flagged", function (test) {
+      const { byRule } = findingsByRule(`
+        var<workgroup> tile: array<u32, 128>;
+        @compute @workgroup_size(128)
+        fn main(@builtin(local_invocation_id) tid: vec3u) {
+          tile[tid.x] = tid.x * 2u;
+          workgroupBarrier();
+          let v = tile[127u - tid.x];
+        }`);
+      test.true(byRule["workgroup-array-thread-private"] === undefined,
+        "an array read at a different index than written is genuine sharing");
+    });
+
+    await test("#2b workgroup storage over 16 KB is flagged", function (test) {
+      const { byRule } = findingsByRule(`
+        struct SplatData { a: array<u32, 62> }
+        var<workgroup> staged: array<SplatData, 128>;
+        @compute @workgroup_size(128)
+        fn main(@builtin(local_invocation_id) tid: vec3u) {
+          staged[tid.x].a[0] = 1u;
+        }`);
+      const f = byRule["workgroup-storage-oversized"];
+      test.notNull(f, "31.7 KB of workgroup storage should be flagged");
+      test.equals(f[0].severity, "high");
+    });
+
+    await test("#2b small workgroup storage is not flagged", function (test) {
+      const { byRule } = findingsByRule(`
+        var<workgroup> tmp: array<u32, 128>;
+        @compute @workgroup_size(128)
+        fn main(@builtin(local_invocation_id) tid: vec3u) { tmp[tid.x] = 1u; }`);
+      test.true(byRule["workgroup-storage-oversized"] === undefined);
+    });
+
+    await test("#3 serial scan over workgroup memory is flagged with high confidence", function (test) {
+      const { byRule } = findingsByRule(`
+        var<workgroup> sums: array<u32, 128>;
+        @compute @workgroup_size(128)
+        fn main(@builtin(local_invocation_index) localID: u32) {
+          sums[localID] = localID;
+          workgroupBarrier();
+          var prefix = 0u;
+          for (var i = 0u; i < localID; i++) {
+            prefix += sums[i];
+          }
+        }`);
+      const f = byRule["serial-scan-emulation"];
+      test.notNull(f, "expected a serial-scan-emulation finding");
+      test.equals(f[0].confidence, "high", "trip count derived from local id");
+    });
+
+    await test("#3 a log-step (Hillis-Steele) scan is not flagged as serial", function (test) {
+      const { byRule } = findingsByRule(`
+        var<workgroup> sums: array<u32, 128>;
+        @compute @workgroup_size(128)
+        fn main(@builtin(local_invocation_index) localID: u32) {
+          for (var off = 1u; off < 128u; off = off * 2u) {
+            workgroupBarrier();
+            if (localID >= off) { sums[localID] = sums[localID] + sums[localID - off]; }
+          }
+        }`);
+      test.true(byRule["serial-scan-emulation"] === undefined,
+        "accumulating into the workgroup array (not a local) is the good pattern");
+    });
   });
 }
