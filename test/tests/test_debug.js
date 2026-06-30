@@ -321,6 +321,85 @@ export async function run() {
     });
   }, true);
 
+  await group("Vertex Debug", async function () {
+    await test("separate args, struct output", function (test) {
+      const shader = `
+        struct VertexOutput {
+          @builtin(position) position: vec4f,
+          @location(0) color: vec3f,
+        };
+        @vertex
+        fn main(@builtin(vertex_index) vi: u32, @location(0) pos: vec2f) -> VertexOutput {
+          var out: VertexOutput;
+          out.position = vec4f(pos, 0.0, 1.0);
+          out.color = vec3f(f32(vi), 0.0, 0.0);
+          return out;
+        }`;
+      const dbg = new WgslDebug(shader);
+      const ok = dbg.debugVertex("main", { vertex_index: 2, 0: [0.5, -0.5] }, {});
+      test.true(ok, "debugVertex should succeed");
+      while (dbg.stepNext());
+      const out = dbg.getReturnValue();
+      test.equals(out.position, [0.5, -0.5, 0, 1]);
+      test.equals(out.color, [2, 0, 0]);
+    });
+
+    await test("input struct, bare position output", function (test) {
+      const shader = `
+        struct VertexInput {
+          @builtin(vertex_index) vi: u32,
+          @location(0) pos: vec2f,
+          @location(1) uv: vec2f,
+        };
+        @vertex
+        fn main(in: VertexInput) -> @builtin(position) vec4f {
+          return vec4f(in.pos + in.uv, f32(in.vi), 1.0);
+        }`;
+      const dbg = new WgslDebug(shader);
+      const ok = dbg.debugVertex("main", { vertex_index: 3, 0: [1.0, 2.0], 1: [0.5, 0.5] }, {});
+      test.true(ok, "debugVertex should succeed");
+      while (dbg.stepNext());
+      test.equals(dbg.getReturnValue(), [1.5, 2.5, 3, 1]);
+    });
+
+    await test("storage resource binding", function (test) {
+      const shader = `
+        @group(0) @binding(0) var<storage, read> offset: array<f32>;
+        @vertex
+        fn main(@location(0) pos: vec2f) -> @builtin(position) vec4f {
+          return vec4f(pos.x + offset[0], pos.y + offset[1], 0.0, 1.0);
+        }`;
+      const buffer = new Float32Array([10, 20]);
+      const dbg = new WgslDebug(shader);
+      const ok = dbg.debugVertex("main", { 0: [1.0, 2.0] }, { 0: { 0: buffer } });
+      test.true(ok, "debugVertex should succeed");
+      while (dbg.stepNext());
+      test.equals(dbg.getReturnValue(), [11, 22, 0, 1]);
+    });
+
+    await test("step and inspect locals", function (test) {
+      const shader = `
+        @vertex
+        fn main(@builtin(vertex_index) vi: u32) -> @builtin(position) vec4f {
+          let x = f32(vi) * 2.0;
+          return vec4f(x, 0.0, 0.0, 1.0);
+        }`;
+      const dbg = new WgslDebug(shader);
+      dbg.debugVertex("main", { vertex_index: 5 }, {});
+      dbg.stepNext(); // let x = f32(vi) * 2.0;
+      test.equals(dbg.getVariableValue("x"), 10);
+    });
+
+    await test("rejects non-vertex entry", function (test) {
+      const shader = `
+        @compute @workgroup_size(1)
+        fn main() {}`;
+      const dbg = new WgslDebug(shader);
+      const ok = dbg.debugVertex("main", {}, {});
+      test.false(ok, "debugVertex should reject a @compute entry");
+    });
+  }, true);
+
   await group("Race Detection", async function () {
     await test("detect missing workgroupBarrier", async function (test) {
       // Each lane writes tile[lid] then reads tile[3-lid], which another lane

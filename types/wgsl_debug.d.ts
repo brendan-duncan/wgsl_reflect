@@ -4,6 +4,8 @@ import { ExecContext, FunctionRef } from "./exec/exec_context.js";
 import { Command } from "./exec/command.js";
 import { StackFrame } from "./exec/stack_frame.js";
 import { ExecStack } from "./exec/exec_stack.js";
+import { Data } from "./wgsl_ast.js";
+import { StructInfo, TypeInfo, FunctionInfo } from "./reflect/info.js";
 type RuntimeStateCallbackType = () => void;
 interface BindingEntry {
     texture?: {
@@ -12,11 +14,13 @@ interface BindingEntry {
     descriptor?: unknown;
     uniform?: ArrayBuffer;
 }
+type StageInputs = Record<string, number | number[] | Float32Array | Uint32Array | Int32Array>;
 export declare class WgslDebug {
     private _code;
     private _exec;
     private _execStack;
     private _dispatchId;
+    private _returnValue;
     private _runTimer;
     runSliceSize: number;
     readonly breakpoints: Set<number>;
@@ -39,6 +43,18 @@ export declare class WgslDebug {
     pause(): void;
     _setOverrides(constants: Record<string, unknown>, context: ExecContext): void;
     debugWorkgroup(kernel: string, dispatchId: number[], dispatchCount: number | number[], bindGroups: Record<string, Record<string, BindingEntry>>, config?: Record<string, unknown>): boolean;
+    _bindResources(bindGroups: Record<string, Record<string, BindingEntry>>, refl: FunctionInfo, context: ExecContext): void;
+    debugVertex(entry: string, inputs: StageInputs, bindGroups: Record<string, Record<string, BindingEntry>>, config?: Record<string, unknown>): boolean;
+    _bindStageInputs(fn: FunctionRef, inputs: StageInputs, context: ExecContext): void;
+    _inputSemantic(attributes: AST.Attribute[] | null): {
+        builtin: string | null;
+        location: string | null;
+    };
+    _makeStageValue(typeInfo: TypeInfo | null, value: number | number[] | Float32Array | Uint32Array | Int32Array): Data | null;
+    _makeStructInput(typeInfo: StructInfo, inputs: StageInputs, context: ExecContext): Data;
+    get returnValue(): Data | null;
+    getReturnValue(): number | number[] | Record<string, unknown> | null;
+    _dataToJS(v: Data | null): number | number[] | Record<string, unknown> | null;
     _shouldExecuteNextCommand(stack?: ExecStack): boolean;
     stepInto(): void;
     stepOver(): void;

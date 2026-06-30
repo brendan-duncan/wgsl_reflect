@@ -6,7 +6,8 @@ import { Command, StatementCommand, CallExprCommand, GotoCommand, BlockCommand,
         ContinueTargetCommand, ContinueCommand, BreakCommand, BreakTargetCommand } from "./exec/command.js";
 import { StackFrame } from "./exec/stack_frame.js";
 import { ExecStack } from "./exec/exec_stack.js";
-import { ScalarData, VectorData, MatrixData, TextureData, TypedData, VoidData, ArrayType, LiteralExpr } from "./wgsl_ast.js";
+import { ScalarData, VectorData, MatrixData, TextureData, TypedData, VoidData, ArrayType, LiteralExpr, Data } from "./wgsl_ast.js";
+import { StructInfo, TypeInfo, FunctionInfo } from "./reflect/info.js";
 
 type RuntimeStateCallbackType = () => void;
 
@@ -16,11 +17,21 @@ interface BindingEntry {
     uniform?: ArrayBuffer;
 }
 
+// Per-invocation inputs to a render-stage entry point, keyed by pipeline
+// semantic: builtins by name ("vertex_index") and @location(n) attributes by
+// location index. Scalars are numbers; vectors are arrays (or typed arrays).
+type StageInputs = Record<string, number | number[] | Float32Array | Uint32Array | Int32Array>;
+
 export class WgslDebug {
     private _code: string;
     private _exec: WgslExec;
     private _execStack: ExecStack;
     private _dispatchId: number[];
+    // The value returned by a debugged entry point (e.g. a @vertex stage's
+    // output struct). Top-level entries have no enclosing CallExpr to receive
+    // their return, so stepStack stashes it here instead. null until the entry
+    // executes its `return`.
+    private _returnValue: Data | null = null;
     private _runTimer: ReturnType<typeof setTimeout> | null = null;
     // Number of commands processed synchronously per scheduler slice before
     // yielding to the event loop. Larger = higher throughput, smaller = more
@@ -256,6 +267,35 @@ export class WgslDebug {
         const vec3u = this._exec.typeInfo["vec3u"];
         context.setVariable("@num_workgroups", new VectorData(dispatchCount, vec3u));
 
+        this._bindResources(bindGroups, kernelRefl, context);
+
+        const workgroupId = new VectorData([0, 0, 0], vec3u);
+        context.setVariable("@workgroup_id", workgroupId);
+
+        let found = false;
+        for (let z = 0; z < depth && !found; ++z) {
+            for (let y = 0; y < height && !found; ++y) {
+                for (let x = 0; x < width && !found; ++x) {
+                    workgroupId.data[0] = x;
+                    workgroupId.data[1] = y;
+                    workgroupId.data[2] = z;
+                    if (this._dispatchWorkgroup(kernelFn, [x, y, z], context)) {
+                        found = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return found;
+    }
+
+    // Bind pipeline resources (uniforms, storage buffers, textures) onto the
+    // execution context. Shared by debugWorkgroup and debugVertex: resource
+    // binding is identical across shader stages, only the stage inputs differ.
+    _bindResources(bindGroups: Record<string, Record<string, BindingEntry>>,
+        refl: FunctionInfo, context: ExecContext): void {
+
         for (const set in bindGroups) {
             for (const binding in bindGroups[set]) {
                 const entry = bindGroups[set][binding];
@@ -274,7 +314,7 @@ export class WgslDebug {
                         }
                         if (binding === b && set === s) {
                             let found = false;
-                            for (const resource of kernelRefl.resources) {
+                            for (const resource of refl.resources) {
                                 if (resource.name === v.name && resource.group === parseInt(set) && resource.binding === parseInt(binding)) {
                                     found = true;
                                     break;
@@ -303,26 +343,170 @@ export class WgslDebug {
                 });
             }
         }
+    }
 
-        const workgroupId = new VectorData([0, 0, 0], vec3u);
-        context.setVariable("@workgroup_id", workgroupId);
+    // Debug a single @vertex shader invocation.
+    //
+    // `inputs` provides the per-vertex inputs keyed by pipeline semantic:
+    //   - builtins by name:    { vertex_index: 3, instance_index: 0 }
+    //   - @location(n) attrs:  { 0: [x, y, z], 1: [u, v] }
+    // The semantics are identical whether the shader declares them as separate
+    // arguments or grouped together in an input struct.
+    //
+    // After this returns true, step the invocation with stepNext()/run() exactly
+    // like a compute dispatch. The stage's output is available via returnValue /
+    // getReturnValue() once the entry executes its `return`.
+    debugVertex(entry: string, inputs: StageInputs,
+        bindGroups: Record<string, Record<string, BindingEntry>>, config?: Record<string, unknown>): boolean {
 
-        let found = false;
-        for (let z = 0; z < depth && !found; ++z) {
-            for (let y = 0; y < height && !found; ++y) {
-                for (let x = 0; x < width && !found; ++x) {
-                    workgroupId.data[0] = x;
-                    workgroupId.data[1] = y;
-                    workgroupId.data[2] = z;
-                    if (this._dispatchWorkgroup(kernelFn, [x, y, z], context)) {
-                        found = true;
-                        break;
-                    }
+        this._execStack = new ExecStack();
+        this._returnValue = null;
+
+        const context = this._exec.context;
+        context.currentFunctionName = entry;
+
+        config = config ?? {};
+        const constants = config["constants"] as Record<string, number> | undefined;
+        if (constants) {
+            this._setOverrides(constants, context);
+        }
+
+        // Execute module-scope statements (global consts, etc.) and register
+        // function declarations into the context.
+        this._exec._execStatements(this._exec.ast, context);
+
+        const entryFn = context.getFunction(entry);
+        if (!entryFn) {
+            console.error(`Function ${entry} not found`);
+            return false;
+        }
+
+        const entryRefl = this._exec.reflection.getFunctionInfo(entry);
+        if (entryRefl === null) {
+            console.error(`Function ${entry} not found in reflection data`);
+            return false;
+        }
+        if (entryRefl.stage !== "vertex") {
+            console.error(`Function ${entry} is not a @vertex entry point`);
+            return false;
+        }
+
+        this._bindResources(bindGroups, entryRefl, context);
+        this._bindStageInputs(entryFn, inputs, context);
+
+        const state = this._createState(entryFn.node.body, context);
+        this._execStack.states.push(state);
+        return true;
+    }
+
+    // Resolve each entry-point argument from the supplied stage inputs and bind
+    // it as a local variable. Builtin/location arguments are taken directly from
+    // `inputs`; a struct argument is assembled member-by-member from inputs.
+    _bindStageInputs(fn: FunctionRef, inputs: StageInputs, context: ExecContext): void {
+        for (const arg of fn.node.args) {
+            const typeInfo = this._exec.getTypeInfo(arg.type);
+            const { builtin, location } = this._inputSemantic(arg.attributes);
+            let value: Data | null = null;
+
+            if (builtin !== null || location !== null) {
+                const key = (builtin !== null ? builtin : location) as string;
+                const raw = inputs[key];
+                if (raw !== undefined) {
+                    value = this._makeStageValue(typeInfo, raw);
+                }
+            } else if (typeInfo !== null && typeInfo.isStruct) {
+                value = this._makeStructInput(typeInfo as StructInfo, inputs, context);
+            }
+
+            if (value !== null) {
+                context.createVariable(arg.name, value, arg);
+            }
+        }
+    }
+
+    // Extract the @builtin(name) / @location(n) semantic from an attribute list.
+    _inputSemantic(attributes: AST.Attribute[] | null): { builtin: string | null, location: string | null } {
+        let builtin: string | null = null;
+        let location: string | null = null;
+        if (attributes) {
+            for (const attr of attributes) {
+                if (attr.name === "builtin") {
+                    builtin = attr.value as string;
+                } else if (attr.name === "location") {
+                    location = attr.value as string;
                 }
             }
         }
+        return { builtin, location };
+    }
 
-        return found;
+    // Build a ScalarData/VectorData for a stage input value. The concrete type
+    // name (e.g. "vec3f" rather than the bare "vec3" template) is resolved so the
+    // value gets the correct backing array kind (f32/u32/i32).
+    _makeStageValue(typeInfo: TypeInfo | null,
+        value: number | number[] | Float32Array | Uint32Array | Int32Array): Data | null {
+        if (typeInfo === null) {
+            return null;
+        }
+        const concrete = this._exec.getTypeInfo(typeInfo.getTypeName()) ?? typeInfo;
+        if (typeof value === "number") {
+            return new ScalarData(value, concrete);
+        }
+        return new VectorData(Array.from(value as ArrayLike<number>), concrete);
+    }
+
+    // Assemble an input struct value by writing each member, resolved by its own
+    // @builtin/@location semantic, into a fresh buffer laid out per the struct.
+    _makeStructInput(typeInfo: StructInfo, inputs: StageInputs, context: ExecContext): Data {
+        const data = new TypedData(new ArrayBuffer(typeInfo.size), typeInfo);
+        for (const m of typeInfo.members) {
+            const { builtin, location } = this._inputSemantic(m.attributes);
+            const key = builtin !== null ? builtin : location;
+            if (key === null) {
+                continue;
+            }
+            const raw = inputs[key];
+            if (raw === undefined) {
+                continue;
+            }
+            const memberData = this._makeStageValue(m.type, raw);
+            if (memberData !== null) {
+                data.setDataValue(this._exec, memberData, new AST.StringExpr(m.name), context);
+            }
+        }
+        return data;
+    }
+
+    // Raw return value of a debugged entry point (null until it returns).
+    get returnValue(): Data | null {
+        return this._returnValue;
+    }
+
+    // The entry's return value as plain JS: a number for scalars, an array for
+    // vectors/matrices, or an object keyed by member name for a struct output.
+    getReturnValue(): number | number[] | Record<string, unknown> | null {
+        return this._dataToJS(this._returnValue);
+    }
+
+    _dataToJS(v: Data | null): number | number[] | Record<string, unknown> | null {
+        if (v === null) {
+            return null;
+        }
+        if (v instanceof ScalarData) {
+            return v.value;
+        }
+        if (v instanceof VectorData || v instanceof MatrixData) {
+            return Array.from(v.data);
+        }
+        if (v instanceof TypedData && v.typeInfo instanceof StructInfo) {
+            const out: Record<string, unknown> = {};
+            for (const m of v.typeInfo.members) {
+                const md = v.getSubData(this._exec, new AST.StringExpr(m.name), this.context);
+                out[m.name] = this._dataToJS(md);
+            }
+            return out;
+        }
+        return null;
     }
 
     _shouldExecuteNextCommand(stack?: ExecStack): boolean {
@@ -482,7 +666,10 @@ export class WgslDebug {
                         s = s.parent;
                     }
                     if (s === null) {
-                        console.error("Could not find CallExpr to store return value in");
+                        // No enclosing CallExpr: this is the return of a
+                        // top-level entry point (e.g. a @vertex stage). Surface
+                        // its value via returnValue rather than dropping it.
+                        this._returnValue = res;
                     }
                     if (this._shouldExecuteNextCommand(stack)) {
                         continue;
