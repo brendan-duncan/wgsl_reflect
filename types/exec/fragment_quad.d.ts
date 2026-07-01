@@ -44,6 +44,8 @@ export declare class QuadScheduler {
     private get _target();
     get targetLine(): number;
     get targetContext(): ExecContext | null;
+    get targetFrame(): StackFrame | null;
+    get exec(): WgslExec;
     get isDone(): boolean;
     get targetOutput(): number | number[] | Record<string, unknown> | null;
     get targetDiscarded(): boolean;

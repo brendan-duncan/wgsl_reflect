@@ -380,6 +380,17 @@ export class QuadScheduler {
         return frame === null ? null : frame.context;
     }
 
+    // The target lane's current stack frame (its .parent chain is the callstack).
+    get targetFrame(): StackFrame | null {
+        return resolveTop(this._target.stack);
+    }
+
+    // The underlying interpreter, for evaluating sub-data during variable
+    // inspection (mirrors WgslDebug.exec).
+    get exec(): WgslExec {
+        return this._exec;
+    }
+
     get isDone(): boolean {
         return this._target.state === LaneState.Done || resolveTop(this._target.stack) === null;
     }
