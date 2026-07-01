@@ -358,6 +358,32 @@ export class WgslDebug {
     // getReturnValue() once the entry executes its `return`.
     debugVertex(entry: string, inputs: StageInputs,
         bindGroups: Record<string, Record<string, BindingEntry>>, config?: Record<string, unknown>): boolean {
+        return this._debugStage(entry, "vertex", inputs, bindGroups, config);
+    }
+
+    // Debug a single @fragment shader invocation.
+    //
+    // `inputs` provides the interpolated fragment inputs keyed by pipeline
+    // semantic, exactly like debugVertex:
+    //   - builtins by name:    { position: [x,y,z,w], front_facing: 1, sample_index: 0 }
+    //   - @location(n) attrs:  { 0: [r, g, b], 1: [u, v] }
+    // The @location inputs are the already-interpolated values for this fragment;
+    // supply them from a captured draw (this debugger does not rasterize).
+    //
+    // NOTE: this runs a *single* invocation, so quad-derivative operations
+    // (dpdx/dpdy/fwidth, and textureSample's implicit LOD) evaluate as if the
+    // quad were uniform — their derivatives are zero. Use debugFragmentQuad (when
+    // available) to debug shaders whose output depends on derivatives.
+    debugFragment(entry: string, inputs: StageInputs,
+        bindGroups: Record<string, Record<string, BindingEntry>>, config?: Record<string, unknown>): boolean {
+        return this._debugStage(entry, "fragment", inputs, bindGroups, config);
+    }
+
+    // Shared setup for a single render-stage invocation: apply overrides, bind
+    // resources and stage inputs, and seed the exec stack. `stage` is the
+    // reflected entry-point stage ("vertex" | "fragment") this call expects.
+    _debugStage(entry: string, stage: string, inputs: StageInputs,
+        bindGroups: Record<string, Record<string, BindingEntry>>, config?: Record<string, unknown>): boolean {
 
         this._execStack = new ExecStack();
         this._returnValue = null;
@@ -386,8 +412,8 @@ export class WgslDebug {
             console.error(`Function ${entry} not found in reflection data`);
             return false;
         }
-        if (entryRefl.stage !== "vertex") {
-            console.error(`Function ${entry} is not a @vertex entry point`);
+        if (entryRefl.stage !== stage) {
+            console.error(`Function ${entry} is not a @${stage} entry point`);
             return false;
         }
 
@@ -656,25 +682,36 @@ export class WgslDebug {
 
                 const res = this._exec.execStatement(node, state.context);
                 if (res !== null && res !== undefined && !(res instanceof VoidData)) {
-                    let s = state;
-                    // Find the CallExpr to store the return value in.
-                    while (s) {
-                        if (s.parentCallExpr) {
-                            s.parentCallExpr.setCachedReturnValue(res);
+                    // A `return` executed. Find the frame it returns from: either
+                    // a called function frame (parentCallExpr set) or the
+                    // top-level entry frame (no parent).
+                    let fnFrame = state;
+                    while (fnFrame.parentCallExpr === null && fnFrame.parent !== null) {
+                        fnFrame = fnFrame.parent;
+                    }
+                    if (fnFrame.parentCallExpr !== null) {
+                        fnFrame.parentCallExpr.setCachedReturnValue(res);
+                    } else {
+                        // No enclosing CallExpr: this is the return of a
+                        // top-level entry point (e.g. a @vertex/@fragment stage).
+                        // Surface it via returnValue rather than dropping it.
+                        this._returnValue = res;
+                    }
+                    // `return` exits the function: unwind every frame up to and
+                    // including fnFrame. Without this, execution falls through to
+                    // statements that follow the return's enclosing block (e.g.
+                    // `if c { return a; } return b;` would run `return b` too).
+                    while (!stack.isEmpty) {
+                        const popped = stack.last;
+                        stack.pop();
+                        if (popped === fnFrame) {
                             break;
                         }
-                        s = s.parent;
-                    }
-                    if (s === null) {
-                        // No enclosing CallExpr: this is the return of a
-                        // top-level entry point (e.g. a @vertex stage). Surface
-                        // its value via returnValue rather than dropping it.
-                        this._returnValue = res;
                     }
                     if (this._shouldExecuteNextCommand(stack)) {
                         continue;
                     }
-                    return true;
+                    return this._resolveState(stack) !== null;
                 }
             } else if (command instanceof ContinueTargetCommand) {
                 continue;

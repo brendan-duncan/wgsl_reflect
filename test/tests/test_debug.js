@@ -188,6 +188,36 @@ export async function run() {
       test.equals(dbg.getVariableValue("j"), 8);
     });
 
+    await test("early return in if without else", async function (test) {
+      // Regression: a `return` inside an if-body (no else) followed by a
+      // fall-through statement must terminate the function, not fall through.
+      const shader = `
+      fn f(b: bool) -> i32 {
+        if (b) { return 7; }
+        return 9;
+      }
+      let hit = f(true);
+      let miss = f(false);`;
+      const dbg = new WgslDebug(shader);
+      while (dbg.stepNext());
+      test.equals(dbg.getVariableValue("hit"), 7);
+      test.equals(dbg.getVariableValue("miss"), 9);
+    });
+
+    await test("early return from nested loop", async function (test) {
+      const shader = `
+      fn f() -> i32 {
+        for (var i = 0; i < 10; i++) {
+          if (i == 3) { return i; }
+        }
+        return -1;
+      }
+      let r = f();`;
+      const dbg = new WgslDebug(shader);
+      while (dbg.stepNext());
+      test.equals(dbg.getVariableValue("r"), 3);
+    });
+
     await test("break", async function (test) {
       const shader = `fn foo() -> i32 {
         let j = 0;
@@ -397,6 +427,66 @@ export async function run() {
       const dbg = new WgslDebug(shader);
       const ok = dbg.debugVertex("main", {}, {});
       test.false(ok, "debugVertex should reject a @compute entry");
+    });
+  }, true);
+
+  await group("Fragment Debug", async function () {
+    await test("interpolated inputs, color output", function (test) {
+      const shader = `
+        @fragment
+        fn main(@location(0) color: vec3f, @location(1) uv: vec2f) -> @location(0) vec4f {
+          return vec4f(color * uv.x, 1.0);
+        }`;
+      const dbg = new WgslDebug(shader);
+      const ok = dbg.debugFragment("main", { 0: [0.2, 0.4, 0.6], 1: [0.5, 0.0] }, {});
+      test.true(ok, "debugFragment should succeed");
+      while (dbg.stepNext());
+      test.equals(dbg.getReturnValue(), [0.1, 0.2, 0.3, 1], 1e-6);
+    });
+
+    await test("builtin position and front_facing", function (test) {
+      const shader = `
+        @fragment
+        fn main(@builtin(position) pos: vec4f, @builtin(front_facing) front: bool) -> @location(0) vec4f {
+          if (front) {
+            return vec4f(pos.x, pos.y, 0.0, 1.0);
+          }
+          return vec4f(0.0);
+        }`;
+      const dbg = new WgslDebug(shader);
+      dbg.debugFragment("main", { position: [12.5, 7.5, 0.0, 1.0], front_facing: 1 }, {});
+      while (dbg.stepNext());
+      test.equals(dbg.getReturnValue(), [12.5, 7.5, 0, 1]);
+    });
+
+    await test("multiple render target struct output", function (test) {
+      const shader = `
+        struct FragOut {
+          @location(0) albedo: vec4f,
+          @location(1) normal: vec4f,
+        };
+        @fragment
+        fn main(@location(0) n: vec3f) -> FragOut {
+          var out: FragOut;
+          out.albedo = vec4f(1.0, 0.0, 0.0, 1.0);
+          out.normal = vec4f(n, 0.0);
+          return out;
+        }`;
+      const dbg = new WgslDebug(shader);
+      dbg.debugFragment("main", { 0: [0.0, 1.0, 0.0] }, {});
+      while (dbg.stepNext());
+      const out = dbg.getReturnValue();
+      test.equals(out.albedo, [1, 0, 0, 1]);
+      test.equals(out.normal, [0, 1, 0, 0]);
+    });
+
+    await test("rejects non-fragment entry", function (test) {
+      const shader = `
+        @vertex
+        fn main() -> @builtin(position) vec4f { return vec4f(0.0); }`;
+      const dbg = new WgslDebug(shader);
+      const ok = dbg.debugFragment("main", {}, {});
+      test.false(ok, "debugFragment should reject a @vertex entry");
     });
   }, true);
 
