@@ -10,7 +10,7 @@ A WebGPU Shading Language (WGSL) parser, reflection, execution, and debugging li
 
 - **Reflection** — parse a WGSL shader and analyze its contents: bind group layout, resource bindings, uniform and storage buffers, struct members with their names, types, sizes, and byte offsets, entry points, and inter-stage inputs/outputs.
 - **Execution** — run a WGSL shader on the CPU. `WgslExec` emulates compute dispatches and produces the same buffer results a GPU would, which is useful for testing shaders without a device.
-- **Debugging** — step through a shader one statement at a time with `WgslDebug`: breakpoints, step into/over/out, and variable inspection — the building blocks of a shader debugger.
+- **Debugging** — step through a compute, vertex, or fragment shader one statement at a time with `WgslDebug`: breakpoints, step into/over/out, and variable inspection — the building blocks of a shader debugger. Fragment shaders can be debugged over their 2×2 quad so `dpdx`/`dpdy`/`fwidth` and `textureSample` mip selection resolve correctly.
 - **Race condition detection** — `detectRaces` runs every invocation of a workgroup in lockstep to catch missing `workgroupBarrier()`/`storageBarrier()` calls that cause data races.
 - **Static performance analysis** — `analyzePerformance` flags potential bottlenecks in vertex, fragment, and compute shaders, such as expensive math, division, atomics, and barriers inside loops.
 

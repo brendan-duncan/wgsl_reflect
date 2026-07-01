@@ -123,10 +123,16 @@ const bindGroups = {
   place, so after the dispatch the array holds the shader's output.
 - **Uniform buffer** — pass `{ uniform: ArrayBuffer }`. Uniforms are read-only.
 - **Texture** — pass `{ texture, descriptor }`, where `descriptor` matches the
-  `GPUTextureDescriptor` shape (`size`, `format`, etc.).
+  `GPUTextureDescriptor` shape (`size`, `format`, `mipLevelCount`, etc.).
+  `texture` is the mip-level-0 data, or an array of per-mip buffers
+  `[mip0, mip1, ...]` when the texture is mipmapped.
 
 Only resources actually used by the dispatched kernel are bound; entries for
 other bindings are ignored.
+
+The [debugger](./shader-debugging.md) accepts this same format and adds one more
+resource kind — a **sampler**, `{ sampler: descriptor }` — used when debugging
+vertex and fragment shaders that call the `textureSample*` builtins.
 
 ## Override constants
 
@@ -180,6 +186,10 @@ builtin functions, and more.
 - `WgslExec` runs every invocation sequentially. A missing `workgroupBarrier()`
   or `storageBarrier()` therefore has no visible effect — use
   [Race Condition Detection](./race-condition-detection.md) to catch those.
-- Vertex and fragment stages are not dispatched; the focus is compute shaders.
+- `WgslExec` dispatches compute shaders. Individual vertex and fragment
+  invocations can be run and stepped through with
+  [`WgslDebug`](./shader-debugging.md#debugging-a-vertex-invocation), which
+  drives the same interpreter — including the 2×2 quad needed for fragment
+  derivatives and `textureSample` mip selection.
 - Some rarely used builtin functions may not be implemented; an unimplemented
   feature logs a `console.error` describing what is missing.
