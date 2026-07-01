@@ -1,5 +1,5 @@
 import { CallExpr, Call, UnaryOperator, VariableExpr } from "../wgsl_ast.js";
-import { Data, TypedData, TextureData, ScalarData, VectorData, MatrixData } from "../wgsl_ast.js";
+import { Data, TypedData, TextureData, SamplerData, ScalarData, VectorData, MatrixData } from "../wgsl_ast.js";
 import { ExecContext } from "./exec_context.js";
 import { ExecInterface } from "./exec_interface.js";
 import { ArrayInfo, TypeInfo } from "../reflect/info.js";
@@ -911,49 +911,65 @@ export class BuiltinFunctions {
     }
 
     // Derivative Built-in Functions
+    //
+    // Derivatives are defined over the 2x2 fragment quad. When a quad scheduler
+    // is driving execution (see exec/fragment_quad.ts) it evaluates all four
+    // lanes at the call site and stashes this lane's result on the context; every
+    // variant (dpdx/dpdxCoarse/dpdxFine, dpdy..., fwidth...) is computed there
+    // from the call's name, so the builtins just return the stored value.
+    //
+    // With no quad (compute/vertex, or single-lane fragment debugging) the value
+    // is uniform across the quad, so every derivative is zero.
+    _derivative(node: CallExpr | Call, context: ExecContext): Data | null {
+        const stored = context.getDerivative(node);
+        if (stored !== null) {
+            context.clearDerivative(node);
+            return stored;
+        }
+        const arg = this.exec.evalExpression(node.args[0], context);
+        if (arg instanceof VectorData) {
+            return new VectorData(Array.from(arg.data, () => 0), arg.typeInfo);
+        }
+        if (arg instanceof ScalarData) {
+            return new ScalarData(0, arg.typeInfo);
+        }
+        return arg;
+    }
+
     Dpdx(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error(`TODO: dpdx. Line ${node.line}`);
-        return null;
+        return this._derivative(node, context);
     }
 
     DpdxCoarse(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error(`TODO: dpdxCoarse. Line ${node.line}`);
-        return null;
+        return this._derivative(node, context);
     }
 
     DpdxFine(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: dpdxFine");
-        return null;
+        return this._derivative(node, context);
     }
 
     Dpdy(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: dpdy");
-        return null;
+        return this._derivative(node, context);
     }
 
     DpdyCoarse(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: dpdyCoarse");
-        return null;
+        return this._derivative(node, context);
     }
 
     DpdyFine(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: dpdyFine");
-        return null;
+        return this._derivative(node, context);
     }
 
     Fwidth(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: fwidth");
-        return null;
+        return this._derivative(node, context);
     }
 
     FwidthCoarse(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: fwidthCoarse");
-        return null;
+        return this._derivative(node, context);
     }
 
     FwidthFine(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: fwidthFine");
-        return null;
+        return this._derivative(node, context);
     }
 
     // Texture Built-in Functions
@@ -1102,39 +1118,289 @@ export class BuiltinFunctions {
         return null;
     }
 
-    TextureSample(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: textureSample");
+    // --- Texture sampling -----------------------------------------------------
+    //
+    // Sampling is filtered texel access at a mip level. The mip level (LOD) is
+    // either given explicitly (textureSampleLevel), derived from explicit
+    // gradients (textureSampleGrad), or computed implicitly from the derivatives
+    // of the texture coordinates across the 2x2 fragment quad (textureSample,
+    // textureSampleBias). The implicit case only has meaning inside a fragment
+    // quad, so the quad scheduler (exec/fragment_quad.ts) computes the LOD and
+    // stashes it on the context; here it is read back the same way derivatives
+    // are. With no quad (single-lane / compute), the implicit LOD defaults to 0.
+    //
+    // Filtering honors the bound sampler's descriptor: mag filter (linear /
+    // nearest), mipmap filter (trilinear / nearest mip), and address modes
+    // (clamp-to-edge / repeat / mirror-repeat), for 2d / 2d-array / depth-2d.
+    // Defaults (no sampler bound) are linear + clamp-to-edge. Anisotropy and
+    // per-min/mag distinction are not modeled.
+
+    // Resolve a texture argument (a bare texture variable) to its TextureData.
+    _resolveTexture(arg: CallExpr | Call | any, context: ExecContext): TextureData | null {
+        if (arg instanceof VariableExpr) {
+            const t = context.getVariableValue(arg.name);
+            return t instanceof TextureData ? t : null;
+        }
+        const t = this.exec.evalExpression(arg, context);
+        return t instanceof TextureData ? t : null;
+    }
+
+    // Resolve a sampler argument (a bare sampler variable) to its SamplerData.
+    _resolveSampler(arg: CallExpr | Call | any, context: ExecContext): SamplerData | null {
+        if (arg instanceof VariableExpr) {
+            const s = context.getVariableValue(arg.name);
+            return s instanceof SamplerData ? s : null;
+        }
         return null;
+    }
+
+    // Address one axis: wrap an integer texel coordinate per the address mode.
+    _wrap(coord: number, size: number, mode: string): number {
+        if (mode === "repeat") {
+            return ((coord % size) + size) % size;
+        }
+        if (mode === "mirror-repeat") {
+            const p = 2 * size;
+            const c = ((coord % p) + p) % p;
+            return c < size ? c : p - 1 - c;
+        }
+        return Math.max(0, Math.min(coord, size - 1)); // clamp-to-edge (default)
+    }
+
+    // Read a texel and normalize to rgba (missing G/B -> 0, missing A -> 1),
+    // applying the given per-axis address modes at the given mip level.
+    _texel(texture: TextureData, x: number, y: number, layer: number, level: number,
+        addrU: string, addrV: string): number[] {
+        const size = texture.getMipLevelSize(level);
+        const w = Math.max(1, size[0]);
+        const h = Math.max(1, size[1]);
+        const t = texture.getPixel(this._wrap(x, w, addrU), this._wrap(y, h, addrV), layer, level) ?? [0, 0, 0, 0];
+        return [t[0] ?? 0, t[1] ?? 0, t[2] ?? 0, t[3] ?? 1];
+    }
+
+    // Filter one mip level: nearest (point) or linear (bilinear) per the
+    // sampler's mag filter; address modes come from the sampler too.
+    _filterMip(texture: TextureData, u: number, v: number, layer: number, level: number,
+        sampler: SamplerData | null): number[] {
+        const d = sampler?.descriptor ?? {};
+        const addrU = (d.addressModeU as string) ?? "clamp-to-edge";
+        const addrV = (d.addressModeV as string) ?? "clamp-to-edge";
+        const size = texture.getMipLevelSize(level);
+        const w = Math.max(1, size[0]);
+        const h = Math.max(1, size[1]);
+        if ((d.magFilter as string) === "nearest") {
+            return this._texel(texture, Math.floor(u * w), Math.floor(v * h), layer, level, addrU, addrV);
+        }
+        const x = u * w - 0.5;
+        const y = v * h - 0.5;
+        const x0 = Math.floor(x);
+        const y0 = Math.floor(y);
+        const fx = x - x0;
+        const fy = y - y0;
+        const t00 = this._texel(texture, x0, y0, layer, level, addrU, addrV);
+        const t10 = this._texel(texture, x0 + 1, y0, layer, level, addrU, addrV);
+        const t01 = this._texel(texture, x0, y0 + 1, layer, level, addrU, addrV);
+        const t11 = this._texel(texture, x0 + 1, y0 + 1, layer, level, addrU, addrV);
+        const out = [0, 0, 0, 0];
+        for (let i = 0; i < 4; ++i) {
+            const a = t00[i] + (t10[i] - t00[i]) * fx;
+            const b = t01[i] + (t11[i] - t01[i]) * fx;
+            out[i] = a + (b - a) * fy;
+        }
+        return out;
+    }
+
+    // Trilinear sample: filter the two bracketing mips and lerp by the fractional
+    // LOD (or pick the nearest mip if mipmapFilter is "nearest"). LOD is clamped
+    // to the texture's available mip range.
+    _sampleTexture(texture: TextureData, u: number, v: number, layer: number, lod: number,
+        sampler: SamplerData | null): number[] {
+        const maxLod = texture.mipLevelCount - 1;
+        lod = Math.max(0, Math.min(lod, maxLod));
+        if ((sampler?.descriptor.mipmapFilter as string) === "nearest") {
+            return this._filterMip(texture, u, v, layer, Math.round(lod), sampler);
+        }
+        const l0 = Math.floor(lod);
+        const frac = lod - l0;
+        const c0 = this._filterMip(texture, u, v, layer, l0, sampler);
+        if (frac === 0 || l0 >= maxLod) {
+            return c0;
+        }
+        const c1 = this._filterMip(texture, u, v, layer, l0 + 1, sampler);
+        return c0.map((x, i) => x + (c1[i] - x) * frac);
+    }
+
+    // The comparison predicate named by a sampler_comparison's compare function.
+    _compareFn(name: string): (ref: number, stored: number) => boolean {
+        switch (name) {
+            case "less": return (r, s) => r < s;
+            case "greater": return (r, s) => r > s;
+            case "less-equal": return (r, s) => r <= s;
+            case "greater-equal": return (r, s) => r >= s;
+            case "equal": return (r, s) => r === s;
+            case "not-equal": return (r, s) => r !== s;
+            case "always": return () => true;
+            case "never": return () => false;
+            default: return (r, s) => r <= s; // typical shadow-map default
+        }
+    }
+
+    // Percentage-closer filtering: compare depth_ref against each texel at mip 0,
+    // then bilinear-blend the 0/1 results (or a single compare if mag is nearest).
+    _sampleCompareValue(node: CallExpr | Call, context: ExecContext): Data | null {
+        const a = this._sampleArgs(node, context, 2);
+        if (a === null) {
+            return null;
+        }
+        const sampler = this._resolveSampler(node.args[1], context);
+        const d = sampler?.descriptor ?? {};
+        const depthIndex = a.texture.typeInfo.name.includes("_array") ? 4 : 3;
+        const refArg = this.exec.evalExpression(node.args[depthIndex], context);
+        const ref = refArg instanceof ScalarData ? refArg.value : 0;
+        const cmp = this._compareFn((d.compare as string) ?? "less-equal");
+        const addrU = (d.addressModeU as string) ?? "clamp-to-edge";
+        const addrV = (d.addressModeV as string) ?? "clamp-to-edge";
+        const size = a.texture.getMipLevelSize(0);
+        const w = Math.max(1, size[0]);
+        const h = Math.max(1, size[1]);
+        const c = (tx: number, ty: number) =>
+            cmp(ref, this._texel(a.texture, tx, ty, a.layer, 0, addrU, addrV)[0]) ? 1 : 0;
+        if ((d.magFilter as string) === "nearest") {
+            return new ScalarData(c(Math.floor(a.u * w), Math.floor(a.v * h)), this.getTypeInfo("f32"));
+        }
+        const x = a.u * w - 0.5;
+        const y = a.v * h - 0.5;
+        const x0 = Math.floor(x);
+        const y0 = Math.floor(y);
+        const fx = x - x0;
+        const fy = y - y0;
+        const top = c(x0, y0) + (c(x0 + 1, y0) - c(x0, y0)) * fx;
+        const bot = c(x0, y0 + 1) + (c(x0 + 1, y0 + 1) - c(x0, y0 + 1)) * fx;
+        return new ScalarData(top + (bot - top) * fy, this.getTypeInfo("f32"));
+    }
+
+    // Package a sampled rgba as the WGSL result: f32 for depth textures, vec4f
+    // otherwise.
+    _sampleResult(texture: TextureData, rgba: number[]): Data {
+        if (texture.typeInfo.name.includes("depth")) {
+            return new ScalarData(rgba[0], this.getTypeInfo("f32"));
+        }
+        return new VectorData(rgba, this.getTypeInfo("vec4f"));
+    }
+
+    // Common evaluation for the textureSample* family: resolve texture, coords,
+    // and (for array textures) the layer. Returns null on an unsupported form.
+    _sampleArgs(node: CallExpr | Call, context: ExecContext, coordIndex: number)
+        : { texture: TextureData, u: number, v: number, layer: number } | null {
+        const texture = this._resolveTexture(node.args[0], context);
+        if (texture === null) {
+            console.error(`Invalid texture argument for ${node.name}. Line ${node.line}`);
+            return null;
+        }
+        const coords = this.exec.evalExpression(node.args[coordIndex], context);
+        if (!(coords instanceof VectorData) || coords.data.length < 2) {
+            console.error(`${node.name} only supports 2d texture coordinates. Line ${node.line}`);
+            return null;
+        }
+        let layer = 0;
+        if (texture.typeInfo.name.includes("_array")) {
+            const layerArg = this.exec.evalExpression(node.args[coordIndex + 1], context);
+            if (layerArg instanceof ScalarData) {
+                layer = Math.floor(layerArg.value);
+            }
+        }
+        return { texture, u: coords.data[0], v: coords.data[1], layer };
+    }
+
+    TextureSample(node: CallExpr | Call, context: ExecContext): Data | null {
+        const a = this._sampleArgs(node, context, 2);
+        if (a === null) {
+            return null;
+        }
+        // Implicit LOD supplied by the quad scheduler; 0 outside a quad.
+        let lod = 0;
+        const stored = context.getDerivative(node);
+        if (stored instanceof ScalarData) {
+            lod = stored.value;
+            context.clearDerivative(node);
+        }
+        const sampler = this._resolveSampler(node.args[1], context);
+        return this._sampleResult(a.texture, this._sampleTexture(a.texture, a.u, a.v, a.layer, lod, sampler));
     }
 
     TextureSampleBias(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: textureSampleBias");
-        return null;
-    }
-
-    TextureSampleCompare(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: textureSampleCompare");
-        return null;
-    }
-
-    TextureSampleCompareLevel(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: textureSampleCompareLevel");
-        return null;
-    }
-
-    TextureSampleGrad(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: textureSampleGrad");
-        return null;
+        // textureSampleBias(t, s, coords [, array_index], bias [, offset]).
+        // The bias is already folded into the quad-computed LOD; outside a quad
+        // the implicit LOD (and thus the biased LOD) is 0.
+        const a = this._sampleArgs(node, context, 2);
+        if (a === null) {
+            return null;
+        }
+        let lod = 0;
+        const stored = context.getDerivative(node);
+        if (stored instanceof ScalarData) {
+            lod = stored.value;
+            context.clearDerivative(node);
+        }
+        const sampler = this._resolveSampler(node.args[1], context);
+        return this._sampleResult(a.texture, this._sampleTexture(a.texture, a.u, a.v, a.layer, lod, sampler));
     }
 
     TextureSampleLevel(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: textureSampleLevel");
-        return null;
+        // textureSampleLevel(t, s, coords [, array_index], level [, offset]).
+        const a = this._sampleArgs(node, context, 2);
+        if (a === null) {
+            return null;
+        }
+        const levelIndex = a.texture.typeInfo.name.includes("_array") ? 4 : 3;
+        const levelArg = this.exec.evalExpression(node.args[levelIndex], context);
+        const lod = levelArg instanceof ScalarData ? levelArg.value : 0;
+        const sampler = this._resolveSampler(node.args[1], context);
+        return this._sampleResult(a.texture, this._sampleTexture(a.texture, a.u, a.v, a.layer, lod, sampler));
+    }
+
+    TextureSampleGrad(node: CallExpr | Call, context: ExecContext): Data | null {
+        // textureSampleGrad(t, s, coords [, array_index], ddx, ddy [, offset]).
+        const a = this._sampleArgs(node, context, 2);
+        if (a === null) {
+            return null;
+        }
+        const gradBase = a.texture.typeInfo.name.includes("_array") ? 4 : 3;
+        const ddx = this.exec.evalExpression(node.args[gradBase], context);
+        const ddy = this.exec.evalExpression(node.args[gradBase + 1], context);
+        let lod = 0;
+        if (ddx instanceof VectorData && ddy instanceof VectorData) {
+            const w = a.texture.width;
+            const h = a.texture.height;
+            const rho = Math.max(
+                Math.hypot(ddx.data[0] * w, ddx.data[1] * h),
+                Math.hypot(ddy.data[0] * w, ddy.data[1] * h));
+            lod = rho > 0 ? Math.log2(rho) : 0;
+        }
+        const sampler = this._resolveSampler(node.args[1], context);
+        return this._sampleResult(a.texture, this._sampleTexture(a.texture, a.u, a.v, a.layer, lod, sampler));
+    }
+
+    TextureSampleCompare(node: CallExpr | Call, context: ExecContext): Data | null {
+        // textureSampleCompare(t, s, coords [, array_index], depth_ref [, offset]).
+        // Depth compare (shadow) sampling at mip 0 with percentage-closer
+        // filtering; the compare op comes from the sampler_comparison.
+        return this._sampleCompareValue(node, context);
+    }
+
+    TextureSampleCompareLevel(node: CallExpr | Call, context: ExecContext): Data | null {
+        // Like textureSampleCompare but always at mip level 0 (which is what the
+        // compare path already uses).
+        return this._sampleCompareValue(node, context);
     }
 
     TextureSampleBaseClampToEdge(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: textureSampleBaseClampToEdge");
-        return null;
+        // Always samples mip 0 with clamp-to-edge (its whole purpose).
+        const a = this._sampleArgs(node, context, 2);
+        if (a === null) {
+            return null;
+        }
+        return this._sampleResult(a.texture, this._filterMip(a.texture, a.u, a.v, a.layer, 0, null));
     }
 
     TextureStore(node: CallExpr | Call, context: ExecContext): Data | null {

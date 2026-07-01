@@ -1,5 +1,5 @@
 import { test, group } from "../test.js";
-import { WgslDebug, detectRaces } from "../../wgsl_reflect.module.js";
+import { WgslDebug, detectRaces, debugFragmentQuad, createFragmentQuadDebugger } from "../../wgsl_reflect.module.js";
 
 export async function run() {
   await group("Debug", async function () {
@@ -487,6 +487,358 @@ export async function run() {
       const dbg = new WgslDebug(shader);
       const ok = dbg.debugFragment("main", {}, {});
       test.false(ok, "debugFragment should reject a @vertex entry");
+    });
+
+    await test("discard kills the fragment", function (test) {
+      const shader = `
+        @fragment
+        fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+          if (uv.x < 0.5) { discard; }
+          return vec4f(1.0);
+        }`;
+      const killed = new WgslDebug(shader);
+      killed.debugFragment("main", { 0: [0.2, 0.0] }, {});
+      while (killed.stepNext());
+      test.true(killed.discarded, "fragment should be discarded");
+      test.isNull(killed.getReturnValue());
+
+      const kept = new WgslDebug(shader);
+      kept.debugFragment("main", { 0: [0.8, 0.0] }, {});
+      while (kept.stepNext());
+      test.false(kept.discarded, "fragment should not be discarded");
+      test.equals(kept.getReturnValue(), [1, 1, 1, 1]);
+    });
+
+    await test("textureSampleCompare shadow lookup", function (test) {
+      // 2x2 depth32float shadow map, all texels at depth 0.5.
+      const depth = new Float32Array([0.5, 0.5, 0.5, 0.5]);
+      const bg = {
+        0: {
+          0: { texture: [depth.buffer],
+               descriptor: { format: "depth32float", size: [2, 2, 1], mipLevelCount: 1, dimension: "2d" } },
+          1: { sampler: { compare: "less-equal" } },
+        },
+      };
+      const shader = `
+        @group(0) @binding(0) var shadowMap: texture_depth_2d;
+        @group(0) @binding(1) var shadowSamp: sampler_comparison;
+        @fragment
+        fn main(@location(0) uv: vec2f, @location(1) refDepth: f32) -> @location(0) vec4f {
+          let s = textureSampleCompare(shadowMap, shadowSamp, uv, refDepth);
+          return vec4f(s, s, s, 1.0);
+        }`;
+      const run = (ref) => {
+        const d = new WgslDebug(shader);
+        d.debugFragment("main", { 0: [0.5, 0.5], 1: ref }, bg);
+        while (d.stepNext());
+        return d.getReturnValue();
+      };
+      test.equals(run(0.3), [1, 1, 1, 1]); // 0.3 <= 0.5 -> lit
+      test.equals(run(0.7), [0, 0, 0, 1]); // 0.7 <= 0.5 -> shadowed
+    });
+
+    await test("sampler address and filter modes", function (test) {
+      const px = (r, g, b) => [r, g, b, 255];
+      const mip0 = new Uint8Array([...px(255, 0, 0), ...px(0, 255, 0), ...px(0, 0, 255), ...px(255, 255, 255)]);
+      const bg = {
+        0: {
+          0: { texture: [mip0.buffer],
+               descriptor: { format: "rgba8unorm", size: [2, 2, 1], mipLevelCount: 1, dimension: "2d" } },
+          1: { sampler: { magFilter: "nearest", addressModeU: "repeat", addressModeV: "repeat" } },
+        },
+      };
+      const shader = `
+        @group(0) @binding(0) var t: texture_2d<f32>;
+        @group(0) @binding(1) var s: sampler;
+        @fragment
+        fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+          return textureSampleLevel(t, s, uv, 0.0);
+        }`;
+      const dbg = new WgslDebug(shader);
+      dbg.debugFragment("main", { 0: [1.25, 0.25] }, bg); // 1.25 wraps to 0.25 -> texel(0,0), nearest
+      while (dbg.stepNext());
+      test.equals(dbg.getReturnValue(), [1, 0, 0, 1]);
+    });
+
+    await test("single-lane derivatives are zero", function (test) {
+      const shader = `
+        @fragment
+        fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+          return vec4f(dpdx(uv), dpdy(uv));
+        }`;
+      const dbg = new WgslDebug(shader);
+      dbg.debugFragment("main", { 0: [5.0, 7.0] }, {});
+      while (dbg.stepNext());
+      test.equals(dbg.getReturnValue(), [0, 0, 0, 0]);
+    });
+
+    await test("textureSampleLevel bilinear filtering", function (test) {
+      // 2x2 with four distinct colors; center uv averages all four texels.
+      const px = (r, g, b) => [r, g, b, 255];
+      const mip0 = new Uint8Array([...px(255, 0, 0), ...px(0, 255, 0), ...px(0, 0, 255), ...px(255, 255, 255)]);
+      const bg = {
+        0: { 0: { texture: [mip0.buffer],
+                  descriptor: { format: "rgba8unorm", size: [2, 2, 1], mipLevelCount: 1, dimension: "2d" } } },
+      };
+      const shader = `
+        @group(0) @binding(0) var tex: texture_2d<f32>;
+        @group(0) @binding(1) var samp: sampler;
+        @fragment
+        fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+          return textureSampleLevel(tex, samp, uv, 0.0);
+        }`;
+      const center = new WgslDebug(shader);
+      center.debugFragment("main", { 0: [0.5, 0.5] }, bg);
+      while (center.stepNext());
+      test.equals(center.getReturnValue(), [0.5, 0.5, 0.5, 1], 1e-3);
+
+      const corner = new WgslDebug(shader);
+      corner.debugFragment("main", { 0: [0.25, 0.25] }, bg);
+      while (corner.stepNext());
+      test.equals(corner.getReturnValue(), [1, 0, 0, 1], 1e-3);
+    });
+
+    await test("single-lane textureSample uses base mip", function (test) {
+      const mip0 = new Uint8Array([255, 0, 0, 255]);
+      const mip1 = new Uint8Array([0, 0, 255, 255]);
+      const bg = {
+        0: { 0: { texture: [mip0.buffer, mip1.buffer],
+                  descriptor: { format: "rgba8unorm", size: [1, 1, 1], mipLevelCount: 2, dimension: "2d" } } },
+      };
+      const shader = `
+        @group(0) @binding(0) var tex: texture_2d<f32>;
+        @group(0) @binding(1) var samp: sampler;
+        @fragment
+        fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+          return textureSample(tex, samp, uv);
+        }`;
+      const dbg = new WgslDebug(shader);
+      dbg.debugFragment("main", { 0: [0.5, 0.5] }, bg);
+      while (dbg.stepNext());
+      test.equals(dbg.getReturnValue(), [1, 0, 0, 1]); // LOD 0 outside a quad
+    });
+  }, true);
+
+  await group("Fragment Quad Debug", async function () {
+    // Quad uv layout: TL(0,0) TR(2,0) BL(0,3) BR(2,3)
+    const quad = [{ 0: [0, 0] }, { 0: [2, 0] }, { 0: [0, 3] }, { 0: [2, 3] }];
+
+    await test("coarse dpdx / dpdy", function (test) {
+      const shader = `
+        @fragment
+        fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+          return vec4f(dpdx(uv), dpdy(uv));
+        }`;
+      const r = debugFragmentQuad(shader, "main", quad, {});
+      test.equals(r.errors.length, 0);
+      // dpdx = TR-TL = (2,0), dpdy = BL-TL = (0,3)
+      for (let i = 0; i < 4; ++i) {
+        test.equals(r.outputs[i], [2, 0, 0, 3]);
+      }
+    });
+
+    await test("fwidth", function (test) {
+      const shader = `
+        @fragment
+        fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+          return vec4f(fwidth(uv), 0.0, 1.0);
+        }`;
+      const r = debugFragmentQuad(shader, "main", quad, {});
+      test.equals(r.errors.length, 0);
+      test.equals(r.outputs[0], [2, 3, 0, 1]); // |dpdx| + |dpdy|
+    });
+
+    await test("fine derivatives differ per row", function (test) {
+      // Bottom row has a larger x-gradient than the top row.
+      const q = [{ 0: [0, 0] }, { 0: [2, 0] }, { 0: [0, 3] }, { 0: [10, 3] }];
+      const shader = `
+        @fragment
+        fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+          return vec4f(dpdxFine(uv), dpdxCoarse(uv));
+        }`;
+      const r = debugFragmentQuad(shader, "main", q, {});
+      test.equals(r.errors.length, 0);
+      test.equals(r.outputs[0], [2, 0, 2, 0]);   // top row: fine == coarse
+      test.equals(r.outputs[2], [10, 0, 2, 0]);  // bottom row: fine differs
+    });
+
+    await test("two derivatives in one statement", function (test) {
+      const shader = `
+        @fragment
+        fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+          return vec4f(dpdx(uv) + dpdy(uv), 0.0, 1.0);
+        }`;
+      const r = debugFragmentQuad(shader, "main", quad, {});
+      test.equals(r.errors.length, 0);
+      test.equals(r.outputs[0], [2, 3, 0, 1]); // (2,0)+(0,3)
+    });
+
+    await test("derivative inside a loop re-rendezvous each iteration", function (test) {
+      const shader = `
+        @fragment
+        fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+          var acc = vec2f(0.0);
+          for (var i = 0; i < 3; i++) { acc = acc + dpdx(uv); }
+          return vec4f(acc, 0.0, 1.0);
+        }`;
+      const r = debugFragmentQuad(shader, "main", quad, {});
+      test.equals(r.errors.length, 0);
+      test.equals(r.outputs[0], [6, 0, 0, 1]); // 3 * (2,0)
+    });
+
+    await test("non-uniform control flow warns", function (test) {
+      const shader = `
+        @fragment
+        fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+          var d = vec2f(0.0);
+          if (uv.x > 1.0) { d = dpdx(uv); }
+          return vec4f(d, 0.0, 1.0);
+        }`;
+      const r = debugFragmentQuad(shader, "main", quad, {});
+      test.true(r.errors.length > 0, "expected a uniformity warning");
+    });
+
+    await test("rejects wrong lane count", function (test) {
+      const shader = `
+        @fragment
+        fn main(@location(0) uv: vec2f) -> @location(0) vec4f { return vec4f(uv, 0.0, 1.0); }`;
+      const r = debugFragmentQuad(shader, "main", [{ 0: [0, 0] }], {});
+      test.true(r.errors.length > 0, "expected an error for < 4 lanes");
+    });
+
+    // 2x2 base (red) + 1x1 mip 1 (blue), rgba8unorm.
+    const RED = [255, 0, 0, 255], BLUE = [0, 0, 255, 255];
+    const mip0 = new Uint8Array([...RED, ...RED, ...RED, ...RED]);
+    const mip1 = new Uint8Array([...BLUE]);
+    const mippedTex = {
+      0: { 0: { texture: [mip0.buffer, mip1.buffer],
+                descriptor: { format: "rgba8unorm", size: [2, 2, 1], mipLevelCount: 2, dimension: "2d" } } },
+    };
+    const sampleShader = `
+      @group(0) @binding(0) var tex: texture_2d<f32>;
+      @group(0) @binding(1) var samp: sampler;
+      @fragment
+      fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+        return textureSample(tex, samp, uv);
+      }`;
+
+    await test("textureSample implicit LOD picks a coarse mip", function (test) {
+      // uv spans the whole texture across the quad -> LOD 1 -> mip 1 (blue).
+      const q = [{ 0: [0, 0] }, { 0: [1, 0] }, { 0: [0, 1] }, { 0: [1, 1] }];
+      const r = debugFragmentQuad(sampleShader, "main", q, mippedTex);
+      test.equals(r.errors.length, 0);
+      test.equals(r.outputs[0], [0, 0, 1, 1]);
+    });
+
+    await test("textureSample implicit LOD picks the base mip", function (test) {
+      // Tiny uv deltas -> LOD < 0 -> clamped to mip 0 (red).
+      const q = [{ 0: [0.5, 0.5] }, { 0: [0.5001, 0.5] }, { 0: [0.5, 0.5001] }, { 0: [0.5001, 0.5001] }];
+      const r = debugFragmentQuad(sampleShader, "main", q, mippedTex);
+      test.equals(r.errors.length, 0);
+      test.equals(r.outputs[0], [1, 0, 0, 1]);
+    });
+
+    await test("textureSample trilinear blends mips at fractional LOD", function (test) {
+      // LOD ~= 0.5 -> halfway between red (mip0) and blue (mip1).
+      const d = 0.70710678; // 2^0.5 / 2  -> rho = 2^0.5 -> LOD 0.5
+      const q = [{ 0: [0, 0] }, { 0: [d, 0] }, { 0: [0, d] }, { 0: [d, d] }];
+      const r = debugFragmentQuad(sampleShader, "main", q, mippedTex);
+      test.equals(r.errors.length, 0);
+      test.equals(r.outputs[0], [0.5, 0, 0.5, 1], 1e-3);
+    });
+
+    await test("textureSampleGrad uses explicit gradients", function (test) {
+      const shader = `
+        @group(0) @binding(0) var tex: texture_2d<f32>;
+        @group(0) @binding(1) var samp: sampler;
+        @fragment
+        fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+          return textureSampleGrad(tex, samp, uv, vec2f(1.0, 0.0), vec2f(0.0, 1.0));
+        }`;
+      const q = [{ 0: [0.5, 0.5] }, { 0: [0.5, 0.5] }, { 0: [0.5, 0.5] }, { 0: [0.5, 0.5] }];
+      const r = debugFragmentQuad(shader, "main", q, mippedTex);
+      test.equals(r.outputs[0], [0, 0, 1, 1]); // grads span texture -> LOD 1 -> blue
+    });
+
+    await test("discard reported per lane", function (test) {
+      const shader = `
+        @fragment
+        fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+          if (uv.x < 1.0) { discard; }
+          return vec4f(1.0);
+        }`;
+      // TL/BL have uv.x=0 (discard), TR/BR have uv.x=2 (kept).
+      const q = [{ 0: [0, 0] }, { 0: [2, 0] }, { 0: [0, 3] }, { 0: [2, 3] }];
+      const r = debugFragmentQuad(shader, "main", q, {});
+      test.equals(r.discarded, [true, false, true, false]);
+      test.isNull(r.outputs[0]);
+      test.equals(r.outputs[1], [1, 1, 1, 1]);
+    });
+
+    await test("interactive stepping resolves derivatives", function (test) {
+      const shader = `
+        @fragment
+        fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+          let a = uv.x + 1.0;
+          let dx = dpdx(uv);
+          let dy = dpdy(uv);
+          return vec4f(dx + dy, a, 1.0);
+        }`;
+      const q = [{ 0: [0, 0] }, { 0: [2, 0] }, { 0: [0, 3] }, { 0: [2, 3] }];
+      const { scheduler, errors } = createFragmentQuadDebugger(shader, "main", q, {}, 0);
+      test.equals(errors.length, 0);
+      test.notNull(scheduler);
+      let n = 0;
+      while (!scheduler.isDone && n < 50) {
+        scheduler.stepTarget(true);
+        n++;
+      }
+      test.true(scheduler.isDone, "target lane should finish");
+      test.equals(scheduler.targetOutput, [2, 3, 1, 1]); // dpdx=(2,0), dpdy=(0,3), a=1
+    });
+
+    await test("step-over services derivatives inside a function", function (test) {
+      const shader = `
+        fn shade(uv: vec2f) -> vec2f {
+          return dpdx(uv) + dpdy(uv);
+        }
+        @fragment
+        fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+          let c = shade(uv);
+          return vec4f(c, 0.0, 1.0);
+        }`;
+      const q = [{ 0: [0, 0] }, { 0: [2, 0] }, { 0: [0, 3] }, { 0: [2, 3] }];
+      const { scheduler } = createFragmentQuadDebugger(shader, "main", q, {}, 0);
+      // Advance to `let c = shade(uv);` (line 7), then step over the call.
+      let guard = 0;
+      while (scheduler.targetLine !== 7 && !scheduler.isDone && guard++ < 30) {
+        scheduler.stepTarget(true);
+      }
+      test.equals(scheduler.targetLine, 7);
+      scheduler.stepTarget(false); // step over shade(): derivatives inside must resolve
+      test.equals(scheduler.targetContext.getVariableValue("c").toString(), "2, 3");
+      while (!scheduler.isDone && guard++ < 60) scheduler.stepTarget(true);
+      test.equals(scheduler.targetOutput, [2, 3, 0, 1]);
+    });
+
+    await test("interactive breakpoint stops on line", function (test) {
+      const shader = `
+        @fragment
+        fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+          let a = uv.x;
+          let b = uv.y;
+          let c = a + b;
+          return vec4f(c, 0.0, 0.0, 1.0);
+        }`;
+      const q = [{ 0: [1, 0] }, { 0: [2, 0] }, { 0: [1, 3] }, { 0: [2, 3] }];
+      const { scheduler } = createFragmentQuadDebugger(shader, "main", q, {}, 0);
+      scheduler.breakpoints.add(6); // `let c = a + b;`
+      scheduler.runTarget();
+      test.false(scheduler.isDone, "should pause at breakpoint");
+      test.equals(scheduler.targetLine, 6);
+      // 'a' and 'b' are in scope; 'c' is not yet assigned.
+      test.equals(scheduler.targetContext.getVariableValue("a").value, 1);
+      test.equals(scheduler.targetContext.getVariableValue("b").value, 0);
     });
   }, true);
 

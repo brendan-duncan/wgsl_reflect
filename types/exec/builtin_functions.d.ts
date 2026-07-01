@@ -1,5 +1,5 @@
 import { CallExpr, Call } from "../wgsl_ast.js";
-import { Data } from "../wgsl_ast.js";
+import { Data, TextureData, SamplerData } from "../wgsl_ast.js";
 import { ExecContext } from "./exec_context.js";
 import { ExecInterface } from "./exec_interface.js";
 import { TypeInfo } from "../reflect/info.js";
@@ -80,6 +80,7 @@ export declare class BuiltinFunctions {
     _getTransposeType(t: TypeInfo): TypeInfo;
     Transpose(node: CallExpr | Call, context: ExecContext): Data | null;
     Trunc(node: CallExpr | Call, context: ExecContext): Data | null;
+    _derivative(node: CallExpr | Call, context: ExecContext): Data | null;
     Dpdx(node: CallExpr | Call, context: ExecContext): Data | null;
     DpdxCoarse(node: CallExpr | Call, context: ExecContext): Data | null;
     DpdxFine(node: CallExpr | Call, context: ExecContext): Data | null;
@@ -96,12 +97,27 @@ export declare class BuiltinFunctions {
     TextureNumLayers(node: CallExpr | Call, context: ExecContext): Data | null;
     TextureNumLevels(node: CallExpr | Call, context: ExecContext): Data | null;
     TextureNumSamples(node: CallExpr | Call, context: ExecContext): Data | null;
+    _resolveTexture(arg: CallExpr | Call | any, context: ExecContext): TextureData | null;
+    _resolveSampler(arg: CallExpr | Call | any, context: ExecContext): SamplerData | null;
+    _wrap(coord: number, size: number, mode: string): number;
+    _texel(texture: TextureData, x: number, y: number, layer: number, level: number, addrU: string, addrV: string): number[];
+    _filterMip(texture: TextureData, u: number, v: number, layer: number, level: number, sampler: SamplerData | null): number[];
+    _sampleTexture(texture: TextureData, u: number, v: number, layer: number, lod: number, sampler: SamplerData | null): number[];
+    _compareFn(name: string): (ref: number, stored: number) => boolean;
+    _sampleCompareValue(node: CallExpr | Call, context: ExecContext): Data | null;
+    _sampleResult(texture: TextureData, rgba: number[]): Data;
+    _sampleArgs(node: CallExpr | Call, context: ExecContext, coordIndex: number): {
+        texture: TextureData;
+        u: number;
+        v: number;
+        layer: number;
+    } | null;
     TextureSample(node: CallExpr | Call, context: ExecContext): Data | null;
     TextureSampleBias(node: CallExpr | Call, context: ExecContext): Data | null;
+    TextureSampleLevel(node: CallExpr | Call, context: ExecContext): Data | null;
+    TextureSampleGrad(node: CallExpr | Call, context: ExecContext): Data | null;
     TextureSampleCompare(node: CallExpr | Call, context: ExecContext): Data | null;
     TextureSampleCompareLevel(node: CallExpr | Call, context: ExecContext): Data | null;
-    TextureSampleGrad(node: CallExpr | Call, context: ExecContext): Data | null;
-    TextureSampleLevel(node: CallExpr | Call, context: ExecContext): Data | null;
     TextureSampleBaseClampToEdge(node: CallExpr | Call, context: ExecContext): Data | null;
     TextureStore(node: CallExpr | Call, context: ExecContext): Data | null;
     AtomicLoad(node: CallExpr | Call, context: ExecContext): Data | null;

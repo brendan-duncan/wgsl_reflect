@@ -6,15 +6,40 @@ import { Command, StatementCommand, CallExprCommand, GotoCommand, BlockCommand,
         ContinueTargetCommand, ContinueCommand, BreakCommand, BreakTargetCommand } from "./exec/command.js";
 import { StackFrame } from "./exec/stack_frame.js";
 import { ExecStack } from "./exec/exec_stack.js";
-import { ScalarData, VectorData, MatrixData, TextureData, TypedData, VoidData, ArrayType, LiteralExpr, Data } from "./wgsl_ast.js";
+import { ScalarData, VectorData, MatrixData, TextureData, SamplerData, TypedData, VoidData, ArrayType, LiteralExpr, Data } from "./wgsl_ast.js";
 import { StructInfo, TypeInfo, FunctionInfo } from "./reflect/info.js";
 
 type RuntimeStateCallbackType = () => void;
+
+// Quad-derivative builtins. These are rendezvous points for the fragment quad
+// scheduler (exec/fragment_quad.ts): unlike ordinary builtins they are hoisted
+// into their own step commands so the scheduler can pause the 2x2 quad at the
+// call site, evaluate all four lanes, and compute the derivative.
+export const DERIVATIVE_BUILTINS: Set<string> = new Set([
+    "dpdx", "dpdxCoarse", "dpdxFine",
+    "dpdy", "dpdyCoarse", "dpdyFine",
+    "fwidth", "fwidthCoarse", "fwidthFine",
+]);
+
+// Texture-sampling builtins whose mip level (LOD) is computed implicitly from
+// the derivatives of the texture coordinates, so they are quad rendezvous
+// points too. Explicit-LOD/grad variants (textureSampleLevel/Grad) are not.
+export const IMPLICIT_LOD_BUILTINS: Set<string> = new Set([
+    "textureSample", "textureSampleBias",
+]);
+
+// All builtins the fragment quad scheduler pauses on. Used for hoisting into
+// step commands and for the stepStack rendezvous guard.
+export const QUAD_RENDEZVOUS_BUILTINS: Set<string> = new Set([
+    ...DERIVATIVE_BUILTINS, ...IMPLICIT_LOD_BUILTINS,
+]);
 
 interface BindingEntry {
     texture?: { view?: unknown };
     descriptor?: unknown;
     uniform?: ArrayBuffer;
+    // A GPUSamplerDescriptor (compareFunction, magFilter, addressMode*, ...).
+    sampler?: Record<string, unknown>;
 }
 
 // Per-invocation inputs to a render-stage entry point, keyed by pipeline
@@ -32,6 +57,14 @@ export class WgslDebug {
     // their return, so stepStack stashes it here instead. null until the entry
     // executes its `return`.
     private _returnValue: Data | null = null;
+    // Set when a fragment invocation executes `discard`. The invocation is then
+    // killed (its stack unwound) and produces no output.
+    private _discarded = false;
+    // When true, stepStack pauses on a quad-derivative call instead of evaluating
+    // it inline, so a fragment quad scheduler can compute it across the 2x2 quad.
+    // Off for compute/vertex and single-lane fragment debugging (derivatives
+    // there evaluate to zero). Owned by the QuadScheduler for its run.
+    private _quadRendezvous = false;
     private _runTimer: ReturnType<typeof setTimeout> | null = null;
     // Number of commands processed synchronously per scheduler slice before
     // yielding to the event loop. Larger = higher throughput, smaller = more
@@ -323,8 +356,15 @@ export class WgslDebug {
                             if (found) {
                                 const typeInfo = this._exec.getTypeInfo(node.type);
                                 if (entry.texture !== undefined && entry.descriptor !== undefined) {
-                                    v.value = new TextureData([entry.texture as unknown as ArrayBuffer], typeInfo, entry.descriptor as unknown,
+                                    // `texture` may be one buffer or an array of per-mip
+                                    // buffers (index = mip level), matching the exec path.
+                                    const mips = Array.isArray(entry.texture)
+                                        ? entry.texture as unknown as ArrayBuffer[]
+                                        : [entry.texture as unknown as ArrayBuffer];
+                                    v.value = new TextureData(mips, typeInfo, entry.descriptor as unknown,
                                         (entry.texture as unknown as { view?: unknown }).view ?? null);
+                                } else if (entry.sampler !== undefined) {
+                                    v.value = new SamplerData(entry.sampler as Record<string, unknown>, typeInfo);
                                 } else if (entry.uniform !== undefined) {
                                     v.value = new TypedData(entry.uniform, typeInfo);
                                 } else {
@@ -371,9 +411,10 @@ export class WgslDebug {
     // supply them from a captured draw (this debugger does not rasterize).
     //
     // NOTE: this runs a *single* invocation, so quad-derivative operations
-    // (dpdx/dpdy/fwidth, and textureSample's implicit LOD) evaluate as if the
-    // quad were uniform — their derivatives are zero. Use debugFragmentQuad (when
-    // available) to debug shaders whose output depends on derivatives.
+    // (dpdx/dpdy/fwidth) evaluate as if the quad were uniform — their
+    // derivatives are zero — and textureSample's implicit LOD is 0 (base mip).
+    // Use debugFragmentQuad to debug shaders whose output depends on
+    // derivatives or mip selection.
     debugFragment(entry: string, inputs: StageInputs,
         bindGroups: Record<string, Record<string, BindingEntry>>, config?: Record<string, unknown>): boolean {
         return this._debugStage(entry, "fragment", inputs, bindGroups, config);
@@ -387,6 +428,7 @@ export class WgslDebug {
 
         this._execStack = new ExecStack();
         this._returnValue = null;
+        this._discarded = false;
 
         const context = this._exec.context;
         context.currentFunctionName = entry;
@@ -506,6 +548,43 @@ export class WgslDebug {
     // Raw return value of a debugged entry point (null until it returns).
     get returnValue(): Data | null {
         return this._returnValue;
+    }
+
+    // Take and clear the captured entry return value. Used by the fragment quad
+    // scheduler to harvest each lane's output before running the next lane on the
+    // shared debug instance.
+    takeReturnValue(): Data | null {
+        const v = this._returnValue;
+        this._returnValue = null;
+        return v;
+    }
+
+    // Whether the most recent invocation executed `discard` (fragment killed).
+    get discarded(): boolean {
+        return this._discarded;
+    }
+
+    // Take and clear the discard flag. Used by the quad scheduler to record which
+    // lanes discarded on the shared debug instance.
+    takeDiscarded(): boolean {
+        const d = this._discarded;
+        this._discarded = false;
+        return d;
+    }
+
+    // Convert a raw Data value to plain JS (see getReturnValue). Exposed for
+    // schedulers that collect per-lane outputs.
+    dataToJS(v: Data | null): number | number[] | Record<string, unknown> | null {
+        return this._dataToJS(v);
+    }
+
+    // Whether stepStack pauses on quad-derivative calls (see _quadRendezvous).
+    // The QuadScheduler sets this for the duration of its run.
+    get quadRendezvous(): boolean {
+        return this._quadRendezvous;
+    }
+    set quadRendezvous(v: boolean) {
+        this._quadRendezvous = v;
     }
 
     // The entry's return value as plain JS: a number for scalars, an array for
@@ -638,6 +717,15 @@ export class WgslDebug {
                 const node = command.node;
                 const fn = state.context.getFunction(node.name);
                 if (!fn) {
+                    // A quad-derivative call: in quad mode, pause here (leaving
+                    // the command in place) so the scheduler can rendezvous the
+                    // 2x2 quad. Once it has stored this lane's result, the guard
+                    // falls through and the enclosing statement consumes it.
+                    if (this._quadRendezvous && QUAD_RENDEZVOUS_BUILTINS.has(node.name) &&
+                        state.context.getDerivative(node) === null) {
+                        state.current--;
+                        return true;
+                    }
                     continue; // it's not a custom function, step over it
                 }
                 const fnState = this._createState(fn.node.body, state.context.clone(), state);
@@ -678,6 +766,17 @@ export class WgslDebug {
                         }
                         return true;
                     }
+                }
+
+                if (node instanceof AST.Discard) {
+                    // `discard` kills the fragment invocation: no further
+                    // statements run and it produces no output. Unwind the whole
+                    // stack and report completion.
+                    this._discarded = true;
+                    while (!stack.isEmpty) {
+                        stack.pop();
+                    }
+                    return false;
                 }
 
                 const res = this._exec.execStatement(node, state.context);
@@ -1181,6 +1280,8 @@ export class WgslDebug {
                 state.commands.push(new BreakCommand(statement.loopId, statement.condition, statement));
             } else if (statement instanceof AST.StaticAssert) {
                 state.commands.push(new StatementCommand(statement));
+            } else if (statement instanceof AST.Discard) {
+                state.commands.push(new StatementCommand(statement));
             } else if (statement instanceof AST.Struct) {
                 // nothing to do
             } else {
@@ -1199,8 +1300,10 @@ export class WgslDebug {
                     this._collectFunctionCalls(arg, functionCalls);
                 }
             }
-            // Only collect custom function calls, not built-in functions.
-            if (!node.isBuiltin) {
+            // Collect custom function calls (to step into them) and quad
+            // derivative builtins (rendezvous points for the fragment quad
+            // scheduler). Other builtins are evaluated inline by their statement.
+            if (!node.isBuiltin || QUAD_RENDEZVOUS_BUILTINS.has(node.name)) {
                 functionCalls.push(node);
             }
         } else if (node instanceof AST.BinaryOperator) {

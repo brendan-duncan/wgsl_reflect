@@ -7,12 +7,16 @@ import { ExecStack } from "./exec/exec_stack.js";
 import { Data } from "./wgsl_ast.js";
 import { StructInfo, TypeInfo, FunctionInfo } from "./reflect/info.js";
 type RuntimeStateCallbackType = () => void;
+export declare const DERIVATIVE_BUILTINS: Set<string>;
+export declare const IMPLICIT_LOD_BUILTINS: Set<string>;
+export declare const QUAD_RENDEZVOUS_BUILTINS: Set<string>;
 interface BindingEntry {
     texture?: {
         view?: unknown;
     };
     descriptor?: unknown;
     uniform?: ArrayBuffer;
+    sampler?: Record<string, unknown>;
 }
 type StageInputs = Record<string, number | number[] | Float32Array | Uint32Array | Int32Array>;
 export declare class WgslDebug {
@@ -21,6 +25,8 @@ export declare class WgslDebug {
     private _execStack;
     private _dispatchId;
     private _returnValue;
+    private _discarded;
+    private _quadRendezvous;
     private _runTimer;
     runSliceSize: number;
     readonly breakpoints: Set<number>;
@@ -55,6 +61,12 @@ export declare class WgslDebug {
     _makeStageValue(typeInfo: TypeInfo | null, value: number | number[] | Float32Array | Uint32Array | Int32Array): Data | null;
     _makeStructInput(typeInfo: StructInfo, inputs: StageInputs, context: ExecContext): Data;
     get returnValue(): Data | null;
+    takeReturnValue(): Data | null;
+    get discarded(): boolean;
+    takeDiscarded(): boolean;
+    dataToJS(v: Data | null): number | number[] | Record<string, unknown> | null;
+    get quadRendezvous(): boolean;
+    set quadRendezvous(v: boolean);
     getReturnValue(): number | number[] | Record<string, unknown> | null;
     _dataToJS(v: Data | null): number | number[] | Record<string, unknown> | null;
     _shouldExecuteNextCommand(stack?: ExecStack): boolean;

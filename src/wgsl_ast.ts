@@ -3298,6 +3298,23 @@ export class TypedData extends Data {
   }
 }
 
+// A bound sampler. Holds the GPUSamplerDescriptor so sampling builtins can
+// honor the compare function, filter modes, and address modes. All fields are
+// optional; sampling falls back to linear filtering + clamp-to-edge, and the
+// compare function defaults to "less-equal" (typical for shadow maps).
+export class SamplerData extends Data {
+  descriptor: Record<string, unknown>;
+
+  constructor(descriptor: Record<string, unknown>, typeInfo: TypeInfo) {
+    super(typeInfo, null);
+    this.descriptor = descriptor ?? {};
+  }
+
+  clone(): Data {
+    return new SamplerData(this.descriptor, this.typeInfo);
+  }
+}
+
 export class TextureData extends Data {
   data: Array<ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array>;
   descriptor: Object;

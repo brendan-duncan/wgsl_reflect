@@ -804,6 +804,11 @@ export declare class TypedData extends Data {
     toArray(): number[] | Float32Array | Int32Array | Uint32Array | null;
     toString(): string;
 }
+export declare class SamplerData extends Data {
+    descriptor: Record<string, unknown>;
+    constructor(descriptor: Record<string, unknown>, typeInfo: TypeInfo);
+    clone(): Data;
+}
 export declare class TextureData extends Data {
     data: Array<ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array>;
     descriptor: Object;

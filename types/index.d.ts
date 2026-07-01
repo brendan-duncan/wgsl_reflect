@@ -5,4 +5,5 @@ export * from "./wgsl_scanner.js";
 export * from "./wgsl_exec.js";
 export * from "./wgsl_debug.js";
 export * from "./exec/race_detector.js";
+export * from "./exec/fragment_quad.js";
 export * from "./analysis/perf_analyzer.js";
