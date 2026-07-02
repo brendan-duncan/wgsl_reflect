@@ -1615,8 +1615,15 @@ export class TypecastExpr extends Expression {
  */
 export class ArrayIndex extends Expression {
   index: Expression;
-  constructor(index: Expression) {
+  constructor(index: Expression | number) {
     super();
+    if (typeof index === "number") {
+      // Convenience for programmatic use (debugger UIs indexing into array
+      // data): wrap a plain number as a literal expression, which every
+      // getSubData/setDataValue implementation understands. Passing the raw
+      // number through used to silently resolve to element 0.
+      index = new LiteralExpr(new ScalarData(new Uint32Array([index]), new TypeInfo("u32", null)), Type.u32);
+    }
     this.index = index;
   }
 

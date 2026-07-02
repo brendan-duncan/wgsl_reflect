@@ -38,6 +38,15 @@ export class BuiltinFunctions {
     Select(node: CallExpr | Call, context: ExecContext): Data | null {
         // select(false, true, condition)
         const condition = this.exec.evalExpression(node.args[2], context);
+        if (condition instanceof VectorData) {
+            // select(f: vecN, t: vecN, cond: vecN<bool>): component-wise.
+            const f = this.exec.evalExpression(node.args[0], context);
+            const t = this.exec.evalExpression(node.args[1], context);
+            if (!(f instanceof VectorData) || !(t instanceof VectorData)) {
+                throw new Error(`Select() with a vector condition expects vector values. Line ${node.line}`);
+            }
+            return new VectorData(condition.data.map((c: number, i: number) => c ? t.data[i] : f.data[i]), f.typeInfo);
+        }
         if (!(condition instanceof ScalarData)) {
             throw new Error(`Select() expects a bool condition. Line ${node.line}`);
         }
@@ -608,8 +617,17 @@ export class BuiltinFunctions {
         const x = this.exec.evalExpression(node.args[0], context);
         const y = this.exec.evalExpression(node.args[1], context);
         const a = this.exec.evalExpression(node.args[2], context);
-        if (x instanceof VectorData && y instanceof VectorData && a instanceof VectorData) {
-            return new VectorData(x.data.map((v: number, i: number) => x.data[i] * (1 - a.data[i]) + y.data[i] * a.data[i]), x.typeInfo);
+        if (x === null || y === null || a === null) {
+            console.error(`Mix: invalid arguments. Line ${node.line}`);
+            return null;
+        }
+        if (x instanceof VectorData && y instanceof VectorData) {
+            if (a instanceof VectorData) {
+                return new VectorData(x.data.map((v: number, i: number) => x.data[i] * (1 - a.data[i]) + y.data[i] * a.data[i]), x.typeInfo);
+            }
+            // mix(vecN, vecN, scalar): the blend factor broadcasts.
+            const t = (a as ScalarData).value;
+            return new VectorData(x.data.map((v: number, i: number) => x.data[i] * (1 - t) + y.data[i] * t), x.typeInfo);
         }
         const xs = x as ScalarData;
         const ys = y as ScalarData;

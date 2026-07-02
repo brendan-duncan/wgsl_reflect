@@ -615,7 +615,7 @@ export declare class TypecastExpr extends Expression {
  */
 export declare class ArrayIndex extends Expression {
     index: Expression;
-    constructor(index: Expression);
+    constructor(index: Expression | number);
     search(callback: (node: Node) => void): void;
 }
 /**

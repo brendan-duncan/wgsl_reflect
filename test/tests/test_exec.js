@@ -74,6 +74,23 @@ export async function run() {
             test.equals(Array.from(dataBuffer), [1.25, 2.5, 3.75, 1.25]);
         });
 
+        await test("mix and select vector overloads", async function (test) {
+            // Regression: mix(vecN, vecN, scalar) fell into the all-scalar
+            // path and built a ScalarData with a vector type; select with a
+            // vector condition threw.
+            const shader = `
+                @group(0) @binding(0) var<storage, read_write> data: array<vec3f, 2>;
+                @compute @workgroup_size(1) fn main() {
+                    data[0] = mix(vec3f(0.0), vec3f(1.0, 2.0, 4.0), 0.5);
+                    data[1] = select(vec3f(1.0, 2.0, 3.0), vec3f(9.0, 8.0, 7.0), vec3<bool>(true, false, true));
+                }`;
+            const dataBuffer = new Float32Array(8);
+            const wgsl = _newWgslExec(shader);
+            wgsl.dispatchWorkgroups("main", 1, {0: {0: dataBuffer}});
+            test.equals(Array.from(dataBuffer.slice(0, 3)), [0.5, 1, 2]);
+            test.equals(Array.from(dataBuffer.slice(4, 7)), [9, 2, 7]);
+        });
+
         await test("mat4x4 vec4f multiply", async function (test) {
             const shader = `
                 @group(0) @binding(0) var<storage, read_write> data: vec4f;
