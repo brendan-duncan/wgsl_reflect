@@ -1459,9 +1459,19 @@ export class WgslExec extends ExecInterface {
     }
 
     _evalUnaryOp(node: UnaryOperator, context: ExecContext): Data | null {
+        // The postfix is applied to the (possibly parenthesized) expression's
+        // result: e.g. the ".x" of `(-v).x`.
+        const value = this._evalUnaryOpValue(node, context);
+        if (value !== null && node.postfix && node.operator !== "*") {
+            return value.getSubData(this, node.postfix, context);
+        }
+        return value;
+    }
+
+    _evalUnaryOpValue(node: UnaryOperator, context: ExecContext): Data | null {
         const _r = this.evalExpression(node.right, context);
 
-        if (node.operator === "&") { 
+        if (node.operator === "&") {
             return new PointerData(_r);
         } else if (node.operator === "*") {
             if (_r instanceof PointerData) {
@@ -1471,15 +1481,18 @@ export class WgslExec extends ExecInterface {
             return null;
         }
 
-        const r = _r instanceof ScalarData ? _r.value : 
-            _r instanceof VectorData ? Array.from(_r.data) : null;
+        const r = _r instanceof ScalarData ? _r.value :
+            _r instanceof VectorData ? Array.from(_r.data) :
+            _r instanceof MatrixData ? Array.from(_r.data) :
+            _r instanceof TypedData ? _r.toArray() :
+            null;
 
         switch (node.operator) {
             case "+": {
                 if (isArray(r)) {
                     const ra = r as number[];
                     const result = ra.map((x: number, i: number) => +x);
-                    return new VectorData(result, _r.typeInfo);
+                    return this._makeCwiseData(result, _r.typeInfo);
                 }
                 const rn = r as number;
                 const t = this._maxFormatTypeInfo([_r.typeInfo, _r.typeInfo]);
@@ -1489,7 +1502,7 @@ export class WgslExec extends ExecInterface {
                 if (isArray(r)) {
                     const ra = r as number[];
                     const result = ra.map((x: number, i: number) => -x);
-                    return new VectorData(result, _r.typeInfo);
+                    return this._makeCwiseData(result, _r.typeInfo);
                 }
                 const rn = r as number;
                 const t = this._maxFormatTypeInfo([_r.typeInfo, _r.typeInfo]);
@@ -1499,7 +1512,7 @@ export class WgslExec extends ExecInterface {
                 if (isArray(r)) {
                     const ra = r as number[];
                     const result = ra.map((x: number, i: number) => !x ? 1 : 0);
-                    return new VectorData(result, _r.typeInfo);
+                    return this._makeCwiseData(result, _r.typeInfo);
                 }
                 const rn = r as number;
                 const t = this._maxFormatTypeInfo([_r.typeInfo, _r.typeInfo]);
@@ -1509,7 +1522,7 @@ export class WgslExec extends ExecInterface {
                 if (isArray(r)) {
                     const ra = r as number[];
                     const result = ra.map((x: number, i: number) => ~x);
-                    return new VectorData(result, _r.typeInfo);
+                    return this._makeCwiseData(result, _r.typeInfo);
                 }
                 const rn = r as number;
                 const t = this._maxFormatTypeInfo([_r.typeInfo, _r.typeInfo]);
@@ -1530,7 +1543,28 @@ export class WgslExec extends ExecInterface {
         return typeName.startsWith("vec");
     }
 
+    // Wrap a component-wise operation result in the right Data kind for its
+    // type: a matrix-typed result (e.g. mat + mat, or weight * jointMatrix
+    // where the matrix came from a buffer as TypedData) must be MatrixData —
+    // VectorData rejects matrix types.
+    _makeCwiseData(values: number[], typeInfo: TypeInfo): Data {
+        if (typeInfo.getTypeName().startsWith("mat")) {
+            return new MatrixData(values, typeInfo);
+        }
+        return new VectorData(values, typeInfo);
+    }
+
     _evalBinaryOp(node: BinaryOperator, context: ExecContext): Data | null {
+        // The postfix is applied to the (possibly parenthesized) expression's
+        // result: e.g. the ".w" of `(v * 2.0).w`.
+        const value = this._evalBinaryOpValue(node, context);
+        if (value !== null && node.postfix) {
+            return value.getSubData(this, node.postfix, context);
+        }
+        return value;
+    }
+
+    _evalBinaryOpValue(node: BinaryOperator, context: ExecContext): Data | null {
         const _l = this.evalExpression(node.left, context);
         const _r = this.evalExpression(node.right, context);
 
@@ -1555,17 +1589,17 @@ export class WgslExec extends ExecInterface {
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x + ra[i]);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(l)) {
                     const la = l as number[];
                     const rn = r as number;
                     const result = la.map((x: number, i: number) => x + rn);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(r)) {
                     const ln = l as number;
                     const ra = r as number[];
                     const result = ra.map((x: number, i: number) => ln + x);
-                    return new VectorData(result, _r.typeInfo);
+                    return this._makeCwiseData(result, _r.typeInfo);
                 }
                 const ln = l as number;
                 const rn = r as number;
@@ -1581,17 +1615,17 @@ export class WgslExec extends ExecInterface {
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x - ra[i]);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(l)) {
                     const la = l as number[];
                     const rn = r as number;
                     const result = la.map((x: number, i: number) => x - rn);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(r)) {
                     const ln = l as number;
                     const ra = r as number[];
                     const result = ra.map((x: number, i: number) => ln - x);
-                    return new VectorData(result, _r.typeInfo);
+                    return this._makeCwiseData(result, _r.typeInfo);
                 }
                 const ln = l as number;
                 const rn = r as number;
@@ -1618,21 +1652,21 @@ export class WgslExec extends ExecInterface {
                             console.error(`Matrix vector multiplication failed. Line ${node.line}.`);
                             return null;
                         }
-                        return new VectorData(result, _r.typeInfo);
+                        return this._makeCwiseData(result, _r.typeInfo);
                     } else if (this._isVectorType(_l) && this._isMatrixType(_r)) {
                         const result = vectorMatrixMultiply(la, _l.typeInfo, ra, _r.typeInfo);
                         if (result === null) {
                             console.error(`Matrix vector multiplication failed. Line ${node.line}.`);
                             return null;
                         }
-                        return new VectorData(result, _l.typeInfo);
+                        return this._makeCwiseData(result, _l.typeInfo);
                     } else {
                         if (la.length !== ra.length) {
                             console.error(`Vector length mismatch: ${_l.typeInfo.getTypeName()}[${la.length}] '${node.operator}' ${_r.typeInfo.getTypeName()}[${ra.length}]. Line ${node.line}.`);
                             return null;
                         }
                         const result = la.map((x: number, i: number) => x * ra[i]);
-                        return new VectorData(result, _l.typeInfo);
+                        return this._makeCwiseData(result, _l.typeInfo);
                     }
                 } else if (isArray(l)) {
                     const la = l as number[];
@@ -1641,7 +1675,7 @@ export class WgslExec extends ExecInterface {
                     if (this._isMatrixType(_l)) {
                         return new MatrixData(result, _l.typeInfo);
                     }
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(r)) {
                     const ln = l as number;
                     const ra = r as number[];
@@ -1649,7 +1683,7 @@ export class WgslExec extends ExecInterface {
                     if (_r instanceof MatrixData) {
                         return new MatrixData(result, _r.typeInfo);
                     }
-                    return new VectorData(result, _r.typeInfo);
+                    return this._makeCwiseData(result, _r.typeInfo);
                 }
 
                 const ln = l as number;
@@ -1666,17 +1700,17 @@ export class WgslExec extends ExecInterface {
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x % ra[i]);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(l)) {
                     const la = l as number[];
                     const rn = r as number;
                     const result = la.map((x: number, i: number) => x % rn);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(r)) {
                     const ln = l as number;
                     const ra = r as number[];
                     const result = ra.map((x: number, i: number) => ln % x);
-                    return new VectorData(result, _r.typeInfo);
+                    return this._makeCwiseData(result, _r.typeInfo);
                 }
                 const ln = l as number;
                 const rn = r as number;
@@ -1692,17 +1726,17 @@ export class WgslExec extends ExecInterface {
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x / ra[i]);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(l)) {
                     const la = l as number[];
                     const rn = r as number;
                     const result = la.map((x: number, i: number) => x / rn);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(r)) {
                     const ln = l as number;
                     const ra = r as number[];
                     const result = ra.map((x: number, i: number) => ln / x);
-                    return new VectorData(result, _r.typeInfo);
+                    return this._makeCwiseData(result, _r.typeInfo);
                 }
                 const ln = l as number;
                 const rn = r as number;
@@ -1718,17 +1752,17 @@ export class WgslExec extends ExecInterface {
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x & ra[i]);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(l)) {
                     const la = l as number[];
                     const rn = r as number;
                     const result = la.map((x: number, i: number) => x & rn);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(r)) {
                     const ln = l as number;
                     const ra = r as number[];
                     const result = ra.map((x: number, i: number) => ln & x);
-                    return new VectorData(result, _r.typeInfo);
+                    return this._makeCwiseData(result, _r.typeInfo);
                 }
                 const ln = l as number;
                 const rn = r as number;
@@ -1744,17 +1778,17 @@ export class WgslExec extends ExecInterface {
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x | ra[i]);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(l)) {
                     const la = l as number[];
                     const rn = r as number;
                     const result = la.map((x: number, i: number) => x | rn);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(r)) {
                     const ln = l as number;
                     const ra = r as number[];
                     const result = ra.map((x: number, i: number) => ln | x);
-                    return new VectorData(result, _r.typeInfo);
+                    return this._makeCwiseData(result, _r.typeInfo);
                 }
                 const ln = l as number;
                 const rn = r as number;
@@ -1770,17 +1804,17 @@ export class WgslExec extends ExecInterface {
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x ^ ra[i]);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(l)) {
                     const la = l as number[];
                     const rn = r as number;
                     const result = la.map((x: number, i: number) => x ^ rn);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(r)) {
                     const ln = l as number;
                     const ra = r as number[];
                     const result = ra.map((x: number, i: number) => ln ^ x);
-                    return new VectorData(result, _r.typeInfo);
+                    return this._makeCwiseData(result, _r.typeInfo);
                 }
                 const ln = l as number;
                 const rn = r as number;
@@ -1796,17 +1830,17 @@ export class WgslExec extends ExecInterface {
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x << ra[i]);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(l)) {
                     const la = l as number[];
                     const rn = r as number;
                     const result = la.map((x: number, i: number) => x << rn);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(r)) {
                     const ln = l as number;
                     const ra = r as number[];
                     const result = ra.map((x: number, i: number) => ln << x);
-                    return new VectorData(result, _r.typeInfo);
+                    return this._makeCwiseData(result, _r.typeInfo);
                 }
                 const ln = l as number;
                 const rn = r as number;
@@ -1822,17 +1856,17 @@ export class WgslExec extends ExecInterface {
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x >> ra[i]);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(l)) {
                     const la = l as number[];
                     const rn = r as number;
                     const result = la.map((x: number, i: number) => x >> rn);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(r)) {
                     const ln = l as number;
                     const ra = r as number[];
                     const result = ra.map((x: number, i: number) => ln >> x);
-                    return new VectorData(result, _r.typeInfo);
+                    return this._makeCwiseData(result, _r.typeInfo);
                 }
                 const ln = l as number;
                 const rn = r as number;
@@ -1848,17 +1882,17 @@ export class WgslExec extends ExecInterface {
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x > ra[i] ? 1 : 0);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(l)) {
                     const la = l as number[];
                     const rn = r as number;
                     const result = la.map((x: number, i: number) => x > rn ? 1 : 0);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(r)) {
                     const ln = l as number;
                     const ra = r as number[];
                     const result = ra.map((x: number, i: number) => ln > x ? 1 : 0);
-                    return new VectorData(result, _r.typeInfo);
+                    return this._makeCwiseData(result, _r.typeInfo);
                 }
                 const ln = l as number;
                 const rn = r as number;
@@ -1873,17 +1907,17 @@ export class WgslExec extends ExecInterface {
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x < ra[i] ? 1 : 0);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(l)) {
                     const la = l as number[];
                     const rn = r as number;
                     const result = la.map((x: number, i: number) => x < rn ? 1 : 0);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(r)) {
                     const ln = l as number;
                     const ra = r as number[];
                     const result = ra.map((x: number, i: number) => ln < x ? 1 : 0);
-                    return new VectorData(result, _r.typeInfo);
+                    return this._makeCwiseData(result, _r.typeInfo);
                 }
                 const ln = l as number;
                 const rn = r as number;
@@ -1897,17 +1931,17 @@ export class WgslExec extends ExecInterface {
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x === ra[i] ? 1 : 0);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(l)) {
                     const la = l as number[];
                     const rn = r as number;
                     const result = la.map((x: number, i: number) => x === rn ? 1 : 0);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(r)) {
                     const ln = l as number;
                     const ra = r as number[];
                     const result = ra.map((x: number, i: number) => ln === x ? 1 : 0);
-                    return new VectorData(result, _r.typeInfo);
+                    return this._makeCwiseData(result, _r.typeInfo);
                 }
                 const ln = l as number;
                 const rn = r as number;
@@ -1922,17 +1956,17 @@ export class WgslExec extends ExecInterface {
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x !== ra[i] ? 1 : 0);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(l)) {
                     const la = l as number[];
                     const rn = r as number;
                     const result = la.map((x: number, i: number) => x !== rn ? 1 : 0);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(r)) {
                     const ln = l as number;
                     const ra = r as number[];
                     const result = ra.map((x: number, i: number) => ln !== x ? 1 : 0);
-                    return new VectorData(result, _r.typeInfo);
+                    return this._makeCwiseData(result, _r.typeInfo);
                 }
                 const ln = l as number;
                 const rn = r as number;
@@ -1947,17 +1981,17 @@ export class WgslExec extends ExecInterface {
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x >= ra[i] ? 1 : 0);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(l)) {
                     const la = l as number[];
                     const rn = r as number;
                     const result = la.map((x: number, i: number) => x >= rn ? 1 : 0);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(r)) {
                     const ln = l as number;
                     const ra = r as number[];
                     const result = ra.map((x: number, i: number) => ln >= x ? 1 : 0);
-                    return new VectorData(result, _r.typeInfo);
+                    return this._makeCwiseData(result, _r.typeInfo);
                 }
                 const ln = l as number;
                 const rn = r as number;
@@ -1972,17 +2006,17 @@ export class WgslExec extends ExecInterface {
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x <= ra[i] ? 1 : 0);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(l)) {
                     const la = l as number[];
                     const rn = r as number;
                     const result = la.map((x: number, i: number) => x <= rn ? 1 : 0);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(r)) {
                     const ln = l as number;
                     const ra = r as number[];
                     const result = ra.map((x: number, i: number) => ln <= x ? 1 : 0);
-                    return new VectorData(result, _r.typeInfo);
+                    return this._makeCwiseData(result, _r.typeInfo);
                 }
                 const ln = l as number;
                 const rn = r as number;
@@ -1997,17 +2031,17 @@ export class WgslExec extends ExecInterface {
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x && ra[i] ? 1 : 0);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(l)) {
                     const la = l as number[];
                     const rn = r as number;
                     const result = la.map((x: number, i: number) => x && rn ? 1 : 0);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(r)) {
                     const ln = l as number;
                     const ra = r as number[];
                     const result = ra.map((x: number, i: number) => ln && x ? 1 : 0);
-                    return new VectorData(result, _r.typeInfo);
+                    return this._makeCwiseData(result, _r.typeInfo);
                 }
                 const ln = l as number;
                 const rn = r as number;
@@ -2022,17 +2056,17 @@ export class WgslExec extends ExecInterface {
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x || ra[i] ? 1 : 0);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(l)) {
                     const la = l as number[];
                     const rn = r as number;
                     const result = la.map((x: number, i: number) => x || rn ? 1 : 0);
-                    return new VectorData(result, _l.typeInfo);
+                    return this._makeCwiseData(result, _l.typeInfo);
                 } else if (isArray(r)) {
                     const ln = l as number;
                     const ra = r as number[];
                     const result = ra.map((x: number, i: number) => ln || x ? 1 : 0);
-                    return new VectorData(result, _r.typeInfo);
+                    return this._makeCwiseData(result, _r.typeInfo);
                 }
                 const ln = l as number;
                 const rn = r as number;

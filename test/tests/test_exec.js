@@ -26,6 +26,54 @@ export async function run() {
             test.equals(Array.from(dataBuffer.slice(4, 7)), [8, 7, 6]);
         });
 
+        await test("postfix on a parenthesized expression", async function (test) {
+            // Regression: the postfix of `(v * 2.0).w` / `(-v).w` was dropped,
+            // so the full vector flowed into scalar contexts (e.g. an `if`
+            // condition -> "Condition must be a scalar").
+            const shader = `
+                @group(0) @binding(0) var<storage, read_write> data: vec3f;
+                @compute @workgroup_size(1) fn main() {
+                    let v = vec4f(1.0, 2.0, 3.0, 4.0);
+                    var r = vec3f(0.0);
+                    r.x = (v * 2.0).w;
+                    r.y = (-v).w;
+                    if ((v * 2.0).w > 7.0) {
+                        r.z = 1.0;
+                    }
+                    data = r;
+                }`;
+            const dataBuffer = new Float32Array(3);
+            const wgsl = _newWgslExec(shader);
+            wgsl.dispatchWorkgroups("main", 1, {0: {0: dataBuffer}});
+            test.equals(Array.from(dataBuffer), [8, -4, 1]);
+        });
+
+        await test("component-wise matrix ops keep matrix type", async function (test) {
+            // Regression: mat + mat, mat * scalar and scalar * buffer-backed
+            // matrices built VectorData with a matrix type ("VectorData:
+            // Invalid type mat4x4"), breaking e.g. skinning chains like
+            // w.x * joints[0] + w.y * joints[1].
+            const shader = `
+                struct Joints { m: array<mat4x4f, 2> }
+                @group(0) @binding(0) var<storage, read_write> data: vec4f;
+                @group(0) @binding(1) var<storage, read> joints: Joints;
+                @compute @workgroup_size(1) fn main() {
+                    let skin = 0.25 * joints.m[0] + 0.75 * (joints.m[1] / 1.5);
+                    data = skin * vec4f(1.0, 2.0, 3.0, 1.0);
+                }`;
+            // joints.m[0] = identity, joints.m[1] = 2 * identity.
+            const joints = new Float32Array(32);
+            for (let i = 0; i < 4; ++i) {
+                joints[i * 5] = 1;
+                joints[16 + i * 5] = 2;
+            }
+            const dataBuffer = new Float32Array(4);
+            const wgsl = _newWgslExec(shader);
+            wgsl.dispatchWorkgroups("main", 1, {0: {0: dataBuffer, 1: joints}});
+            // skin = 0.25*I + 0.75*(2I/1.5) = 1.25*I
+            test.equals(Array.from(dataBuffer), [1.25, 2.5, 3.75, 1.25]);
+        });
+
         await test("mat4x4 vec4f multiply", async function (test) {
             const shader = `
                 @group(0) @binding(0) var<storage, read_write> data: vec4f;

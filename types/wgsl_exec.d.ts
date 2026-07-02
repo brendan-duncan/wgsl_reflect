@@ -53,9 +53,12 @@ export declare class WgslExec extends ExecInterface {
     _resolveAtomicType(typeInfo: TypeInfo): TypeInfo;
     _maxFormatTypeInfo(x: TypeInfo[]): TypeInfo | null;
     _evalUnaryOp(node: UnaryOperator, context: ExecContext): Data | null;
+    _evalUnaryOpValue(node: UnaryOperator, context: ExecContext): Data | null;
     _isMatrixType(data: Data): boolean;
     _isVectorType(data: Data): boolean;
+    _makeCwiseData(values: number[], typeInfo: TypeInfo): Data;
     _evalBinaryOp(node: BinaryOperator, context: ExecContext): Data | null;
+    _evalBinaryOpValue(node: BinaryOperator, context: ExecContext): Data | null;
     _evalCall(node: CallExpr, context: ExecContext): Data | null;
     _evalCallValue(node: CallExpr, context: ExecContext): Data | null;
     _callBuiltinFunction(node: CallExpr | Call, context: ExecContext): Data | null;
