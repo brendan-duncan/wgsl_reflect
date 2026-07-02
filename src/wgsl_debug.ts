@@ -8,6 +8,7 @@ import { StackFrame } from "./exec/stack_frame.js";
 import { ExecStack } from "./exec/exec_stack.js";
 import { ScalarData, VectorData, MatrixData, TextureData, SamplerData, TypedData, VoidData, ArrayType, LiteralExpr, Data } from "./wgsl_ast.js";
 import { StructInfo, TypeInfo, FunctionInfo } from "./reflect/info.js";
+import { VectorTypeSize } from "./utils/matrix.js";
 
 type RuntimeStateCallbackType = () => void;
 
@@ -511,16 +512,43 @@ export class WgslDebug {
     // Build a ScalarData/VectorData for a stage input value. The concrete type
     // name (e.g. "vec3f" rather than the bare "vec3" template) is resolved so the
     // value gets the correct backing array kind (f32/u32/i32).
+    //
+    // The value is conformed to the declared type the way GPU vertex fetch
+    // conforms a vertex attribute to the shader's input: extra components are
+    // dropped, missing components default to 0 (and 1 for w). Without this, a
+    // caller supplying e.g. a float32x3 attribute for a vec4f input would flow
+    // a 3-vector into 4-vector math ("Vector length mismatch"), or a vector
+    // into scalar comparisons ("Condition must be a scalar").
     _makeStageValue(typeInfo: TypeInfo | null,
         value: number | number[] | Float32Array | Uint32Array | Int32Array): Data | null {
         if (typeInfo === null) {
             return null;
         }
         const concrete = this._exec.getTypeInfo(typeInfo.getTypeName()) ?? typeInfo;
+        const count = VectorTypeSize[concrete.name] ?? (concrete.name.startsWith("vec") ? undefined : 1);
+
         if (typeof value === "number") {
+            if (count !== undefined && count > 1) {
+                const padded = [value];
+                while (padded.length < count) {
+                    padded.push(padded.length === 3 ? 1 : 0);
+                }
+                return new VectorData(padded, concrete);
+            }
             return new ScalarData(value, concrete);
         }
-        return new VectorData(Array.from(value as ArrayLike<number>), concrete);
+
+        let values = Array.from(value as ArrayLike<number>);
+        if (count === 1) {
+            return new ScalarData(values[0] ?? 0, concrete);
+        }
+        if (count !== undefined && values.length !== count) {
+            values = values.slice(0, count);
+            while (values.length < count) {
+                values.push(values.length === 3 ? 1 : 0);
+            }
+        }
+        return new VectorData(values, concrete);
     }
 
     // Assemble an input struct value by writing each member, resolved by its own

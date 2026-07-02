@@ -407,6 +407,34 @@ export async function run() {
       test.equals(dbg.getReturnValue(), [11, 22, 0, 1]);
     });
 
+    await test("inputs conform to the declared type", function (test) {
+      // A vertex buffer's format can have fewer or more components than the
+      // shader's input type; the value must conform the way GPU vertex fetch
+      // does (truncate extras; missing y/z default to 0 and w to 1).
+      const shader = `
+        struct VertexInput {
+          @location(0) pos: vec4f,
+          @location(1) scale: f32,
+          @location(2) uv: vec2f,
+        };
+        @vertex
+        fn main(in: VertexInput) -> @builtin(position) vec4f {
+          if (in.scale > 0.0) {
+            return in.pos * in.scale + vec4f(in.uv, 0.0, 0.0);
+          }
+          return in.pos;
+        }`;
+      const dbg = new WgslDebug(shader);
+      const ok = dbg.debugVertex("main", {
+        0: [1.0, 2.0, 3.0],      // float32x3 -> vec4f: w defaults to 1
+        1: [2.0, 9.0],           // float32x2 -> f32: takes x
+        2: [5.0, 6.0, 7.0, 8.0], // float32x4 -> vec2f: truncates
+      }, {});
+      test.true(ok, "debugVertex should succeed");
+      while (dbg.stepNext());
+      test.equals(dbg.getReturnValue(), [7, 10, 6, 2]);
+    });
+
     await test("step and inspect locals", function (test) {
       const shader = `
         @vertex
