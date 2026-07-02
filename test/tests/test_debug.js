@@ -407,6 +407,24 @@ export async function run() {
       test.equals(dbg.getReturnValue(), [11, 22, 0, 1]);
     });
 
+    await test("swizzle on a hoisted call result", function (test) {
+      // Regression: the debugger hoists calls into their own step commands and
+      // substitutes the cached return value; the call's postfix (swizzle) was
+      // dropped in the substitution.
+      const shader = `
+        fn pick() -> vec4f { return vec4f(1.0, 2.0, 3.0, 4.0); }
+        @vertex
+        fn main() -> @builtin(position) vec4f {
+          let p = pick().wzyx;
+          return p;
+        }`;
+      const dbg = new WgslDebug(shader);
+      const ok = dbg.debugVertex("main", {}, {});
+      test.true(ok, "debugVertex should succeed");
+      while (dbg.stepNext());
+      test.equals(dbg.getReturnValue(), [4, 3, 2, 1]);
+    });
+
     await test("inputs conform to the declared type", function (test) {
       // A vertex buffer's format can have fewer or more components than the
       // shader's input type; the value must conform the way GPU vertex fetch
@@ -847,6 +865,50 @@ export async function run() {
       test.equals(scheduler.targetContext.getVariableValue("c").toString(), "2, 3");
       while (!scheduler.isDone && guard++ < 60) scheduler.stepTarget(true);
       test.equals(scheduler.targetOutput, [2, 3, 0, 1]);
+    });
+
+    await test("interactive stepping a struct-output shader to completion", function (test) {
+      // Regression: harvesting a finished lane's output (dataToJS on a struct)
+      // touches debug.context; the quad scheduler's debug instance never seeds
+      // its own exec stack, which used to crash resolving the current state.
+      const shader = `
+        struct FragOut {
+          @location(0) color: vec4f,
+          @location(1) extra: vec4f,
+        };
+        @fragment
+        fn main(@location(0) uv: vec2f) -> FragOut {
+          var out: FragOut;
+          out.color = vec4f(uv, 0.0, 1.0);
+          out.extra = vec4f(uv.y, uv.x, 1.0, 1.0);
+          return out;
+        }`;
+      const q = [{ 0: [1, 2] }, { 0: [2, 2] }, { 0: [1, 3] }, { 0: [2, 3] }];
+      const { scheduler, errors } = createFragmentQuadDebugger(shader, "main", q, {}, 0);
+      test.equals(errors.length, 0);
+      let n = 0;
+      while (!scheduler.isDone && n < 50) {
+        scheduler.stepTarget(true);
+        n++;
+      }
+      test.true(scheduler.isDone, "target lane should finish");
+      test.equals(scheduler.targetOutput.color, [1, 2, 0, 1]);
+      test.equals(scheduler.targetOutput.extra, [2, 1, 1, 1]);
+    });
+
+    await test("missing inputs bind as zero-initialized values", function (test) {
+      // A varying the caller didn't supply must not leave the variable unbound
+      // (null would flow into vector math); it binds as zeros (w=1).
+      const shader = `
+        @fragment
+        fn main(@location(0) uv: vec2f, @location(1) tint: vec4f) -> @location(0) vec4f {
+          let c = tint * 2.0 + vec4f(uv, 0.0, 0.0);
+          return c;
+        }`;
+      const q = [{ 0: [1, 2] }, { 0: [2, 2] }, { 0: [1, 3] }, { 0: [2, 3] }];
+      const r = debugFragmentQuad(shader, "main", q, {});
+      test.equals(r.errors.length, 0);
+      test.equals(r.outputs[0], [1, 2, 0, 2]); // tint = (0,0,0,1)
     });
 
     await test("interactive breakpoint stops on line", function (test) {

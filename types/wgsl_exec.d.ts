@@ -57,6 +57,7 @@ export declare class WgslExec extends ExecInterface {
     _isVectorType(data: Data): boolean;
     _evalBinaryOp(node: BinaryOperator, context: ExecContext): Data | null;
     _evalCall(node: CallExpr, context: ExecContext): Data | null;
+    _evalCallValue(node: CallExpr, context: ExecContext): Data | null;
     _callBuiltinFunction(node: CallExpr | Call, context: ExecContext): Data | null;
     _callConstructorValue(node: CreateExpr, context: ExecContext): Data | null;
     _callConstructorVec(node: CreateExpr | LiteralExpr, context: ExecContext): Data | null;

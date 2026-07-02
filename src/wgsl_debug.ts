@@ -51,6 +51,10 @@ type StageInputs = Record<string, number | number[] | Float32Array | Uint32Array
 export class WgslDebug {
     private _code: string;
     private _exec: WgslExec;
+    // Not initialized here: stepNext lazily seeds a module-scope stack when
+    // this is still unset, and the fragment quad scheduler never seeds it at
+    // all (it drives per-lane stacks). _resolveState treats the unset stack as
+    // done, so `context` falls back to the exec context.
     private _execStack: ExecStack;
     private _dispatchId: number[];
     // The value returned by a debugged entry point (e.g. a @vertex stage's
@@ -129,6 +133,9 @@ export class WgslDebug {
     // if execution is done. Shared by currentState/currentCommand/stepStack and
     // the slice loops so the walk-and-pop logic only lives in one place.
     private _resolveState(stack: ExecStack): StackFrame | null {
+        if (!stack) {
+            return null;
+        }
         while (!stack.isEmpty) {
             const state = stack.last!;
             if (!state.isAtEnd) {
@@ -480,9 +487,10 @@ export class WgslDebug {
             if (builtin !== null || location !== null) {
                 const key = (builtin !== null ? builtin : location) as string;
                 const raw = inputs[key];
-                if (raw !== undefined) {
-                    value = this._makeStageValue(typeInfo, raw);
-                }
+                // A missing input still binds a zero-initialized value of the
+                // declared type; leaving the variable unbound would let null
+                // flow into expressions using it.
+                value = this._makeStageValue(typeInfo, raw !== undefined ? raw : 0);
             } else if (typeInfo !== null && typeInfo.isStruct) {
                 value = this._makeStructInput(typeInfo as StructInfo, inputs, context);
             }
@@ -870,7 +878,7 @@ export class WgslDebug {
                 if (command.condition) {
                     const res = this._exec.evalExpression(command.condition, state.context);
                     if (!(res instanceof ScalarData)) {
-                        console.error("Condition must be a scalar");
+                        console.error(`Condition must be a scalar, got ${res === null ? "null" : res.typeInfo?.getTypeName?.() ?? res}`);
                         return false;
                     }
                     // If the condition is false, then we should not the break.
@@ -904,7 +912,7 @@ export class WgslDebug {
                 if (command.condition) {
                     const res = this._exec.evalExpression(command.condition, state.context);
                     if (!(res instanceof ScalarData)) {
-                        console.error("Condition must be a scalar");
+                        console.error(`Condition must be a scalar, got ${res === null ? "null" : res.typeInfo?.getTypeName?.() ?? res}`);
                         return false;
                     }
                     // If the GOTO condition value is true, then continue to the next command.

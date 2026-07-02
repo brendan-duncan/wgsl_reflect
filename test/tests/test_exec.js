@@ -7,6 +7,25 @@ function _newWgslExec(code) {
 
 export async function run() {
     await group("WgslExec", async function () {
+        await test("swizzle on a call result", async function (test) {
+            // Regression: a postfix on a call expression (user function or
+            // builtin) was dropped, so `three().wzy` evaluated as the full
+            // vec4 — flowing 4-vectors into 3-vector math downstream.
+            const shader = `
+                @group(0) @binding(0) var<storage, read_write> data: array<vec3f, 2>;
+                fn three() -> vec4f { return vec4f(1.0, 2.0, 3.0, 4.0); }
+                @compute @workgroup_size(1) fn main() {
+                    data[0] = three().wzy;
+                    data[1] = abs(vec4f(-5.0, -6.0, -7.0, -8.0)).wzy;
+                }`;
+            const dataBuffer = new Float32Array(8);
+            const bg = {0: {0: dataBuffer}};
+            const wgsl = _newWgslExec(shader);
+            wgsl.dispatchWorkgroups("main", 1, bg);
+            test.equals(Array.from(dataBuffer.slice(0, 3)), [4, 3, 2]);
+            test.equals(Array.from(dataBuffer.slice(4, 7)), [8, 7, 6]);
+        });
+
         await test("mat4x4 vec4f multiply", async function (test) {
             const shader = `
                 @group(0) @binding(0) var<storage, read_write> data: vec4f;

@@ -707,7 +707,7 @@ export class WgslExec extends ExecInterface {
                 const cv = currentValue.data;
                 const v = value.data;
                 if (cv.length !== v.length) {
-                    console.error(`Vector length mismatch. Line ${node.line}`);
+                    console.error(`Vector length mismatch: ${currentValue.typeInfo.getTypeName()}[${cv.length}] '${op}' ${value.typeInfo.getTypeName()}[${v.length}]. Line ${node.line}`);
                     return;
                 }
 
@@ -1551,7 +1551,7 @@ export class WgslExec extends ExecInterface {
                     const la = l as number[];
                     const ra = r as number[];
                     if (la.length !== ra.length) {
-                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        console.error(`Vector length mismatch: ${_l.typeInfo.getTypeName()}[${la.length}] '${node.operator}' ${_r.typeInfo.getTypeName()}[${ra.length}]. Line ${node.line}.`);
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x + ra[i]);
@@ -1577,7 +1577,7 @@ export class WgslExec extends ExecInterface {
                     const la = l as number[];
                     const ra = r as number[];
                     if (la.length !== ra.length) {
-                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        console.error(`Vector length mismatch: ${_l.typeInfo.getTypeName()}[${la.length}] '${node.operator}' ${_r.typeInfo.getTypeName()}[${ra.length}]. Line ${node.line}.`);
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x - ra[i]);
@@ -1628,7 +1628,7 @@ export class WgslExec extends ExecInterface {
                         return new VectorData(result, _l.typeInfo);
                     } else {
                         if (la.length !== ra.length) {
-                            console.error(`Vector length mismatch. Line ${node.line}.`);
+                            console.error(`Vector length mismatch: ${_l.typeInfo.getTypeName()}[${la.length}] '${node.operator}' ${_r.typeInfo.getTypeName()}[${ra.length}]. Line ${node.line}.`);
                             return null;
                         }
                         const result = la.map((x: number, i: number) => x * ra[i]);
@@ -1662,7 +1662,7 @@ export class WgslExec extends ExecInterface {
                     const la = l as number[];
                     const ra = r as number[];
                     if (la.length !== ra.length) {
-                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        console.error(`Vector length mismatch: ${_l.typeInfo.getTypeName()}[${la.length}] '${node.operator}' ${_r.typeInfo.getTypeName()}[${ra.length}]. Line ${node.line}.`);
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x % ra[i]);
@@ -1688,7 +1688,7 @@ export class WgslExec extends ExecInterface {
                     const la = l as number[];
                     const ra = r as number[];
                     if (la.length !== ra.length) {
-                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        console.error(`Vector length mismatch: ${_l.typeInfo.getTypeName()}[${la.length}] '${node.operator}' ${_r.typeInfo.getTypeName()}[${ra.length}]. Line ${node.line}.`);
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x / ra[i]);
@@ -1714,7 +1714,7 @@ export class WgslExec extends ExecInterface {
                     const la = l as number[];
                     const ra = r as number[];
                     if (la.length !== ra.length) {
-                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        console.error(`Vector length mismatch: ${_l.typeInfo.getTypeName()}[${la.length}] '${node.operator}' ${_r.typeInfo.getTypeName()}[${ra.length}]. Line ${node.line}.`);
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x & ra[i]);
@@ -1740,7 +1740,7 @@ export class WgslExec extends ExecInterface {
                     const la = l as number[];
                     const ra = r as number[];
                     if (la.length !== ra.length) {
-                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        console.error(`Vector length mismatch: ${_l.typeInfo.getTypeName()}[${la.length}] '${node.operator}' ${_r.typeInfo.getTypeName()}[${ra.length}]. Line ${node.line}.`);
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x | ra[i]);
@@ -1766,7 +1766,7 @@ export class WgslExec extends ExecInterface {
                     const la = l as number[];
                     const ra = r as number[];
                     if (la.length !== ra.length) {
-                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        console.error(`Vector length mismatch: ${_l.typeInfo.getTypeName()}[${la.length}] '${node.operator}' ${_r.typeInfo.getTypeName()}[${ra.length}]. Line ${node.line}.`);
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x ^ ra[i]);
@@ -1792,7 +1792,7 @@ export class WgslExec extends ExecInterface {
                     const la = l as number[];
                     const ra = r as number[];
                     if (la.length !== ra.length) {
-                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        console.error(`Vector length mismatch: ${_l.typeInfo.getTypeName()}[${la.length}] '${node.operator}' ${_r.typeInfo.getTypeName()}[${ra.length}]. Line ${node.line}.`);
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x << ra[i]);
@@ -1818,7 +1818,7 @@ export class WgslExec extends ExecInterface {
                     const la = l as number[];
                     const ra = r as number[];
                     if (la.length !== ra.length) {
-                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        console.error(`Vector length mismatch: ${_l.typeInfo.getTypeName()}[${la.length}] '${node.operator}' ${_r.typeInfo.getTypeName()}[${ra.length}]. Line ${node.line}.`);
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x >> ra[i]);
@@ -1844,7 +1844,7 @@ export class WgslExec extends ExecInterface {
                     const la = l as number[];
                     const ra = r as number[];
                     if (la.length !== ra.length) {
-                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        console.error(`Vector length mismatch: ${_l.typeInfo.getTypeName()}[${la.length}] '${node.operator}' ${_r.typeInfo.getTypeName()}[${ra.length}]. Line ${node.line}.`);
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x > ra[i] ? 1 : 0);
@@ -1869,7 +1869,7 @@ export class WgslExec extends ExecInterface {
                     const la = l as number[];
                     const ra = r as number[];
                     if (la.length !== ra.length) {
-                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        console.error(`Vector length mismatch: ${_l.typeInfo.getTypeName()}[${la.length}] '${node.operator}' ${_r.typeInfo.getTypeName()}[${ra.length}]. Line ${node.line}.`);
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x < ra[i] ? 1 : 0);
@@ -1893,7 +1893,7 @@ export class WgslExec extends ExecInterface {
                     const la = l as number[];
                     const ra = r as number[];
                     if (la.length !== ra.length) {
-                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        console.error(`Vector length mismatch: ${_l.typeInfo.getTypeName()}[${la.length}] '${node.operator}' ${_r.typeInfo.getTypeName()}[${ra.length}]. Line ${node.line}.`);
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x === ra[i] ? 1 : 0);
@@ -1918,7 +1918,7 @@ export class WgslExec extends ExecInterface {
                     const la = l as number[];
                     const ra = r as number[];
                     if (la.length !== ra.length) {
-                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        console.error(`Vector length mismatch: ${_l.typeInfo.getTypeName()}[${la.length}] '${node.operator}' ${_r.typeInfo.getTypeName()}[${ra.length}]. Line ${node.line}.`);
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x !== ra[i] ? 1 : 0);
@@ -1943,7 +1943,7 @@ export class WgslExec extends ExecInterface {
                     const la = l as number[];
                     const ra = r as number[];
                     if (la.length !== ra.length) {
-                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        console.error(`Vector length mismatch: ${_l.typeInfo.getTypeName()}[${la.length}] '${node.operator}' ${_r.typeInfo.getTypeName()}[${ra.length}]. Line ${node.line}.`);
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x >= ra[i] ? 1 : 0);
@@ -1968,7 +1968,7 @@ export class WgslExec extends ExecInterface {
                     const la = l as number[];
                     const ra = r as number[];
                     if (la.length !== ra.length) {
-                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        console.error(`Vector length mismatch: ${_l.typeInfo.getTypeName()}[${la.length}] '${node.operator}' ${_r.typeInfo.getTypeName()}[${ra.length}]. Line ${node.line}.`);
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x <= ra[i] ? 1 : 0);
@@ -1993,7 +1993,7 @@ export class WgslExec extends ExecInterface {
                     const la = l as number[];
                     const ra = r as number[];
                     if (la.length !== ra.length) {
-                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        console.error(`Vector length mismatch: ${_l.typeInfo.getTypeName()}[${la.length}] '${node.operator}' ${_r.typeInfo.getTypeName()}[${ra.length}]. Line ${node.line}.`);
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x && ra[i] ? 1 : 0);
@@ -2018,7 +2018,7 @@ export class WgslExec extends ExecInterface {
                     const la = l as number[];
                     const ra = r as number[];
                     if (la.length !== ra.length) {
-                        console.error(`Vector length mismatch. Line ${node.line}.`);
+                        console.error(`Vector length mismatch: ${_l.typeInfo.getTypeName()}[${la.length}] '${node.operator}' ${_r.typeInfo.getTypeName()}[${ra.length}]. Line ${node.line}.`);
                         return null;
                     }
                     const result = la.map((x: number, i: number) => x || ra[i] ? 1 : 0);
@@ -2044,6 +2044,18 @@ export class WgslExec extends ExecInterface {
     }
 
     _evalCall(node: CallExpr, context: ExecContext): Data | null {
+        // The postfix is applied to the call's result: e.g. the ".rgb" of
+        // `textureSample(t, s, uv).rgb`. This covers every result path,
+        // including a debugger-hoisted call's cachedReturnValue, which is the
+        // raw return value.
+        const value = this._evalCallValue(node, context);
+        if (value !== null && node.postfix) {
+            return value.getSubData(this, node.postfix, context);
+        }
+        return value;
+    }
+
+    _evalCallValue(node: CallExpr, context: ExecContext): Data | null {
         if (node.cachedReturnValue !== null) {
             return node.cachedReturnValue as Data;
         }
