@@ -808,6 +808,7 @@ export declare class SamplerData extends Data {
     descriptor: Record<string, unknown>;
     constructor(descriptor: Record<string, unknown>, typeInfo: TypeInfo);
     clone(): Data;
+    getSubData(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null;
 }
 export declare class TextureData extends Data {
     data: Array<ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array>;
@@ -815,6 +816,7 @@ export declare class TextureData extends Data {
     view: Object | null;
     constructor(data: Array<ArrayBuffer | Float32Array | Uint32Array | Int32Array | Uint8Array | Int8Array>, typeInfo: TypeInfo, descriptor: Object, view: Object | null);
     clone(): Data;
+    getSubData(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null;
     get width(): number;
     get height(): number;
     get depthOrArrayLayers(): number;

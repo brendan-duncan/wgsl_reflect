@@ -3320,6 +3320,17 @@ export class SamplerData extends Data {
   clone(): Data {
     return new SamplerData(this.descriptor, this.typeInfo);
   }
+
+  // A sampler variable evaluated as a plain expression (e.g. passed as a
+  // user-function argument) resolves to itself.
+  getSubData(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null {
+    if (postfix) {
+      console.error(`getSubData: Sampler data does not support postfix`, postfix);
+      return null;
+    }
+
+    return this;
+  }
 }
 
 export class TextureData extends Data {
@@ -3337,6 +3348,17 @@ export class TextureData extends Data {
 
   clone(): Data {
     return new TextureData(this.data, this.typeInfo, this.descriptor, this.view);
+  }
+
+  // A texture variable evaluated as a plain expression (e.g. passed as a
+  // user-function argument) resolves to itself.
+  getSubData(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null {
+    if (postfix) {
+      console.error(`getSubData: Texture data does not support postfix`, postfix);
+      return null;
+    }
+
+    return this;
   }
 
   get width(): number {

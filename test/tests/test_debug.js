@@ -583,6 +583,34 @@ export async function run() {
       test.equals(run(0.7), [0, 0, 0, 1]); // 0.7 <= 0.5 -> shadowed
     });
 
+    await test("texture and sampler as user-function arguments", function (test) {
+      // Referencing a texture/sampler variable as a plain expression (here, as
+      // user-function arguments) must resolve to the resource itself.
+      const px = (r, g, b) => [r, g, b, 255];
+      const mip0 = new Uint8Array([...px(255, 0, 0), ...px(0, 255, 0), ...px(0, 0, 255), ...px(255, 255, 255)]);
+      const bg = {
+        0: {
+          0: { texture: [mip0.buffer],
+               descriptor: { format: "rgba8unorm", size: [2, 2, 1], mipLevelCount: 1, dimension: "2d" } },
+          1: { sampler: { magFilter: "nearest" } },
+        },
+      };
+      const shader = `
+        @group(0) @binding(0) var tex: texture_2d<f32>;
+        @group(0) @binding(1) var samp: sampler;
+        fn fetchColor(t: texture_2d<f32>, s: sampler, uv: vec2f) -> vec4f {
+          return textureSampleLevel(t, s, uv, 0.0);
+        }
+        @fragment
+        fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+          return fetchColor(tex, samp, uv);
+        }`;
+      const dbg = new WgslDebug(shader);
+      dbg.debugFragment("main", { 0: [0.25, 0.25] }, bg);
+      while (dbg.stepNext());
+      test.equals(dbg.getReturnValue(), [1, 0, 0, 1], 1e-3); // nearest -> texel (0,0)
+    });
+
     await test("sampler address and filter modes", function (test) {
       const px = (r, g, b) => [r, g, b, 255];
       const mip0 = new Uint8Array([...px(255, 0, 0), ...px(0, 255, 0), ...px(0, 0, 255), ...px(255, 255, 255)]);
