@@ -41,10 +41,12 @@ export declare class WgslDebug {
     private _resolveCurrentState;
     get currentState(): StackFrame | null;
     get currentCommand(): Command | null;
+    get currentLine(): number;
     toggleBreakpoint(line: number): void;
     clearBreakpoints(): void;
     get isRunning(): boolean;
     private _stopRunning;
+    private _breakpointGate;
     run(): void;
     pause(): void;
     _setOverrides(constants: Record<string, unknown>, context: ExecContext): void;

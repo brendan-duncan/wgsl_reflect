@@ -44,6 +44,7 @@ import { ExecContext } from "./exec_context.js";
 import { ExecStack } from "./exec_stack.js";
 import { StackFrame } from "./stack_frame.js";
 import { CallExprCommand, Command } from "./command.js";
+import { cubeFaceUV } from "./builtin_functions.js";
 
 // Per-lane interpolated inputs, keyed by pipeline semantic exactly like
 // WgslDebug.debugFragment (builtins by name, @location(n) by index).
@@ -304,37 +305,54 @@ export class QuadScheduler {
     // back from the context).
     private _rendezvousSample(parked: Lane[], node: CallExpr): void {
         const coordIndex = 2; // textureSample(t, s, coords, ...)
+
+        const arg0 = node.args![0];
+        let texture: TextureData | null = null;
+        if (arg0 instanceof VariableExpr) {
+            const t = parked[0].frame!.context.getVariableValue(arg0.name);
+            if (t instanceof TextureData) {
+                texture = t;
+            }
+        }
+        const typeName = texture?.typeInfo?.name ?? "";
+        const isCube = typeName.includes("_cube");
+        const is3d = typeName.includes("_3d");
+
+        // Reduce each lane's coordinate to the same address space the sampler
+        // filters in, so the derivative is taken over comparable values: a cube
+        // direction becomes its face-local uv, a 3d coordinate keeps its depth.
         const uv: (number[] | null)[] = [null, null, null, null];
         for (const lane of parked) {
             const c = this._exec.evalExpression(node.args![coordIndex], lane.frame!.context);
-            if (c instanceof VectorData && c.data.length >= 2) {
-                uv[lane.index] = [c.data[0], c.data[1]];
+            if (!(c instanceof VectorData)) {
+                continue;
+            }
+            if (isCube && c.data.length >= 3) {
+                const f = cubeFaceUV(c.data[0], c.data[1], c.data[2]);
+                uv[lane.index] = [f.u, f.v, 0];
+            } else if (is3d && c.data.length >= 3) {
+                uv[lane.index] = [c.data[0], c.data[1], c.data[2]];
+            } else if (c.data.length >= 2) {
+                uv[lane.index] = [c.data[0], c.data[1], 0];
             }
         }
 
         // Scale coordinate derivatives by the base texture size to get texel-space
         // deltas; rho is the longer of the two quad edges, LOD = log2(rho).
-        let width = 1, height = 1;
-        const arg0 = node.args![0];
-        if (arg0 instanceof VariableExpr) {
-            const t = parked[0].frame!.context.getVariableValue(arg0.name);
-            if (t instanceof TextureData) {
-                width = t.width;
-                height = t.height;
-            }
-        }
+        const size = texture !== null ? texture.getMipLevelSize(0) : [1, 1, 1];
+        const scale = [Math.max(1, size[0]), Math.max(1, size[1]),
+            is3d ? Math.max(1, size[2]) : 0];
         let lod = 0;
         const [uv0, uv1, uv2] = uv;
         if (uv0 && uv1 && uv2) {
-            const dux = (uv1[0] - uv0[0]) * width, dvx = (uv1[1] - uv0[1]) * height;
-            const duy = (uv2[0] - uv0[0]) * width, dvy = (uv2[1] - uv0[1]) * height;
-            const rho = Math.max(Math.hypot(dux, dvx), Math.hypot(duy, dvy));
+            const edge = (a: number[], b: number[]) => Math.hypot(
+                (a[0] - b[0]) * scale[0], (a[1] - b[1]) * scale[1], (a[2] - b[2]) * scale[2]);
+            const rho = Math.max(edge(uv1, uv0), edge(uv2, uv0));
             lod = rho > 0 ? Math.log2(rho) : 0;
         }
 
         const f32 = this._exec.getTypeInfo("f32")!;
-        const isArray = arg0 instanceof VariableExpr &&
-            (parked[0].frame!.context.getVariableValue(arg0.name) as TextureData)?.typeInfo?.name?.includes("_array");
+        const isArray = typeName.includes("_array");
         const biasIndex = isArray ? coordIndex + 2 : coordIndex + 1;
         for (const lane of parked) {
             let laneLod = lod;

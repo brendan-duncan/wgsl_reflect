@@ -3,6 +3,11 @@ import { Data, TextureData, SamplerData } from "../wgsl_ast.js";
 import { ExecContext } from "./exec_context.js";
 import { ExecInterface } from "./exec_interface.js";
 import { TypeInfo } from "../reflect/info.js";
+export declare function cubeFaceUV(x: number, y: number, z: number): {
+    face: number;
+    u: number;
+    v: number;
+};
 export declare class BuiltinFunctions {
     exec: ExecInterface;
     constructor(exec: ExecInterface);
@@ -101,8 +106,14 @@ export declare class BuiltinFunctions {
     _resolveSampler(arg: CallExpr | Call | any, context: ExecContext): SamplerData | null;
     _wrap(coord: number, size: number, mode: string): number;
     _texel(texture: TextureData, x: number, y: number, layer: number, level: number, addrU: string, addrV: string): number[];
-    _filterMip(texture: TextureData, u: number, v: number, layer: number, level: number, sampler: SamplerData | null): number[];
-    _sampleTexture(texture: TextureData, u: number, v: number, layer: number, lod: number, sampler: SamplerData | null): number[];
+    _filterSlice(texture: TextureData, u: number, v: number, layer: number, level: number, sampler: SamplerData | null): number[];
+    _filterMip(texture: TextureData, u: number, v: number, layer: number, level: number, sampler: SamplerData | null, r?: number | null): number[];
+    _sampleTexture(texture: TextureData, u: number, v: number, layer: number, lod: number, sampler: SamplerData | null, r?: number | null): number[];
+    _cubeFaceUV(x: number, y: number, z: number): {
+        face: number;
+        u: number;
+        v: number;
+    };
     _compareFn(name: string): (ref: number, stored: number) => boolean;
     _sampleCompareValue(node: CallExpr | Call, context: ExecContext): Data | null;
     _sampleResult(texture: TextureData, rgba: number[]): Data;
@@ -111,6 +122,7 @@ export declare class BuiltinFunctions {
         u: number;
         v: number;
         layer: number;
+        r: number | null;
     } | null;
     TextureSample(node: CallExpr | Call, context: ExecContext): Data | null;
     TextureSampleBias(node: CallExpr | Call, context: ExecContext): Data | null;

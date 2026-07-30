@@ -474,6 +474,92 @@ export async function run() {
       const ok = dbg.debugVertex("main", {}, {});
       test.false(ok, "debugVertex should reject a @compute entry");
     });
+
+    await test("uniform buffer bindings", function (test) {
+      // Vertex stages read their transforms from uniform buffers, so a nested
+      // struct/array uniform has to resolve member offsets correctly.
+      const shader = `
+        struct Light {
+          pos: vec4f,
+          color: vec4f,
+        };
+        struct Scene {
+          lights: array<Light, 2>,
+          count: u32,
+        };
+        @group(0) @binding(0) var<uniform> scene: Scene;
+        @vertex
+        fn main(@location(0) pos: vec2f) -> @builtin(position) vec4f {
+          let l = scene.lights[1];
+          return vec4f(pos + l.pos.xy, l.color.z, f32(scene.count));
+        }`;
+
+      const uniform = new Float32Array(20);
+      uniform.set([1, 2, 3, 4], 0);      // lights[0].pos
+      uniform.set([5, 6, 7, 8], 4);      // lights[0].color
+      uniform.set([10, 20, 30, 40], 8);  // lights[1].pos
+      uniform.set([50, 60, 70, 80], 12); // lights[1].color
+      new Uint32Array(uniform.buffer, 64, 1)[0] = 3; // count
+
+      const dbg = new WgslDebug(shader);
+      test.true(dbg.debugVertex("main", { 0: [0.5, 0.25] }, { 0: { 0: { uniform } } }),
+        "debugVertex should succeed");
+      while (dbg.stepNext());
+      test.equals(dbg.getReturnValue(), [10.5, 20.25, 70, 3]);
+    });
+
+    await test("vertex_index and instance_index inside an input struct", function (test) {
+      // The same builtins that work as bare arguments must also resolve when
+      // they are members of a vertex input struct.
+      const shader = `
+        struct VertexInput {
+          @builtin(vertex_index) vi: u32,
+          @builtin(instance_index) ii: u32,
+          @location(0) pos: vec2f,
+        };
+        @vertex
+        fn main(in: VertexInput) -> @builtin(position) vec4f {
+          return vec4f(in.pos.x + f32(in.vi), in.pos.y + f32(in.ii) * 10.0, 0.0, 1.0);
+        }`;
+      const dbg = new WgslDebug(shader);
+      test.true(dbg.debugVertex("main", { vertex_index: 4, instance_index: 7, 0: [0.5, 0.25] }, {}),
+        "debugVertex should succeed");
+      while (dbg.stepNext());
+      test.equals(dbg.getReturnValue(), [4.5, 70.25, 0, 1]);
+    });
+
+    await test("a missing instance_index defaults to zero", function (test) {
+      // A caller debugging a non-instanced draw supplies no instance_index; it
+      // has to bind as 0 rather than leaving the variable unset.
+      const shader = `
+        @vertex
+        fn main(@builtin(instance_index) ii: u32) -> @builtin(position) vec4f {
+          return vec4f(f32(ii), 1.0, 0.0, 1.0);
+        }`;
+      const dbg = new WgslDebug(shader);
+      dbg.debugVertex("main", {}, {});
+      while (dbg.stepNext());
+      test.equals(dbg.getReturnValue(), [0, 1, 0, 1]);
+    });
+
+    await test("override constants apply to a vertex stage", function (test) {
+      const shader = `
+        override scale: f32 = 1.0;
+        @vertex
+        fn main(@location(0) pos: vec2f) -> @builtin(position) vec4f {
+          return vec4f(pos * scale, 0.0, 1.0);
+        }`;
+
+      const dflt = new WgslDebug(shader);
+      dflt.debugVertex("main", { 0: [2.0, 3.0] }, {});
+      while (dflt.stepNext());
+      test.equals(dflt.getReturnValue(), [2, 3, 0, 1]);
+
+      const overridden = new WgslDebug(shader);
+      overridden.debugVertex("main", { 0: [2.0, 3.0] }, {}, { constants: { scale: 4 } });
+      while (overridden.stepNext());
+      test.equals(overridden.getReturnValue(), [8, 12, 0, 1]);
+    });
   }, true);
 
   await group("Fragment Debug", async function () {
@@ -957,6 +1043,449 @@ export async function run() {
       // 'a' and 'b' are in scope; 'c' is not yet assigned.
       test.equals(scheduler.targetContext.getVariableValue("a").value, 1);
       test.equals(scheduler.targetContext.getVariableValue("b").value, 0);
+    });
+  }, true);
+
+  await group("Texture Sampling Debug", async function () {
+    // Sampling paths for the non-2d view dimensions. The face-selection,
+    // layer-selection and volume-filtering results are pinned against a real
+    // GPU in test_render.js; these cover the forms that test cannot reach
+    // (cube arrays, explicit mip levels per layer, integer loads, address
+    // modes) with hand-computed expectations.
+    const px = (r, g, b, a = 255) => [r, g, b, a];
+
+    await test("cube array selects the face within the array element", function (test) {
+      // 2 array elements x 6 faces at 1x1. Slice index is 6 * arrayIndex +
+      // face, and each slice's red channel encodes its index.
+      const faces = new Uint8Array(12 * 4);
+      for (let i = 0; i < 12; ++i) {
+        faces.set(px(i * 20, 0, 0), i * 4);
+      }
+      const bg = {
+        0: {
+          0: { texture: [faces.buffer],
+               descriptor: { format: "rgba8unorm", size: [1, 1, 12], mipLevelCount: 1, dimension: "2d" } },
+          1: { sampler: { magFilter: "nearest" } },
+        },
+      };
+      const shader = `
+        @group(0) @binding(0) var tex: texture_cube_array<f32>;
+        @group(0) @binding(1) var samp: sampler;
+        @fragment
+        fn main(@location(0) dir: vec3f, @location(1) elem: i32) -> @location(0) vec4f {
+          return textureSampleLevel(tex, samp, dir, elem, 0.0);
+        }`;
+      const sample = (dir, elem) => {
+        const d = new WgslDebug(shader);
+        d.debugFragment("main", { 0: dir, 1: elem }, bg);
+        while (d.stepNext());
+        return d.getReturnValue()[0];
+      };
+      // +Y is face 2; element 1 puts it at slice 8 -> red 160/255.
+      test.equals(sample([0.1, 1.0, 0.2], 1), 160 / 255, 1e-6);
+      // -Z is face 5; element 0 leaves it at slice 5 -> red 100/255.
+      test.equals(sample([0.1, 0.2, -1.0], 0), 100 / 255, 1e-6);
+    });
+
+    await test("2d array samples the requested mip of the requested layer", function (test) {
+      // 2 layers, 2x2 base + 1x1 mip 1. Layer 0 is red/blue, layer 1 is
+      // green/yellow, so a wrong layer or a wrong mip is a distinct color.
+      const mip0 = new Uint8Array([
+        ...px(255, 0, 0), ...px(255, 0, 0), ...px(255, 0, 0), ...px(255, 0, 0),
+        ...px(0, 255, 0), ...px(0, 255, 0), ...px(0, 255, 0), ...px(0, 255, 0),
+      ]);
+      const mip1 = new Uint8Array([...px(0, 0, 255), ...px(255, 255, 0)]);
+      const bg = {
+        0: {
+          0: { texture: [mip0.buffer, mip1.buffer],
+               descriptor: { format: "rgba8unorm", size: [2, 2, 2], mipLevelCount: 2, dimension: "2d" } },
+          1: { sampler: { magFilter: "nearest" } },
+        },
+      };
+      const shader = `
+        @group(0) @binding(0) var tex: texture_2d_array<f32>;
+        @group(0) @binding(1) var samp: sampler;
+        @fragment
+        fn main(@location(0) layer: i32, @location(1) level: f32) -> @location(0) vec4f {
+          return textureSampleLevel(tex, samp, vec2f(0.25, 0.25), layer, level);
+        }`;
+      const sample = (layer, level) => {
+        const d = new WgslDebug(shader);
+        d.debugFragment("main", { 0: layer, 1: level }, bg);
+        while (d.stepNext());
+        return d.getReturnValue();
+      };
+      test.equals(sample(0, 0), [1, 0, 0, 1]);
+      test.equals(sample(1, 0), [0, 1, 0, 1]);
+      test.equals(sample(0, 1), [0, 0, 1, 1]);
+      test.equals(sample(1, 1), [1, 1, 0, 1]);
+    });
+
+    await test("textureLoad addresses a 3d texture's depth slice", function (test) {
+      const volume = new Uint8Array(8 * 4);
+      for (let i = 0; i < 8; ++i) {
+        volume.set(px(i * 30, 0, 0), i * 4);
+      }
+      const bg = {
+        0: { 0: { texture: [volume.buffer],
+                  descriptor: { format: "rgba8unorm", size: [2, 2, 2], mipLevelCount: 1, dimension: "3d" } } },
+      };
+      const shader = `
+        @group(0) @binding(0) var tex: texture_3d<f32>;
+        @fragment
+        fn main(@location(0) c: vec3f) -> @location(0) vec4f {
+          return textureLoad(tex, vec3u(c), 0);
+        }`;
+      const load = (x, y, z) => {
+        const d = new WgslDebug(shader);
+        d.debugFragment("main", { 0: [x, y, z] }, bg);
+        while (d.stepNext());
+        return d.getReturnValue()[0];
+      };
+      test.equals(load(0, 0, 0), 0, 1e-6);          // index 0
+      test.equals(load(1, 0, 0), 30 / 255, 1e-6);   // index 1
+      test.equals(load(0, 1, 0), 60 / 255, 1e-6);   // index 2
+      test.equals(load(0, 0, 1), 120 / 255, 1e-6);  // index 4: second slice
+      test.equals(load(1, 1, 1), 210 / 255, 1e-6);  // index 7
+    });
+
+    await test("3d sampling honors addressModeW", function (test) {
+      // Slice 0 red, slice 1 blue, nearest filtering. A w outside [0, 1) is
+      // wrapped by the sampler's W address mode.
+      const volume = new Uint8Array(8 * 4);
+      for (let i = 0; i < 4; ++i) {
+        volume.set(px(255, 0, 0), i * 4);
+        volume.set(px(0, 0, 255), (4 + i) * 4);
+      }
+      const descriptor = { format: "rgba8unorm", size: [2, 2, 2], mipLevelCount: 1, dimension: "3d" };
+      const shader = `
+        @group(0) @binding(0) var tex: texture_3d<f32>;
+        @group(0) @binding(1) var samp: sampler;
+        @fragment
+        fn main(@location(0) w: f32) -> @location(0) vec4f {
+          return textureSampleLevel(tex, samp, vec3f(0.25, 0.25, w), 0.0);
+        }`;
+      const sample = (w, addressModeW) => {
+        const bg = {
+          0: {
+            0: { texture: [volume.buffer], descriptor },
+            1: { sampler: { magFilter: "nearest", addressModeW } },
+          },
+        };
+        const d = new WgslDebug(shader);
+        d.debugFragment("main", { 0: w }, bg);
+        while (d.stepNext());
+        return d.getReturnValue();
+      };
+      test.equals(sample(0.25, "clamp-to-edge"), [1, 0, 0, 1]); // slice 0
+      test.equals(sample(0.75, "clamp-to-edge"), [0, 0, 1, 1]); // slice 1
+      test.equals(sample(1.5, "clamp-to-edge"), [0, 0, 1, 1]);  // clamped to slice 1
+      test.equals(sample(1.25, "repeat"), [1, 0, 0, 1]);        // wraps to slice 0
+    });
+
+    await test("3d filtering blends across depth slices", function (test) {
+      const volume = new Uint8Array(8 * 4);
+      for (let i = 0; i < 4; ++i) {
+        volume.set(px(255, 0, 0), i * 4);
+        volume.set(px(0, 0, 255), (4 + i) * 4);
+      }
+      const bg = {
+        0: {
+          0: { texture: [volume.buffer],
+               descriptor: { format: "rgba8unorm", size: [2, 2, 2], mipLevelCount: 1, dimension: "3d" } },
+          1: { sampler: { magFilter: "linear" } },
+        },
+      };
+      const shader = `
+        @group(0) @binding(0) var tex: texture_3d<f32>;
+        @group(0) @binding(1) var samp: sampler;
+        @fragment
+        fn main(@location(0) w: f32) -> @location(0) vec4f {
+          return textureSampleLevel(tex, samp, vec3f(0.5, 0.5, w), 0.0);
+        }`;
+      const sample = (w) => {
+        const d = new WgslDebug(shader);
+        d.debugFragment("main", { 0: w }, bg);
+        while (d.stepNext());
+        return d.getReturnValue();
+      };
+      test.equals(sample(0.25), [1, 0, 0, 1], 1e-6);      // entirely slice 0
+      test.equals(sample(0.5), [0.5, 0, 0.5, 1], 1e-6);   // halfway between slices
+      test.equals(sample(0.75), [0, 0, 1, 1], 1e-6);      // entirely slice 1
+    });
+
+    await test("textureDimensions and the texture query builtins", function (test) {
+      const volume = new Uint8Array((8 + 1) * 4);
+      const bg = {
+        0: { 0: { texture: [volume.buffer, volume.buffer],
+                  descriptor: { format: "rgba8unorm", size: [4, 4, 2], mipLevelCount: 2, dimension: "3d" } } },
+      };
+      const shader = `
+        @group(0) @binding(0) var tex: texture_3d<f32>;
+        @fragment
+        fn main() -> @location(0) vec4f {
+          let d0 = textureDimensions(tex, 0);
+          let d1 = textureDimensions(tex, 1);
+          return vec4f(f32(d0.x), f32(d0.z), f32(d1.x), f32(textureNumLevels(tex)));
+        }`;
+      const dbg = new WgslDebug(shader);
+      dbg.debugFragment("main", {}, bg);
+      while (dbg.stepNext());
+      // A 3d texture's depth halves with the mip level, unlike array layers.
+      test.equals(dbg.getReturnValue(), [4, 2, 2, 2]);
+    });
+
+    await test("textureSampleCompare filters the comparison results", function (test) {
+      // Percentage-closer filtering: the compare runs per texel and the 0/1
+      // results are bilinearly blended, so a reference depth between the near
+      // and far texels produces a fractional value, not 0 or 1.
+      const depth = new Float32Array([0.25, 0.75, 0.75, 0.25]);
+      const descriptor = { format: "depth32float", size: [2, 2, 1], mipLevelCount: 1, dimension: "2d" };
+      const shader = `
+        @group(0) @binding(0) var shadowMap: texture_depth_2d;
+        @group(0) @binding(1) var shadowSamp: sampler_comparison;
+        @fragment
+        fn main(@location(0) uv: vec2f, @location(1) refDepth: f32) -> @location(0) vec4f {
+          let s = textureSampleCompare(shadowMap, shadowSamp, uv, refDepth);
+          return vec4f(s, 0.0, 0.0, 1.0);
+        }`;
+      const sample = (uv, ref, sampler) => {
+        const bg = { 0: { 0: { texture: [depth.buffer], descriptor }, 1: { sampler } } };
+        const d = new WgslDebug(shader);
+        d.debugFragment("main", { 0: uv, 1: ref }, bg);
+        while (d.stepNext());
+        return d.getReturnValue()[0];
+      };
+
+      // At the texture center all four texels weigh equally: two are at 0.75
+      // and two at 0.25, so a reference of 0.5 passes exactly half of them.
+      const pcf = { compare: "less-equal", magFilter: "linear" };
+      test.equals(sample([0.5, 0.5], 0.1, pcf), 1, 1e-6);   // in front of every texel
+      test.equals(sample([0.5, 0.5], 0.5, pcf), 0.5, 1e-6); // half lit
+      test.equals(sample([0.5, 0.5], 0.9, pcf), 0, 1e-6);   // behind every texel
+
+      // A nearest comparison sampler resolves to a single texel's 0 or 1.
+      const point = { compare: "less-equal", magFilter: "nearest" };
+      test.equals(sample([0.25, 0.25], 0.5, point), 0, 1e-6); // texel (0,0) = 0.25
+      test.equals(sample([0.75, 0.25], 0.5, point), 1, 1e-6); // texel (1,0) = 0.75
+
+      // The comparison function comes from the sampler.
+      test.equals(sample([0.25, 0.25], 0.5, { compare: "greater", magFilter: "nearest" }), 1, 1e-6);
+      test.equals(sample([0.25, 0.25], 0.5, { compare: "never", magFilter: "nearest" }), 0, 1e-6);
+      test.equals(sample([0.25, 0.25], 0.5, { compare: "always", magFilter: "nearest" }), 1, 1e-6);
+    });
+  }, true);
+
+  await group("Debugger Stepping", async function () {
+    // A debugger is only usable if the line it reports is the line it is about
+    // to run, and if step over / step out land where the user expects. These
+    // drive the WgslDebug stepping API the way a UI does.
+
+    // run() and stepOut() advance asynchronously in slices so a UI stays
+    // responsive; they report completion through runStateCallback.
+    const untilStopped = (dbg) => new Promise((resolve) => {
+      dbg.runStateCallback = () => {
+        if (!dbg.isRunning) {
+          resolve();
+        }
+      };
+    });
+
+    // Line numbers below refer to this shader, whose first line is the empty
+    // line after the opening backtick:
+    //   2 fn scale(v: f32) -> f32 {
+    //   3   let doubled = v * 2.0;
+    //   4   return doubled + 1.0;
+    //   5 }
+    //   6 @compute @workgroup_size(1)
+    //   7 fn main(...) {
+    //   8   let a = 3.0;
+    //   9   let b = scale(a);
+    //  10   let c = b + a;
+    //  11 }
+    const CALL_SHADER = `
+fn scale(v: f32) -> f32 {
+  let doubled = v * 2.0;
+  return doubled + 1.0;
+}
+@compute @workgroup_size(1)
+fn main(@builtin(global_invocation_id) id: vec3<u32>) {
+  let a = 3.0;
+  let b = scale(a);
+  let c = b + a;
+}`;
+
+    await test("currentLine follows execution into and out of a call", function (test) {
+      const dbg = new WgslDebug(CALL_SHADER);
+      dbg.debugWorkgroup("main", [0, 0, 0], 1, {});
+
+      const lines = [];
+      for (let i = 0; i < 20; ++i) {
+        lines.push(dbg.currentLine);
+        if (!dbg.stepNext()) {
+          break;
+        }
+      }
+      // let a -> the call -> the callee's two statements -> back at the call
+      // to consume the result -> the next statement in main.
+      test.equals(lines, [8, 9, 3, 4, 9, 10]);
+      test.equals(dbg.currentLine, -1, "currentLine is -1 once execution finishes");
+    });
+
+    await test("currentLine reports the fragment entry's statements", function (test) {
+      const shader = `
+@fragment
+fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+  let a = uv.x;
+  let b = a * 2.0;
+  return vec4f(b, 0.0, 0.0, 1.0);
+}`;
+      const dbg = new WgslDebug(shader);
+      dbg.debugFragment("main", { 0: [0.5, 0.0] }, {});
+      const lines = [];
+      for (let i = 0; i < 10; ++i) {
+        lines.push(dbg.currentLine);
+        if (!dbg.stepNext()) {
+          break;
+        }
+      }
+      test.equals(lines, [4, 5, 6]);
+      test.equals(dbg.getReturnValue(), [1, 0, 0, 1]);
+    });
+
+    await test("stepInto descends into a call, stepOver does not", function (test) {
+      const into = new WgslDebug(CALL_SHADER);
+      into.debugWorkgroup("main", [0, 0, 0], 1, {});
+      into.stepInto();  // let a = 3.0;
+      test.equals(into.currentLine, 9, "stopped at the call");
+      into.stepInto();
+      test.equals(into.currentLine, 3, "stepInto enters scale()");
+
+      const over = new WgslDebug(CALL_SHADER);
+      over.debugWorkgroup("main", [0, 0, 0], 1, {});
+      over.stepInto();  // let a = 3.0;
+      test.equals(over.currentLine, 9, "stopped at the call");
+      over.stepOver();
+      // The call ran to completion without the callee's lines being visited;
+      // the assignment it feeds is still pending on the same line.
+      test.equals(over.currentLine, 9, "stepOver stays in main");
+      over.stepInto();
+      test.equals(over.currentLine, 10);
+      test.equals(over.getVariableValue("b"), 7, "scale() ran during the step over");
+    });
+
+    await test("stepOut finishes the callee and returns to the caller", async function (test) {
+      const dbg = new WgslDebug(CALL_SHADER);
+      dbg.debugWorkgroup("main", [0, 0, 0], 1, {});
+      dbg.stepInto(); // let a = 3.0;
+      dbg.stepInto(); // into scale()
+      test.equals(dbg.currentLine, 3, "inside scale()");
+
+      const stopped = untilStopped(dbg);
+      dbg.stepOut();
+      await stopped;
+
+      test.equals(dbg.currentLine, 9, "back at the call site in main");
+      dbg.stepInto();
+      test.equals(dbg.getVariableValue("b"), 7);
+    });
+
+    await test("run stops at a breakpoint", async function (test) {
+      const dbg = new WgslDebug(CALL_SHADER);
+      dbg.debugWorkgroup("main", [0, 0, 0], 1, {});
+      dbg.toggleBreakpoint(10);
+
+      const stopped = untilStopped(dbg);
+      dbg.run();
+      await stopped;
+
+      test.equals(dbg.currentLine, 10, "paused before `let c = b + a;`");
+      test.equals(dbg.getVariableValue("b"), 7, "statements before the breakpoint ran");
+      test.isNull(dbg.getVariableValue("c"), "the breakpoint line has not run yet");
+
+      // Resuming from the breakpoint runs to completion.
+      const finished = untilStopped(dbg);
+      dbg.run();
+      await finished;
+      test.equals(dbg.getVariableValue("c"), 10);
+      test.equals(dbg.currentLine, -1);
+    });
+
+    await test("a breakpoint inside a called function stops there", async function (test) {
+      const dbg = new WgslDebug(CALL_SHADER);
+      dbg.debugWorkgroup("main", [0, 0, 0], 1, {});
+      dbg.toggleBreakpoint(4); // `return doubled + 1.0;` inside scale()
+
+      const stopped = untilStopped(dbg);
+      dbg.run();
+      await stopped;
+
+      test.equals(dbg.currentLine, 4);
+      test.equals(dbg.getVariableValue("doubled"), 6, "the callee's local is in scope");
+    });
+
+    await test("a breakpoint in a loop stops on every iteration", async function (test) {
+      // Resuming must skip the breakpoint execution is parked on, but must
+      // still stop the next time the loop comes back around to it.
+      const shader = `
+@compute @workgroup_size(1)
+fn main() {
+  var total = 0;
+  for (var i = 0; i < 3; i++) {
+    total = total + i;
+  }
+}`;
+      const dbg = new WgslDebug(shader);
+      dbg.debugWorkgroup("main", [0, 0, 0], 1, {});
+      dbg.toggleBreakpoint(6); // `total = total + i;`
+
+      const seen = [];
+      for (let hit = 0; hit < 4; ++hit) {
+        const stopped = untilStopped(dbg);
+        dbg.run();
+        await stopped;
+        if (dbg.currentLine !== 6) {
+          break;
+        }
+        seen.push(dbg.getVariableValue("total"));
+      }
+      // Stopped before each accumulation: 0 + nothing, then 0, then 0 + 1.
+      test.equals(seen, [0, 0, 1]);
+      test.equals(dbg.getVariableValue("total"), 3, "the loop finished after the last resume");
+    });
+
+    await test("toggleBreakpoint and clearBreakpoints", async function (test) {
+      const dbg = new WgslDebug(CALL_SHADER);
+      dbg.debugWorkgroup("main", [0, 0, 0], 1, {});
+
+      dbg.toggleBreakpoint(10);
+      test.true(dbg.breakpoints.has(10), "toggle sets the breakpoint");
+      dbg.toggleBreakpoint(10);
+      test.false(dbg.breakpoints.has(10), "toggling again clears it");
+
+      dbg.toggleBreakpoint(9);
+      dbg.toggleBreakpoint(10);
+      dbg.clearBreakpoints();
+      test.equals(dbg.breakpoints.size, 0, "clearBreakpoints removes all of them");
+
+      // With no breakpoints left, run() goes to completion.
+      const finished = untilStopped(dbg);
+      dbg.run();
+      await finished;
+      test.equals(dbg.getVariableValue("c"), 10);
+    });
+
+    await test("stepOut from the entry point runs to completion", async function (test) {
+      const dbg = new WgslDebug(CALL_SHADER);
+      dbg.debugWorkgroup("main", [0, 0, 0], 1, {});
+      dbg.stepInto();
+
+      const stopped = untilStopped(dbg);
+      dbg.stepOut();
+      await stopped;
+
+      test.equals(dbg.currentLine, -1, "there is no caller to return to");
+      test.equals(dbg.getVariableValue("c"), 10);
     });
   }, true);
 

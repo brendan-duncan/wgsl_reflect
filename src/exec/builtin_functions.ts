@@ -4,6 +4,43 @@ import { ExecContext } from "./exec_context.js";
 import { ExecInterface } from "./exec_interface.js";
 import { ArrayInfo, TypeInfo } from "../reflect/info.js";
 
+// Map a cube-map direction to the face it hits and the 2d coordinate within
+// that face, using WebGPU's cube face order:
+//   0 +X, 1 -X, 2 +Y, 3 -Y, 4 +Z, 5 -Z
+// The major axis picks the face; the other two axes, divided by the major
+// axis's magnitude, give the face-local coordinate in [0, 1]. Shared with the
+// fragment quad scheduler, which needs the same mapping to derive a cube
+// sample's implicit LOD from face-local derivatives.
+export function cubeFaceUV(x: number, y: number, z: number): { face: number, u: number, v: number } {
+    const ax = Math.abs(x);
+    const ay = Math.abs(y);
+    const az = Math.abs(z);
+    let face: number;
+    let sc: number;
+    let tc: number;
+    let ma: number;
+    if (ax >= ay && ax >= az) {
+        face = x > 0 ? 0 : 1;
+        sc = x > 0 ? -z : z;
+        tc = -y;
+        ma = ax;
+    } else if (ay >= az) {
+        face = y > 0 ? 2 : 3;
+        sc = x;
+        tc = y > 0 ? z : -z;
+        ma = ay;
+    } else {
+        face = z > 0 ? 4 : 5;
+        sc = z > 0 ? x : -x;
+        tc = -y;
+        ma = az;
+    }
+    if (ma === 0) {
+        return { face, u: 0.5, v: 0.5 };
+    }
+    return { face, u: 0.5 * (sc / ma + 1), v: 0.5 * (tc / ma + 1) };
+}
+
 export class BuiltinFunctions {
     exec: ExecInterface;
 
@@ -1041,8 +1078,9 @@ export class BuiltinFunctions {
         const textureArg = node.args[0];
         const uv = this.exec.evalExpression(node.args[1], context);
 
-        // TODO: non-vec2 UVs, for non-2D textures
-        if (!(uv instanceof VectorData) || uv.data.length !== 2) {
+        // A 3d texture's coordinate carries its own slice, so it is a vec3;
+        // every other loadable dimension uses a vec2 plus an optional layer.
+        if (!(uv instanceof VectorData) || (uv.data.length !== 2 && uv.data.length !== 3)) {
             console.error(`Invalid UV argument for textureLoad. Line ${node.line}`);
             return null;
         }
@@ -1061,6 +1099,9 @@ export class BuiltinFunctions {
                 }
                 if (["texture_2d_array", "texture_depth_2d_array"].indexOf(texture.typeInfo.name) > -1) {
                     mipLevel = (this.exec.evalExpression(node.args[3], context)as ScalarData).value;
+                }
+                if (texture.typeInfo.name.includes("_3d") && uv.data.length === 3) {
+                    zVal = uv.data[2];
                 }
                 const x = Math.floor(uv.data[0]);
                 const y = Math.floor(uv.data[1]);
@@ -1196,9 +1237,10 @@ export class BuiltinFunctions {
         return [t[0] ?? 0, t[1] ?? 0, t[2] ?? 0, t[3] ?? 1];
     }
 
-    // Filter one mip level: nearest (point) or linear (bilinear) per the
-    // sampler's mag filter; address modes come from the sampler too.
-    _filterMip(texture: TextureData, u: number, v: number, layer: number, level: number,
+    // Filter one slice (array layer, cube face, or 3d depth slice) of one mip
+    // level: nearest (point) or linear (bilinear) per the sampler's mag filter;
+    // address modes come from the sampler too.
+    _filterSlice(texture: TextureData, u: number, v: number, layer: number, level: number,
         sampler: SamplerData | null): number[] {
         const d = sampler?.descriptor ?? {};
         const addrU = (d.addressModeU as string) ?? "clamp-to-edge";
@@ -1228,24 +1270,55 @@ export class BuiltinFunctions {
         return out;
     }
 
+    // Filter one mip level. For a 3d texture `r` is the normalized depth
+    // coordinate and filtering is trilinear across the two bracketing depth
+    // slices; otherwise `layer` selects the array layer / cube face and
+    // filtering is bilinear within that slice.
+    _filterMip(texture: TextureData, u: number, v: number, layer: number, level: number,
+        sampler: SamplerData | null, r: number | null = null): number[] {
+        if (r === null) {
+            return this._filterSlice(texture, u, v, layer, level, sampler);
+        }
+        const d = sampler?.descriptor ?? {};
+        const addrW = (d.addressModeW as string) ?? "clamp-to-edge";
+        const depth = Math.max(1, texture.getMipLevelSize(level)[2]);
+        if ((d.magFilter as string) === "nearest") {
+            return this._filterSlice(texture, u, v,
+                this._wrap(Math.floor(r * depth), depth, addrW), level, sampler);
+        }
+        const z = r * depth - 0.5;
+        const z0 = Math.floor(z);
+        const fz = z - z0;
+        const c0 = this._filterSlice(texture, u, v, this._wrap(z0, depth, addrW), level, sampler);
+        if (fz === 0) {
+            return c0;
+        }
+        const c1 = this._filterSlice(texture, u, v, this._wrap(z0 + 1, depth, addrW), level, sampler);
+        return c0.map((x, i) => x + (c1[i] - x) * fz);
+    }
+
     // Trilinear sample: filter the two bracketing mips and lerp by the fractional
     // LOD (or pick the nearest mip if mipmapFilter is "nearest"). LOD is clamped
     // to the texture's available mip range.
     _sampleTexture(texture: TextureData, u: number, v: number, layer: number, lod: number,
-        sampler: SamplerData | null): number[] {
+        sampler: SamplerData | null, r: number | null = null): number[] {
         const maxLod = texture.mipLevelCount - 1;
         lod = Math.max(0, Math.min(lod, maxLod));
         if ((sampler?.descriptor.mipmapFilter as string) === "nearest") {
-            return this._filterMip(texture, u, v, layer, Math.round(lod), sampler);
+            return this._filterMip(texture, u, v, layer, Math.round(lod), sampler, r);
         }
         const l0 = Math.floor(lod);
         const frac = lod - l0;
-        const c0 = this._filterMip(texture, u, v, layer, l0, sampler);
+        const c0 = this._filterMip(texture, u, v, layer, l0, sampler, r);
         if (frac === 0 || l0 >= maxLod) {
             return c0;
         }
-        const c1 = this._filterMip(texture, u, v, layer, l0 + 1, sampler);
+        const c1 = this._filterMip(texture, u, v, layer, l0 + 1, sampler, r);
         return c0.map((x, i) => x + (c1[i] - x) * frac);
+    }
+
+    _cubeFaceUV(x: number, y: number, z: number): { face: number, u: number, v: number } {
+        return cubeFaceUV(x, y, z);
     }
 
     // The comparison predicate named by a sampler_comparison's compare function.
@@ -1306,28 +1379,56 @@ export class BuiltinFunctions {
         return new VectorData(rgba, this.getTypeInfo("vec4f"));
     }
 
-    // Common evaluation for the textureSample* family: resolve texture, coords,
-    // and (for array textures) the layer. Returns null on an unsupported form.
+    // Common evaluation for the textureSample* family: resolve the texture and
+    // turn the coordinate argument into a (u, v, slice) address for the
+    // texture's view dimension.
+    //
+    //   2d / depth-2d    coords.xy, one slice
+    //   2d-array         coords.xy, slice = the array_index argument
+    //   cube             coords.xyz is a direction; the major axis picks the
+    //                    face, which is the slice, and gives the face-local uv
+    //   cube-array       as cube, slice = 6 * array_index + face
+    //   3d               coords.xyz addresses a volume; `r` is the depth
+    //                    coordinate, filtered across slices rather than
+    //                    selecting one
+    //
+    // Returns null on an unsupported form.
     _sampleArgs(node: CallExpr | Call, context: ExecContext, coordIndex: number)
-        : { texture: TextureData, u: number, v: number, layer: number } | null {
+        : { texture: TextureData, u: number, v: number, layer: number, r: number | null } | null {
         const texture = this._resolveTexture(node.args[0], context);
         if (texture === null) {
             console.error(`Invalid texture argument for ${node.name}. Line ${node.line}`);
             return null;
         }
+        const typeName = texture.typeInfo.name;
+        const isCube = typeName.includes("_cube");
+        const is3d = typeName.includes("_3d");
+        const isArray = typeName.includes("_array");
+
         const coords = this.exec.evalExpression(node.args[coordIndex], context);
-        if (!(coords instanceof VectorData) || coords.data.length < 2) {
-            console.error(`${node.name} only supports 2d texture coordinates. Line ${node.line}`);
+        const needed = (isCube || is3d) ? 3 : 2;
+        if (!(coords instanceof VectorData) || coords.data.length < needed) {
+            console.error(`${node.name} requires ${needed}d texture coordinates for ${typeName}. Line ${node.line}`);
             return null;
         }
-        let layer = 0;
-        if (texture.typeInfo.name.includes("_array")) {
+
+        // The array_index argument follows the coordinate for array textures.
+        let arrayIndex = 0;
+        if (isArray) {
             const layerArg = this.exec.evalExpression(node.args[coordIndex + 1], context);
             if (layerArg instanceof ScalarData) {
-                layer = Math.floor(layerArg.value);
+                arrayIndex = Math.floor(layerArg.value);
             }
         }
-        return { texture, u: coords.data[0], v: coords.data[1], layer };
+
+        if (isCube) {
+            const f = this._cubeFaceUV(coords.data[0], coords.data[1], coords.data[2]);
+            return { texture, u: f.u, v: f.v, layer: arrayIndex * 6 + f.face, r: null };
+        }
+        if (is3d) {
+            return { texture, u: coords.data[0], v: coords.data[1], layer: 0, r: coords.data[2] };
+        }
+        return { texture, u: coords.data[0], v: coords.data[1], layer: arrayIndex, r: null };
     }
 
     TextureSample(node: CallExpr | Call, context: ExecContext): Data | null {
@@ -1343,7 +1444,7 @@ export class BuiltinFunctions {
             context.clearDerivative(node);
         }
         const sampler = this._resolveSampler(node.args[1], context);
-        return this._sampleResult(a.texture, this._sampleTexture(a.texture, a.u, a.v, a.layer, lod, sampler));
+        return this._sampleResult(a.texture, this._sampleTexture(a.texture, a.u, a.v, a.layer, lod, sampler, a.r));
     }
 
     TextureSampleBias(node: CallExpr | Call, context: ExecContext): Data | null {
@@ -1361,7 +1462,7 @@ export class BuiltinFunctions {
             context.clearDerivative(node);
         }
         const sampler = this._resolveSampler(node.args[1], context);
-        return this._sampleResult(a.texture, this._sampleTexture(a.texture, a.u, a.v, a.layer, lod, sampler));
+        return this._sampleResult(a.texture, this._sampleTexture(a.texture, a.u, a.v, a.layer, lod, sampler, a.r));
     }
 
     TextureSampleLevel(node: CallExpr | Call, context: ExecContext): Data | null {
@@ -1374,7 +1475,7 @@ export class BuiltinFunctions {
         const levelArg = this.exec.evalExpression(node.args[levelIndex], context);
         const lod = levelArg instanceof ScalarData ? levelArg.value : 0;
         const sampler = this._resolveSampler(node.args[1], context);
-        return this._sampleResult(a.texture, this._sampleTexture(a.texture, a.u, a.v, a.layer, lod, sampler));
+        return this._sampleResult(a.texture, this._sampleTexture(a.texture, a.u, a.v, a.layer, lod, sampler, a.r));
     }
 
     TextureSampleGrad(node: CallExpr | Call, context: ExecContext): Data | null {
@@ -1388,15 +1489,22 @@ export class BuiltinFunctions {
         const ddy = this.exec.evalExpression(node.args[gradBase + 1], context);
         let lod = 0;
         if (ddx instanceof VectorData && ddy instanceof VectorData) {
-            const w = a.texture.width;
-            const h = a.texture.height;
-            const rho = Math.max(
-                Math.hypot(ddx.data[0] * w, ddx.data[1] * h),
-                Math.hypot(ddy.data[0] * w, ddy.data[1] * h));
+            // Scale each gradient by the texture's size along that axis; a 3d
+            // texture's depth participates too.
+            const size = a.texture.getMipLevelSize(0);
+            const scale = (g: ArrayLike<number>) => {
+                let sum = 0;
+                for (let i = 0; i < g.length && i < 3; ++i) {
+                    const s = (g[i] as number) * Math.max(1, size[i]);
+                    sum += s * s;
+                }
+                return Math.sqrt(sum);
+            };
+            const rho = Math.max(scale(ddx.data), scale(ddy.data));
             lod = rho > 0 ? Math.log2(rho) : 0;
         }
         const sampler = this._resolveSampler(node.args[1], context);
-        return this._sampleResult(a.texture, this._sampleTexture(a.texture, a.u, a.v, a.layer, lod, sampler));
+        return this._sampleResult(a.texture, this._sampleTexture(a.texture, a.u, a.v, a.layer, lod, sampler, a.r));
     }
 
     TextureSampleCompare(node: CallExpr | Call, context: ExecContext): Data | null {
@@ -1418,7 +1526,7 @@ export class BuiltinFunctions {
         if (a === null) {
             return null;
         }
-        return this._sampleResult(a.texture, this._filterMip(a.texture, a.u, a.v, a.layer, 0, null));
+        return this._sampleResult(a.texture, this._filterMip(a.texture, a.u, a.v, a.layer, 0, null, a.r));
     }
 
     TextureStore(node: CallExpr | Call, context: ExecContext): Data | null {

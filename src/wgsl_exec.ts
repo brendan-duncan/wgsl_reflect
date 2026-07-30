@@ -2452,11 +2452,22 @@ export class WgslExec extends ExecInterface {
     }
 
     _callConstructorValue(node: CreateExpr, context: ExecContext): Data | null {
+        const typeInfo = this.getTypeInfo(node.type);
         if (!node.args || node.args.length === 0) {
-            return new ScalarData(0, this.getTypeInfo(node.type));
+            return new ScalarData(0, typeInfo);
         }
         const v = this.evalExpression(node.args[0], context);
-        v.typeInfo = this.getTypeInfo(node.type);
+        // A scalar value constructor converts its argument to the target type,
+        // it does not reinterpret it: i32(2.7) is 2 and u32(-1.5) wraps the
+        // truncated value, which is what storing into the target type's typed
+        // array does. bool(x) is an "is not zero" test. Relabeling the type
+        // without converting would leave u32(0.5) holding 0.5, so an index
+        // computed that way would silently address the wrong element.
+        if (v instanceof ScalarData) {
+            const value = typeInfo?.name === "bool" ? (v.value !== 0 ? 1 : 0) : v.value;
+            return new ScalarData(value, typeInfo).getSubData(this, node.postfix, context);
+        }
+        v.typeInfo = typeInfo;
         return v.getSubData(this, node.postfix, context).clone();
     }
 

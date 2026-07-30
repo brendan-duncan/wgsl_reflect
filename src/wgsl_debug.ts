@@ -159,6 +159,13 @@ export class WgslDebug {
         return state === null ? null : state.getCurrentCommand();
     }
 
+    // The source line the next step will execute, or -1 when execution has
+    // finished. This is what a debugger UI highlights, and it is the same value
+    // the fragment quad scheduler exposes as targetLine.
+    get currentLine(): number {
+        return this.currentCommand?.line ?? -1;
+    }
+
     toggleBreakpoint(line: number): void {
         if (this.breakpoints.has(line)) {
             this.breakpoints.delete(line);
@@ -185,10 +192,30 @@ export class WgslDebug {
         }
     }
 
+    // Builds the breakpoint test for one resumable run. Execution normally
+    // starts parked on the breakpoint the user is looking at -- and possibly
+    // partway through that line, since a line can compile to several commands --
+    // so that line only breaks again once execution has actually left it.
+    // Without this, resuming from a breakpoint would stop on it immediately and
+    // never make progress; with it, a breakpoint inside a loop still stops on
+    // every later iteration.
+    private _breakpointGate(): (line: number) => boolean {
+        const startLine = this.currentLine;
+        let leftStartLine = false;
+        return (line: number): boolean => {
+            const hit = this.breakpoints.has(line) && (line !== startLine || leftStartLine);
+            if (line !== startLine) {
+                leftStartLine = true;
+            }
+            return hit;
+        };
+    }
+
     run(): void {
         if (this.isRunning) {
             return;
         }
+        const shouldBreak = this._breakpointGate();
         const runSlice = () => {
             for (let i = 0; i < this.runSliceSize; ++i) {
                 // Peek the next user-visible command directly off the resolved
@@ -200,7 +227,7 @@ export class WgslDebug {
                     return;
                 }
                 const peek = state.getCurrentCommand();
-                if (peek !== null && this.breakpoints.has(peek.line)) {
+                if (peek !== null && shouldBreak(peek.line)) {
                     this._stopRunning();
                     return;
                 }
@@ -692,6 +719,7 @@ export class WgslDebug {
             this._runTimer = null;
         }
 
+        const shouldBreak = this._breakpointGate();
         const stepOutSlice = () => {
             for (let i = 0; i < this.runSliceSize; ++i) {
                 const peekState = this._resolveCurrentState();
@@ -700,7 +728,7 @@ export class WgslDebug {
                     return;
                 }
                 const peek = peekState.getCurrentCommand();
-                if (peek !== null && this.breakpoints.has(peek.line)) {
+                if (peek !== null && shouldBreak(peek.line)) {
                     this._stopRunning();
                     return;
                 }
