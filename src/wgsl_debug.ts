@@ -627,6 +627,14 @@ export class WgslDebug {
         return this._discarded;
     }
 
+    // A discarded invocation keeps running as a helper invocation, so the flag
+    // has to persist across steps. The quad scheduler owns four invocations on
+    // one debug instance, so it swaps the flag of whichever lane it is about to
+    // step in with this.
+    setDiscarded(discarded: boolean): void {
+        this._discarded = discarded;
+    }
+
     // Take and clear the discard flag. Used by the quad scheduler to record which
     // lanes discarded on the shared debug instance.
     takeDiscarded(): boolean {
@@ -833,14 +841,19 @@ export class WgslDebug {
                 }
 
                 if (node instanceof AST.Discard) {
-                    // `discard` kills the fragment invocation: no further
-                    // statements run and it produces no output. Unwind the whole
-                    // stack and report completion.
+                    // `discard` does not terminate the invocation: it demotes it
+                    // to a helper invocation. The fragment produces no output,
+                    // but it keeps executing so the other lanes of its 2x2 quad
+                    // still have a value to difference against -- that is what
+                    // keeps dpdx/dpdy and implicit-LOD sampling exact in the
+                    // common alpha-cutout shader that discards and then samples
+                    // a texture. Terminating here would give the surviving lanes
+                    // zero derivatives and a spurious uniformity warning.
                     this._discarded = true;
-                    while (!stack.isEmpty) {
-                        stack.pop();
+                    if (this._shouldExecuteNextCommand(stack)) {
+                        continue;
                     }
-                    return false;
+                    return this._resolveState(stack) !== null;
                 }
 
                 const res = this._exec.execStatement(node, state.context);
@@ -854,10 +867,12 @@ export class WgslDebug {
                     }
                     if (fnFrame.parentCallExpr !== null) {
                         fnFrame.parentCallExpr.setCachedReturnValue(res);
-                    } else {
+                    } else if (!this._discarded) {
                         // No enclosing CallExpr: this is the return of a
                         // top-level entry point (e.g. a @vertex/@fragment stage).
                         // Surface it via returnValue rather than dropping it.
+                        // A discarded fragment still runs its `return`, but its
+                        // output is not written, so it stays null.
                         this._returnValue = res;
                     }
                     // `return` exits the function: unwind every frame up to and

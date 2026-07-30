@@ -2,7 +2,7 @@ import { CallExpr, Call, UnaryOperator, VariableExpr } from "../wgsl_ast.js";
 import { Data, TypedData, TextureData, SamplerData, ScalarData, VectorData, MatrixData } from "../wgsl_ast.js";
 import { ExecContext } from "./exec_context.js";
 import { ExecInterface } from "./exec_interface.js";
-import { ArrayInfo, TypeInfo } from "../reflect/info.js";
+import { ArrayInfo, TemplateInfo, TypeInfo } from "../reflect/info.js";
 
 // Map a cube-map direction to the face it hits and the 2d coordinate within
 // that face, using WebGPU's cube face order:
@@ -1063,14 +1063,83 @@ export class BuiltinFunctions {
         return null;
     }
 
+    // The 2x2 texel footprint a gather returns, at mip level 0, in WGSL's
+    // component order: x is the bottom-left texel, then bottom-right,
+    // top-right, and top-left. The footprint is the one bilinear filtering
+    // would blend, but gather returns the texels themselves, so the sampler's
+    // filter mode is irrelevant -- only its address modes matter.
+    _gatherTexels(texture: TextureData, u: number, v: number, layer: number,
+        sampler: SamplerData | null): number[][] {
+        const d = sampler?.descriptor ?? {};
+        const addrU = (d.addressModeU as string) ?? "clamp-to-edge";
+        const addrV = (d.addressModeV as string) ?? "clamp-to-edge";
+        const size = texture.getMipLevelSize(0);
+        const w = Math.max(1, size[0]);
+        const h = Math.max(1, size[1]);
+        const x0 = Math.floor(u * w - 0.5);
+        const y0 = Math.floor(v * h - 0.5);
+        const texel = (x: number, y: number) =>
+            this._texel(texture, x, y, layer, 0, addrU, addrV);
+        return [texel(x0, y0 + 1), texel(x0 + 1, y0 + 1), texel(x0 + 1, y0), texel(x0, y0)];
+    }
+
+    // The vec4 type a gather on this texture returns: the channel type follows
+    // the texture's sampled type, and depth textures gather as f32.
+    _gatherResultType(texture: TextureData): TypeInfo | null {
+        if (texture.typeInfo.name.includes("depth")) {
+            return this.getTypeInfo("vec4f");
+        }
+        const format = (texture.typeInfo as TemplateInfo).format?.name;
+        if (format === "u32") {
+            return this.getTypeInfo("vec4u");
+        }
+        if (format === "i32") {
+            return this.getTypeInfo("vec4i");
+        }
+        return this.getTypeInfo("vec4f");
+    }
+
     TextureGather(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: textureGather");
-        return null;
+        // Two overload shapes, distinguished by whether the first argument is
+        // already the texture:
+        //   textureGather(component, t, s, coords [, array_index] [, offset])
+        //   textureGather(t, s, coords [, array_index] [, offset])  // depth
+        const depthForm = this._resolveTexture(node.args[0], context) !== null;
+        let component = 0;
+        if (!depthForm) {
+            const c = this.exec.evalExpression(node.args[0], context);
+            if (c instanceof ScalarData) {
+                component = Math.floor(c.value);
+            }
+        }
+        const textureIndex = depthForm ? 0 : 1;
+        const a = this._sampleArgs(node, context, textureIndex + 2, textureIndex);
+        if (a === null) {
+            return null;
+        }
+        const sampler = this._resolveSampler(node.args[textureIndex + 1], context);
+        const texels = this._gatherTexels(a.texture, a.u, a.v, a.layer, sampler);
+        const channel = Math.max(0, Math.min(component, 3));
+        return new VectorData(texels.map((t) => t[channel]), this._gatherResultType(a.texture)!);
     }
 
     TextureGatherCompare(node: CallExpr | Call, context: ExecContext): Data | null {
-        console.error("TODO: textureGatherCompare");
-        return null;
+        // textureGatherCompare(t, s, coords [, array_index], depth_ref [, offset]).
+        // Like textureGather on a depth texture, but each of the four texels is
+        // reduced to the 0 or 1 result of the sampler's comparison instead of
+        // being returned directly.
+        const a = this._sampleArgs(node, context, 2);
+        if (a === null) {
+            return null;
+        }
+        const sampler = this._resolveSampler(node.args[1], context);
+        const refIndex = a.texture.typeInfo.name.includes("_array") ? 4 : 3;
+        const refArg = this.exec.evalExpression(node.args[refIndex], context);
+        const ref = refArg instanceof ScalarData ? refArg.value : 0;
+        const cmp = this._compareFn((sampler?.descriptor.compare as string) ?? "less-equal");
+        const texels = this._gatherTexels(a.texture, a.u, a.v, a.layer, sampler);
+        return new VectorData(texels.map((t) => (cmp(ref, t[0]) ? 1 : 0)),
+            this.getTypeInfo("vec4f")!);
     }
 
     TextureLoad(node: CallExpr | Call, context: ExecContext): Data | null {
@@ -1392,10 +1461,14 @@ export class BuiltinFunctions {
     //                    coordinate, filtered across slices rather than
     //                    selecting one
     //
+    // `textureIndex` is where the texture argument sits; it is 0 for the whole
+    // textureSample* family but 1 for textureGather, whose first argument is the
+    // channel to gather.
+    //
     // Returns null on an unsupported form.
-    _sampleArgs(node: CallExpr | Call, context: ExecContext, coordIndex: number)
+    _sampleArgs(node: CallExpr | Call, context: ExecContext, coordIndex: number, textureIndex = 0)
         : { texture: TextureData, u: number, v: number, layer: number, r: number | null } | null {
-        const texture = this._resolveTexture(node.args[0], context);
+        const texture = this._resolveTexture(node.args[textureIndex], context);
         if (texture === null) {
             console.error(`Invalid texture argument for ${node.name}. Line ${node.line}`);
             return null;

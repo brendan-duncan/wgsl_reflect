@@ -758,6 +758,113 @@ export async function run() {
       test.equals(corner.getReturnValue(), [1, 0, 0, 1], 1e-3);
     });
 
+    await test("uniform buffer binding in a fragment stage", function (test) {
+      const shader = `
+        struct Material {
+          tint: vec4f,
+          uvScale: vec2f,
+          flags: u32,
+        };
+        @group(0) @binding(0) var<uniform> mat: Material;
+        @fragment
+        fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+          let scaled = uv * mat.uvScale;
+          return mat.tint * vec4f(scaled, f32(mat.flags), 1.0);
+        }`;
+
+      const uniform = new Float32Array(8);
+      uniform.set([2.0, 3.0, 4.0, 5.0], 0); // tint
+      uniform.set([0.5, 10.0], 4);          // uvScale
+      new Uint32Array(uniform.buffer, 24, 1)[0] = 3; // flags
+
+      const dbg = new WgslDebug(shader);
+      test.true(dbg.debugFragment("main", { 0: [4.0, 0.25] }, { 0: { 0: { uniform } } }),
+        "debugFragment should succeed");
+      while (dbg.stepNext());
+      // scaled = (2, 2.5); tint * (2, 2.5, 3, 1)
+      test.equals(dbg.getReturnValue(), [4, 7.5, 12, 5], 1e-6);
+    });
+
+    await test("frag_depth output", function (test) {
+      const shader = `
+        struct FragOut {
+          @location(0) color: vec4f,
+          @builtin(frag_depth) depth: f32,
+        };
+        @fragment
+        fn main(@location(0) uv: vec2f) -> FragOut {
+          var out: FragOut;
+          out.color = vec4f(uv, 0.0, 1.0);
+          out.depth = uv.x * 0.5;
+          return out;
+        }`;
+      const dbg = new WgslDebug(shader);
+      dbg.debugFragment("main", { 0: [0.4, 0.6] }, {});
+      while (dbg.stepNext());
+      const out = dbg.getReturnValue();
+      test.equals(out.color, [0.4, 0.6, 0, 1], 1e-6);
+      test.equals(out.depth, 0.2, 1e-6);
+    });
+
+    await test("sample_index builtin", function (test) {
+      const shader = `
+        @fragment
+        fn main(@builtin(sample_index) si: u32, @location(0) uv: vec2f) -> @location(0) vec4f {
+          return vec4f(uv, f32(si), 1.0);
+        }`;
+
+      const dbg = new WgslDebug(shader);
+      dbg.debugFragment("main", { sample_index: 2, 0: [0.5, 0.25] }, {});
+      while (dbg.stepNext());
+      test.equals(dbg.getReturnValue(), [0.5, 0.25, 2, 1]);
+
+      // Not supplied (the single-sample case) binds as 0.
+      const single = new WgslDebug(shader);
+      single.debugFragment("main", { 0: [0.5, 0.25] }, {});
+      while (single.stepNext());
+      test.equals(single.getReturnValue(), [0.5, 0.25, 0, 1]);
+    });
+
+    await test("discard demotes the invocation instead of ending it", function (test) {
+      // `discard` turns the invocation into a helper invocation rather than
+      // terminating it: the statements after it still execute, which is what
+      // keeps the quad's derivatives defined for the lanes that survive (see
+      // the GPU-verified helper-invocation test in test_render.js). Only the
+      // fragment's output is suppressed.
+      //
+      // NOTE: a real helper invocation also has its memory writes disabled;
+      // that part is not modeled, so a discarded invocation's stores still
+      // land. Nothing here depends on that.
+      const shader = `
+@fragment
+fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+  if (uv.x < 0.5) { discard; }
+  let after = uv.y * 2.0;
+  return vec4f(after, 0.0, 0.0, 1.0);
+}`;
+      const dbg = new WgslDebug(shader);
+      dbg.debugFragment("main", { 0: [0.2, 0.25] }, {});
+
+      const lines = [];
+      for (let i = 0; i < 12; ++i) {
+        lines.push(dbg.currentLine);
+        if (!dbg.stepNext()) {
+          break;
+        }
+      }
+      // The `if` and its discard, then the two statements after it.
+      test.equals(lines, [4, 4, 5, 6]);
+      test.true(dbg.discarded, "fragment should be discarded");
+      test.isNull(dbg.getReturnValue(), "a discarded fragment writes no output");
+
+      // The value computed after the discard is still there to inspect.
+      const stepped = new WgslDebug(shader);
+      stepped.debugFragment("main", { 0: [0.2, 0.25] }, {});
+      while (stepped.currentLine !== 6 && stepped.stepNext());
+      test.equals(stepped.getVariableValue("after"), 0.5,
+        "the statement after the discard executed");
+    });
+
     await test("single-lane textureSample uses base mip", function (test) {
       const mip0 = new Uint8Array([255, 0, 0, 255]);
       const mip1 = new Uint8Array([0, 0, 255, 255]);
@@ -1235,6 +1342,126 @@ export async function run() {
       test.equals(dbg.getReturnValue(), [4, 2, 2, 2]);
     });
 
+    await test("textureGather returns the 2x2 footprint of one channel", function (test) {
+      // The red channel encodes the texel index, so the result vector shows
+      // both which texels the footprint covered and in which order. The
+      // component order (bottom-left, bottom-right, top-right, top-left) is
+      // pinned against a real GPU in test_render.js.
+      const tex = new Uint8Array([
+        ...px(10, 11, 12), ...px(50, 51, 52),
+        ...px(90, 91, 92), ...px(130, 131, 132),
+      ]);
+      const descriptor = { format: "rgba8unorm", size: [2, 2, 1], mipLevelCount: 1, dimension: "2d" };
+      const shader = `
+        @group(0) @binding(0) var tex: texture_2d<f32>;
+        @group(0) @binding(1) var samp: sampler;
+        @fragment
+        fn main(@location(0) uv: vec2f, @location(1) c: i32) -> @location(0) vec4f {
+          return textureGather(c, tex, samp, uv) * 255.0;
+        }`;
+      const gather = (uv, component, sampler) => {
+        const bg = { 0: { 0: { texture: [tex.buffer], descriptor }, 1: { sampler } } };
+        const d = new WgslDebug(shader);
+        d.debugFragment("main", { 0: uv, 1: component }, bg);
+        while (d.stepNext());
+        return d.getReturnValue();
+      };
+
+      const clamp = { addressModeU: "clamp-to-edge", addressModeV: "clamp-to-edge" };
+      // At the texture center the footprint is all four texels:
+      // bottom-left(90), bottom-right(130), top-right(50), top-left(10).
+      test.equals(gather([0.5, 0.5], 0, clamp), [90, 130, 50, 10], 1e-3);
+      // Channel selection: green is index+1, blue is index+2.
+      test.equals(gather([0.5, 0.5], 1, clamp), [91, 131, 51, 11], 1e-3);
+      test.equals(gather([0.5, 0.5], 2, clamp), [92, 132, 52, 12], 1e-3);
+
+      // The gather ignores the filter mode -- it always returns four texels --
+      // but it does honor the address modes at the texture edge. At uv (0,0)
+      // the footprint straddles the border: clamped it collapses onto the
+      // top-left texel, wrapped it pulls in the opposite edges. The wrapped
+      // result is pinned against a real GPU in test_render.js.
+      test.equals(gather([0, 0], 0, { magFilter: "nearest", ...clamp }), [10, 10, 10, 10], 1e-3);
+      test.equals(gather([0, 0], 0, { addressModeU: "repeat", addressModeV: "repeat" }),
+        [50, 10, 90, 130], 1e-3);
+    });
+
+    await test("textureGather on a 2d array and a depth texture", function (test) {
+      const layers = new Uint8Array([
+        ...px(10, 0, 0), ...px(20, 0, 0), ...px(30, 0, 0), ...px(40, 0, 0),
+        ...px(50, 0, 0), ...px(60, 0, 0), ...px(70, 0, 0), ...px(80, 0, 0),
+      ]);
+      const arrayBg = {
+        0: {
+          0: { texture: [layers.buffer],
+               descriptor: { format: "rgba8unorm", size: [2, 2, 2], mipLevelCount: 1, dimension: "2d" } },
+          1: { sampler: {} },
+        },
+      };
+      const arrayShader = `
+        @group(0) @binding(0) var tex: texture_2d_array<f32>;
+        @group(0) @binding(1) var samp: sampler;
+        @fragment
+        fn main(@location(0) layer: i32) -> @location(0) vec4f {
+          return textureGather(0, tex, samp, vec2f(0.5, 0.5), layer) * 255.0;
+        }`;
+      const gatherLayer = (layer) => {
+        const d = new WgslDebug(arrayShader);
+        d.debugFragment("main", { 0: layer }, arrayBg);
+        while (d.stepNext());
+        return d.getReturnValue();
+      };
+      test.equals(gatherLayer(0), [30, 40, 20, 10], 1e-3);
+      test.equals(gatherLayer(1), [70, 80, 60, 50], 1e-3);
+
+      // A depth texture has no channel argument: the texture is the first
+      // argument and the single depth channel is gathered.
+      const depth = new Float32Array([0.1, 0.2, 0.3, 0.4]);
+      const depthBg = {
+        0: {
+          0: { texture: [depth.buffer],
+               descriptor: { format: "depth32float", size: [2, 2, 1], mipLevelCount: 1, dimension: "2d" } },
+          1: { sampler: {} },
+        },
+      };
+      const depthDbg = new WgslDebug(`
+        @group(0) @binding(0) var tex: texture_depth_2d;
+        @group(0) @binding(1) var samp: sampler;
+        @fragment
+        fn main() -> @location(0) vec4f {
+          return textureGather(tex, samp, vec2f(0.5, 0.5));
+        }`);
+      depthDbg.debugFragment("main", {}, depthBg);
+      while (depthDbg.stepNext());
+      test.equals(depthDbg.getReturnValue(), [0.3, 0.4, 0.2, 0.1], 1e-6);
+    });
+
+    await test("textureGatherCompare compares each gathered texel", function (test) {
+      // Unlike textureSampleCompare, which blends the four comparison results,
+      // gatherCompare returns them separately so a shader can filter them
+      // itself.
+      const depth = new Float32Array([0.1, 0.9, 0.5, 0.5]);
+      const descriptor = { format: "depth32float", size: [2, 2, 1], mipLevelCount: 1, dimension: "2d" };
+      const shader = `
+        @group(0) @binding(0) var shadowMap: texture_depth_2d;
+        @group(0) @binding(1) var shadowSamp: sampler_comparison;
+        @fragment
+        fn main(@location(0) refDepth: f32) -> @location(0) vec4f {
+          return textureGatherCompare(shadowMap, shadowSamp, vec2f(0.5, 0.5), refDepth);
+        }`;
+      const gather = (ref, compare) => {
+        const bg = { 0: { 0: { texture: [depth.buffer], descriptor }, 1: { sampler: { compare } } } };
+        const d = new WgslDebug(shader);
+        d.debugFragment("main", { 0: ref }, bg);
+        while (d.stepNext());
+        return d.getReturnValue();
+      };
+      // Footprint order is BL(0.5), BR(0.5), TR(0.9), TL(0.1).
+      test.equals(gather(0.5, "less-equal"), [1, 1, 1, 0]);
+      test.equals(gather(0.5, "less"), [0, 0, 1, 0]);
+      test.equals(gather(0.95, "less-equal"), [0, 0, 0, 0]);
+      test.equals(gather(0.05, "less-equal"), [1, 1, 1, 1]);
+    });
+
     await test("textureSampleCompare filters the comparison results", function (test) {
       // Percentage-closer filtering: the compare runs per texel and the 0/1
       // results are bilinearly blended, so a reference depth between the near
@@ -1541,6 +1768,66 @@ fn main(@location(0) pos: vec2f) -> @builtin(position) vec4f {
       into.debugVertex("main", { 0: [3.0, 4.0] }, {});
       into.stepInto();
       test.equals(into.currentLine, 3, "stepInto enters transform()");
+    });
+
+    // The same shape again on a @fragment entry point. Lines:
+    //   2 fn shade(uv: vec2f) -> vec2f {
+    //   3   let scaled = uv * 2.0;
+    //   4   return scaled + vec2f(1.0, 0.0);
+    //   5 }
+    //   6 @fragment
+    //   7 fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+    //   8   let t = shade(uv);
+    //   9   return vec4f(t, 0.0, 1.0);
+    //  10 }
+    const FRAGMENT_CALL_SHADER = `
+fn shade(uv: vec2f) -> vec2f {
+  let scaled = uv * 2.0;
+  return scaled + vec2f(1.0, 0.0);
+}
+@fragment
+fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+  let t = shade(uv);
+  return vec4f(t, 0.0, 1.0);
+}`;
+
+    await test("stepOver and stepInto in a fragment stage", function (test) {
+      const over = new WgslDebug(FRAGMENT_CALL_SHADER);
+      test.true(over.debugFragment("main", { 0: [3.0, 4.0] }, {}), "debugFragment should succeed");
+      test.equals(over.currentLine, 8, "starts at the call");
+      over.stepOver();
+      test.equals(over.currentLine, 8, "stepOver stays in main");
+      over.stepInto();
+      test.equals(over.currentLine, 9);
+      test.equals(over.getVariableValue("t"), [7, 8], "shade() ran during the step over");
+
+      const into = new WgslDebug(FRAGMENT_CALL_SHADER);
+      into.debugFragment("main", { 0: [3.0, 4.0] }, {});
+      into.stepInto();
+      test.equals(into.currentLine, 3, "stepInto enters shade()");
+    });
+
+    await test("stepOut and breakpoints in a fragment stage", async function (test) {
+      const dbg = new WgslDebug(FRAGMENT_CALL_SHADER);
+      dbg.debugFragment("main", { 0: [3.0, 4.0] }, {});
+      dbg.toggleBreakpoint(4);
+
+      const atBreakpoint = untilStopped(dbg);
+      dbg.run();
+      await atBreakpoint;
+      test.equals(dbg.currentLine, 4, "stopped inside shade()");
+      test.equals(dbg.getVariableValue("scaled"), [6, 8], "the callee's local is in scope");
+
+      const returned = untilStopped(dbg);
+      dbg.stepOut();
+      await returned;
+      test.equals(dbg.currentLine, 8, "back at the call site");
+
+      dbg.clearBreakpoints();
+      const finished = untilStopped(dbg);
+      dbg.run();
+      await finished;
+      test.equals(dbg.getReturnValue(), [7, 8, 0, 1]);
     });
 
     await test("stepOut and breakpoints in a vertex stage", async function (test) {

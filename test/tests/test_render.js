@@ -446,6 +446,62 @@ export async function run() {
       }
     });
 
+    await test("textureGather component and footprint order match the GPU", async function (test) {
+      // Every channel of every texel is distinct, and the four gathers each
+      // pull a different channel out of a different footprint position, so a
+      // wrong channel or a wrong component order changes the result.
+      const texel = (i) => [10 + 40 * i, 20 + 40 * i, 30 + 40 * i, 255];
+      const tex = new Uint8Array([...texel(0), ...texel(1), ...texel(2), ...texel(3)]);
+      const bg = {
+        0: {
+          0: { texture: [tex.buffer],
+               descriptor: { format: "rgba8unorm", size: [2, 2, 1], mipLevelCount: 1, dimension: "2d" } },
+          1: { sampler: { magFilter: "nearest" } },
+        },
+      };
+
+      // A second sampler with wrapping address modes, so the edge case where
+      // the footprint straddles the texture border is compared too.
+      bg[0][2] = { sampler: { magFilter: "nearest", addressModeU: "repeat", addressModeV: "repeat" } };
+
+      const shader = `
+        ${FULLSCREEN_VS}
+        @group(0) @binding(0) var tex: texture_2d<f32>;
+        @group(0) @binding(1) var samp: sampler;
+        @group(0) @binding(2) var wrapSamp: sampler;
+        struct FragOut {
+          @location(0) channels: vec4f,
+          @location(1) wrapped: vec4f,
+        };
+        @fragment fn fs(@location(0) uv: vec2f) -> FragOut {
+          let c = vec2f(0.5, 0.5);
+          let g0 = textureGather(0, tex, samp, c);
+          let g1 = textureGather(1, tex, samp, c);
+          let g2 = textureGather(2, tex, samp, c);
+          let g3 = textureGather(3, tex, samp, c);
+          var out: FragOut;
+          out.channels = vec4f(g0.x, g1.y, g2.z, g3.w) * 255.0;
+          // At uv (0,0) the 2x2 footprint crosses the border on both axes.
+          out.wrapped = textureGather(0, tex, wrapSamp, vec2f(0.0, 0.0)) * 255.0;
+          return out;
+        }`;
+
+      const [gpuChannels, gpuWrapped] = await webgpuRender(shader, {
+        vertexCount: 3, topology: "triangle-list", size: [2, 2], targetCount: 2, bindGroups: bg,
+      });
+      const quad = pixelCenterUVs(2, 2).map((uv) => ({ 0: uv }));
+      const r = debugFragmentQuad(shader, "fs", quad, bg);
+      test.equals(r.errors.length, 0, `quad errors: ${r.errors.join("; ")}`);
+      for (let i = 0; i < 4; ++i) {
+        const want = Array.from(gpuChannels.subarray(i * 4, i * 4 + 4));
+        const wantWrapped = Array.from(gpuWrapped.subarray(i * 4, i * 4 + 4));
+        test.equals(r.outputs[i].channels, want, 1e-3,
+          `lane ${i} channels: got ${r.outputs[i].channels} want ${want}`);
+        test.equals(r.outputs[i].wrapped, wantWrapped, 1e-3,
+          `lane ${i} wrapped: got ${r.outputs[i].wrapped} want ${wantWrapped}`);
+      }
+    });
+
     await test("discard matches the GPU", async function (test) {
       // The target is cleared to 0, so a discarded fragment reads back as the
       // clear value while a kept one carries the shader's result.
@@ -487,6 +543,71 @@ export async function run() {
       test.equals(r.errors.length, 0, `quad errors: ${r.errors.join("; ")}`);
       for (let i = 0; i < 4; ++i) {
         test.equals(r.outputs[i], gpu[i], 1e-6, `lane ${i}: got ${r.outputs[i]} want ${gpu[i]}`);
+      }
+    });
+
+    await test("discard demotes to a helper invocation like the GPU", async function (test) {
+      // A discarded fragment keeps running as a helper invocation, so the lanes
+      // that survive still get exact derivatives. If discard terminated the
+      // invocation the survivors would read zero here.
+      const shader = `
+        ${FULLSCREEN_VS}
+        @fragment fn fs(@location(0) uv: vec2f) -> @location(0) vec4f {
+          if (uv.x < 0.5) { discard; }
+          return vec4f(dpdx(uv), dpdy(uv));
+        }`;
+
+      const gpu = await renderQuad(shader, {});
+      const quad = pixelCenterUVs(2, 2).map((uv) => ({ 0: uv }));
+      const r = debugFragmentQuad(shader, "fs", quad, {});
+      test.equals(r.errors.length, 0,
+        `discarding a lane is not non-uniform control flow: ${r.errors.join("; ")}`);
+      test.equals(r.discarded, [true, false, true, false]);
+      for (let i = 0; i < 4; ++i) {
+        if (r.discarded[i]) {
+          test.isNull(r.outputs[i], `lane ${i} discarded, so it writes no output`);
+          test.equals(gpu[i], [0, 0, 0, 0], `lane ${i} should be the cleared value on the GPU`);
+        } else {
+          test.equals(r.outputs[i], gpu[i], 1e-6, `lane ${i}: got ${r.outputs[i]} want ${gpu[i]}`);
+        }
+      }
+    });
+
+    await test("textureSampleBias offsets the implicit LOD like the GPU", async function (test) {
+      // 4x4 red base, 2x2 green mip 1, 1x1 blue mip 2. The quad's uv spans one
+      // quarter of the texture, so the unbiased LOD sits at the base mip and a
+      // positive bias walks it toward the coarser ones.
+      const px = (r, g, b, a = 255) => [r, g, b, a];
+      const mip0 = new Uint8Array(4 * 4 * 4);
+      for (let i = 0; i < 16; ++i) mip0.set(px(255, 0, 0), i * 4);
+      const mip1 = new Uint8Array(2 * 2 * 4);
+      for (let i = 0; i < 4; ++i) mip1.set(px(0, 255, 0), i * 4);
+      const mip2 = new Uint8Array(px(0, 0, 255));
+
+      const bg = {
+        0: {
+          0: { texture: [mip0.buffer, mip1.buffer, mip2.buffer],
+               descriptor: { format: "rgba8unorm", size: [4, 4, 1], mipLevelCount: 3, dimension: "2d" } },
+          1: { sampler: { magFilter: "linear", minFilter: "linear", mipmapFilter: "linear" } },
+        },
+      };
+
+      const shader = (bias) => `
+        ${FULLSCREEN_VS}
+        @group(0) @binding(0) var tex: texture_2d<f32>;
+        @group(0) @binding(1) var samp: sampler;
+        @fragment fn fs(@location(0) uv: vec2f) -> @location(0) vec4f {
+          return textureSampleBias(tex, samp, uv * 0.25, ${bias});
+        }`;
+
+      for (const bias of ["0.0", "1.0", "2.0"]) {
+        const code = shader(bias);
+        const gpu = await renderQuad(code, bg);
+        const quad = pixelCenterUVs(2, 2).map((uv) => ({ 0: uv }));
+        const r = debugFragmentQuad(code, "fs", quad, bg);
+        test.equals(r.errors.length, 0, `quad errors: ${r.errors.join("; ")}`);
+        test.equals(r.outputs[0], gpu[0], 1e-3,
+          `bias ${bias}: got ${r.outputs[0]} want ${gpu[0]}`);
       }
     });
 

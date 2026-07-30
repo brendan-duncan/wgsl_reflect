@@ -199,13 +199,26 @@ export class QuadScheduler {
         }
     }
 
-    // Record a lane's output/discard the moment its stack empties. The debug
-    // instance's return value and discard flag are shared across lanes, so this
-    // must run immediately after the step that finished the lane.
+    // Step one lane. The debug instance's discard flag is per-invocation state
+    // on an object shared by all four lanes, and a discarded lane keeps running
+    // as a helper invocation, so this lane's flag is swapped in for the duration
+    // of its step and read back out afterwards.
+    private _stepLane(lane: Lane, stepInto: boolean): void {
+        this._debug.setDiscarded(lane.discarded);
+        try {
+            this._debug.stepStack(lane.stack, stepInto);
+        } finally {
+            lane.discarded = this._debug.takeDiscarded();
+        }
+    }
+
+    // Record a lane's output the moment its stack empties. The debug instance's
+    // return value is shared across lanes, so this must run immediately after
+    // the step that finished the lane. A discarded lane runs to the end like any
+    // other but writes no output, so its return value is already null.
     private _captureDone(lane: Lane): void {
         lane.state = LaneState.Done;
         lane.output = this._debug.dataToJS(this._debug.takeReturnValue());
-        lane.discarded = this._debug.takeDiscarded();
     }
 
     private _loop(): void {
@@ -231,7 +244,7 @@ export class QuadScheduler {
                     continue;
                 }
 
-                this._debug.stepStack(lane.stack, true);
+                this._stepLane(lane, true);
                 stepped = true;
 
                 if (resolveTop(lane.stack) === null) {
@@ -510,7 +523,7 @@ export class QuadScheduler {
                 this._serviceRendezvous();
                 continue;
             }
-            this._debug.stepStack(target.stack, stepInto);
+            this._stepLane(target, stepInto);
             if (resolveTop(target.stack) === null) {
                 this._captureDone(target);
                 return false;
@@ -538,7 +551,7 @@ export class QuadScheduler {
                     lane.frame = frame;
                     break;
                 }
-                this._debug.stepStack(lane.stack, true);
+                this._stepLane(lane, true);
                 if (resolveTop(lane.stack) === null) {
                     this._captureDone(lane);
                     break;

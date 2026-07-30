@@ -96,6 +96,8 @@ export declare class BuiltinFunctions {
     FwidthCoarse(node: CallExpr | Call, context: ExecContext): Data | null;
     FwidthFine(node: CallExpr | Call, context: ExecContext): Data | null;
     TextureDimensions(node: CallExpr | Call, context: ExecContext): Data | null;
+    _gatherTexels(texture: TextureData, u: number, v: number, layer: number, sampler: SamplerData | null): number[][];
+    _gatherResultType(texture: TextureData): TypeInfo | null;
     TextureGather(node: CallExpr | Call, context: ExecContext): Data | null;
     TextureGatherCompare(node: CallExpr | Call, context: ExecContext): Data | null;
     TextureLoad(node: CallExpr | Call, context: ExecContext): Data | null;
@@ -117,7 +119,7 @@ export declare class BuiltinFunctions {
     _compareFn(name: string): (ref: number, stored: number) => boolean;
     _sampleCompareValue(node: CallExpr | Call, context: ExecContext): Data | null;
     _sampleResult(texture: TextureData, rgba: number[]): Data;
-    _sampleArgs(node: CallExpr | Call, context: ExecContext, coordIndex: number): {
+    _sampleArgs(node: CallExpr | Call, context: ExecContext, coordIndex: number, textureIndex?: number): {
         texture: TextureData;
         u: number;
         v: number;

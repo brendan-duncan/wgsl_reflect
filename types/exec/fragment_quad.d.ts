@@ -35,6 +35,7 @@ export declare class QuadScheduler {
     readonly breakpoints: Set<number>;
     constructor(debug: WgslDebug, exec: WgslExec, lanes: Lane[]);
     run(): void;
+    private _stepLane;
     private _captureDone;
     private _loop;
     private _rendezvous;

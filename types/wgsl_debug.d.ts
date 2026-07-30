@@ -65,6 +65,7 @@ export declare class WgslDebug {
     get returnValue(): Data | null;
     takeReturnValue(): Data | null;
     get discarded(): boolean;
+    setDiscarded(discarded: boolean): void;
     takeDiscarded(): boolean;
     dataToJS(v: Data | null): number | number[] | Record<string, unknown> | null;
     get quadRendezvous(): boolean;
