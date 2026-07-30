@@ -2723,220 +2723,31 @@ export class TypedData extends Data {
       }
       return;
     } else if (typeName === "mat2x2f" || typeName === "mat2x2h") {
-      const x = new Float32Array(this.buffer, offset, 4);
-      if (value instanceof MatrixData) {
-        x[0] = value.data[0];
-        x[1] = value.data[1];
-        x[2] = value.data[2];
-        x[3] = value.data[3];
-      } else {
-        x[0] = value[0];
-        x[1] = value[1];
-        x[2] = value[2];
-        x[3] = value[3];
-      }
+      this._writeMatrix(offset, 2, 2, value as MatrixData | number[]);
       return;
     } else if (typeName === "mat2x3f" || typeName === "mat2x3h") {
-      const x = new Float32Array(this.buffer, offset, 6);
-      if (value instanceof MatrixData) {
-        x[0] = value.data[0];
-        x[1] = value.data[1];
-        x[2] = value.data[2];
-        x[3] = value.data[3];
-        x[4] = value.data[4];
-        x[5] = value.data[5];
-      } else {
-        x[0] = value[0];
-        x[1] = value[1];
-        x[2] = value[2];
-        x[3] = value[3];
-        x[4] = value[4];
-        x[5] = value[5];
-      }
+      this._writeMatrix(offset, 2, 3, value as MatrixData | number[]);
       return;
     } else if (typeName === "mat2x4f" || typeName === "mat2x4h") {
-      const x = new Float32Array(this.buffer, offset, 8);
-      if (value instanceof MatrixData) {
-        x[0] = value.data[0];
-        x[1] = value.data[1];
-        x[2] = value.data[2];
-        x[3] = value.data[3];
-        x[4] = value.data[4];
-        x[5] = value.data[5];
-        x[6] = value.data[6];
-        x[7] = value.data[7];
-      } else {
-        x[0] = value[0];
-        x[1] = value[1];
-        x[2] = value[2];
-        x[3] = value[3];
-        x[4] = value[4];
-        x[5] = value[5];
-        x[6] = value[6];
-        x[7] = value[7];
-      }
+      this._writeMatrix(offset, 2, 4, value as MatrixData | number[]);
       return;
     } else if (typeName === "mat3x2f" || typeName === "mat3x2h") {
-      const x = new Float32Array(this.buffer, offset, 6);
-      if (value instanceof MatrixData) {
-        x[0] = value.data[0];
-        x[1] = value.data[1];
-        x[2] = value.data[2];
-        x[3] = value.data[3];
-        x[4] = value.data[4];
-        x[5] = value.data[5];
-      } else {
-        x[0] = value[0];
-        x[1] = value[1];
-        x[2] = value[2];
-        x[3] = value[3];
-        x[4] = value[4];
-        x[5] = value[5];
-      }
+      this._writeMatrix(offset, 3, 2, value as MatrixData | number[]);
       return;
     } else if (typeName === "mat3x3f" || typeName === "mat3x3h") {
-      const x = new Float32Array(this.buffer, offset, 9);
-      if (value instanceof MatrixData) {
-        x[0] = value.data[0];
-        x[1] = value.data[1];
-        x[2] = value.data[2];
-        x[3] = value.data[3];
-        x[4] = value.data[4];
-        x[5] = value.data[5];
-        x[6] = value.data[6];
-        x[7] = value.data[7];
-        x[8] = value.data[8];
-      } else {
-        x[0] = value[0];
-        x[1] = value[1];
-        x[2] = value[2];
-        x[3] = value[3];
-        x[4] = value[4];
-        x[5] = value[5];
-        x[6] = value[6];
-        x[7] = value[7];
-        x[8] = value[8];
-      }
+      this._writeMatrix(offset, 3, 3, value as MatrixData | number[]);
       return;
     } else if (typeName === "mat3x4f" || typeName === "mat3x4h") {
-      const x = new Float32Array(this.buffer, offset, 12);
-      if (value instanceof MatrixData) {
-        x[0] = value.data[0];
-        x[1] = value.data[1];
-        x[2] = value.data[2];
-        x[3] = value.data[3];
-        x[4] = value.data[4];
-        x[5] = value.data[5];
-        x[6] = value.data[6];
-        x[7] = value.data[7];
-        x[8] = value.data[8];
-        x[9] = value.data[9];
-        x[10] = value.data[10];
-        x[11] = value.data[11];
-      } else {
-        x[0] = value[0];
-        x[1] = value[1];
-        x[2] = value[2];
-        x[3] = value[3];
-        x[4] = value[4];
-        x[5] = value[5];
-        x[6] = value[6];
-        x[7] = value[7];
-        x[8] = value[8];
-        x[9] = value[9];
-        x[10] = value[10];
-        x[11] = value[11];
-      }
+      this._writeMatrix(offset, 3, 4, value as MatrixData | number[]);
       return;
     } else if (typeName === "mat4x2f" || typeName === "mat4x2h") {
-      const x = new Float32Array(this.buffer, offset, 8);
-      if (value instanceof MatrixData) {
-        x[0] = value.data[0];
-        x[1] = value.data[1];
-        x[2] = value.data[2];
-        x[3] = value.data[3];
-        x[4] = value.data[4];
-        x[5] = value.data[5];
-        x[6] = value.data[6];
-        x[7] = value.data[7];
-      } else {
-        x[0] = value[0];
-        x[1] = value[1];
-        x[2] = value[2];
-        x[3] = value[3];
-        x[4] = value[4];
-        x[5] = value[5];
-        x[6] = value[6];
-        x[7] = value[7];
-      }
+      this._writeMatrix(offset, 4, 2, value as MatrixData | number[]);
       return;
     } else if (typeName === "mat4x3f" || typeName === "mat4x3h") {
-      const x = new Float32Array(this.buffer, offset, 12);
-      if (value instanceof MatrixData) {
-        x[0] = value.data[0];
-        x[1] = value.data[1];
-        x[2] = value.data[2];
-        x[3] = value.data[3];
-        x[4] = value.data[4];
-        x[5] = value.data[5];
-        x[6] = value.data[6];
-        x[7] = value.data[7];
-        x[8] = value.data[8];
-        x[9] = value.data[9];
-        x[10] = value.data[10];
-        x[11] = value.data[11];
-      } else {
-        x[0] = value[0];
-        x[1] = value[1];
-        x[2] = value[2];
-        x[3] = value[3];
-        x[4] = value[4];
-        x[5] = value[5];
-        x[6] = value[6];
-        x[7] = value[7];
-        x[8] = value[8];
-        x[9] = value[9];
-        x[10] = value[10];
-        x[11] = value[11];
-      }
+      this._writeMatrix(offset, 4, 3, value as MatrixData | number[]);
       return;
     } else if (typeName === "mat4x4f" || typeName === "mat4x4h") {
-      const x = new Float32Array(this.buffer, offset, 16);
-      if (value instanceof MatrixData) {
-        x[0] = value.data[0];
-        x[1] = value.data[1];
-        x[2] = value.data[2];
-        x[3] = value.data[3];
-        x[4] = value.data[4];
-        x[5] = value.data[5];
-        x[6] = value.data[6];
-        x[7] = value.data[7];
-        x[8] = value.data[8];
-        x[9] = value.data[9];
-        x[10] = value.data[10];
-        x[11] = value.data[11];
-        x[12] = value.data[12];
-        x[13] = value.data[13];
-        x[14] = value.data[14];
-        x[15] = value.data[15];
-      } else {
-        x[0] = value[0];
-        x[1] = value[1];
-        x[2] = value[2];
-        x[3] = value[3];
-        x[4] = value[4];
-        x[5] = value[5];
-        x[6] = value[6];
-        x[7] = value[7];
-        x[8] = value[8];
-        x[9] = value[9];
-        x[10] = value[10];
-        x[11] = value[11];
-        x[12] = value[12];
-        x[13] = value[13];
-        x[14] = value[14];
-        x[15] = value[15];
-      }
+      this._writeMatrix(offset, 4, 4, value as MatrixData | number[]);
       return;
     }
 
@@ -2978,33 +2789,31 @@ export class TypedData extends Data {
           typeInfo = typeInfo.format;
         } else {
           const typeName = typeInfo.getTypeName();
+          // Indexing a matrix yields one column, so the offset advances by the
+          // column's byte stride: 8 bytes for a 2-component column, 16 for a 3-
+          // or 4-component one (a 3-component column is padded up to 16).
+          const matrixColumn = (rows: number, columnType: string) => {
+            offset += i * TypedData._matrixColumnStride(rows);
+            typeInfo = exec.getTypeInfo(columnType)!;
+          };
           if (typeName === "mat4x4" || typeName === "mat4x4f" || typeName === "mat4x4h") {
-            offset += i * 16;
-            typeInfo = exec.getTypeInfo("vec4f")!;
+            matrixColumn(4, "vec4f");
           } else if (typeName === "mat4x3" || typeName === "mat4x3f" || typeName === "mat4x3h") {
-            offset += i * 12;
-            typeInfo = exec.getTypeInfo("vec3f")!;
+            matrixColumn(3, "vec3f");
           } else if (typeName === "mat4x2" || typeName === "mat4x2f" || typeName === "mat4x2h") {
-            offset += i * 8;
-            typeInfo = exec.getTypeInfo("vec2f")!;
+            matrixColumn(2, "vec2f");
           } else if (typeName === "mat3x4" || typeName === "mat3x4f" || typeName === "mat3x4h") {
-            offset += i * 12;
-            typeInfo = exec.getTypeInfo("vec4f")!;
+            matrixColumn(4, "vec4f");
           } else if (typeName === "mat3x3" || typeName === "mat3x3f" || typeName === "mat3x3h") {
-            offset += i * 9;
-            typeInfo = exec.getTypeInfo("vec3f")!;
+            matrixColumn(3, "vec3f");
           } else if (typeName === "mat3x2" || typeName === "mat3x2f" || typeName === "mat3x2h") {
-            offset += i * 6;
-            typeInfo = exec.getTypeInfo("vec2f")!;
+            matrixColumn(2, "vec2f");
           } else if (typeName === "mat2x4" || typeName === "mat2x4f" || typeName === "mat2x4h") {
-            offset += i * 8;
-            typeInfo = exec.getTypeInfo("vec4f")!;
+            matrixColumn(4, "vec4f");
           } else if (typeName === "mat2x3" || typeName === "mat2x3f" || typeName === "mat2x3h") {
-            offset += i * 6;
-            typeInfo = exec.getTypeInfo("vec3f")!;
+            matrixColumn(3, "vec3f");
           } else if (typeName === "mat2x2" || typeName === "mat2x2f" || typeName === "mat2x2h") {
-            offset += i * 4;
-            typeInfo = exec.getTypeInfo("vec2f")!;
+            matrixColumn(2, "vec2f");
           } else if (typeName === "vec2f" || typeName === "vec3f" || typeName === "vec4f") {
             offset += i * 4;
             typeInfo = exec.getTypeInfo("f32")!;
@@ -3196,6 +3005,40 @@ export class TypedData extends Data {
     return new TypedData(this.buffer, typeInfo, offset, this);
   }
 
+  // A matrix in a buffer is stored column by column, and each column is a
+  // vector with that vector's alignment: a 3-component column occupies 16
+  // bytes, not 12. So matNx3 has a padding float after every column and cannot
+  // be treated as one contiguous run of values, while matNx2 (8-byte columns)
+  // and matNx4 (16-byte columns) can.
+  static _matrixColumnStride(rows: number): number {
+    return rows === 2 ? 8 : 16;
+  }
+
+  private _matrixColumn(offset: number, column: number, rows: number): Float32Array {
+    return new Float32Array(this.buffer, offset + column * TypedData._matrixColumnStride(rows), rows);
+  }
+
+  // Read a matrix out of the buffer into a tightly packed, column-major array.
+  private _readMatrix(offset: number, columns: number, rows: number): Float32Array {
+    const out = new Float32Array(columns * rows);
+    for (let c = 0; c < columns; ++c) {
+      out.set(this._matrixColumn(offset, c, rows), c * rows);
+    }
+    return out;
+  }
+
+  // Write a tightly packed, column-major matrix into the buffer's padded layout.
+  private _writeMatrix(offset: number, columns: number, rows: number,
+      value: MatrixData | number[] | Float32Array): void {
+    const src = value instanceof MatrixData ? value.data : value;
+    for (let c = 0; c < columns; ++c) {
+      const column = this._matrixColumn(offset, c, rows);
+      for (let r = 0; r < rows; ++r) {
+        column[r] = src[c * rows + r];
+      }
+    }
+  }
+
   toArray(): number[] | Float32Array | Int32Array | Uint32Array | null {
     const typeName = this.typeInfo.getTypeName();
 
@@ -3232,23 +3075,23 @@ export class TypedData extends Data {
     } else if (typeName === "vec4b") {
       return new Uint32Array(this.buffer, this.offset, 4);
     } else if (typeName === "mat2x2f" || typeName === "mat2x2h") {
-      return new Float32Array(this.buffer, this.offset, 4);
+      return this._readMatrix(this.offset, 2, 2);
     } else if (typeName === "mat2x3f" || typeName === "mat2x3h") {
-      return new Float32Array(this.buffer, this.offset, 6);
+      return this._readMatrix(this.offset, 2, 3);
     } else if (typeName === "mat2x4f" || typeName === "mat2x4h") {
-      return new Float32Array(this.buffer, this.offset, 8);
+      return this._readMatrix(this.offset, 2, 4);
     } else if (typeName === "mat3x2f" || typeName === "mat3x2h") {
-      return new Float32Array(this.buffer, this.offset, 6);
+      return this._readMatrix(this.offset, 3, 2);
     } else if (typeName === "mat3x3f" || typeName === "mat3x3h") {
-      return new Float32Array(this.buffer, this.offset, 9);
+      return this._readMatrix(this.offset, 3, 3);
     } else if (typeName === "mat3x4f" || typeName === "mat3x4h") {
-      return new Float32Array(this.buffer, this.offset, 12);
+      return this._readMatrix(this.offset, 3, 4);
     } else if (typeName === "mat4x2f" || typeName === "mat4x2h") {
-      return new Float32Array(this.buffer, this.offset, 8);
+      return this._readMatrix(this.offset, 4, 2);
     } else if (typeName === "mat4x3f" || typeName === "mat4x3h") {
-      return new Float32Array(this.buffer, this.offset, 12);
+      return this._readMatrix(this.offset, 4, 3);
     } else if (typeName === "mat4x4f" || typeName === "mat4x4h") {
-      return new Float32Array(this.buffer, this.offset, 16);
+      return this._readMatrix(this.offset, 4, 4);
     }
 
     return null;

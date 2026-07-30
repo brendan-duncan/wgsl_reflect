@@ -1487,6 +1487,85 @@ fn main() {
       test.equals(dbg.currentLine, -1, "there is no caller to return to");
       test.equals(dbg.getVariableValue("c"), 10);
     });
+
+    // A render stage seeds its exec stack through _debugStage rather than
+    // debugWorkgroup, so the stepping controls are re-checked on a vertex entry
+    // point. Lines:
+    //   2 fn transform(p: vec2f) -> vec2f {
+    //   3   let scaled = p * 2.0;
+    //   4   return scaled + vec2f(1.0, 0.0);
+    //   5 }
+    //   6 @vertex
+    //   7 fn main(@location(0) pos: vec2f) -> @builtin(position) vec4f {
+    //   8   let t = transform(pos);
+    //   9   return vec4f(t, 0.0, 1.0);
+    //  10 }
+    const VERTEX_CALL_SHADER = `
+fn transform(p: vec2f) -> vec2f {
+  let scaled = p * 2.0;
+  return scaled + vec2f(1.0, 0.0);
+}
+@vertex
+fn main(@location(0) pos: vec2f) -> @builtin(position) vec4f {
+  let t = transform(pos);
+  return vec4f(t, 0.0, 1.0);
+}`;
+
+    await test("currentLine follows a vertex stage into and out of a call", function (test) {
+      const dbg = new WgslDebug(VERTEX_CALL_SHADER);
+      test.true(dbg.debugVertex("main", { 0: [3.0, 4.0] }, {}), "debugVertex should succeed");
+
+      const lines = [];
+      for (let i = 0; i < 20; ++i) {
+        lines.push(dbg.currentLine);
+        if (!dbg.stepNext()) {
+          break;
+        }
+      }
+      test.equals(lines, [8, 3, 4, 8, 9]);
+      test.equals(dbg.currentLine, -1);
+      test.equals(dbg.getReturnValue(), [7, 8, 0, 1]);
+    });
+
+    await test("stepOver and stepInto in a vertex stage", function (test) {
+      const over = new WgslDebug(VERTEX_CALL_SHADER);
+      over.debugVertex("main", { 0: [3.0, 4.0] }, {});
+      test.equals(over.currentLine, 8, "starts at the call");
+      over.stepOver();
+      test.equals(over.currentLine, 8, "stepOver stays in main");
+      over.stepInto();
+      test.equals(over.currentLine, 9);
+      test.equals(over.getVariableValue("t"), [7, 8], "transform() ran during the step over");
+
+      const into = new WgslDebug(VERTEX_CALL_SHADER);
+      into.debugVertex("main", { 0: [3.0, 4.0] }, {});
+      into.stepInto();
+      test.equals(into.currentLine, 3, "stepInto enters transform()");
+    });
+
+    await test("stepOut and breakpoints in a vertex stage", async function (test) {
+      const dbg = new WgslDebug(VERTEX_CALL_SHADER);
+      dbg.debugVertex("main", { 0: [3.0, 4.0] }, {});
+      dbg.toggleBreakpoint(4); // `return scaled + vec2f(1.0, 0.0);`
+
+      const atBreakpoint = untilStopped(dbg);
+      dbg.run();
+      await atBreakpoint;
+      test.equals(dbg.currentLine, 4, "stopped inside transform()");
+      test.equals(dbg.getVariableValue("scaled"), [6, 8], "the callee's local is in scope");
+
+      // Stepping out of the callee returns to the pending assignment in main.
+      const returned = untilStopped(dbg);
+      dbg.stepOut();
+      await returned;
+      test.equals(dbg.currentLine, 8, "back at the call site");
+
+      dbg.clearBreakpoints();
+      const finished = untilStopped(dbg);
+      dbg.run();
+      await finished;
+      test.equals(dbg.getReturnValue(), [7, 8, 0, 1]);
+    });
   }, true);
 
   await group("Race Detection", async function () {

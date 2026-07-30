@@ -150,6 +150,143 @@ export async function run() {
       test.equals(dbg.getReturnValue().v, Array.from(gpu), 1e-6);
     });
 
+    await test("matrix transform in the vertex stage matches the GPU", async function (test) {
+      // The canonical vertex shader: an MVP matrix from a uniform buffer times
+      // the incoming position, plus a mat3x3 normal matrix. This pins two
+      // things at once -- that matrices are read column-major, and that a
+      // mat3x3f in a uniform buffer is laid out with each column padded to 16
+      // bytes rather than tightly packed.
+      const shader = `
+        struct Camera {
+          mvp: mat4x4f,
+          normalMat: mat3x3f,
+          tint: vec4f,
+        };
+        @group(0) @binding(0) var<uniform> cam: Camera;
+        struct VSOut {
+          @builtin(position) pos: vec4f,
+          @location(0) @interpolate(flat) clip: vec4f,
+          @location(1) @interpolate(flat) nrm: vec4f,
+        };
+        struct FragOut {
+          @location(0) clip: vec4f,
+          @location(1) nrm: vec4f,
+        };
+        @vertex fn vs(@location(0) p: vec3f, @location(1) n: vec3f) -> VSOut {
+          var out: VSOut;
+          out.pos = vec4f(0.0, 0.0, 0.0, 1.0);
+          out.clip = cam.mvp * vec4f(p, 1.0);
+          out.nrm = vec4f(cam.normalMat * n, 1.0) * cam.tint;
+          return out;
+        }
+        @fragment fn fs(@location(0) @interpolate(flat) clip: vec4f,
+                        @location(1) @interpolate(flat) nrm: vec4f) -> FragOut {
+          var out: FragOut;
+          out.clip = clip;
+          out.nrm = nrm;
+          return out;
+        }`;
+
+      const uniform = new Float32Array(32);
+      // mat4x4f, column-major: the last column is the translation, and the
+      // third column's w makes the result's w depend on z.
+      uniform.set([
+        2.0, 0.0, 0.0, 0.0,
+        0.0, 3.0, 0.0, 0.0,
+        0.0, 0.0, -1.5, -1.0,
+        1.0, 2.0, 3.0, 1.0,
+      ], 0);
+      // mat3x3f at byte 64: three columns, each occupying 16 bytes.
+      uniform.set([1.0, 2.0, 3.0], 16);
+      uniform.set([4.0, 5.0, 6.0], 20);
+      uniform.set([7.0, 8.0, 9.0], 24);
+      // vec4f at byte 112.
+      uniform.set([0.5, 2.0, -1.0, 1.0], 28);
+
+      const bg = { 0: { 0: { uniform } } };
+      const position = [0.25, -0.5, 2.0];
+      const normal = [0.5, -1.5, 0.75];
+
+      const [gpuClip, gpuNrm] = await webgpuRender(shader, {
+        bindGroups: bg,
+        targetCount: 2,
+        vertexBuffers: [{
+          arrayStride: 24,
+          attributes: [
+            { shaderLocation: 0, offset: 0, format: "float32x3" },
+            { shaderLocation: 1, offset: 12, format: "float32x3" },
+          ],
+          data: new Float32Array([...position, ...normal]),
+        }],
+      });
+
+      const dbg = new WgslDebug(shader);
+      test.true(dbg.debugVertex("vs", { 0: position, 1: normal }, bg),
+        "debugVertex should succeed");
+      while (dbg.stepNext());
+      const out = dbg.getReturnValue();
+      test.equals(out.clip, Array.from(gpuClip), 1e-6, `clip: ${out.clip} != ${gpuClip}`);
+      test.equals(out.nrm, Array.from(gpuNrm), 1e-6, `nrm: ${out.nrm} != ${gpuNrm}`);
+    });
+
+    await test("matrix column indexing from a uniform buffer matches the GPU", async function (test) {
+      // Indexing a buffer-backed matrix has to advance by the column's byte
+      // stride. The three matrices here cover both stride classes: mat3x3f and
+      // mat2x4f have 16-byte columns (the mat3x3f's being padded from 12),
+      // while mat4x2f has 8-byte columns.
+      const shader = `
+        struct M {
+          a: mat3x3f,
+          b: mat4x2f,
+          c: mat2x4f,
+        };
+        @group(0) @binding(0) var<uniform> m: M;
+        struct VSOut {
+          @builtin(position) pos: vec4f,
+          @location(0) @interpolate(flat) v: vec4f,
+          @location(1) @interpolate(flat) w: vec4f,
+        };
+        struct FragOut {
+          @location(0) v: vec4f,
+          @location(1) w: vec4f,
+        };
+        @vertex fn vs() -> VSOut {
+          var out: VSOut;
+          out.pos = vec4f(0.0, 0.0, 0.0, 1.0);
+          out.v = vec4f(m.a[0].x, m.a[1].y, m.a[2].z, m.b[3].y);
+          out.w = vec4f(m.c[0].w, m.c[1].x, m.b[1].x, m.a[2].x);
+          return out;
+        }
+        @fragment fn fs(@location(0) @interpolate(flat) v: vec4f,
+                        @location(1) @interpolate(flat) w: vec4f) -> FragOut {
+          var out: FragOut;
+          out.v = v;
+          out.w = w;
+          return out;
+        }`;
+
+      const uniform = new Float32Array(28);
+      uniform.set([1, 2, 3], 0);    // a column 0 (padded to 16 bytes)
+      uniform.set([4, 5, 6], 4);    // a column 1
+      uniform.set([7, 8, 9], 8);    // a column 2
+      uniform.set([10, 11], 12);    // b columns, tightly packed at 8 bytes each
+      uniform.set([12, 13], 14);
+      uniform.set([14, 15], 16);
+      uniform.set([16, 17], 18);
+      uniform.set([20, 21, 22, 23], 20); // c column 0
+      uniform.set([24, 25, 26, 27], 24); // c column 1
+
+      const bg = { 0: { 0: { uniform } } };
+      const [gpuV, gpuW] = await webgpuRender(shader, { bindGroups: bg, targetCount: 2 });
+
+      const dbg = new WgslDebug(shader);
+      test.true(dbg.debugVertex("vs", {}, bg), "debugVertex should succeed");
+      while (dbg.stepNext());
+      const out = dbg.getReturnValue();
+      test.equals(out.v, Array.from(gpuV), 1e-6, `v: ${out.v} != ${gpuV}`);
+      test.equals(out.w, Array.from(gpuW), 1e-6, `w: ${out.w} != ${gpuW}`);
+    });
+
     await test("storage buffer in the vertex stage matches the GPU", async function (test) {
       const shader = `
         @group(0) @binding(0) var<storage, read> weights: array<f32>;
