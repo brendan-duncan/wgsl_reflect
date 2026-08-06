@@ -11,7 +11,10 @@ export declare class Node {
     static _id: number;
     id: number;
     line: number;
+    start: number;
+    end: number;
     constructor();
+    get hasSpan(): boolean;
     get isAstNode(): boolean;
     get astNodeType(): string;
     search(callback: (node: Node) => void): void;

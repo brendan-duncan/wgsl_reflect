@@ -116,6 +116,28 @@ export class WgslParser {
     return n;
   }
 
+  // Record the source character range a node covers. `startToken` is the index
+  // of the node's first token, captured before descending; the last consumed
+  // token (_current - 1) is always the node's last, because this is called
+  // immediately after the node finishes parsing. Nested nodes are spanned by
+  // their own parse call, so an outer span always contains its children's.
+  _setSpan<T extends AST.Node | AST.Node[] | null>(n: T, startToken: number): T {
+    if (n === null || startToken >= this._tokens.length) {
+      return n;
+    }
+    const start = this._tokens[startToken].start;
+    const end = this._current > 0 ? this._tokens[this._current - 1].end : start;
+    // A statement rule can return more than one node; they share the one range.
+    const nodes = Array.isArray(n) ? n : [n];
+    for (const node of nodes) {
+      if (node instanceof AST.Node && node.start < 0) {
+        node.start = start;
+        node.end = end;
+      }
+    }
+    return n;
+  }
+
   _error(token: Token, message: string | null): Error {
     return new Error(`${message}. Line: ${token.line}`);
   }
@@ -207,7 +229,15 @@ export class WgslParser {
     return this._tokens[this._current - 1];
   }
 
+  // Funnel for module-scope declarations; spans function declarations, which is
+  // what source-rewriting consumers need in order to replace a whole function.
   _global_decl_or_directive(): AST.Statement | null {
+    while (this._match(TokenTypes.tokens.semicolon) && !this._isAtEnd());
+    const startToken = this._current;
+    return this._setSpan(this._global_decl_or_directiveImpl(), startToken);
+  }
+
+  _global_decl_or_directiveImpl(): AST.Statement | null {
     // semicolon
     // global_variable_decl semicolon
     // global_constant_decl semicolon
@@ -403,7 +433,17 @@ export class WgslParser {
     return statements;
   }
 
+  // Every statement in the language funnels through here, so this is the one
+  // place that needs to record source spans for them. Stray semicolons are
+  // skipped before the start token is captured so a statement's span starts at
+  // its own first token.
   _statement(): AST.Statement | AST.Statement[] | null {
+    while (this._match(TokenTypes.tokens.semicolon) && !this._isAtEnd());
+    const startToken = this._current;
+    return this._setSpan(this._statementImpl(), startToken);
+  }
+
+  _statementImpl(): AST.Statement | AST.Statement[] | null {
     // semicolon
     // return_statement semicolon
     // if_statement

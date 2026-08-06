@@ -15,10 +15,23 @@ export class Node {
 
   id: number;
   line: number;
+  /// Character offset of the first character of this node in the source, or -1
+  /// if unknown. Only nodes the parser explicitly spans (statements, global
+  /// declarations) carry offsets; expression nodes generally do not.
+  start: number;
+  /// Character offset one past the last character of this node, or -1.
+  end: number;
 
   constructor() {
     this.id = Node._id++;
     this.line = 0;
+    this.start = -1;
+    this.end = -1;
+  }
+
+  /// True if this node has a valid source character range.
+  get hasSpan(): boolean {
+    return this.start >= 0 && this.end >= this.start;
   }
 
   get isAstNode(): boolean {

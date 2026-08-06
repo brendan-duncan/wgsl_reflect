@@ -7,3 +7,4 @@ export * from "./wgsl_debug.js";
 export * from "./exec/race_detector.js";
 export * from "./exec/fragment_quad.js";
 export * from "./analysis/perf_analyzer.js";
+export * from "./analysis/cost_model.js";
