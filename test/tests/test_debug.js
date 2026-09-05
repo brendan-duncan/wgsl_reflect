@@ -218,6 +218,99 @@ export async function run() {
       test.equals(dbg.getVariableValue("r"), 3);
     });
 
+    await test("void return in compute entry point", async function (test) {
+      // Regression (issue #99): a bare `return;` evaluates to VoidData, which
+      // the step loop used to skip, so the entry point kept executing the
+      // statements after the return.
+      const shader = `
+      @group(0) @binding(0) var<storage, read_write> out: array<u32>;
+      @compute @workgroup_size(1)
+      fn main() {
+        if (true) { return; }
+        out[0] = 99u;
+      }`;
+      for (const stepInto of [true, false]) {
+        const out = new Uint32Array(1);
+        const dbg = new WgslDebug(shader);
+        dbg.debugWorkgroup("main", [0, 0, 0], 1, { 0: { 0: out } });
+        let steps = 0;
+        while (dbg.stepNext(stepInto)) {
+          if (++steps > 20) { throw new Error("step limit"); }
+        }
+        test.equals(out[0], 0);
+      }
+    });
+
+    await test("unconditional void return in compute entry point", async function (test) {
+      const shader = `
+      @group(0) @binding(0) var<storage, read_write> out: array<u32>;
+      @compute @workgroup_size(1)
+      fn main() {
+        out[0] = 1u;
+        return;
+        out[0] = 99u;
+      }`;
+      const out = new Uint32Array(1);
+      const dbg = new WgslDebug(shader);
+      dbg.debugWorkgroup("main", [0, 0, 0], 1, { 0: { 0: out } });
+      while (dbg.stepNext());
+      test.equals(out[0], 1);
+    });
+
+    await test("void return in stepped-into helper function", async function (test) {
+      // A `return;` inside a void helper called as a statement must return
+      // from the helper only; the caller continues after the call.
+      const shader = `
+      @group(0) @binding(0) var<storage, read_write> out: array<u32>;
+      fn helper(i: u32) {
+        if (i == 0u) { return; }
+        out[1] = 5u;
+      }
+      @compute @workgroup_size(1)
+      fn main() {
+        helper(0u);
+        out[0] = 1u;
+        helper(1u);
+        out[2] = 2u;
+      }`;
+      for (const stepInto of [true, false]) {
+        const out = new Uint32Array(3);
+        const dbg = new WgslDebug(shader);
+        dbg.debugWorkgroup("main", [0, 0, 0], 1, { 0: { 0: out } });
+        let steps = 0;
+        while (dbg.stepNext(stepInto)) {
+          if (++steps > 50) { throw new Error("step limit"); }
+        }
+        test.equals(out, [1, 5, 2]);
+      }
+    });
+
+    await test("discarded return value of stepped-into helper function", async function (test) {
+      // A value-returning function called as a statement (result unused):
+      // its `return` must unwind only the helper frame.
+      const shader = `
+      @group(0) @binding(0) var<storage, read_write> out: array<u32>;
+      fn helper() -> u32 {
+        out[1] = 5u;
+        return 1u;
+      }
+      @compute @workgroup_size(1)
+      fn main() {
+        helper();
+        out[0] = 1u;
+      }`;
+      for (const stepInto of [true, false]) {
+        const out = new Uint32Array(2);
+        const dbg = new WgslDebug(shader);
+        dbg.debugWorkgroup("main", [0, 0, 0], 1, { 0: { 0: out } });
+        let steps = 0;
+        while (dbg.stepNext(stepInto)) {
+          if (++steps > 50) { throw new Error("step limit"); }
+        }
+        test.equals(out, [1, 5]);
+      }
+    });
+
     await test("break", async function (test) {
       const shader = `fn foo() -> i32 {
         let j = 0;

@@ -810,6 +810,7 @@ export class WgslDebug {
                 }
 
                 fnState.parentCallExpr = node;
+                fnState.isFunctionFrame = true;
                 stack.states.push(fnState);
                 fnState.context.currentFunctionName = fn.name;
 
@@ -831,6 +832,7 @@ export class WgslDebug {
                             fnState.context.createVariable(arg.name, value, arg);
                         }
 
+                        fnState.isFunctionFrame = true;
                         stack.states.push(fnState);
                         fnState.context.currentFunctionName = fn.name;
 
@@ -858,17 +860,19 @@ export class WgslDebug {
                 }
 
                 const res = this._exec.execStatement(node, state.context);
-                if (res !== null && res !== undefined && !(res instanceof VoidData)) {
-                    // A `return` executed. Find the frame it returns from: either
-                    // a called function frame (parentCallExpr set) or the
-                    // top-level entry frame (no parent).
+                if (res !== null && res !== undefined) {
+                    // A `return` executed. A bare `return;` evaluates to VoidData
+                    // and must unwind just like a valued return.
+                    const isVoid = res instanceof VoidData;
                     let fnFrame = state;
-                    while (fnFrame.parentCallExpr === null && fnFrame.parent !== null) {
+                    while (!fnFrame.isFunctionFrame && fnFrame.parent !== null) {
                         fnFrame = fnFrame.parent;
                     }
-                    if (fnFrame.parentCallExpr !== null) {
+                    if (isVoid) {
+                        // Nothing to store.
+                    } else if (fnFrame.parentCallExpr !== null) {
                         fnFrame.parentCallExpr.setCachedReturnValue(res);
-                    } else if (!this._discarded) {
+                    } else if (fnFrame.parent === null && !this._discarded) {
                         // No enclosing CallExpr: this is the return of a
                         // top-level entry point (e.g. a @vertex/@fragment stage).
                         // Surface it via returnValue rather than dropping it.

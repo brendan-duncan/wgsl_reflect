@@ -8,6 +8,7 @@ export class StackFrame {
     commands: Command[] = [];
     current: number = 0;
     parentCallExpr: CallExpr | null = null;
+    isFunctionFrame: boolean = false;
 
     constructor(context: ExecContext, parent?: StackFrame) {
         this.context = context;

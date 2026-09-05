@@ -7,6 +7,7 @@ export declare class StackFrame {
     commands: Command[];
     current: number;
     parentCallExpr: CallExpr | null;
+    isFunctionFrame: boolean;
     constructor(context: ExecContext, parent?: StackFrame);
     get isAtEnd(): boolean;
     getNextCommand(): Command | null;
