@@ -10,7 +10,7 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/brendan-duncan/wgsl_reflect"
+    "url": "git+https://github.com/brendan-duncan/wgsl_reflect.git"
   },
   "homepage": "https://github.com/brendan-duncan/wgsl_reflect",
   "bugs": {
@@ -43,7 +43,6 @@
     "javascript",
     "html5"
   ],
-
   "devDependencies": {
     "rollup": "^2.60.0",
     "tslib": "^2.6.1",
