@@ -7,6 +7,34 @@ function _newWgslExec(code) {
 
 export async function run() {
     await group("WgslExec", async function () {
+        await test("sampler binding in dispatchWorkgroups", async function (test) {
+            // Regression (issue #100): a {sampler: descriptor} bind group entry
+            // was ignored by dispatchWorkgroups (treated as a storage buffer),
+            // so comparison samplers fell back to defaults. WgslDebug bound it.
+            const shader = `
+                @group(0) @binding(0) var tex: texture_depth_2d;
+                @group(0) @binding(1) var cmp: sampler_comparison;
+                @group(0) @binding(2) var<storage, read_write> out: array<f32>;
+                @compute @workgroup_size(1)
+                fn main() {
+                    out[0] = textureSampleCompareLevel(tex, cmp, vec2f(0.5), 0.5);
+                }`;
+            const depth = new Float32Array([0.25]);
+            const descriptor = { size: [1, 1, 1], format: "depth32float" };
+            const run = (compare) => {
+                const out = new Float32Array([-1]);
+                const bg = { 0: {
+                    0: { texture: [depth.buffer], descriptor },
+                    1: { sampler: { compare, magFilter: "nearest", minFilter: "nearest" } },
+                    2: { uniform: out.buffer },
+                } };
+                _newWgslExec(shader).dispatchWorkgroups("main", 1, bg);
+                return out[0];
+            };
+            test.equals(run("greater"), 1);    // 0.5 > 0.25 -> pass
+            test.equals(run("less-equal"), 0); // 0.5 <= 0.25 -> fail
+        });
+
         await test("swizzle on a call result", async function (test) {
             // Regression: a postfix on a call expression (user function or
             // builtin) was dropped, so `three().wzy` evaluated as the full

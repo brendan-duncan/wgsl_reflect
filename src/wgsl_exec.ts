@@ -3,7 +3,7 @@ import { Node, Type, TemplateType, Return, Break, Continue, Let, Var, Const,
     Call, Diagnostic, Alias, BinaryOperator, LiteralExpr, Expression,
     VariableExpr, CallExpr, CreateExpr, ConstExpr, BitcastExpr, UnaryOperator,
     ArrayIndex, StringExpr, Function, Switch, SwitchCase, Case, Default, DefaultSelector } from "./wgsl_ast.js";
-import { Data, TypedData, TextureData, ScalarData, VectorData, MatrixData, PointerData, VoidData, ControlData } from "./wgsl_ast.js";
+import { Data, TypedData, TextureData, SamplerData, ScalarData, VectorData, MatrixData, PointerData, VoidData, ControlData } from "./wgsl_ast.js";
 import { Reflect } from "./reflect/reflect.js";
 import { TypeInfo, StructInfo, ArrayInfo, TemplateInfo } from "./reflect/info.js";
 import { ExecContext, FunctionRef } from "./exec/exec_context.js";
@@ -196,6 +196,9 @@ export class WgslExec extends ExecInterface {
                                     const textureData = new TextureData(entry.texture, this.getTypeInfo(node.type), entry.descriptor,
                                             entry.view ?? null);
                                     v.value = textureData;
+                                } else if (entry.sampler !== undefined) {
+                                    // Sampler descriptor (same form WgslDebug accepts)
+                                    v.value = new SamplerData(entry.sampler, this.getTypeInfo(node.type));
                                 } else if (entry.uniform !== undefined) {
                                     // Uniform buffer
                                     v.value = new TypedData(entry.uniform, this.getTypeInfo(node.type));
