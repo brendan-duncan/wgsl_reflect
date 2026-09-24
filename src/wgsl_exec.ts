@@ -1,6 +1,6 @@
 import { Node, Type, TemplateType, Return, Break, Continue, Let, Var, Const,
     If, For, While, Loop, Continuing, Assign, Increment, Struct, Override, ArrayType,
-    Call, Diagnostic, Alias, BinaryOperator, LiteralExpr, Expression,
+    Call, Diagnostic, Enable, Requires, Alias, BinaryOperator, LiteralExpr, Expression,
     VariableExpr, CallExpr, CreateExpr, ConstExpr, BitcastExpr, UnaryOperator,
     ArrayIndex, StringExpr, Function, Switch, SwitchCase, Case, Default, DefaultSelector } from "./wgsl_ast.js";
 import { Data, TypedData, TextureData, SamplerData, ScalarData, VectorData, MatrixData, PointerData, VoidData, ControlData } from "./wgsl_ast.js";
@@ -214,14 +214,17 @@ export class WgslExec extends ExecInterface {
         }
 
         const workgroupId = new VectorData([0, 0, 0], vec3u);
+        const workgroupIndex = new ScalarData(0, this.getTypeInfo("u32"));
         context.setVariable("@workgroup_id", workgroupId);
+        context.setVariable("@workgroup_index", workgroupIndex);
 
-        for (let z = 0; z < depth; ++z) {
+        for (let z = 0, wi = 0; z < depth; ++z) {
             for (let y = 0; y < height; ++y) {
-                for (let x = 0; x < width; ++x) {
+                for (let x = 0; x < width; ++x, ++wi) {
                     workgroupId.data[0] = x;
                     workgroupId.data[1] = y;
                     workgroupId.data[2] = z;
+                    workgroupIndex.value = wi;
                     this._dispatchWorkgroup(f, [x, y, z], context);
                 }
             }
@@ -282,6 +285,8 @@ export class WgslExec extends ExecInterface {
         } else if (stmt instanceof Diagnostic) {
             return null; // Nothing to do here.
         } else if (stmt instanceof Alias) {
+            return null; // Nothing to do here.
+        } else if (stmt instanceof Enable || stmt instanceof Requires) {
             return null; // Nothing to do here.
         } else {
             console.error(`Invalid statement type.`, stmt, `Line ${stmt.line}`);
@@ -395,9 +400,16 @@ export class WgslExec extends ExecInterface {
         const localId = new VectorData([0, 0, 0], vec3u);
         const globalId = new VectorData([0, 0, 0], vec3u);
         const localIndex = new ScalarData(0, u32);
+        const globalIndex = new ScalarData(0, u32);
         context.setVariable("@local_invocation_id", localId);
         context.setVariable("@global_invocation_id", globalId);
         context.setVariable("@local_invocation_index", localIndex);
+        context.setVariable("@global_invocation_index", globalIndex);
+        this._setSubgroupBuiltins(localIndex, width * height * depth, context);
+
+        const numWorkgroups = context.getVariableValue("@num_workgroups");
+        const gridWidth = width * (numWorkgroups instanceof VectorData ? numWorkgroups.data[0] : 1);
+        const gridHeight = height * (numWorkgroups instanceof VectorData ? numWorkgroups.data[1] : 1);
 
         for (let z = 0, li = 0; z < depth; ++z) {
             for (let y = 0; y < height; ++y) {
@@ -409,11 +421,22 @@ export class WgslExec extends ExecInterface {
                     globalId.data[1] = y + workgroup_id[1] * workgroupSize[1];
                     globalId.data[2] = z + workgroup_id[2] * workgroupSize[2];
                     localIndex.value = li;
+                    globalIndex.value = globalId.data[0] + (globalId.data[1] + globalId.data[2] * gridHeight) * gridWidth;
 
                     this._dispatchExec(f, context);
                 }
             }
         }
+    }
+
+    // Subgroup builtins, following the single-lane subgroup model the subgroup
+    // functions use (see BuiltinFunctions): every invocation is its own subgroup.
+    _setSubgroupBuiltins(localIndex: ScalarData, workgroupInvocations: number, context: ExecContext): void {
+        const u32 = this.getTypeInfo("u32");
+        context.createVariable("@subgroup_size", new ScalarData(1, u32));
+        context.createVariable("@subgroup_invocation_id", new ScalarData(0, u32));
+        context.createVariable("@subgroup_id", localIndex);
+        context.createVariable("@num_subgroups", new ScalarData(workgroupInvocations, u32));
     }
 
     _dispatchExec(f: FunctionRef, context: ExecContext): void {
@@ -553,8 +576,20 @@ export class WgslExec extends ExecInterface {
         let postfix: Expression | null = null;
 
         if (node.variable instanceof UnaryOperator) {
+            let assignValue: Data | null = null;
+            // (*p).xy = ..., (*p).zw += ...
+            if (node.variable.operator === "*" && node.variable.postfix) {
+                const ptr = this._getVariableData(node.variable.right, context);
+                if (ptr instanceof PointerData) {
+                    assignValue = this.evalExpression(node.value, context);
+                    if (this._assignVectorComponents(ptr.reference, node.variable.postfix, assignValue, node, context)) {
+                        return;
+                    }
+                }
+            }
+
             const varData = this._getVariableData(node.variable, context);
-            const assignValue = this.evalExpression(node.value, context);
+            assignValue ??= this.evalExpression(node.value, context);
             const op = node.operator;
 
             if (op === "=") {
@@ -618,7 +653,9 @@ export class WgslExec extends ExecInterface {
                     return;
                 }
 
-                let postfix = node.variable.postfix;
+                // The postfix is applied to the pointer's reference below, the same
+                // as for a variable, so swizzles and TypedData members write back.
+                postfix = node.variable.postfix;
                 if (!postfix) {
                     let rNode = node.variable.right;
                     while (rNode instanceof UnaryOperator) {
@@ -628,9 +665,6 @@ export class WgslExec extends ExecInterface {
                         }
                         rNode = rNode.right;
                     }
-                }
-                if (postfix) {
-                    v = v.getSubData(this, postfix, context);
                 }
             }
         } else {
@@ -654,6 +688,10 @@ export class WgslExec extends ExecInterface {
         }
 
         const value = this.evalExpression(node.value, context);
+
+        if (postfix && this._assignVectorComponents(v, postfix, value, node, context)) {
+            return;
+        }
 
         const op = node.operator;
         if (op !== "=") {
@@ -995,6 +1033,103 @@ export class WgslExec extends ExecInterface {
             }
         }
         return;
+    }
+
+    // Assigns through vector component accesses at the end of a postfix chain:
+    // v.xy = ..., s.v.zw += ..., m[1].yx = ..., v.wz[0] = ... (swizzle_assignment).
+    // The postfix is followed down to the vector in memory, then the swizzles and
+    // indices after it are resolved to component indices of that vector, and only
+    // those components are written. Returns false, having written nothing, if the
+    // postfix doesn't end in a vector component access.
+    _assignVectorComponents(target: Data, postfix: Expression, value: Data | null, node: Assign, context: ExecContext): boolean {
+        let vec: Data | null = target;
+        let tail: Expression | null = postfix;
+        while (tail !== null && !(vec instanceof VectorData)) {
+            // Step one postfix at a time, since getSubData follows the whole chain.
+            // A swizzle is only stepped through for a struct member; on anything
+            // else it would produce a copy of the vector rather than a view of it.
+            let step: Expression;
+            if (tail instanceof StringExpr && vec.typeInfo instanceof StructInfo) {
+                step = new StringExpr(tail.value);
+            } else if (tail instanceof ArrayIndex && !(vec instanceof ScalarData)) {
+                step = new ArrayIndex(tail.index);
+            } else {
+                return false;
+            }
+            vec = vec.getSubData(this, step, context);
+            if (vec === null) {
+                return false;
+            }
+            tail = tail.postfix;
+        }
+        if (tail === null || !(vec instanceof VectorData)) {
+            return false;
+        }
+
+        let indices = Array.from(vec.data.keys());
+        for (let p: Expression | null = tail; p !== null; p = p.postfix) {
+            if (p instanceof StringExpr) {
+                const components: number[] = [];
+                for (const c of p.value) {
+                    let i = "xyzw".indexOf(c);
+                    if (i < 0) {
+                        i = "rgba".indexOf(c);
+                    }
+                    if (i < 0 || i >= indices.length) {
+                        console.error(`Invalid swizzle ${p.value}. Line ${node.line}`);
+                        return true;
+                    }
+                    components.push(indices[i]);
+                }
+                indices = components;
+            } else if (p instanceof ArrayIndex) {
+                const idx = this.evalExpression(p.index, context);
+                if (!(idx instanceof ScalarData) || idx.value < 0 || idx.value >= indices.length) {
+                    console.error(`Invalid vector index. Line ${node.line}`);
+                    return true;
+                }
+                indices = [indices[idx.value]];
+            } else {
+                return false;
+            }
+        }
+
+        const op = node.operator;
+        let rhs: number[] | null = null;
+        if (value instanceof ScalarData && (indices.length === 1 || op !== "=")) {
+            rhs = indices.map(() => value.value);
+        } else if (value instanceof VectorData && value.data.length === indices.length) {
+            rhs = Array.from(value.data);
+        }
+        if (rhs === null) {
+            console.error(`Invalid assignment. Line ${node.line}`);
+            return true;
+        }
+
+        const data = vec.data;
+        const unsigned = data instanceof Uint32Array;
+        for (let i = 0; i < indices.length; ++i) {
+            const k = indices[i];
+            data[k] = op === "=" ? rhs[i] : this._compoundAssignOp(op, data[k], rhs[i], unsigned, node);
+        }
+        return true;
+    }
+
+    _compoundAssignOp(op: string, a: number, b: number, unsigned: boolean, node: Node): number {
+        switch (op) {
+            case "+=": return a + b;
+            case "-=": return a - b;
+            case "*=": return a * b;
+            case "/=": return a / b;
+            case "%=": return a % b;
+            case "&=": return a & b;
+            case "|=": return a | b;
+            case "^=": return a ^ b;
+            case "<<=": return a << b;
+            case ">>=": return unsigned ? a >>> b : a >> b;
+        }
+        console.error(`Invalid operator ${op}. Line ${node.line}`);
+        return a;
     }
 
     _function(node: Function, context: ExecContext): void {

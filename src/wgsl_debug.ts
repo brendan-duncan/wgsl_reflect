@@ -339,15 +339,18 @@ export class WgslDebug {
         this._bindResources(bindGroups, kernelRefl, context);
 
         const workgroupId = new VectorData([0, 0, 0], vec3u);
+        const workgroupIndex = new ScalarData(0, this._exec.typeInfo["u32"]);
         context.setVariable("@workgroup_id", workgroupId);
+        context.setVariable("@workgroup_index", workgroupIndex);
 
         let found = false;
-        for (let z = 0; z < depth && !found; ++z) {
+        for (let z = 0, wi = 0; z < depth && !found; ++z) {
             for (let y = 0; y < height && !found; ++y) {
-                for (let x = 0; x < width && !found; ++x) {
+                for (let x = 0; x < width && !found; ++x, ++wi) {
                     workgroupId.data[0] = x;
                     workgroupId.data[1] = y;
                     workgroupId.data[2] = z;
+                    workgroupIndex.value = wi;
                     if (this._dispatchWorkgroup(kernelFn, [x, y, z], context)) {
                         found = true;
                         break;
@@ -1069,9 +1072,16 @@ export class WgslDebug {
         const localId = new VectorData([0, 0, 0], vec3u);
         const globalId = new VectorData([0, 0, 0], vec3u);
         const localIndex = new ScalarData(0, u32);
+        const globalIndex = new ScalarData(0, u32);
         context.setVariable("@local_invocation_id", localId);
         context.setVariable("@global_invocation_id", globalId);
         context.setVariable("@local_invocation_index", localIndex);
+        context.setVariable("@global_invocation_index", globalIndex);
+        this._exec._setSubgroupBuiltins(localIndex, width * height * depth, context);
+
+        const numWorkgroups = context.getVariableValue("@num_workgroups");
+        const gridWidth = width * (numWorkgroups instanceof VectorData ? numWorkgroups.data[0] : 1);
+        const gridHeight = height * (numWorkgroups instanceof VectorData ? numWorkgroups.data[1] : 1);
 
         let found = false;
         for (let z = 0, li = 0; z < depth && !found; ++z) {
@@ -1091,6 +1101,7 @@ export class WgslDebug {
                         globalId.data[1] = gy;
                         globalId.data[2] = gz;
                         localIndex.value = li;
+                        globalIndex.value = gx + (gy + gz * gridHeight) * gridWidth;
                         found = true;
                         break;
                     }

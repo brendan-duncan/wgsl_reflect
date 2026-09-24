@@ -117,6 +117,8 @@ export declare class TokenTypes {
         r8snorm: TokenType;
         r8uint: TokenType;
         r8sint: TokenType;
+        r16unorm: TokenType;
+        r16snorm: TokenType;
         r16uint: TokenType;
         r16sint: TokenType;
         r16float: TokenType;
@@ -127,6 +129,8 @@ export declare class TokenTypes {
         r32uint: TokenType;
         r32sint: TokenType;
         r32float: TokenType;
+        rg16unorm: TokenType;
+        rg16snorm: TokenType;
         rg16uint: TokenType;
         rg16sint: TokenType;
         rg16float: TokenType;
@@ -138,10 +142,13 @@ export declare class TokenTypes {
         bgra8unorm: TokenType;
         bgra8unorm_srgb: TokenType;
         rgb10a2unorm: TokenType;
-        rg11b10float: TokenType;
+        rgb10a2uint: TokenType;
+        rg11b10ufloat: TokenType;
         rg32uint: TokenType;
         rg32sint: TokenType;
         rg32float: TokenType;
+        rgba16unorm: TokenType;
+        rgba16snorm: TokenType;
         rgba16uint: TokenType;
         rgba16sint: TokenType;
         rgba16float: TokenType;

@@ -417,8 +417,12 @@ export function detectRaces(
 
     const wgSize = workgroupSize(kernelFn.node, context);
     const workgroupId = new VectorData([0, 0, 0], vec3u);
+    const workgroupIndex = new ScalarData(0, u32);
     context.setVariable("@workgroup_id", workgroupId);
+    context.setVariable("@workgroup_index", workgroupIndex);
     context.setVariable("@workgroup_size", new VectorData(wgSize, vec3u));
+    const gridWidth = wgSize[0] * grid[0];
+    const gridHeight = wgSize[1] * grid[1];
 
     const races: RaceReport[] = [];
     const errors: string[] = [];
@@ -432,6 +436,7 @@ export function detectRaces(
                 workgroupId.data[0] = wx;
                 workgroupId.data[1] = wy;
                 workgroupId.data[2] = wz;
+                workgroupIndex.value = wx + (wy + wz * grid[1]) * grid[0];
 
                 const tracker = new MemoryTracker();
                 bindResources(exec, context, kernelRefl, bindGroups, tracker);
@@ -441,10 +446,12 @@ export function detectRaces(
                 for (let lz = 0, li = 0; lz < wgSize[2]; ++lz) {
                     for (let ly = 0; ly < wgSize[1]; ++ly) {
                         for (let lx = 0; lx < wgSize[0]; ++lx, ++li) {
+                            const globalId = [lx + wx * wgSize[0], ly + wy * wgSize[1], lz + wz * wgSize[2]];
                             invocations.push(makeInvocation(
                                 debug, context, kernelFn, vec3u, u32,
-                                li, [lx, ly, lz],
-                                [lx + wx * wgSize[0], ly + wy * wgSize[1], lz + wz * wgSize[2]]));
+                                li, [lx, ly, lz], globalId,
+                                globalId[0] + (globalId[1] + globalId[2] * gridHeight) * gridWidth,
+                                wgSize[0] * wgSize[1] * wgSize[2]));
                         }
                     }
                 }
@@ -466,6 +473,7 @@ function makeInvocation(
     debug: WgslDebug, base: ExecContext, kernelFn: any,
     vec3u: TypeInfo, u32: TypeInfo,
     index: number, localId: number[], globalId: number[],
+    globalIndex: number, workgroupInvocations: number,
 ): Invocation {
     // clone() makes a child context: locals and the per-lane builtins live here,
     // while storage/workgroup buffers and functions resolve through the parent —
@@ -473,7 +481,10 @@ function makeInvocation(
     const ctx = base.clone();
     ctx.createVariable("@local_invocation_id", new VectorData([...localId], vec3u));
     ctx.createVariable("@global_invocation_id", new VectorData([...globalId], vec3u));
-    ctx.createVariable("@local_invocation_index", new ScalarData(index, u32));
+    const localIndex = new ScalarData(index, u32);
+    ctx.createVariable("@local_invocation_index", localIndex);
+    ctx.createVariable("@global_invocation_index", new ScalarData(globalIndex, u32));
+    debug.exec._setSubgroupBuiltins(localIndex, workgroupInvocations, ctx);
 
     // Bind the kernel's @builtin parameters to this lane's builtin variables.
     // TODO: handle a single struct parameter carrying multiple @builtins.

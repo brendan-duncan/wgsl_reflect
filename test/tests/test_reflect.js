@@ -1450,6 +1450,16 @@ export async function run() {
       test.equals(groups[0][0].type.access, "read_write");
     });
 
+    await test("storage texture texture_formats_tier1 formats", function (test) {
+      const formats = ["rgba16unorm", "rgba16snorm", "rg8unorm", "rg8snorm", "rg8uint", "rg8sint",
+        "rg16unorm", "rg16snorm", "rg16uint", "rg16sint", "rg16float", "r8unorm", "r8snorm",
+        "r8uint", "r8sint", "r16unorm", "r16snorm", "r16uint", "r16sint", "r16float",
+        "rgb10a2unorm", "rgb10a2uint", "rg11b10ufloat"];
+      const reflect = new WgslReflect(formats.map((f, i) =>
+        `@group(0) @binding(${i}) var t${i}: texture_storage_2d<${f}, write>;`).join("\n"));
+      test.equals(reflect.storage.map((s) => s.type.format.name), formats);
+    });
+
     await test("access mode", function (test) {
       const reflect = new WgslReflect(`
       struct ReadonlyStorageBufferBlockName {

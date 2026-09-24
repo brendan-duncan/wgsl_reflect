@@ -1,5 +1,5 @@
-import { Node, Type, Let, Var, Const, If, For, While, Loop, Assign, Increment, Override, Call, BinaryOperator, LiteralExpr, VariableExpr, CallExpr, CreateExpr, ConstExpr, BitcastExpr, UnaryOperator, Function, Switch } from "./wgsl_ast.js";
-import { Data, ControlData } from "./wgsl_ast.js";
+import { Node, Type, Let, Var, Const, If, For, While, Loop, Assign, Increment, Override, Call, BinaryOperator, LiteralExpr, Expression, VariableExpr, CallExpr, CreateExpr, ConstExpr, BitcastExpr, UnaryOperator, Function, Switch } from "./wgsl_ast.js";
+import { Data, ScalarData, ControlData } from "./wgsl_ast.js";
 import { Reflect } from "./reflect/reflect.js";
 import { TypeInfo } from "./reflect/info.js";
 import { ExecContext, FunctionRef } from "./exec/exec_context.js";
@@ -26,6 +26,7 @@ export declare class WgslExec extends ExecInterface {
     getTypeInfo(type: Type | string): TypeInfo | null;
     _setOverrides(constants: Object, context: ExecContext): void;
     _dispatchWorkgroup(f: FunctionRef, workgroup_id: number[], context: ExecContext): void;
+    _setSubgroupBuiltins(localIndex: ScalarData, workgroupInvocations: number, context: ExecContext): void;
     _dispatchExec(f: FunctionRef, context: ExecContext): void;
     getVariableName(node: Node, context: ExecContext): string | null;
     _execStatements(statements: Node[], context: ExecContext): Data | null;
@@ -33,6 +34,8 @@ export declare class WgslExec extends ExecInterface {
     _increment(node: Increment, context: ExecContext): void;
     _getVariableData(node: Node, context: ExecContext): Data | null;
     _assign(node: Assign, context: ExecContext): void;
+    _assignVectorComponents(target: Data, postfix: Expression, value: Data | null, node: Assign, context: ExecContext): boolean;
+    _compoundAssignOp(op: string, a: number, b: number, unsigned: boolean, node: Node): number;
     _function(node: Function, context: ExecContext): void;
     _const(node: Const, context: ExecContext): void;
     _override(node: Override, context: ExecContext): void;

@@ -1,6 +1,18 @@
 # Changelog
 
-## 1.6.0 - 2026-09-05
+## 1.7.0
+
+### Added
+- `texture_formats_tier1` storage texel formats (`rgba16unorm`, `r16snorm`, `rgb10a2uint`, ...).
+- `swizzle_assignment`: chained, indexed, and compound swizzle assignments (`v.wz[0] = x`, `v.zw += y`).
+- `WgslExec`/`WgslDebug` set the `global_invocation_index`, `workgroup_index`, `subgroup_id`, `num_subgroups`, `subgroup_size`, and `subgroup_invocation_id` builtins.
+
+### Fixed
+- The `rg11b10ufloat` texel format was spelled `rg11b10float`.
+- Swizzle writes to struct members, array elements, matrix columns, and through `(*p)` were lost.
+- `WgslExec` logged an error for `enable` and `requires` directives.
+
+## 1.6.0
 
 ### Added
 - `FunctionInfo.workgroupSize` reflects `@workgroup_size`, resolving consts and override defaults.

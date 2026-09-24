@@ -76,6 +76,79 @@ export async function run() {
             test.equals(Array.from(dataBuffer), [8, -4, 1]);
         });
 
+        await test("swizzle assignment", async function (test) {
+            // swizzle_assignment: multi-component swizzles, chained swizzles and
+            // indexed swizzles as assignment targets, including compound ops and
+            // targets reached through pointers, matrix columns and struct members.
+            const shader = `
+                struct S { a: u32, v: vec4u }
+                @group(0) @binding(0) var<storage, read_write> data: array<vec4u, 8>;
+                @group(0) @binding(1) var<storage, read_write> s: S;
+                @compute @workgroup_size(1) fn main() {
+                    var v = vec4u(1, 2, 3, 4);
+                    v.zw += vec2u(10);
+                    data[0] = v;
+                    v = vec4u(1, 2, 3, 4);
+                    v.wzyx.xy = vec2u(7, 8);
+                    data[1] = v;
+                    v = vec4u(1, 2, 3, 4);
+                    v.wz[1] = 9u;
+                    v.xy *= 2u;
+                    data[2] = v;
+                    v = vec4u(1, 2, 3, 4);
+                    let p = &v;
+                    p.yx = vec2u(5, 6);
+                    (*p).zw -= vec2u(1);
+                    data[3] = v;
+                    var m = mat2x2f(1, 2, 3, 4);
+                    m[1].yx = vec2f(7, 8);
+                    data[4] = vec4u(vec4f(m[0], m[1]));
+                    data[5] = vec4u(1, 2, 3, 4);
+                    data[5].gr = vec2u(6, 7);
+                    data[5].zw += vec2u(1);
+                    s.v = vec4u(1, 2, 3, 4);
+                    s.v.zy = vec2u(8, 9);
+                    s.v.wz[0] = 5u;
+                }`;
+            const dataBuffer = new Uint32Array(8 * 4);
+            const sBuffer = new Uint32Array(8);
+            const wgsl = _newWgslExec(shader);
+            wgsl.dispatchWorkgroups("main", 1, {0: {0: dataBuffer, 1: sBuffer}});
+            test.equals(Array.from(dataBuffer.slice(0, 4)), [1, 2, 13, 14]);
+            test.equals(Array.from(dataBuffer.slice(4, 8)), [1, 2, 8, 7]);
+            test.equals(Array.from(dataBuffer.slice(8, 12)), [2, 4, 9, 4]);
+            test.equals(Array.from(dataBuffer.slice(12, 16)), [6, 5, 2, 3]);
+            test.equals(Array.from(dataBuffer.slice(16, 20)), [1, 2, 8, 7]);
+            test.equals(Array.from(dataBuffer.slice(20, 24)), [7, 6, 4, 5]);
+            test.equals(Array.from(sBuffer.slice(4, 8)), [1, 9, 8, 5]);
+        });
+
+        await test("linear_indexing and subgroup_id builtins", async function (test) {
+            const shader = `
+                enable subgroups;
+                struct Out { gi: u32, wi: u32, sid: u32, ns: u32, ssz: u32, sii: u32 }
+                @group(0) @binding(0) var<storage, read_write> data: array<Out, 24>;
+                @compute @workgroup_size(2, 2) fn main(
+                        @builtin(global_invocation_id) gid: vec3u,
+                        @builtin(global_invocation_index) gi: u32,
+                        @builtin(workgroup_index) wi: u32,
+                        @builtin(subgroup_id) sid: u32,
+                        @builtin(num_subgroups) ns: u32,
+                        @builtin(subgroup_size) ssz: u32,
+                        @builtin(subgroup_invocation_id) sii: u32) {
+                    // Grid is 6 x 4 invocations (3 x 2 workgroups of 2 x 2).
+                    data[gid.x + gid.y * 6] = Out(gi, wi, sid, ns, ssz, sii);
+                }`;
+            const dataBuffer = new Uint32Array(24 * 6);
+            const wgsl = _newWgslExec(shader);
+            wgsl.dispatchWorkgroups("main", [3, 2], {0: {0: dataBuffer}});
+            const at = (x, y) => Array.from(dataBuffer.slice((x + y * 6) * 6, (x + y * 6) * 6 + 6));
+            test.equals(at(0, 0), [0, 0, 0, 4, 1, 0]);
+            test.equals(at(3, 0), [3, 1, 1, 4, 1, 0]);
+            test.equals(at(5, 3), [23, 5, 3, 4, 1, 0]);
+            test.equals(at(2, 1), [8, 1, 2, 4, 1, 0]);
+        });
+
         await test("component-wise matrix ops keep matrix type", async function (test) {
             // Regression: mat + mat, mat * scalar and scalar * buffer-backed
             // matrices built VectorData with a matrix type ("VectorData:
