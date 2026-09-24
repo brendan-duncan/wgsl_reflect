@@ -180,6 +180,11 @@ const BuiltinFunctionNames = new Set([
   "atomicXor",
   "atomicExchange",
   "atomicCompareExchangeWeak",
+  "atomicStoreMin",
+  "atomicStoreMax",
+  "bufferView",
+  "bufferArrayView",
+  "bufferLength",
   "pack4x8snorm",
   "pack4x8unorm",
   "pack4xI8",
@@ -959,6 +964,30 @@ export class ForwardType extends Type {
 }
 
 /**
+ * buffer<N> or buffer (buffer_view): opaque storage reinterpreted with
+ * bufferView/bufferArrayView.
+ * @class BufferType
+ * @extends Type
+ * @category AST
+ */
+export class BufferType extends Type {
+  size: number; // Bytes; 0 for a runtime-sized buffer.
+
+  constructor(size: number) {
+    super("buffer");
+    this.size = size;
+  }
+
+  get astNodeType(): string {
+    return "buffer";
+  }
+
+  getTypeName(): string {
+    return this.size > 0 ? `buffer<${this.size}>` : "buffer";
+  }
+}
+
+/**
  * @class StructType
  * @extends Type
  * @category AST
@@ -1274,6 +1303,8 @@ export class CreateExpr extends Expression {
 export class CallExpr extends Expression {
   name: string;
   args: Expression[] | null;
+  // The explicit template type of bufferView<T>(...) and bufferArrayView<T>(...).
+  templateType: Type | null = null;
   cachedReturnValue: unknown = null;
 
   constructor(name: string, args: Expression[] | null) {
@@ -2162,7 +2193,15 @@ export class VectorData extends Data {
       } else if (typename === "vec2b" || typename === "vec3b" || typename === "vec4b") {
         this.data = new Int32Array(value);
       } else if (typename === "vec2" || typename === "vec3" || typename === "vec4") {
-        this.data = new Float32Array(value);
+        // vec2u etc. resolve to a vecN template, so the format picks the storage.
+        const format = this.typeInfo instanceof TemplateInfo ? this.typeInfo.format?.name : undefined;
+        if (format === "u32") {
+          this.data = new Uint32Array(value);
+        } else if (format === "i32" || format === "bool") {
+          this.data = new Int32Array(value);
+        } else {
+          this.data = new Float32Array(value);
+        }
       } else {
         console.error(`VectorData: Invalid type ${typename}`);
       }
@@ -2779,7 +2818,10 @@ export class TypedData extends Data {
   }
 
   getSubData(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null {
-    if (postfix === null) {
+    // A module-scope atomic (var<storage> a: atomic<u32>) has no postfix, but the
+    // atomic builtins still need its value, resolved below like a struct member.
+    const isAtomic = this.typeInfo instanceof TemplateInfo && this.typeInfo.name === "atomic";
+    if (postfix === null && !isAtomic) {
       return this;
     }
 
@@ -3009,6 +3051,10 @@ export class TypedData extends Data {
         return new ScalarData(new Uint32Array(this.buffer, offset, 1)[0], typeInfo.format, this);
       } else if (typeInfo.format?.name === "i32") {
         return new ScalarData(new Int32Array(this.buffer, offset, 1)[0], typeInfo.format, this);
+      } else if (typeInfo.format?.name === "vec2u" ||
+          (typeInfo.format?.name === "vec2" && (typeInfo.format as TemplateInfo).format?.name === "u32")) {
+        // atomic<vec2<u32>> (atomic_vec2u_min_max), viewed in place.
+        return new VectorData(new Uint32Array(this.buffer, offset, 2), exec.getTypeInfo("vec2u")!, this);
       } else {
         console.error(`GetDataValue: Invalid atomic format ${typeInfo.format?.name}`);
         return null;
@@ -3355,12 +3401,20 @@ export class TextureData extends Data {
     return [map[sw[0]] ?? rgba[0], map[sw[1]] ?? rgba[1], map[sw[2]] ?? rgba[2], map[sw[3]] ?? rgba[3]];
   }
 
+  // The bytes of a mip level. A typed array is viewed in place rather than
+  // copied, so writes reach the caller's data.
+  _mipBytes(mipLevel: number): Uint8Array {
+    const buffer = this.data[mipLevel];
+    return ArrayBuffer.isView(buffer)
+        ? new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength)
+        : new Uint8Array(buffer);
+  }
+
   getPixel(x: number, y: number, z: number = 0, mipLevel: number = 0): number[] | null {
     const texelByteSize = this.texelByteSize;
     const bytesPerRow = this.bytesPerRow;
     const height = this.height;
-    const buffer = this.data[mipLevel];
-    const imageData = new Uint8Array(buffer);
+    const imageData = this._mipBytes(mipLevel);
     const raw = getTexturePixel(imageData, x, y, z, mipLevel, height, bytesPerRow, texelByteSize, this.format);
     return this.applySwizzle(raw);
   }
@@ -3369,8 +3423,7 @@ export class TextureData extends Data {
     const texelByteSize = this.texelByteSize;
     const bytesPerRow = this.bytesPerRow;
     const height = this.height;
-    const buffer = this.data[mipLevel];
-    const imageData = new Uint8Array(buffer);
+    const imageData = this._mipBytes(mipLevel);
     setTexturePixel(imageData, x, y, z, mipLevel, height, bytesPerRow, texelByteSize, this.format, value);
   }
 }

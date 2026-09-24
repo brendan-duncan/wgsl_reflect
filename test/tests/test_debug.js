@@ -1997,6 +1997,34 @@ fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
       const { races } = detectRaces(shader, "main", [1, 1, 1], { 0: { 0: buffer } });
       test.equals(races.length, 0);
     });
+
+    await test("buffer_view, immediates and linear_indexing when stepping", async function (test) {
+      const shader = `
+          requires buffer_view;
+          var<immediate> scale: u32;
+          @group(0) @binding(0) var<storage, read_write> b: buffer;
+          fn store(p: ptr<storage, buffer<32>, read_write>, i: u32, v: u32) {
+            (*bufferView<array<u32>>(p, 0u))[i] = v * scale;
+            (*bufferView<array<u32>>(p, 0u))[7] = bufferLength(p);
+          }
+          @compute @workgroup_size(2)
+          fn main(@builtin(global_invocation_index) gi: u32) {
+            var v = vec4u(1u, 2u, 3u, 4u);
+            v.zw += vec2u(10u);
+            store(&b, gi, v[gi + 2u]);
+          }`;
+      for (const stepInto of [true, false]) {
+        const b = new Uint32Array(16);
+        const dbg = new WgslDebug(shader);
+        dbg.debugWorkgroup("main", [1, 0, 0], 1, { 0: { 0: b } }, { immediates: new Uint32Array([5]) });
+        let steps = 0;
+        while (dbg.stepNext(stepInto)) {
+          if (++steps > 100) { throw new Error("step limit"); }
+        }
+        // Invocation 1 stores v[3] * scale; bufferLength is narrowed to the buffer<32> parameter.
+        test.equals(Array.from(b.slice(0, 8)), [0, 70, 0, 0, 0, 0, 0, 32]);
+      }
+    });
   }, true);
 }
 

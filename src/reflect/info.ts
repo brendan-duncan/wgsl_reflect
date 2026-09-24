@@ -124,6 +124,24 @@ export class ArrayInfo extends TypeInfo {
   }
 }
 
+// buffer<N> or buffer (buffer_view): N bytes of opaque storage that is accessed
+// by reinterpreting it with bufferView or bufferArrayView. The size of a
+// runtime-sized buffer is 0.
+export class BufferInfo extends TypeInfo {
+  constructor(size: number, attributes: Attribute[] | null) {
+    super("buffer", attributes);
+    this.size = size;
+  }
+
+  get isRuntimeSized(): boolean {
+    return this.size === 0;
+  }
+
+  getTypeName(): string {
+    return this.size > 0 ? `buffer<${this.size}>` : "buffer";
+  }
+}
+
 export class PointerInfo extends TypeInfo {
   format: TypeInfo;
   constructor(name: string, format: TypeInfo, attributes: Attribute[] | null) {

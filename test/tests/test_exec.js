@@ -149,6 +149,179 @@ export async function run() {
             test.equals(at(2, 1), [8, 1, 2, 4, 1, 0]);
         });
 
+        await test("atomicStoreMin/atomicStoreMax on atomic<vec2u>", async function (test) {
+            // 64-bit unsigned min/max: component 0 is the low 32 bits.
+            const shader = `
+                enable atomic_vec2u_min_max;
+                struct S { a: u32, lo: atomic<vec2u>, hi: atomic<vec2u> }
+                @group(0) @binding(0) var<storage, read_write> s: S;
+                @group(0) @binding(1) var<storage, read_write> top: atomic<vec2u>;
+                @compute @workgroup_size(4) fn main(@builtin(local_invocation_index) i: u32) {
+                    let v = vec2u(0xffffffffu - i, i % 2u);
+                    atomicStoreMin(&s.lo, v);
+                    atomicStoreMax(&s.hi, v);
+                    atomicStoreMax(&top, v);
+                }`;
+            const sBuffer = new Uint32Array([0, 0, 0xffffffff, 0xffffffff, 0, 0]);
+            const topBuffer = new Uint32Array(2);
+            _newWgslExec(shader).dispatchWorkgroups("main", 1, {0: {0: sBuffer, 1: topBuffer}});
+            test.equals(Array.from(sBuffer.slice(2, 4)), [0xfffffffd, 0]);
+            test.equals(Array.from(sBuffer.slice(4, 6)), [0xfffffffe, 1]);
+            test.equals(Array.from(topBuffer), [0xfffffffe, 1]);
+        });
+
+        await test("module-scope atomic<u32>", async function (test) {
+            const shader = `
+                @group(0) @binding(0) var<storage, read_write> counter: atomic<u32>;
+                @compute @workgroup_size(4) fn main() { atomicAdd(&counter, 2u); }`;
+            const buffer = new Uint32Array(1);
+            _newWgslExec(shader).dispatchWorkgroups("main", 2, {0: {0: buffer}});
+            test.equals(buffer[0], 16);
+        });
+
+        await test("integer vectors keep 32-bit precision", async function (test) {
+            const shader = `
+                @group(0) @binding(0) var<storage, read_write> data: array<u32, 4>;
+                @compute @workgroup_size(1) fn main() {
+                    let u = vec2u(16777217u, 4294967295u) - vec2u(0u, 1u);
+                    let i = vec2i(2147483647i, -2147483647i);
+                    data[0] = u.x; data[1] = u.y;
+                    data[2] = bitcast<u32>(i.x); data[3] = bitcast<u32>(i.y);
+                }`;
+            const buffer = new Uint32Array(4);
+            _newWgslExec(shader).dispatchWorkgroups("main", 1, {0: {0: buffer}});
+            test.equals(Array.from(buffer), [16777217, 4294967294, 2147483647, 2147483649]);
+        });
+
+        await test("storage texel formats round trip", async function (test) {
+            // textureStore then textureLoad for texel formats with each kind of encoding.
+            const cases = [
+                ["rgba16unorm", "f32", "vec4f(0.25, 1.5, -1.0, 0.5)", [0.25, 1, 0, 0.5], 8],
+                ["rgba16snorm", "f32", "vec4f(-0.25, 1.0, -2.0, 0.0)", [-8192 / 32767, 1, -1, 0], 8],
+                ["r16unorm", "f32", "vec4f(0.75, 0, 0, 1)", [0.75, 0, 0, 1], 2],
+                ["rg8snorm", "f32", "vec4f(-1.0, -0.25, 0, 1)", [-1, -32 / 127, 0, 1], 2],
+                ["rgb10a2unorm", "f32", "vec4f(1.0, 0.25, 0.0, 1.0)", [1, 256 / 1023, 0, 1], 4],
+                ["rgb10a2uint", "u32", "vec4u(1023, 7, 512, 3)", [1023, 7, 512, 3], 4],
+                ["rg11b10ufloat", "f32", "vec4f(1.5, 0.0, 0.25, 1)", [1.5, 0, 0.25, 1], 4],
+                ["rgba8sint", "i32", "vec4i(-5, 100, -128, 127)", [-5, 100, -128, 127], 4],
+                ["rgba16sint", "i32", "vec4i(-5, 1000, -32768, 32767)", [-5, 1000, -32768, 32767], 8],
+                ["bgra8unorm", "f32", "vec4f(1, 0, 0.2, 1)", [1, 0, 51 / 255, 1], 4],
+            ];
+            for (const [format, type, value, expected, bytes] of cases) {
+                const shader = `
+                    @group(0) @binding(0) var dst: texture_storage_2d<${format}, write>;
+                    @group(0) @binding(1) var src: texture_2d<${type}>;
+                    @group(0) @binding(2) var<storage, read_write> out: vec4f;
+                    @compute @workgroup_size(1) fn store() { textureStore(dst, vec2u(0), ${value}); }
+                    @compute @workgroup_size(1) fn load() { out = vec4f(textureLoad(src, vec2u(0), 0)); }`;
+                const texel = new Uint8Array(bytes);
+                const texture = (usage) => ({ texture: [texel], descriptor: { size: [1, 1, 1], format, usage } });
+                const out = new Float32Array(4);
+                const bg = {0: {0: texture(8), 1: texture(4), 2: out}};
+                _newWgslExec(shader).dispatchWorkgroups("store", 1, bg);
+                _newWgslExec(shader).dispatchWorkgroups("load", 1, bg);
+                test.closeTo(Array.from(out), expected, 1e-5);
+            }
+        });
+
+        await test("buffer_view: bufferView", async function (test) {
+            // From the WGSL spec's bufferView example.
+            const shader = `
+                requires buffer_view;
+                @group(0) @binding(0) var<storage> in : buffer;
+                @group(0) @binding(1) var<storage, read_write> out : buffer;
+                struct S { a : mat3x3f, b : vec2f }
+                @compute @workgroup_size(1) fn main() {
+                    let offsets = array<u32, 4>(16u, 0u, 0u, 64u);
+                    let p1 = bufferView<vec4u>(&in, offsets[0]);
+                    *bufferView<vec4u>(&out, offsets[1]) = *p1;
+                    let p2 = bufferView<array<S, 2>>(&in, offsets[2]);
+                    let v = (*p2)[1].a;
+                    *bufferView<mat3x3f>(&out, offsets[3]) = v;
+                }`;
+            const inBuffer = new Float32Array(64).map((_, i) => i);
+            const outBuffer = new Float32Array(64);
+            _newWgslExec(shader).dispatchWorkgroups("main", 1, {0: {0: inBuffer, 1: outBuffer}});
+            test.equals(Array.from(outBuffer.slice(0, 4)), [4, 5, 6, 7]);
+            test.equals(Array.from(outBuffer.slice(16, 28)), [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]);
+        });
+
+        await test("buffer_view: bufferArrayView and bufferLength", async function (test) {
+            const shader = `
+                requires buffer_view;
+                struct strided_u32 { @size(32) a : u32 }
+                @group(0) @binding(0) var<uniform> in : buffer<2048>;
+                @group(0) @binding(1) var<storage, read_write> out: array<u32, 8>;
+                @compute @workgroup_size(1) fn main() {
+                    // 133 bytes rounds down to 4 elements.
+                    let view = bufferArrayView<array<strided_u32>>(&in, 32u, 32u * 4u + 5u);
+                    for (var i = 0; i < 4; i++) { out[i] = (*view)[i].a; }
+                    out[4] = arrayLength(view);
+                    out[5] = bufferLength(&in);
+                    let x = *bufferView<vec4u>(&in, 32u);
+                    out[6] = (x + vec4u(1u)).x;
+                    out[7] = bufferView<strided_u32>(&in, 64u).a;
+                }`;
+            const inBuffer = new Uint32Array(512);
+            for (let i = 0; i < 8; ++i) {
+                inBuffer[i * 8] = 100 + i;
+            }
+            const out = new Uint32Array(8);
+            _newWgslExec(shader).dispatchWorkgroups("main", 1, {0: {0: {uniform: inBuffer}, 1: out}});
+            test.equals(Array.from(out), [101, 102, 103, 104, 4, 2048, 102, 102]);
+        });
+
+        await test("buffer_view: runtime-sized views, narrowing and alignment", async function (test) {
+            const shader = `
+                requires buffer_view;
+                struct T { n: u32, data: array<u32> }
+                @group(0) @binding(0) var<storage, read_write> b : buffer;
+                @group(0) @binding(1) var<storage, read_write> out: array<u32, 8>;
+                var<workgroup> scratch: buffer<64>;
+                fn len16(p: ptr<storage, buffer<16>, read_write>) -> u32 { return bufferLength(p); }
+                @compute @workgroup_size(1) fn main() {
+                    out[0] = bufferLength(&b);
+                    let t = bufferView<T>(&b, 16u);
+                    out[1] = arrayLength(&(*t).data);
+                    (*t).data[1] = 7u;
+                    bufferView<T>(&b, 18u).n = 9u; // The offset rounds down to 16.
+                    out[2] = len16(&b);
+                    let a = bufferView<array<u32>>(&b, 8u);
+                    out[3] = arrayLength(a);
+                    out[4] = (*a)[2];
+                    *bufferView<vec2u>(&scratch, 8u) = vec2u(3u, 4u);
+                    out[5] = (*bufferView<vec4u>(&scratch, 0u)).w;
+                    // Out of bounds: the store is dropped.
+                    *bufferView<vec4u>(&b, 64u) = vec4u(1u);
+                }`;
+            const b = new Uint32Array(16);
+            const out = new Uint32Array(8);
+            _newWgslExec(shader).dispatchWorkgroups("main", 1, {0: {0: b, 1: out}});
+            test.equals(Array.from(out.slice(0, 6)), [64, 11, 16, 14, 9, 4]);
+            test.equals(Array.from(b), [0, 0, 0, 0, 9, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        });
+
+        await test("immediate data", async function (test) {
+            const shader = `
+                struct Push { scale: f32, offset: vec3f, count: u32 }
+                var<immediate> push: Push;
+                @group(0) @binding(0) var<storage, read_write> out: array<f32, 4>;
+                @compute @workgroup_size(1) fn main() {
+                    out[0] = push.scale;
+                    out[1] = push.offset.y;
+                    out[2] = f32(push.count);
+                    let s = push;
+                    out[3] = s.offset.z * s.scale;
+                }`;
+            const immediates = new ArrayBuffer(32);
+            new Float32Array(immediates, 0, 1)[0] = 2.5;
+            new Float32Array(immediates, 16, 3).set([1, 2, 3]);
+            new Uint32Array(immediates, 28, 1)[0] = 7;
+            const out = new Float32Array(4);
+            _newWgslExec(shader).dispatchWorkgroups("main", 1, {0: {0: out}}, {immediates});
+            test.equals(Array.from(out), [2.5, 2, 7, 7.5]);
+        });
+
         await test("component-wise matrix ops keep matrix type", async function (test) {
             // Regression: mat + mat, mat * scalar and scalar * buffer-backed
             // matrices built VectorData with a matrix type ("VectorData:
@@ -829,7 +1002,7 @@ export async function run() {
             wgsl.execute();
             // Ensure the top-level instructions were executed and the global variable has the correct value.
             test.equals(wgsl.getVariableValue("v3a"), [3212836864, 3221225472]);
-            test.equals(wgsl.getVariableValue("v3b"), [3212836864, 3221225472]);
+            test.equals(wgsl.getVariableValue("v3b"), [-1082130432, -1073741824]);
         });
 
         await test("vec construction", function (test) {

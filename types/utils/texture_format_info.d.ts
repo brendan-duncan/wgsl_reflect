@@ -104,6 +104,20 @@ export declare const TextureFormatInfo: {
         isCompressed: boolean;
         channels: number;
     };
+    r16unorm: {
+        bytesPerBlock: number;
+        blockWidth: number;
+        blockHeight: number;
+        isCompressed: boolean;
+        channels: number;
+    };
+    r16snorm: {
+        bytesPerBlock: number;
+        blockWidth: number;
+        blockHeight: number;
+        isCompressed: boolean;
+        channels: number;
+    };
     r16uint: {
         bytesPerBlock: number;
         blockWidth: number;
@@ -125,6 +139,20 @@ export declare const TextureFormatInfo: {
         isCompressed: boolean;
         channels: number;
     };
+    rg16unorm: {
+        bytesPerBlock: number;
+        blockWidth: number;
+        blockHeight: number;
+        isCompressed: boolean;
+        channels: number;
+    };
+    rg16snorm: {
+        bytesPerBlock: number;
+        blockWidth: number;
+        blockHeight: number;
+        isCompressed: boolean;
+        channels: number;
+    };
     rg16uint: {
         bytesPerBlock: number;
         blockWidth: number;
@@ -140,6 +168,20 @@ export declare const TextureFormatInfo: {
         channels: number;
     };
     rg16float: {
+        bytesPerBlock: number;
+        blockWidth: number;
+        blockHeight: number;
+        isCompressed: boolean;
+        channels: number;
+    };
+    rgba16unorm: {
+        bytesPerBlock: number;
+        blockWidth: number;
+        blockHeight: number;
+        isCompressed: boolean;
+        channels: number;
+    };
+    rgba16snorm: {
         bytesPerBlock: number;
         blockWidth: number;
         blockHeight: number;

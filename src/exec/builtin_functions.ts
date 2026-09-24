@@ -1,8 +1,8 @@
 import { CallExpr, Call, UnaryOperator, VariableExpr } from "../wgsl_ast.js";
-import { Data, TypedData, TextureData, SamplerData, ScalarData, VectorData, MatrixData } from "../wgsl_ast.js";
+import { Data, TypedData, TextureData, SamplerData, ScalarData, VectorData, MatrixData, PointerData } from "../wgsl_ast.js";
 import { ExecContext } from "./exec_context.js";
 import { ExecInterface } from "./exec_interface.js";
-import { ArrayInfo, TemplateInfo, TypeInfo } from "../reflect/info.js";
+import { ArrayInfo, BufferInfo, MemberInfo, StructInfo, TemplateInfo, TypeInfo } from "../reflect/info.js";
 
 // Map a cube-map direction to the face it hits and the 2d coordinate within
 // that face, using WebGPU's cube face order:
@@ -101,10 +101,16 @@ export class BuiltinFunctions {
         if (arrayArg instanceof UnaryOperator) {
             arrayArg = (arrayArg as UnaryOperator).right;
         }
-        const arrayData = this.exec.evalExpression(arrayArg, context);
-        if (arrayData instanceof TypedData && arrayData.typeInfo.size === 0) {
-            const ta = arrayData.typeInfo as ArrayInfo;
-            const count = arrayData.buffer.byteLength / ta.stride;
+        let arrayData = this.exec.evalExpression(arrayArg, context);
+        if (arrayData instanceof PointerData) {
+            // A pointer variable, e.g. `let view = bufferArrayView<...>(...)`.
+            arrayData = arrayData.reference;
+        }
+        if (arrayData instanceof TypedData && arrayData.typeInfo instanceof ArrayInfo) {
+            // A runtime-sized array fills the rest of the bound buffer, unless it's
+            // a bufferArrayView/bufferView, which was given a count.
+            const ta = arrayData.typeInfo;
+            const count = ta.count > 0 ? ta.count : Math.floor((arrayData.buffer.byteLength - arrayData.offset) / ta.stride);
             return new ScalarData(count, this.getTypeInfo("u32"));
         }
         return new ScalarData(arrayData.typeInfo.size, this.getTypeInfo("u32"));
@@ -1927,6 +1933,149 @@ export class BuiltinFunctions {
         }
 
         return originalValue;
+    }
+
+    AtomicStoreMin(node: CallExpr | Call, context: ExecContext): Data | null {
+        this._atomicStoreMinMax(node, context, false);
+        return null;
+    }
+
+    AtomicStoreMax(node: CallExpr | Call, context: ExecContext): Data | null {
+        this._atomicStoreMinMax(node, context, true);
+        return null;
+    }
+
+    // atomic_vec2u_min_max: a 64-bit unsigned min/max on an atomic<vec2<u32>>, which
+    // holds the low 32 bits in component 0 and the high 32 bits in component 1.
+    _atomicStoreMinMax(node: CallExpr | Call, context: ExecContext, max: boolean): void {
+        let l = node.args[0];
+        if (l instanceof UnaryOperator) {
+            l = l.right;
+        }
+
+        const name = this.exec.getVariableName(l, context);
+        const v = context.getVariable(name);
+
+        const value = this.exec.evalExpression(node.args[1], context);
+        const currentValue = v.value.getSubData(this.exec, l.postfix, context);
+
+        if (!(currentValue instanceof VectorData) || !(value instanceof VectorData) ||
+            currentValue.data.length !== 2 || value.data.length !== 2) {
+            console.error(`atomicStore${max ? "Max" : "Min"} requires an atomic<vec2<u32>>. Line ${node.line}`);
+            return;
+        }
+
+        const [oldLo, oldHi] = currentValue.data;
+        const [lo, hi] = value.data;
+        const less = hi < oldHi || (hi === oldHi && lo < oldLo);
+        const greater = hi > oldHi || (hi === oldHi && lo > oldLo);
+        if (max ? greater : less) {
+            // currentValue is a view of the atomic's memory.
+            currentValue.data[0] = lo;
+            currentValue.data[1] = hi;
+        }
+    }
+
+    // Buffer View Built-in Functions (buffer_view)
+    // bufferView<T>(p, offset) reinterprets the buffer p points to as a T starting
+    // offset bytes in, and bufferArrayView<T>(p, offset, size) reinterprets size
+    // bytes of it as a runtime-sized T. The result points into the same memory.
+    BufferView(node: CallExpr | Call, context: ExecContext): Data | null {
+        return this._bufferView(node, context, false);
+    }
+
+    BufferArrayView(node: CallExpr | Call, context: ExecContext): Data | null {
+        return this._bufferView(node, context, true);
+    }
+
+    BufferLength(node: CallExpr | Call, context: ExecContext): Data | null {
+        const buffer = this._bufferArg(node, context);
+        if (buffer === null) {
+            return null;
+        }
+        return new ScalarData(this._bufferLength(buffer), this.getTypeInfo("u32"));
+    }
+
+    _bufferArg(node: CallExpr | Call, context: ExecContext): TypedData | null {
+        const p = this.exec.evalExpression(node.args[0], context);
+        const buffer = p instanceof PointerData ? p.reference : null;
+        if (!(buffer instanceof TypedData) || !(buffer.typeInfo instanceof BufferInfo)) {
+            console.error(`${node.name} requires a pointer to a buffer. Line ${node.line}`);
+            return null;
+        }
+        return buffer;
+    }
+
+    // The size of a buffer<N>, which a buffer<N> parameter may have narrowed, or
+    // the bound size of a runtime-sized buffer.
+    _bufferLength(buffer: TypedData): number {
+        const bound = buffer.buffer.byteLength - buffer.offset;
+        return buffer.typeInfo.size > 0 ? Math.min(buffer.typeInfo.size, bound) : bound;
+    }
+
+    _bufferView(node: CallExpr | Call, context: ExecContext, isArrayView: boolean): Data | null {
+        const buffer = this._bufferArg(node, context);
+        const type = node instanceof CallExpr && node.templateType ? this.exec.getTypeInfo(node.templateType) : null;
+        if (buffer === null || type === null) {
+            if (type === null) {
+                console.error(`${node.name} requires a template type. Line ${node.line}`);
+            }
+            return null;
+        }
+
+        const length = this._bufferLength(buffer);
+        const offsetValue = this.exec.evalExpression(node.args[1], context);
+        let offset = offsetValue instanceof ScalarData ? offsetValue.value : 0;
+        // A misaligned offset is rounded down to the type's alignment.
+        const align = this.exec.getTypeAlign(type);
+        offset -= offset % align;
+
+        let size = length - offset;
+        if (isArrayView) {
+            const sizeValue = this.exec.evalExpression(node.args[2], context);
+            size = sizeValue instanceof ScalarData ? sizeValue.value : 0;
+        }
+
+        const [viewType, minSize] = this._bufferViewType(type, size);
+        if (offset < 0 || size < minSize || offset + Math.max(size, minSize) > length) {
+            // Loads through an invalid memory reference are indeterminate and
+            // stores may be dropped, so point at scratch memory.
+            console.error(`${node.name}: invalid memory reference, the view is outside the buffer. Line ${node.line}`);
+            return new PointerData(new TypedData(new ArrayBuffer(Math.max(viewType.size, minSize)), viewType, 0));
+        }
+
+        return new PointerData(new TypedData(buffer.buffer, viewType, buffer.offset + offset));
+    }
+
+    // The type a view has, and MinTypeSize(T). A runtime-sized T (array<E>, or a
+    // struct ending in one) gets as many elements as fit in size bytes, so
+    // arrayLength on the view is bounded by the view.
+    _bufferViewType(type: TypeInfo, size: number): [TypeInfo, number] {
+        const sizedArray = (array: ArrayInfo, bytes: number): ArrayInfo => {
+            const sized = Object.assign(Object.create(Object.getPrototypeOf(array)), array) as ArrayInfo;
+            sized.count = Math.max(0, Math.floor(bytes / array.stride));
+            sized.size = sized.count * array.stride;
+            return sized;
+        };
+
+        if (type instanceof ArrayInfo && type.count === 0) {
+            return [sizedArray(type, size), type.stride];
+        }
+
+        if (type instanceof StructInfo && type.members.length > 0) {
+            const last = type.members[type.members.length - 1];
+            if (last.type instanceof ArrayInfo && last.type.count === 0) {
+                const member = Object.assign(Object.create(Object.getPrototypeOf(last)), last) as MemberInfo;
+                member.type = sizedArray(last.type, size - last.offset);
+                member.size = member.type.size;
+                const struct = Object.assign(Object.create(Object.getPrototypeOf(type)), type) as StructInfo;
+                struct.members = [...type.members.slice(0, -1), member];
+                struct.size = last.offset + member.size;
+                return [struct, last.offset + last.type.stride];
+            }
+        }
+
+        return [type, type.size];
     }
 
     // Data Packing Built-in Functions

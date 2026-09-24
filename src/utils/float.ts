@@ -75,17 +75,63 @@ export function float32ToFloat16(float32: number): number {
   return float16View[0];
 }
 
-const uint32 = new Uint32Array(1);
-const uint32ToFloat32 = new Float32Array(uint32.buffer, 0, 1);
+// Unsigned 11- and 10-bit floats (rg11b10ufloat): no sign bit, a 5-bit exponent
+// with a bias of 15, and a 6- or 5-bit mantissa.
+function unsignedFloatToFloat32(v: number, mantissaBits: number): number {
+  const e = (v >> mantissaBits) & 0x1F;
+  const m = v & ((1 << mantissaBits) - 1);
+  if (e === 0) {
+    return m * Math.pow(2, -14 - mantissaBits);
+  }
+  if (e === 0x1F) {
+    return m ? NaN : Infinity;
+  }
+  return Math.pow(2, e - 15) * (1 + m / (1 << mantissaBits));
+}
+
+function float32ToUnsignedFloat(f: number, mantissaBits: number): number {
+  if (Number.isNaN(f)) {
+    return (0x1F << mantissaBits) | 1;
+  }
+  if (f <= 0) {
+    return 0; // Negative values clamp to zero.
+  }
+  if (f === Infinity) {
+    return 0x1F << mantissaBits;
+  }
+  let e = Math.floor(Math.log2(f));
+  if (Math.pow(2, e) > f) {
+    e--;
+  } else if (Math.pow(2, e + 1) <= f) {
+    e++;
+  }
+  if (e < -14) {
+    // Denormal. Rounding up to 1 << mantissaBits gives the smallest normal.
+    return Math.round(f / Math.pow(2, -14 - mantissaBits));
+  }
+  let m = Math.round((f / Math.pow(2, e) - 1) * (1 << mantissaBits));
+  if (m === (1 << mantissaBits)) {
+    m = 0;
+    e++;
+  }
+  if (e > 15) {
+    return 0x1F << mantissaBits; // Overflow to infinity.
+  }
+  return ((e + 15) << mantissaBits) | m;
+}
 
 export function float11ToFloat32(f11: number): number {
-  const u32 = (((((f11) >> 6) & 0x1F) + (127 - 15)) << 23) | (((f11) & 0x3F) << 17);
-  uint32[0] = u32;
-  return uint32ToFloat32[0];
+  return unsignedFloatToFloat32(f11, 6);
 }
 
 export function float10ToFloat32(f10: number): number {
-  const u32 = (((((f10) >> 5) & 0x1F) + (127 - 15)) << 23) | (((f10) & 0x1F) << 18);
-  uint32[0] = u32;
-  return uint32ToFloat32[0];
+  return unsignedFloatToFloat32(f10, 5);
+}
+
+export function float32ToFloat11(f: number): number {
+  return float32ToUnsignedFloat(f, 6);
+}
+
+export function float32ToFloat10(f: number): number {
+  return float32ToUnsignedFloat(f, 5);
 }

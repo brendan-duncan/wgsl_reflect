@@ -1,5 +1,5 @@
 import { CallExpr, Call } from "../wgsl_ast.js";
-import { Data, TextureData, SamplerData } from "../wgsl_ast.js";
+import { Data, TypedData, TextureData, SamplerData } from "../wgsl_ast.js";
 import { ExecContext } from "./exec_context.js";
 import { ExecInterface } from "./exec_interface.js";
 import { TypeInfo } from "../reflect/info.js";
@@ -145,6 +145,16 @@ export declare class BuiltinFunctions {
     AtomicXor(node: CallExpr | Call, context: ExecContext): Data | null;
     AtomicExchange(node: CallExpr | Call, context: ExecContext): Data | null;
     AtomicCompareExchangeWeak(node: CallExpr | Call, context: ExecContext): Data | null;
+    AtomicStoreMin(node: CallExpr | Call, context: ExecContext): Data | null;
+    AtomicStoreMax(node: CallExpr | Call, context: ExecContext): Data | null;
+    _atomicStoreMinMax(node: CallExpr | Call, context: ExecContext, max: boolean): void;
+    BufferView(node: CallExpr | Call, context: ExecContext): Data | null;
+    BufferArrayView(node: CallExpr | Call, context: ExecContext): Data | null;
+    BufferLength(node: CallExpr | Call, context: ExecContext): Data | null;
+    _bufferArg(node: CallExpr | Call, context: ExecContext): TypedData | null;
+    _bufferLength(buffer: TypedData): number;
+    _bufferView(node: CallExpr | Call, context: ExecContext, isArrayView: boolean): Data | null;
+    _bufferViewType(type: TypeInfo, size: number): [TypeInfo, number];
     _packSnormByte(v: number): number;
     _packUnormByte(v: number): number;
     Pack4x8snorm(node: CallExpr | Call, context: ExecContext): Data | null;

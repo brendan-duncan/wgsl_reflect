@@ -668,6 +668,7 @@ function buildQuadScheduler(
     // Resources are read-only for a fragment stage; bind them once on the shared
     // base context so every lane sees the same memory.
     debug._bindResources(bindGroups as never, refl, base);
+    exec._bindImmediates(config, base);
 
     const lanes: Lane[] = [];
     for (let i = 0; i < 4; ++i) {

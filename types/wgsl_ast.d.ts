@@ -377,6 +377,19 @@ export declare class ForwardType extends Type {
     constructor(name: string);
 }
 /**
+ * buffer<N> or buffer (buffer_view): opaque storage reinterpreted with
+ * bufferView/bufferArrayView.
+ * @class BufferType
+ * @extends Type
+ * @category AST
+ */
+export declare class BufferType extends Type {
+    size: number;
+    constructor(size: number);
+    get astNodeType(): string;
+    getTypeName(): string;
+}
+/**
  * @class StructType
  * @extends Type
  * @category AST
@@ -533,6 +546,7 @@ export declare class CreateExpr extends Expression {
 export declare class CallExpr extends Expression {
     name: string;
     args: Expression[] | null;
+    templateType: Type | null;
     cachedReturnValue: unknown;
     constructor(name: string, args: Expression[] | null);
     get astNodeType(): string;
@@ -838,6 +852,7 @@ export declare class TextureData extends Data {
     get swizzle(): string;
     getGpuSize(): number;
     applySwizzle(raw: number[] | null): number[] | null;
+    _mipBytes(mipLevel: number): Uint8Array;
     getPixel(x: number, y: number, z?: number, mipLevel?: number): number[] | null;
     setPixel(x: number, y: number, z: number, mipLevel: number, value: number[]): void;
 }

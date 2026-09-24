@@ -5,5 +5,6 @@ import { Data } from "../wgsl_ast.js";
 export declare class ExecInterface {
     evalExpression(node: Node, context: ExecContext): Data | null;
     getTypeInfo(type: Type | string): TypeInfo | null;
+    getTypeAlign(type: TypeInfo): number;
     getVariableName(node: Node, context: ExecContext): string | null;
 }

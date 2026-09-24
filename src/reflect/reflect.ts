@@ -4,10 +4,10 @@
 import { TokenTypes } from "../wgsl_scanner.js";
 import { Type, Struct, Alias, Override, Var, Node, Function, VariableExpr, CreateExpr,
     Let, Const, Expression, CallExpr, Call, Argument, Member, Attribute, ArrayType, SamplerType,
-    TemplateType, PointerType } from "../wgsl_ast.js";
+    TemplateType, PointerType, BufferType } from "../wgsl_ast.js";
 import { _BlockStart, _BlockEnd } from "../wgsl_ast.js";
 import { FunctionInfo, VariableInfo, AliasInfo, OverrideInfo, PointerInfo,
-  StructInfo, TypeInfo, MemberInfo, ArrayInfo, TemplateInfo, OutputInfo,
+  StructInfo, TypeInfo, MemberInfo, ArrayInfo, TemplateInfo, BufferInfo, OutputInfo,
   InputInfo, ArgumentInfo, ResourceType, EntryFunctions } from "./info.js";
 import { isArray } from "../utils/cast.js";
 import { constExprValue, workgroupSizeOf } from "../utils/const_expr.js";
@@ -741,6 +741,12 @@ export class Reflect {
       return info;
     }
 
+    if (type instanceof BufferType) {
+      const info = new BufferInfo(type.size, attributes);
+      this._types.set(type, info);
+      return info;
+    }
+
     if (type instanceof Struct) {
       const s = type as Struct;
       // A struct declaration can have its own attributes, which take precedence
@@ -860,6 +866,23 @@ export class Reflect {
       const alias = this._getAlias(type.name);
       if (alias !== null) {
         type = alias;
+      }
+    }
+
+    // A buffer can't be a struct member or array element, so its alignment
+    // only matters as a variable's.
+    if (type instanceof BufferInfo) {
+      return new _TypeSize(Math.max(explicitAlign, 4), Math.max(explicitSize, type.size));
+    }
+
+    // atomic<T> has the layout of T: 4 bytes for i32/u32, 8 for vec2<u32>.
+    if (type.name === "atomic" && type["format"]) {
+      const info = this._getTypeSize(type["format"]);
+      if (info !== null) {
+        return new _TypeSize(
+          Math.max(explicitAlign, info.align),
+          Math.max(explicitSize, info.size)
+        );
       }
     }
 
@@ -1032,7 +1055,7 @@ export class Reflect {
 
   // Type                 AlignOf(T)          Sizeof(T)
   // i32, u32, or f32     4                   4
-  // atomic<T>            4                   4
+  // atomic<T>            AlignOf(T)          SizeOf(T)
   // vec2<T>              8                   8
   // vec3<T>              16                  12
   // vec4<T>              16                  16

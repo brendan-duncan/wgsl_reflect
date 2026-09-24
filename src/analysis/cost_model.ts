@@ -114,7 +114,7 @@ const TEXTURE_QUERY_BUILTINS = new Set([
 const ATOMIC_BUILTINS = new Set([
     "atomicAdd", "atomicSub", "atomicMax", "atomicMin", "atomicAnd",
     "atomicOr", "atomicXor", "atomicExchange", "atomicCompareExchangeWeak",
-    "atomicStore", "atomicLoad",
+    "atomicStore", "atomicLoad", "atomicStoreMin", "atomicStoreMax",
 ]);
 
 const BARRIER_BUILTINS = new Set([

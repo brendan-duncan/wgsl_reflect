@@ -2,10 +2,11 @@ import { Node, Type, TemplateType, Return, Break, Continue, Let, Var, Const,
     If, For, While, Loop, Continuing, Assign, Increment, Struct, Override, ArrayType,
     Call, Diagnostic, Enable, Requires, Alias, BinaryOperator, LiteralExpr, Expression,
     VariableExpr, CallExpr, CreateExpr, ConstExpr, BitcastExpr, UnaryOperator,
-    ArrayIndex, StringExpr, Function, Switch, SwitchCase, Case, Default, DefaultSelector } from "./wgsl_ast.js";
+    ArrayIndex, StringExpr, Function, Switch, SwitchCase, Case, Default, DefaultSelector,
+    Argument, PointerType, BufferType } from "./wgsl_ast.js";
 import { Data, TypedData, TextureData, SamplerData, ScalarData, VectorData, MatrixData, PointerData, VoidData, ControlData } from "./wgsl_ast.js";
 import { Reflect } from "./reflect/reflect.js";
-import { TypeInfo, StructInfo, ArrayInfo, TemplateInfo } from "./reflect/info.js";
+import { TypeInfo, StructInfo, ArrayInfo, TemplateInfo, BufferInfo } from "./reflect/info.js";
 import { ExecContext, FunctionRef } from "./exec/exec_context.js";
 import { ExecInterface } from "./exec/exec_interface.js";
 import { BuiltinFunctions } from "./exec/builtin_functions.js";
@@ -124,6 +125,23 @@ export class WgslExec extends ExecInterface {
         this._execStatements(this.ast, this.context);
     }
 
+    // Binds config.immediates, the data a pipeline sets with setImmediates, to the
+    // module's var<immediate> variables. Each one reads it starting at byte 0.
+    _bindImmediates(config: Object | undefined, context: ExecContext): void {
+        const data = config?.["immediates"];
+        if (!data) {
+            return;
+        }
+        const buffer: ArrayBuffer = ArrayBuffer.isView(data) ? data.buffer : data;
+        const offset = ArrayBuffer.isView(data) ? data.byteOffset : 0;
+        for (const info of this.reflection.immediates) {
+            const v = context.getVariable(info.name);
+            if (v !== null) {
+                v.value = new TypedData(buffer, info.type, offset);
+            }
+        }
+    }
+
     dispatchWorkgroups(kernel: string, dispatchCount: number | number[], bindGroups: Object, config?: Object): void {
         const context = this.context.clone();
 
@@ -133,6 +151,7 @@ export class WgslExec extends ExecInterface {
         }
 
         this._execStatements(this.ast, context);
+        this._bindImmediates(config, context);
 
         const f = context.getFunction(kernel);
         if (!f) {
@@ -333,6 +352,10 @@ export class WgslExec extends ExecInterface {
         return t;
     }
 
+    getTypeAlign(type: TypeInfo): number {
+        return this.reflection._getTypeSize(type)?.align ?? 1;
+    }
+
     _setOverrides(constants: Object, context: ExecContext): void {
         for (const k in constants) {
             const v = constants[k];
@@ -509,11 +532,26 @@ export class WgslExec extends ExecInterface {
 
         for (let ai = 0; ai < f.node.args.length; ++ai) {
             const arg = f.node.args[ai];
-            const value = this.evalExpression(node.args[ai], subContext);
+            const value = this._argumentValue(arg, this.evalExpression(node.args[ai], subContext));
             subContext.setVariable(arg.name, value, arg);
         }
 
         this._execStatements(f.node.body, subContext);
+    }
+
+    // The value a function parameter binds to its argument. A ptr<AS, buffer<N>>
+    // parameter narrows the buffer the argument points to, since bufferLength and
+    // buffer views use the smallest buffer size along the call stack.
+    _argumentValue(arg: Argument, value: Data | null): Data | null {
+        const type = arg.type instanceof PointerType ? arg.type.type : null;
+        if (value instanceof PointerData && type instanceof BufferType && type.size > 0) {
+            const ref = value.reference;
+            if (ref instanceof TypedData && ref.typeInfo instanceof BufferInfo &&
+                (ref.typeInfo.size === 0 || type.size < ref.typeInfo.size)) {
+                return new PointerData(new TypedData(ref.buffer, this.getTypeInfo(type), ref.offset));
+            }
+        }
+        return value;
     }
 
     _increment(node: Increment, context: ExecContext): void {
@@ -563,7 +601,12 @@ export class WgslExec extends ExecInterface {
             } else if (node.operator === "&") {
                 const refData = this._getVariableData(node.right, context);
                 return new PointerData(refData);
-            } 
+            }
+        }
+
+        // A call returning a pointer, as in *bufferView<T>(&b, 0) = value.
+        if (node instanceof CallExpr) {
+            return this.evalExpression(node, context);
         }
 
         return null;
@@ -601,6 +644,11 @@ export class WgslExec extends ExecInterface {
                     } else {
                         console.error(`Invalid assignment. Line ${node.line}`);
                     }
+                } else if (varData instanceof TypedData && (assignValue instanceof ScalarData ||
+                    assignValue instanceof VectorData || assignValue instanceof MatrixData)) {
+                    // A pointer into buffer memory, e.g. *bufferView<vec4u>(&b, 0) = v.
+                    varData.setDataValue(this, assignValue, null, context);
+                    return;
                 } else if (varData instanceof TypedData && assignValue instanceof TypedData) {
                     if ((varData.buffer.byteLength - varData.offset) >= (assignValue.buffer.byteLength - assignValue.offset)) {
                         if (varData.buffer.byteLength % 4 === 0) {
@@ -667,6 +715,10 @@ export class WgslExec extends ExecInterface {
                     }
                 }
             }
+        } else if (node.variable instanceof CallExpr) {
+            // bufferView<T>(&b, 0).x = ..., through the returned pointer.
+            postfix = node.variable.postfix;
+            v = this._evalCallValue(node.variable, context);
         } else {
             postfix = node.variable.postfix;
             name = this.getVariableName(node.variable, context);
@@ -1197,7 +1249,8 @@ export class WgslExec extends ExecInterface {
 
             const typeName = node.type.name;
             if (WgslExec._defaultableTypes.has(typeName) ||
-                node.type instanceof ArrayType || node.type instanceof Struct || node.type instanceof TemplateType) {
+                node.type instanceof ArrayType || node.type instanceof Struct || node.type instanceof TemplateType ||
+                node.type instanceof BufferType) {
                 const defType = new CreateExpr(node.type, []);
                 value = this._evalCreate(defType, context);
             }
@@ -1427,6 +1480,9 @@ export class WgslExec extends ExecInterface {
                     return new ScalarData(0, this.getTypeInfo("u32"));
                 case "atomic<i32>":
                     return new ScalarData(0, this.getTypeInfo("i32"));
+                case "atomic<vec2>":
+                case "atomic<vec2u>":
+                    return new VectorData([0, 0], this.getTypeInfo("vec2u"));
                 case "vec2":
                 case "vec3":
                 case "vec4":
@@ -1517,6 +1573,8 @@ export class WgslExec extends ExecInterface {
                     offset += typeInfo.stride;
                 }
             }
+        } else if (typeInfo instanceof BufferInfo) {
+            // buffer<N> (buffer_view) is zero-initialized and has no constructor.
         } else {
             console.error(`Unknown type "${typeName}". Line ${node.line}`);
         }
@@ -2252,7 +2310,7 @@ export class WgslExec extends ExecInterface {
 
         for (let ai = 0; ai < f.node.args.length; ++ai) {
             const arg = f.node.args[ai];
-            const value = this.evalExpression(node.args[ai], subContext);
+            const value = this._argumentValue(arg, this.evalExpression(node.args[ai], subContext));
             subContext.createVariable(arg.name, value, arg);
         }
 
@@ -2472,6 +2530,18 @@ export class WgslExec extends ExecInterface {
                 return this.builtins.AtomicExchange(node, context);
             case "atomicCompareExchangeWeak":
                 return this.builtins.AtomicCompareExchangeWeak(node, context);
+            case "atomicStoreMin":
+                return this.builtins.AtomicStoreMin(node, context);
+            case "atomicStoreMax":
+                return this.builtins.AtomicStoreMax(node, context);
+
+            // Buffer View Built-in Functions
+            case "bufferView":
+                return this.builtins.BufferView(node, context);
+            case "bufferArrayView":
+                return this.builtins.BufferArrayView(node, context);
+            case "bufferLength":
+                return this.builtins.BufferLength(node, context);
 
             // Data Packing Built-in Functions
             case "pack4x8snorm":
@@ -2579,7 +2649,7 @@ export class WgslExec extends ExecInterface {
             const subContext = context.clone();
             for (let ai = 0; ai < f.node.args.length; ++ai) {
                 const arg = f.node.args[ai];
-                const value = this.evalExpression(node.args[ai], subContext);
+                const value = this._argumentValue(arg, this.evalExpression(node.args[ai], subContext));
                 subContext.setVariable(arg.name, value, arg);
             }
             return this._execStatements(f.node.body, subContext);

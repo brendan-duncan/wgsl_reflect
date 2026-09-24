@@ -43,6 +43,11 @@ export declare class ArrayInfo extends TypeInfo {
     get isArray(): boolean;
     getTypeName(): string;
 }
+export declare class BufferInfo extends TypeInfo {
+    constructor(size: number, attributes: Attribute[] | null);
+    get isRuntimeSized(): boolean;
+    getTypeName(): string;
+}
 export declare class PointerInfo extends TypeInfo {
     format: TypeInfo;
     constructor(name: string, format: TypeInfo, attributes: Attribute[] | null);

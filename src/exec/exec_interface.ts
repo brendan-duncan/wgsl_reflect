@@ -9,7 +9,11 @@ export class ExecInterface {
     }
 
     getTypeInfo(type: Type | string): TypeInfo | null {
-        return null; 
+        return null;
+    }
+
+    getTypeAlign(type: TypeInfo): number {
+        return 1;
     }
 
     getVariableName(node: Node, context: ExecContext): string | null {

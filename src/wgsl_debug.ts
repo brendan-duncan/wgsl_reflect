@@ -337,6 +337,7 @@ export class WgslDebug {
         context.setVariable("@num_workgroups", new VectorData(dispatchCount, vec3u));
 
         this._bindResources(bindGroups, kernelRefl, context);
+        this._exec._bindImmediates(config, context);
 
         const workgroupId = new VectorData([0, 0, 0], vec3u);
         const workgroupIndex = new ScalarData(0, this._exec.typeInfo["u32"]);
@@ -499,6 +500,7 @@ export class WgslDebug {
         }
 
         this._bindResources(bindGroups, entryRefl, context);
+        this._exec._bindImmediates(config, context);
         this._bindStageInputs(entryFn, inputs, context);
 
         const state = this._createState(entryFn.node.body, context);
@@ -808,7 +810,7 @@ export class WgslDebug {
 
                 for (let ai = 0; ai < fn.node.args.length; ++ai) {
                     const arg = fn.node.args[ai];
-                    const value = this._exec.evalExpression(node.args[ai], fnState.context);
+                    const value = this._exec._argumentValue(arg, this._exec.evalExpression(node.args[ai], fnState.context));
                     fnState.context.createVariable(arg.name, value, arg);
                 }
 
@@ -831,7 +833,7 @@ export class WgslDebug {
 
                         for (let ai = 0; ai < fn.node.args.length; ++ai) {
                             const arg = fn.node.args[ai];
-                            const value = this._exec.evalExpression(node.args[ai], fnState.context);
+                            const value = this._exec._argumentValue(arg, this._exec.evalExpression(node.args[ai], fnState.context));
                             fnState.context.createVariable(arg.name, value, arg);
                         }
 

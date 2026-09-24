@@ -1,4 +1,4 @@
-import { Node, Type, Let, Var, Const, If, For, While, Loop, Assign, Increment, Override, Call, BinaryOperator, LiteralExpr, Expression, VariableExpr, CallExpr, CreateExpr, ConstExpr, BitcastExpr, UnaryOperator, Function, Switch } from "./wgsl_ast.js";
+import { Node, Type, Let, Var, Const, If, For, While, Loop, Assign, Increment, Override, Call, BinaryOperator, LiteralExpr, Expression, VariableExpr, CallExpr, CreateExpr, ConstExpr, BitcastExpr, UnaryOperator, Function, Switch, Argument } from "./wgsl_ast.js";
 import { Data, ScalarData, ControlData } from "./wgsl_ast.js";
 import { Reflect } from "./reflect/reflect.js";
 import { TypeInfo } from "./reflect/info.js";
@@ -18,12 +18,14 @@ export declare class WgslExec extends ExecInterface {
     constructor(ast?: Node[], context?: ExecContext);
     getVariableValue(name: string): number | number[] | null;
     execute(config?: Object): void;
+    _bindImmediates(config: Object | undefined, context: ExecContext): void;
     dispatchWorkgroups(kernel: string, dispatchCount: number | number[], bindGroups: Object, config?: Object): void;
     static readonly _breakObj: ControlData;
     static readonly _continueObj: ControlData;
     execStatement(stmt: Node, context: ExecContext): Data | null;
     evalExpression(node: Node, context: ExecContext): Data | null;
     getTypeInfo(type: Type | string): TypeInfo | null;
+    getTypeAlign(type: TypeInfo): number;
     _setOverrides(constants: Object, context: ExecContext): void;
     _dispatchWorkgroup(f: FunctionRef, workgroup_id: number[], context: ExecContext): void;
     _setSubgroupBuiltins(localIndex: ScalarData, workgroupInvocations: number, context: ExecContext): void;
@@ -31,6 +33,7 @@ export declare class WgslExec extends ExecInterface {
     getVariableName(node: Node, context: ExecContext): string | null;
     _execStatements(statements: Node[], context: ExecContext): Data | null;
     _call(node: Call, context: ExecContext): void;
+    _argumentValue(arg: Argument, value: Data | null): Data | null;
     _increment(node: Increment, context: ExecContext): void;
     _getVariableData(node: Node, context: ExecContext): Data | null;
     _assign(node: Assign, context: ExecContext): void;

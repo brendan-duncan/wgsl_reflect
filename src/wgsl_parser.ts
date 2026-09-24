@@ -51,7 +51,11 @@ export class WgslParser {
           if (constant) {
             try {
               const count = constant.constEvaluate(this._exec);
-              arrayType.count = count;
+              if (arrayType instanceof AST.BufferType) {
+                arrayType.size = parseInt(count.toString());
+              } else {
+                arrayType.count = count;
+              }
             } catch (e) {
             }
           }
@@ -1411,6 +1415,16 @@ export class WgslParser {
     // ident argument_expression_list?
     if (this._match(TokenTypes.tokens.ident)) {
       const name = this._previous().toString();
+      // bufferView<T>(...), bufferArrayView<T>(...): builtins with an explicit template type.
+      if ((name === "bufferView" || name === "bufferArrayView") && this._check(TokenTypes.tokens.less_than)) {
+        this._advance();
+        const templateType = this._type_decl();
+        this._consume(TokenTypes.tokens.greater_than, "Expected '>'.");
+        const args = this._argument_expression_list();
+        const call = this._updateNode(new AST.CallExpr(name, args));
+        call.templateType = templateType;
+        return call;
+      }
       if (this._check(TokenTypes.tokens.paren_left)) {
         const args = this._argument_expression_list();
         const type = this._getType(name);
@@ -1885,6 +1899,10 @@ export class WgslParser {
         return this._context.aliases.get(typeName)?.type ?? null;
       }
 
+      if (typeName === "buffer") {
+        return this._buffer_type();
+      }
+
       const t = this._getType(typeName);
       // Don't "forward declare" built-in types
       if (!t) {
@@ -1973,6 +1991,22 @@ export class WgslParser {
     }
 
     return null;
+  }
+
+  _buffer_type(): AST.BufferType {
+    // buffer (less_than element_count_expression greater_than)?
+    const bufferType = this._updateNode(new AST.BufferType(0));
+    if (this._match(TokenTypes.tokens.less_than)) {
+      const sizeNode = this._shift_expression();
+      try {
+        bufferType.size = parseInt(sizeNode.constEvaluate(this._exec).toString());
+      } catch (e) {
+        // The size may be a const declared after it's used.
+        this._deferArrayCountEval.push({ arrayType: bufferType, countNode: sizeNode });
+      }
+      this._consume(TokenTypes.tokens.greater_than, "Expected '>' for buffer.");
+    }
+    return bufferType;
   }
 
   _texture_sampler_types(): AST.SamplerType | null {

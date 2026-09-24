@@ -1460,6 +1460,32 @@ export async function run() {
       test.equals(reflect.storage.map((s) => s.type.format.name), formats);
     });
 
+    await test("atomic<vec2u> layout", function (test) {
+      const reflect = new WgslReflect(`
+        struct S { a: u32, b: atomic<vec2<u32>>, c: atomic<vec2u>, d: atomic<u32> }
+        @group(0) @binding(0) var<storage, read_write> s: S;`);
+      const members = reflect.storage[0].type.members;
+      test.equals(members.map((m) => m.offset), [0, 8, 16, 24]);
+      test.equals(members.map((m) => m.size), [4, 8, 8, 4]);
+      test.equals(reflect.storage[0].type.align, 8);
+    });
+
+    await test("buffer_view buffer types", function (test) {
+      const reflect = new WgslReflect(`
+        requires buffer_view;
+        @group(0) @binding(0) var<storage> a: buffer;
+        @group(0) @binding(1) var<storage, read_write> b: buffer<N>;
+        @group(0) @binding(2) var<uniform> c: buffer<256>;
+        const N = 64;
+        fn f(p: ptr<storage, buffer<16>, read_write>) -> u32 { return bufferLength(p); }`);
+      test.equals(reflect.storage.map((s) => s.type.getTypeName()), ["buffer", "buffer<64>"]);
+      test.equals(reflect.storage.map((s) => s.size), [0, 64]);
+      test.equals(reflect.uniforms[0].type.getTypeName(), "buffer<256>");
+      test.equals(reflect.uniforms[0].size, 256);
+      test.equals(reflect.storage[0].type.isRuntimeSized, true);
+      test.equals(reflect.functions[0].arguments[0].type.format.getTypeName(), "buffer<16>");
+    });
+
     await test("access mode", function (test) {
       const reflect = new WgslReflect(`
       struct ReadonlyStorageBufferBlockName {
