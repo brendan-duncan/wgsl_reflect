@@ -1,6 +1,6 @@
 {
   "name": "wgsl_reflect",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "WGSL Parser and Reflection library",
   "author": "Brendan Duncan",
   "license": "MIT",
@@ -44,12 +44,13 @@
     "html5"
   ],
   "devDependencies": {
+    "@rollup/plugin-terser": "^1.0.0",
+    "@rollup/plugin-typescript": "^11.1.2",
+    "jsdom": "^26.1.0",
     "rollup": "^2.60.0",
     "tslib": "^2.6.1",
-    "@rollup/plugin-typescript": "^11.1.2",
-    "@rollup/plugin-terser": "^0.4.4",
-    "webgpu": "^0.3.0",
-    "jsdom": "^26.1.0"
+    "typescript": "^6.0.3",
+    "webgpu": "^0.3.0"
   },
   "jspm": {
     "files": [
