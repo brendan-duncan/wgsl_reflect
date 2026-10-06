@@ -2,6 +2,7 @@ import { WgslExec } from "./wgsl_exec.js";
 import { TypeInfo } from "./reflect/info.js";
 import { ExecContext } from "./exec/exec_context.js";
 import { ExecInterface } from "./exec/exec_interface.js";
+import { Comment } from "./wgsl_scanner.js";
 /**
  * @class Node
  * @category AST
@@ -13,6 +14,8 @@ export declare class Node {
     line: number;
     start: number;
     end: number;
+    leadingComments: Comment[] | null;
+    trailingComments: Comment[] | null;
     constructor();
     get hasSpan(): boolean;
     get isAstNode(): boolean;

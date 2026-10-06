@@ -4,6 +4,7 @@ import { ExecContext } from "./exec/exec_context.js";
 import { ExecInterface } from "./exec/exec_interface.js";
 import { setTexturePixel, getTexturePixel } from "./utils/texture_sample.js";
 import { TextureFormatInfo } from "./utils/texture_format_info.js";
+import { Comment } from "./wgsl_scanner.js";
 
 /**
  * @class Node
@@ -21,12 +22,20 @@ export class Node {
   start: number;
   /// Character offset one past the last character of this node, or -1.
   end: number;
+  /// Comments directly before this node, with no blank line between them and
+  /// the node. For a declaration, this includes comments between its
+  /// attributes and the declaration itself. Null if there are none.
+  leadingComments: Comment[] | null;
+  /// Comments that start on the same line this node ends on, or null.
+  trailingComments: Comment[] | null;
 
   constructor() {
     this.id = Node._id++;
     this.line = 0;
     this.start = -1;
     this.end = -1;
+    this.leadingComments = null;
+    this.trailingComments = null;
   }
 
   /// True if this node has a valid source character range.

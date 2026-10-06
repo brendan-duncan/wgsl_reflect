@@ -1,4 +1,4 @@
-import { WgslScanner, Token, TokenType, TokenTypes } from "./wgsl_scanner.js";
+import { WgslScanner, Token, TokenType, TokenTypes, Comment } from "./wgsl_scanner.js";
 import * as AST from "./wgsl_ast.js";
 import { WgslExec } from "./wgsl_exec.js";
 import { TemplateInfo } from "./reflect/info.js";
@@ -15,6 +15,10 @@ export class WgslParser {
   _context = new ParseContext();
   _exec = new WgslExec();
   _forwardTypeCount: number = 0;
+  // Comments already attached to a node, so no comment is attached twice.
+  _attachedComments = new Set<Comment>();
+  // Index of a global declaration's keyword token, after its attributes.
+  _declToken: number = -1;
 
   // Convenience short-hand for new WgslParser().parse(code);
   static Parse(tokensOrCode: Token[] | string): AST.Statement[] {
@@ -113,6 +117,19 @@ export class WgslParser {
       this._tokens = [];
     }
     this._current = 0;
+    this._attachedComments.clear();
+  }
+
+  /// All comments in the parsed source, in source order, including those not
+  /// attached to any node.
+  get comments(): Comment[] {
+    const comments: Comment[] = [];
+    for (const token of this._tokens) {
+      if (token.leadingComments) {
+        comments.push(...token.leadingComments);
+      }
+    }
+    return comments;
   }
 
   _updateNode<T extends AST.Node>(n: T, l?: number): T {
@@ -125,7 +142,9 @@ export class WgslParser {
   // token (_current - 1) is always the node's last, because this is called
   // immediately after the node finishes parsing. Nested nodes are spanned by
   // their own parse call, so an outer span always contains its children's.
-  _setSpan<T extends AST.Node | AST.Node[] | null>(n: T, startToken: number): T {
+  // `headerToken` is the index of the token after a declaration's attributes,
+  // so comments between the attributes and the declaration are attached too.
+  _setSpan<T extends AST.Node | AST.Node[] | null>(n: T, startToken: number, headerToken: number = -1): T {
     if (n === null || startToken >= this._tokens.length) {
       return n;
     }
@@ -137,9 +156,80 @@ export class WgslParser {
       if (node instanceof AST.Node && node.start < 0) {
         node.start = start;
         node.end = end;
+        if (nodes.length === 1) {
+          this._attachComments(node, startToken, this._current - 1, headerToken);
+        }
       }
     }
     return n;
+  }
+
+  // Attach the comments around a node's tokens to it. Nested nodes finish
+  // parsing first, so an inner node claims a comment before its parent can.
+  // Trailing comments of a previous node are claimed when that node is spanned,
+  // before the next node looks for its leading comments.
+  _attachComments(node: AST.Node, firstToken: number, lastToken: number, headerToken: number) {
+    if (lastToken < firstToken) {
+      return;
+    }
+
+    // Leading: the run of comments directly above the first token, stopping at
+    // a blank line. A comment separated by a blank line is left unattached.
+    let leading: Comment[] | null = null;
+    const above = this._tokens[firstToken].leadingComments;
+    if (above) {
+      let line = this._tokens[firstToken].line;
+      let i = above.length;
+      while (i > 0) {
+        const c = above[i - 1];
+        if (this._attachedComments.has(c) || line - c.endLine > 1) {
+          break;
+        }
+        line = c.line;
+        i--;
+      }
+      if (i < above.length) {
+        leading = above.slice(i);
+      }
+    }
+
+    // Comments between a declaration's attributes and the declaration.
+    for (let t = firstToken + 1; t <= headerToken && t <= lastToken; ++t) {
+      for (const c of this._tokens[t].leadingComments ?? []) {
+        if (!this._attachedComments.has(c)) {
+          (leading ??= []).push(c);
+        }
+      }
+    }
+
+    // Trailing: comments starting on the line the node ends on, allowing for a
+    // separating ',' or ';' that isn't part of the node.
+    let trailing: Comment[] | null = null;
+    const lastLine = this._tokens[lastToken].line;
+    let next = lastToken + 1;
+    while (next < this._tokens.length) {
+      for (const c of this._tokens[next].leadingComments ?? []) {
+        if (c.line !== lastLine || this._attachedComments.has(c)) {
+          break;
+        }
+        (trailing ??= []).push(c);
+      }
+      const token = this._tokens[next];
+      if (trailing !== null || token.line !== lastLine ||
+          (token.type !== TokenTypes.tokens.comma && token.type !== TokenTypes.tokens.semicolon)) {
+        break;
+      }
+      next++;
+    }
+
+    if (leading !== null) {
+      node.leadingComments = leading;
+      leading.forEach((c) => this._attachedComments.add(c));
+    }
+    if (trailing !== null) {
+      node.trailingComments = trailing;
+      trailing.forEach((c) => this._attachedComments.add(c));
+    }
   }
 
   _error(token: Token, message: string | null): Error {
@@ -238,7 +328,9 @@ export class WgslParser {
   _global_decl_or_directive(): AST.Statement | null {
     while (this._match(TokenTypes.tokens.semicolon) && !this._isAtEnd());
     const startToken = this._current;
-    return this._setSpan(this._global_decl_or_directiveImpl(), startToken);
+    this._declToken = -1;
+    const decl = this._global_decl_or_directiveImpl();
+    return this._setSpan(decl, startToken, this._declToken);
   }
 
   _global_decl_or_directiveImpl(): AST.Statement | null {
@@ -291,6 +383,7 @@ export class WgslParser {
 
     // The following statements have an optional attribute*
     const attrs = this._attribute();
+    this._declToken = this._current;
 
     if (this._check(TokenTypes.keywords.var)) {
       const _var = this._global_variable_decl();
@@ -378,7 +471,9 @@ export class WgslParser {
         if (this._check(TokenTypes.tokens.paren_right)) {
           break;
         }
+        const argStart = this._current;
         const argAttrs = this._attribute();
+        const nameToken = this._current;
 
         const name = this._consume(
           TokenTypes.tokens.name,
@@ -395,7 +490,8 @@ export class WgslParser {
         if (type != null) {
           this._setTypeAttributes(type, typeAttrs);
 
-          args.push(this._updateNode(new AST.Argument(name, type, argAttrs)));
+          const arg = this._updateNode(new AST.Argument(name, type, argAttrs));
+          args.push(this._setSpan(arg, argStart, nameToken));
         }
       } while (this._match(TokenTypes.tokens.comma));
     }
@@ -1546,7 +1642,9 @@ export class WgslParser {
     const members: AST.Member[] = [];
     while (!this._check(TokenTypes.tokens.brace_right)) {
       // struct_member: attribute* variable_ident_decl
+      const memberStart = this._current;
       const memberAttrs = this._attribute();
+      const nameToken = this._current;
 
       const memberName = this._consume(TokenTypes.tokens.name, "Expected variable name.").toString();
 
@@ -1556,13 +1654,15 @@ export class WgslParser {
       const memberType = this._type_decl();
       this._setTypeAttributes(memberType, typeAttrs);
 
+      // Span the member before its separating comma.
+      const member = this._updateNode(new AST.Member(memberName, memberType, memberAttrs));
+      members.push(this._setSpan(member, memberStart, nameToken));
+
       if (!this._check(TokenTypes.tokens.brace_right)) {
         this._consume(TokenTypes.tokens.comma, "Expected ',' for struct member.");
       } else {
         this._match(TokenTypes.tokens.comma); // trailing comma optional.
       }
-
-      members.push(this._updateNode(new AST.Member(memberName, memberType, memberAttrs)));
     }
 
     this._consume(TokenTypes.tokens.brace_right, "Expected '}' after struct body.");

@@ -48,6 +48,7 @@ export declare class Reflect {
     _parseString(s: string | string[]): string;
     _parseInt(s: string | string[]): number | string;
     _getAlias(name: string): TypeInfo | null;
+    _getComment(node: Node): string | null;
     _getAliasInfo(node: Alias): AliasInfo;
     getTypeInfoByName(name: string): TypeInfo | null;
     getTypeInfo(type: Type, attributes?: Attribute[] | null): TypeInfo;

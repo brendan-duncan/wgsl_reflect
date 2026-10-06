@@ -38,6 +38,9 @@ export class MemberInfo {
   attributes: Attribute[] | null;
   offset: number;
   size: number;
+  /// The text of the comments attached to the declaration, without the comment
+  /// markers, or null if it has none.
+  comment: string | null = null;
 
   constructor(
     name: string,
@@ -94,6 +97,9 @@ export class StructInfo extends TypeInfo {
   startLine: number = -1;
   endLine: number = -1;
   inUse: boolean = false;
+  /// The text of the comments attached to the declaration, without the comment
+  /// markers, or null if it has none.
+  comment: string | null = null;
 
   constructor(name: string, attributes: Attribute[] | null) {
     super(name, attributes);
@@ -229,6 +235,9 @@ export class VariableInfo {
   resourceType: ResourceType;
   access: string;
   relations: Array<VariableInfo> | null = null;
+  /// The text of the comments attached to the declaration, without the comment
+  /// markers, or null if it has none.
+  comment: string | null = null;
 
   constructor(
     name: string,
@@ -292,6 +301,9 @@ export class VariableInfo {
 export class AliasInfo {
   name: string;
   type: TypeInfo;
+  /// The text of the comments attached to the declaration, without the comment
+  /// markers, or null if it has none.
+  comment: string | null = null;
 
   constructor(name: string, type: TypeInfo) {
     this.name = name;
@@ -344,6 +356,9 @@ export class OverrideInfo {
   type: TypeInfo | null;
   attributes: Attribute[] | null;
   id: number;
+  /// The text of the comments attached to the declaration, without the comment
+  /// markers, or null if it has none.
+  comment: string | null = null;
 
   constructor(
     name: string,
@@ -362,6 +377,9 @@ export class ArgumentInfo {
   name: string;
   type: TypeInfo;
   attributes: Attribute[] | null;
+  /// The text of the comments attached to the declaration, without the comment
+  /// markers, or null if it has none.
+  comment: string | null = null;
 
   constructor(
     name: string,
@@ -392,6 +410,9 @@ export class FunctionInfo {
   startLine: number = -1;
   endLine: number = -1;
   inUse: boolean = false;
+  /// The text of the comments attached to the declaration, without the comment
+  /// markers, or null if it has none.
+  comment: string | null = null;
   calls: Set<FunctionInfo> = new Set();
 
   constructor(name: string, stage: string | null = null, attributes: Attribute[] | null) {

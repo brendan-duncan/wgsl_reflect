@@ -287,12 +287,24 @@ export declare class TokenTypes {
     static readonly assignment_operators: TokenType[];
     static readonly increment_operators: TokenType[];
 }
+export declare class Comment {
+    readonly kind: "line" | "block";
+    readonly text: string;
+    readonly line: number;
+    readonly endLine: number;
+    readonly start: number;
+    readonly end: number;
+    constructor(kind: "line" | "block", text: string, line: number, endLine: number, start: number, end: number);
+    get content(): string;
+    toString(): string;
+}
 export declare class Token {
     readonly type: TokenType;
     readonly lexeme: string;
     readonly line: number;
     readonly start: number;
     readonly end: number;
+    leadingComments: Comment[] | null;
     constructor(type: TokenType, lexeme: string, line: number, start: number, end: number);
     toString(): string;
     isTemplateType(): boolean;
@@ -305,7 +317,10 @@ export declare class WgslScanner {
     private _start;
     private _current;
     private _line;
+    private _comments;
+    private _pendingComments;
     constructor(source?: string);
+    get comments(): Comment[];
     scanTokens(): Token[];
     scanToken(): boolean;
     _findType(lexeme: string): TokenType;
@@ -319,4 +334,6 @@ export declare class WgslScanner {
     _advance(amount?: number): string;
     _peekAhead(offset?: number): string;
     _addToken(type: TokenType): void;
+    _pushToken(token: Token): void;
+    _addComment(kind: "line" | "block", line: number, end: number): void;
 }

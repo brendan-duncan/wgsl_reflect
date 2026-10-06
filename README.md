@@ -145,6 +145,8 @@ class VariableInfo {
   // Associated objects, for relating samplers to textures.
   // For a call to textureSample(texture, sampler), texture.relations will include sampler, and sampler.relations will include texture.
   relations: Array<VariableInfo> | null;
+  // The text of the comments documenting the declaration, without the comment markers, or null.
+  comment: string | null;
 
   // True if the type of the variable is an array.
   get isArray(): boolean;
@@ -195,6 +197,8 @@ class StructInfo extends TypeInfo {
   endLine: number;
   // True if the struct is used by a uniform, storage, or directly or indirectly by an entry function.
   inUse: boolean;
+  // The text of the comments documenting the declaration, without the comment markers, or null.
+  comment: string | null;
 }
 
 // Information about array type declarations
@@ -225,6 +229,8 @@ class MemberInfo {
   offset: number;
   // The size of the members data, in bytes.
   size: number;
+  // The text of the comments documenting the declaration, without the comment markers, or null.
+  comment: string | null;
 
   // True if the member type is an array and can be cast to ArrayInfo
   get isArray(): boolean;
@@ -250,6 +256,8 @@ class AliasInfo {
   name: string;
   // The information of the type being aliased.
   type: TypeInfo;
+  // The text of the comments documenting the declaration, without the comment markers, or null.
+  comment: string | null;
 }
 
 // The lists of shader vertex, fragment, and/or compute entry functions.
@@ -296,6 +304,8 @@ class FunctionInfo {
   inUse: boolean;
   // All custom functions called directly by this function.
   calls: Set<FunctionInfo>;
+  // The text of the comments documenting the declaration, without the comment markers, or null.
+  comment: string | null;
 }
 
 // Information about a shader inputs.
@@ -332,6 +342,8 @@ class OverrideInfo {
   type: TypeInfo | null;
   // A unique ID given to the override constant.
   id: number;
+  // The text of the comments documenting the declaration, without the comment markers, or null.
+  comment: string | null;
 }
 
 // Information about a function argument.
@@ -340,6 +352,8 @@ class ArgumentInfo {
   name: string;
   // The type of the argument variable.
   type: TypeInfo;
+  // The text of the comments documenting the declaration, without the comment markers, or null.
+  comment: string | null;
 }
 ```
 

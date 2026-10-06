@@ -16,6 +16,7 @@ export declare class MemberInfo {
     attributes: Attribute[] | null;
     offset: number;
     size: number;
+    comment: string | null;
     constructor(name: string, type: TypeInfo, attributes: Attribute[] | null);
     get isArray(): boolean;
     get isStruct(): boolean;
@@ -32,6 +33,7 @@ export declare class StructInfo extends TypeInfo {
     startLine: number;
     endLine: number;
     inUse: boolean;
+    comment: string | null;
     constructor(name: string, attributes: Attribute[] | null);
     get isStruct(): boolean;
 }
@@ -78,6 +80,7 @@ export declare class VariableInfo {
     resourceType: ResourceType;
     access: string;
     relations: Array<VariableInfo> | null;
+    comment: string | null;
     constructor(name: string, type: TypeInfo, group: number, binding: number, attributes: Attribute[] | null, resourceType: ResourceType, access: string);
     get isArray(): boolean;
     get isStruct(): boolean;
@@ -92,6 +95,7 @@ export declare class VariableInfo {
 export declare class AliasInfo {
     name: string;
     type: TypeInfo;
+    comment: string | null;
     constructor(name: string, type: TypeInfo);
 }
 export declare class InputInfo {
@@ -114,12 +118,14 @@ export declare class OverrideInfo {
     type: TypeInfo | null;
     attributes: Attribute[] | null;
     id: number;
+    comment: string | null;
     constructor(name: string, type: TypeInfo | null, attributes: Attribute[] | null, id: number);
 }
 export declare class ArgumentInfo {
     name: string;
     type: TypeInfo;
     attributes: Attribute[] | null;
+    comment: string | null;
     constructor(name: string, type: TypeInfo, attributes: Attribute[] | null);
 }
 export declare class FunctionInfo {
@@ -136,6 +142,7 @@ export declare class FunctionInfo {
     startLine: number;
     endLine: number;
     inUse: boolean;
+    comment: string | null;
     calls: Set<FunctionInfo>;
     constructor(name: string, stage: string | null, attributes: Attribute[] | null);
 }

@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- Comments are attached to AST nodes (`leadingComments`, `trailingComments`) and reflection info (`comment`) ([#101](https://github.com/brendan-duncan/wgsl_reflect/issues/101)).
+
 ## 1.7.0
 
 ### Added

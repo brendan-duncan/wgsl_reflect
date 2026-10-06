@@ -588,8 +588,51 @@ export class TokenTypes {
   ];
 }
 
+/// A comment found by the WgslScanner. Comments are not tokens; each one is
+/// attached to the token that follows it, in Token.leadingComments.
+export class Comment {
+  constructor(
+    /// "line" for a // comment, "block" for a /* */ comment.
+    readonly kind: "line" | "block",
+    /// The raw comment text, including the comment markers.
+    readonly text: string,
+    /// The line the comment starts on.
+    readonly line: number,
+    /// The line the comment ends on; the same as line for a // comment.
+    readonly endLine: number,
+    readonly start: number,
+    readonly end: number
+  ) {}
+
+  /// The comment text without its markers: the leading // (or ///) of a line
+  /// comment, or the /* */ of a block comment along with the * that commonly
+  /// starts each of its lines. Surrounding blank lines are removed.
+  get content(): string {
+    if (this.kind === "line") {
+      return this.text.replace(/^\/\/+ ?/, "").replace(/\s+$/, "");
+    }
+    const body = this.text.replace(/^\/\*+/, "").replace(/\*+\/$/, "");
+    const lines = body.split(/\r?\n/).map((l, i) =>
+      (i === 0 ? l.replace(/^ /, "") : l.replace(/^\s*\* ?/, "")).replace(/\s+$/, ""));
+    while (lines.length > 0 && lines[0].trim() === "") {
+      lines.shift();
+    }
+    while (lines.length > 0 && lines[lines.length - 1].trim() === "") {
+      lines.pop();
+    }
+    return lines.join("\n");
+  }
+
+  toString(): string {
+    return this.text;
+  }
+}
+
 /// A token parsed by the WgslScanner.
 export class Token {
+  /// The comments between the previous token and this one, or null if there are none.
+  leadingComments: Comment[] | null = null;
+
   constructor(
     readonly type: TokenType,
     readonly lexeme: string,
@@ -623,9 +666,16 @@ export class WgslScanner {
   private _start = 0;
   private _current = 0;
   private _line = 1;
+  private _comments: Comment[] = [];
+  private _pendingComments: Comment[] | null = null;
 
   constructor(source?: string) {
     this._source = source ?? "";
+  }
+
+  /// All comments found by scanTokens, in source order.
+  get comments(): Comment[] {
+    return this._comments;
   }
 
   /// Scan all tokens from the source.
@@ -637,7 +687,7 @@ export class WgslScanner {
       }
     }
 
-    this._tokens.push(new Token(TokenTypes.eof, "", this._line, this._current, this._current));
+    this._pushToken(new Token(TokenTypes.eof, "", this._line, this._current, this._current));
 
     return this._tokens;
   }
@@ -661,23 +711,25 @@ export class WgslScanner {
     if (lexeme == "/") {
       // If it's a // comment, skip everything until the next line-feed.
       if (this._peekAhead() == "/") {
-        while (lexeme != "\n") {
-          if (this._isAtEnd()) {
-            return true;
-          }
-          lexeme = this._advance();
+        const line = this._line;
+        while (!this._isAtEnd() && this._peekAhead() != "\n") {
+          this._advance();
         }
-        // skip the linefeed
-        this._line++;
+        let end = this._current;
+        if (end > this._start && this._source[end - 1] == "\r") {
+          end--;
+        }
+        this._addComment("line", line, end);
         return true;
       } else if (this._peekAhead() == "*") {
         // If it's a / * block comment, skip everything until the matching * /,
         // allowing for nested block comments.
+        const line = this._line;
         this._advance();
         let commentLevel = 1;
         while (commentLevel > 0) {
           if (this._isAtEnd()) {
-            return true;
+            break;
           }
           lexeme = this._advance();
           if (lexeme == "\n") {
@@ -686,9 +738,6 @@ export class WgslScanner {
             if (this._peekAhead() == "/") {
               this._advance();
               commentLevel--;
-              if (commentLevel == 0) {
-                return true;
-              }
             }
           } else if (lexeme == "/") {
             if (this._peekAhead() == "*") {
@@ -697,6 +746,7 @@ export class WgslScanner {
             }
           }
         }
+        this._addComment("block", line, this._current);
         return true;
       }
     }
@@ -909,6 +959,22 @@ export class WgslScanner {
 
   _addToken(type: TokenType) {
     const text = this._source.substring(this._start, this._current);
-    this._tokens.push(new Token(type, text, this._line, this._start, this._current));
+    this._pushToken(new Token(type, text, this._line, this._start, this._current));
+  }
+
+  _pushToken(token: Token) {
+    token.leadingComments = this._pendingComments;
+    this._pendingComments = null;
+    this._tokens.push(token);
+  }
+
+  _addComment(kind: "line" | "block", line: number, end: number) {
+    const text = this._source.substring(this._start, end);
+    const comment = new Comment(kind, text, line, this._line, this._start, end);
+    this._comments.push(comment);
+    if (this._pendingComments === null) {
+      this._pendingComments = [];
+    }
+    this._pendingComments.push(comment);
   }
 }

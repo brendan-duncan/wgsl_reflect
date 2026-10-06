@@ -105,7 +105,9 @@ export class Reflect {
 
     for (const node of ast) {
       if (node instanceof Alias) {
-        this.aliases.push(this._getAliasInfo(node as Alias));
+        const info = this._getAliasInfo(node as Alias);
+        info.comment = this._getComment(node);
+        this.aliases.push(info);
         continue;
       }
 
@@ -113,7 +115,9 @@ export class Reflect {
         const v = node as Override;
         const id = this._getAttributeNum(v.attributes, "id", 0);
         const type = v.type != null ? this.getTypeInfo(v.type, v.attributes) : null;
-        this.overrides.push(new OverrideInfo(v.name, type, v.attributes, id));
+        const info = new OverrideInfo(v.name, type, v.attributes, id);
+        info.comment = this._getComment(v);
+        this.overrides.push(info);
         continue;
       }
 
@@ -123,6 +127,7 @@ export class Reflect {
         const b = this._getAttributeNum(v.attributes, "binding", 0);
         const type = this.getTypeInfo(v.type!, v.attributes);
         const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, ResourceType.Uniform, v.access);
+        varInfo.comment = this._getComment(v);
         if (!varInfo.access) {
           varInfo.access = "read";
         }
@@ -136,6 +141,7 @@ export class Reflect {
         const b = this._getAttributeNum(v.attributes, "binding", 0);
         const type = this.getTypeInfo(v.type!, v.attributes);
         const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, ResourceType.Immediate, v.access);
+        varInfo.comment = this._getComment(v);
         if (!varInfo.access) {
           varInfo.access = "read";
         }
@@ -150,6 +156,7 @@ export class Reflect {
         const type = this.getTypeInfo(v.type!, v.attributes);
         const isStorageTexture = this._isStorageTexture(type);
         const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, isStorageTexture ? ResourceType.StorageTexture : ResourceType.Storage, v.access);
+        varInfo.comment = this._getComment(v);
         if (!varInfo.access) {
           varInfo.access = "read";
         }
@@ -166,6 +173,7 @@ export class Reflect {
         const access = isStorageTexture ? (type as TemplateInfo).access : v.access;
         const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, 
             isStorageTexture ? ResourceType.StorageTexture : ResourceType.Texture, access || v.access);
+        varInfo.comment = this._getComment(v);
         if (!varInfo.access) {
           varInfo.access = "read";
         }
@@ -183,6 +191,7 @@ export class Reflect {
         const b = this._getAttributeNum(v.attributes, "binding", 0);
         const type = this.getTypeInfo(v.type!, v.attributes);
         const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, ResourceType.Sampler, v.access);
+        varInfo.comment = this._getComment(v);
         this.samplers.push(varInfo);
         continue;
       }
@@ -200,6 +209,7 @@ export class Reflect {
         fn.workgroupSize = workgroupSizeOf(node, this._constValues);
         fn.startLine = node.startLine;
         fn.endLine = node.endLine;
+        fn.comment = this._getComment(node);
         this.functions.push(fn);
         this._functions.get(node.name)!.info = fn;
 
@@ -212,9 +222,11 @@ export class Reflect {
         }
         fn.resources = this._findResources(node, !!stage);
 
-        fn.arguments = node.args.map(
-          (arg) => new ArgumentInfo(arg.name, this.getTypeInfo(arg.type, arg.attributes), arg.attributes)
-        );
+        fn.arguments = node.args.map((arg) => {
+          const info = new ArgumentInfo(arg.name, this.getTypeInfo(arg.type, arg.attributes), arg.attributes);
+          info.comment = this._getComment(arg);
+          return info;
+        });
 
         fn.returnType = node.returnType ? this.getTypeInfo(node.returnType, node.attributes) : null;
 
@@ -699,6 +711,16 @@ export class Reflect {
     return null;
   }
 
+  // The comment documenting a declaration: its leading comments, or failing
+  // that its trailing ones, as with `a: f32, // the a` in a struct.
+  _getComment(node: Node): string | null {
+    const comments = node.leadingComments ?? node.trailingComments;
+    if (comments === null) {
+      return null;
+    }
+    return comments.map((c) => c.content).join("\n");
+  }
+
   _getAliasInfo(node: Alias): AliasInfo {
     return new AliasInfo(node.name, this.getTypeInfo(node.type!, null));
   }
@@ -754,9 +776,12 @@ export class Reflect {
       const info = new StructInfo(s.name, s.attributes ?? attributes);
       info.startLine = s.startLine;
       info.endLine = s.endLine;
+      info.comment = this._getComment(s);
       for (const m of s.members) {
         const t = this.getTypeInfo(m.type!, m.attributes);
-        info.members.push(new MemberInfo(m.name, t, m.attributes));
+        const member = new MemberInfo(m.name, t, m.attributes);
+        member.comment = this._getComment(m);
+        info.members.push(member);
       }
       this._types.set(type, info);
       this._updateTypeInfo(info);

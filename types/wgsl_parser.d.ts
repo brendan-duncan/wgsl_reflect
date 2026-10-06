@@ -1,4 +1,4 @@
-import { Token, TokenType } from "./wgsl_scanner.js";
+import { Token, TokenType, Comment } from "./wgsl_scanner.js";
 import * as AST from "./wgsl_ast.js";
 import { WgslExec } from "./wgsl_exec.js";
 import { ParseContext } from "./ast/parse_context.js";
@@ -11,12 +11,16 @@ export declare class WgslParser {
     _context: ParseContext;
     _exec: WgslExec;
     _forwardTypeCount: number;
+    _attachedComments: Set<Comment>;
+    _declToken: number;
     static Parse(tokensOrCode: Token[] | string): AST.Statement[];
     parse(tokensOrCode: Token[] | string): AST.Statement[];
     _forwardType(t: AST.Type | null): AST.Type | null;
     _initialize(tokensOrCode: Token[] | string): void;
+    get comments(): Comment[];
     _updateNode<T extends AST.Node>(n: T, l?: number): T;
-    _setSpan<T extends AST.Node | AST.Node[] | null>(n: T, startToken: number): T;
+    _setSpan<T extends AST.Node | AST.Node[] | null>(n: T, startToken: number, headerToken?: number): T;
+    _attachComments(node: AST.Node, firstToken: number, lastToken: number, headerToken: number): void;
     _error(token: Token, message: string | null): Error;
     _isAtEnd(): boolean;
     _match(types: TokenType | TokenType[]): boolean;
