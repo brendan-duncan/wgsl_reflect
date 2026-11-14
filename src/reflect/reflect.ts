@@ -983,7 +983,7 @@ export class Reflect {
       let lastSize = 0;
       let lastOffset = 0;
       for (const m of type.members) {
-        const mi = this._getTypeSize(m.type);
+        const mi = this._getTypeSize(m);
         if (mi !== null) {
           align = Math.max(mi.align, align);
           offset = this._roundUp(mi.align, offset + lastSize);
