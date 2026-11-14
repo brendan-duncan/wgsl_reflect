@@ -838,6 +838,25 @@ export async function run() {
       test.equals(reflect.uniforms[0].type.size, 560);
     });
 
+    await test("nested struct-typed member @size/@align", function (test) {
+      const reflect = new WgslReflect(`
+        struct Leaf { a: f32 }
+        struct Inner { @size(16) y: Leaf }
+        struct Outer { q: Inner, r: f32 }
+        struct Inner2 { y: f32, @align(16) z: Leaf }
+        struct Outer2 { q: Inner2, r: f32 }`);
+      const s = {};
+      for (const st of reflect.structs) s[st.name] = st;
+      test.equals(s.Outer.size, 20);
+      test.equals(s.Outer.align, 4);
+      test.equals(s.Outer.members[0].size, 16);
+      test.equals(s.Outer.members[1].offset, 16);
+      test.equals(s.Outer2.size, 48);
+      test.equals(s.Outer2.align, 16);
+      test.equals(s.Outer2.members[0].size, 32);
+      test.equals(s.Outer2.members[1].offset, 32);
+    });
+
     const shader = `
   struct ViewUniforms {
       viewProjection: mat4x4<f32>

@@ -5,6 +5,9 @@
 ### Added
 - Comments are attached to AST nodes (`leadingComments`, `trailingComments`) and reflection info (`comment`) ([#101](https://github.com/brendan-duncan/wgsl_reflect/issues/101)).
 
+### Fixed
+- `@size`/`@align` on a struct-typed member were ignored when its struct was nested in another struct ([#102](https://github.com/brendan-duncan/wgsl_reflect/issues/102)).
+
 ## 1.7.0
 
 ### Added
