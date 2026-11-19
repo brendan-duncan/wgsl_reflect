@@ -403,7 +403,7 @@ export function detectRaces(
         debug.applyOverrides(config["constants"] as Record<string, unknown>, context);
     }
     // Immediate data is read-only, so it is bound untracked.
-    exec._bindImmediates(config, context);
+    exec._bindConfigResources(config, context);
 
     const kernelFn = context.getFunction(kernel);
     if (kernelFn === null) {

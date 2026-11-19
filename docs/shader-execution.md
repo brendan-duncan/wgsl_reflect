@@ -76,7 +76,7 @@ dispatchWorkgroups(kernel, dispatchCount, bindGroups, config?)
 | `kernel`        | Name of the `@compute` entry function. |
 | `dispatchCount` | Workgroup grid size. A number, or `[x]`, `[x, y]`, or `[x, y, z]`. The total invocation count is the grid multiplied by the shader's `@workgroup_size`. |
 | `bindGroups`    | Resources bound to the shader — see [Bind group format](#bind-group-format). |
-| `config`        | Optional. May contain `constants` for [override constants](#override-constants). |
+| `config`        | Optional. May contain `constants` for [override constants](#override-constants), `immediates` for `var<immediate>` data, and `resourceTable` for the [bindless resource table](#bindless-resource-table). |
 
 Each invocation receives the standard compute builtins: `global_invocation_id`,
 `local_invocation_id`, `local_invocation_index`, `workgroup_id`,
@@ -114,6 +114,9 @@ const bindGroups = {
     0: storageTypedArray,         // @binding(0) - storage buffer
     1: { uniform: arrayBuffer },  // @binding(1) - uniform buffer
     2: { texture, descriptor },   // @binding(2) - texture
+    3: { sampler: descriptor },   // @binding(3) - sampler
+    4: { texelBuffer: typedArray }, // @binding(4) - texel_buffer
+    5: [entry0, entry1],          // @binding(5) - binding_array
   },
 };
 ```
@@ -126,13 +129,51 @@ const bindGroups = {
   `GPUTextureDescriptor` shape (`size`, `format`, `mipLevelCount`, etc.).
   `texture` is the mip-level-0 data, or an array of per-mip buffers
   `[mip0, mip1, ...]` when the texture is mipmapped.
+- **Sampler** — pass `{ sampler: descriptor }`, where `descriptor` matches the
+  `GPUSamplerDescriptor` shape (`magFilter`, `addressModeU`, `compare`, etc.).
+- **Texel buffer** — pass `{ texelBuffer: TypedArray }`, or the `TypedArray` or
+  `ArrayBuffer` directly. Its texel format comes from the `texel_buffer<F, A>`
+  type, and it is read and written in place.
+- **Binding array** — pass an array with one of the entries above for each
+  element of a `binding_array<T, N>`.
 
 Only resources actually used by the dispatched kernel are bound; entries for
 other bindings are ignored.
 
-The [debugger](./shader-debugging.md) accepts this same format and adds one more
-resource kind — a **sampler**, `{ sampler: descriptor }` — used when debugging
-vertex and fragment shaders that call the `textureSample*` builtins.
+The [debugger](./shader-debugging.md) accepts this same format.
+
+## Bindless resource table
+
+A shader that enables the `resource_table` extension (Chrome's
+`chromium_experimental_resource_table`) accesses textures and samplers by index
+with `getResource<T>(index)` and `hasResource<T>(index)`. Pass the table's
+entries as `config.resourceTable`, an array of texture and sampler entries in
+the [bind group format](#bind-group-format):
+
+```javascript
+const shader = `
+  enable chromium_experimental_resource_table;
+  @group(0) @binding(0) var<storage, read_write> out: array<f32>;
+  @compute @workgroup_size(1)
+  fn main() {
+    out[0] = textureLoad(getResource<texture_2d<f32>>(1u), vec2u(0), 0).r;
+  }`;
+
+const out = new Float32Array(1);
+const texture = new Float32Array([0.5]);
+exec.dispatchWorkgroups("main", 1, { 0: { 0: out } }, {
+  resourceTable: [
+    { sampler: {} },
+    { texture: texture.buffer, descriptor: { size: [1, 1, 1], format: "r32float" } },
+  ],
+});
+// out -> [0.5]
+```
+
+An entry matches `T` when its view dimension, sample count, and format agree
+with the type. A cube texture needs a `view: { dimension: "cube" }`, as in
+WebGPU. `getResource` returns a zero-filled texture, or a default sampler, when
+the index is out of bounds or the entry doesn't match.
 
 ## Override constants
 

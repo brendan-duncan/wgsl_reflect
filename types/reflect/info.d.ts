@@ -149,6 +149,8 @@ export declare class FunctionInfo {
     inUse: boolean;
     comment: string | null;
     calls: Set<FunctionInfo>;
+    usesResourceTable: boolean;
+    resourceTableTypes: TypeInfo[];
     constructor(name: string, stage: string | null, attributes: Attribute[] | null);
 }
 export declare class EntryFunctions {

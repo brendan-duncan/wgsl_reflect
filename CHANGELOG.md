@@ -7,6 +7,7 @@
 - `sized_binding_array`: `binding_array<T, N>` of textures and samplers, bound with an array of entries.
 - `texel_buffers`: `texel_buffer<F, A>` types (`Reflect.texelBuffers`) with `textureLoad`, `textureStore`, and `textureDimensions`.
 - `multisampled_array_textures`: `texture_multisampled_2d_array<T>`.
+- `resource_table` (bindless): `getResource<T>` and `hasResource<T>`, `FunctionInfo.usesResourceTable`, and `config.resourceTable` for execution.
 
 ### Fixed
 - `textureStore` on an array texture wrote to the mip level given by `array_index` instead of that layer.

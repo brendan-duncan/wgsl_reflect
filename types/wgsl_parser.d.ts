@@ -3,6 +3,7 @@ import * as AST from "./wgsl_ast.js";
 import { WgslExec } from "./wgsl_exec.js";
 import { ParseContext } from "./ast/parse_context.js";
 export declare class WgslParser {
+    static readonly _templateBuiltins: Set<string>;
     _tokens: Token[];
     _current: number;
     _currentLine: number;

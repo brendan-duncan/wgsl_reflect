@@ -323,5 +323,12 @@ export async function run() {
       test.equals(tokens.length, 9);
       test.equals(tokens[6].type, TokenTypes.tokens.greater_than_equal);
     });
+
+    await test("getResource<texture_2d<f32>>(0)", function (test) {
+      const scanner = new WgslScanner("getResource<texture_2d<f32>>(0)");
+      const tokens = scanner.scanTokens();
+      test.equals(tokens.map((t) => t.lexeme).filter((l) => l !== ""),
+          ["getResource", "<", "texture_2d", "<", "f32", ">", ">", "(", "0", ")"]);
+    });
   });
 }

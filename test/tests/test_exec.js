@@ -2046,5 +2046,40 @@ export async function run() {
             test.equals(Array.from(out), [7, 9]);
             test.equals(Array.from(layers), [0, 9]);
         });
+
+        await test("resource_table: getResource and hasResource", async function (test) {
+            const shader = `
+                enable chromium_experimental_resource_table;
+                @group(0) @binding(0) var<storage, read_write> out: array<f32>;
+                fn load(i: u32) -> f32 {
+                    return textureLoad(getResource<texture_2d<f32>>(i), vec2u(0), 0).r;
+                }
+                @compute @workgroup_size(1) fn main() {
+                    out[0] = load(0u);
+                    out[1] = load(1u);
+                    out[2] = f32(hasResource<texture_2d<f32>>(0u));
+                    out[3] = f32(hasResource<texture_2d<u32>>(0u));
+                    out[4] = f32(hasResource<sampler>(2u));
+                    out[5] = f32(hasResource<sampler_comparison>(2u));
+                    out[6] = f32(hasResource<texture_2d<f32>>(10u));
+                    // A mismatched or out of bounds resource reads as zero.
+                    out[7] = f32(textureLoad(getResource<texture_2d<u32>>(0u), vec2u(0), 0).r);
+                    out[8] = load(10u);
+                    out[9] = textureSampleLevel(getResource<texture_2d<f32>>(1u), getResource<sampler>(2u), vec2f(0.75, 0.5), 0.0).r;
+                    out[10] = f32(textureDimensions(getResource<texture_2d<f32>>(1u)).x);
+                }`;
+            const descriptor = { size: [1, 1, 1], format: "r32float" };
+            const t0 = new Float32Array([0.25]);
+            const t1 = new Float32Array([0.5, 0.75]);
+            const out = new Float32Array(11);
+            const resourceTable = [
+                { texture: [t0.buffer], descriptor },
+                { texture: [t1.buffer], descriptor: { size: [2, 1, 1], format: "r32float" } },
+                { sampler: { magFilter: "nearest", minFilter: "nearest" } },
+            ];
+            const wgsl = _newWgslExec(shader);
+            wgsl.dispatchWorkgroups("main", 1, { 0: { 0: out.buffer } }, { resourceTable });
+            test.equals(Array.from(out), [0.25, 0.5, 1, 0, 1, 0, 0, 0, 0, 0.75, 2]);
+        });
     }, true);
 }

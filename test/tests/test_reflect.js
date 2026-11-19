@@ -1799,5 +1799,28 @@ export async function run() {
       test.equals(reflect.textures[0].type.getTypeName(), "texture_multisampled_2d_array<f32>");
       test.equals(reflect.entry.compute[0].resources.length, 1);
     });
+
+    await test("resource_table", function (test) {
+      const reflect = new WgslReflect(`
+        enable chromium_experimental_resource_table;
+        fn shade(i: u32, uv: vec2f) -> vec4f {
+          return textureSample(getResource<texture_2d<f32>>(i), getResource<sampler>(0u), uv);
+        }
+        @fragment fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+          if (hasResource<texture_depth_2d>(2u)) {
+            return vec4f(0.0);
+          }
+          return shade(1u, uv);
+        }
+        @compute @workgroup_size(1) fn other() {}`);
+      const main = reflect.getFunctionInfo("main");
+      test.equals(main.usesResourceTable, true);
+      test.equals(main.resourceTableTypes.map((t) => t.getTypeName()),
+          ["texture_depth_2d", "texture_2d<f32>", "sampler"]);
+      test.equals(reflect.getFunctionInfo("shade").usesResourceTable, true);
+      test.equals(reflect.getFunctionInfo("other").usesResourceTable, false);
+      test.equals(reflect.getFunctionInfo("other").resourceTableTypes.length, 0);
+      test.equals(main.resources.length, 0);
+    });
   });
 }

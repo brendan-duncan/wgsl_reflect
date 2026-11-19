@@ -15,9 +15,11 @@ export declare class WgslExec extends ExecInterface {
     reflection: Reflect;
     builtins: BuiltinFunctions;
     typeInfo: Record<string, TypeInfo>;
+    resourceTable: Array<unknown>;
     constructor(ast?: Node[], context?: ExecContext);
     getVariableValue(name: string): number | number[] | null;
     execute(config?: Object): void;
+    _bindConfigResources(config: Object | undefined, context: ExecContext): void;
     _bindImmediates(config: Object | undefined, context: ExecContext): void;
     dispatchWorkgroups(kernel: string, dispatchCount: number | number[], bindGroups: Object, config?: Object): void;
     static readonly _breakObj: ControlData;

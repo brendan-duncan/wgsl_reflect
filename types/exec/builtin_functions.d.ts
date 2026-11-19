@@ -152,6 +152,12 @@ export declare class BuiltinFunctions {
     AtomicStoreMin(node: CallExpr | Call, context: ExecContext): Data | null;
     AtomicStoreMax(node: CallExpr | Call, context: ExecContext): Data | null;
     _atomicStoreMinMax(node: CallExpr | Call, context: ExecContext, max: boolean): void;
+    _resourceTableEntry(node: CallExpr | Call, context: ExecContext): {
+        typeInfo: TypeInfo;
+        entry: unknown;
+    } | null;
+    GetResource(node: CallExpr | Call, context: ExecContext): Data | null;
+    HasResource(node: CallExpr | Call, context: ExecContext): Data | null;
     BufferView(node: CallExpr | Call, context: ExecContext): Data | null;
     BufferArrayView(node: CallExpr | Call, context: ExecContext): Data | null;
     BufferLength(node: CallExpr | Call, context: ExecContext): Data | null;

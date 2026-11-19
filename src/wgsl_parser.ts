@@ -7,6 +7,17 @@ import { ParseContext } from "./ast/parse_context.js";
 
 /// Parse a sequence of tokens from the WgslScanner into an Abstract Syntax Tree (AST).
 export class WgslParser {
+  // Builtin functions that take an explicit template list.
+  static readonly _templateBuiltins = new Set([
+    "bufferView",
+    "bufferArrayView",
+    "getResource",
+    "hasResource",
+    "subgroupMatrixLoad",
+    "subgroupMatrixStore",
+    "subgroupMatrixMultiply",
+  ]);
+
   _tokens: Token[] = [];
   _current: number = 0;
   _currentLine: number = 1;
@@ -85,6 +96,9 @@ export class WgslParser {
             node.returnType = this._forwardType(node.returnType);
           } else if (node instanceof AST.Argument) {
             node.type = this._forwardType(node.type);
+          } else if (node instanceof AST.CallExpr && node.templateArgs !== null) {
+            node.templateArgs = node.templateArgs.map((t) => this._forwardType(t));
+            node.templateType = node.templateArgs[0];
           }
         });
       }
@@ -1513,14 +1527,19 @@ export class WgslParser {
     // ident argument_expression_list?
     if (this._match(TokenTypes.tokens.ident)) {
       const name = this._previous().toString();
-      // bufferView<T>(...), bufferArrayView<T>(...): builtins with an explicit template type.
-      if ((name === "bufferView" || name === "bufferArrayView") && this._check(TokenTypes.tokens.less_than)) {
+      // Builtins called with an explicit template list, such as bufferView<T>(...)
+      // or getResource<T>(...).
+      if (WgslParser._templateBuiltins.has(name) && this._check(TokenTypes.tokens.less_than)) {
         this._advance();
-        const templateType = this._type_decl();
+        const templateArgs: AST.Type[] = [];
+        do {
+          templateArgs.push(this._type_decl());
+        } while (this._match(TokenTypes.tokens.comma));
         this._consume(TokenTypes.tokens.greater_than, "Expected '>'.");
         const args = this._argument_expression_list();
         const call = this._updateNode(new AST.CallExpr(name, args));
-        call.templateType = templateType;
+        call.templateType = templateArgs[0];
+        call.templateArgs = templateArgs;
         return call;
       }
       if (this._check(TokenTypes.tokens.paren_left)) {

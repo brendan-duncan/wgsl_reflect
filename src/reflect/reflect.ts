@@ -260,6 +260,8 @@ export class Reflect {
       }
     }
 
+    this._findResourceTableUsage();
+
     for (const fn of this._functions.values()) {
       fn.node.search((node) => {
         if (node instanceof Attribute) {
@@ -347,6 +349,55 @@ export class Reflect {
       if (alias) {
         this._markStructsInUse(alias);
       }
+    }
+  }
+
+  // Find the functions that use the resource table, directly or through a
+  // function they call, and the resource types they access in it.
+  _findResourceTableUsage(): void {
+    const direct = new Map<FunctionInfo, TypeInfo[]>();
+    for (const fn of this._functions.values()) {
+      if (!fn.info) {
+        continue;
+      }
+      const types: TypeInfo[] = [];
+      let uses = false;
+      fn.node.search((node) => {
+        if (node instanceof CallExpr && (node.name === "getResource" || node.name === "hasResource")) {
+          uses = true;
+          if (node.templateType) {
+            types.push(this.getTypeInfo(node.templateType, null));
+          }
+        }
+      });
+      if (uses) {
+        direct.set(fn.info, types);
+      }
+    }
+
+    for (const info of this.functions) {
+      const seen = new Set<FunctionInfo>();
+      const types = new Map<string, TypeInfo>();
+      const visit = (f: FunctionInfo) => {
+        if (seen.has(f)) {
+          return;
+        }
+        seen.add(f);
+        const d = direct.get(f);
+        if (d) {
+          info.usesResourceTable = true;
+          for (const t of d) {
+            if (!types.has(t.getTypeName())) {
+              types.set(t.getTypeName(), t);
+            }
+          }
+        }
+        for (const c of f.calls) {
+          visit(c);
+        }
+      };
+      visit(info);
+      info.resourceTableTypes = [...types.values()];
     }
   }
 

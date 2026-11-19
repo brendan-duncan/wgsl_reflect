@@ -34,6 +34,7 @@ export declare class Reflect {
     getStructInfo(name: string): StructInfo | null;
     getOverrideInfo(name: string): OverrideInfo | null;
     _markStructsInUse(type: TypeInfo): void;
+    _findResourceTableUsage(): void;
     _addCalls(fn: Function, calls: Set<FunctionInfo>): void;
     findResource(group: number, binding: number, entry?: string): VariableInfo;
     _findResource(name: string): VariableInfo | null;

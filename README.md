@@ -84,6 +84,8 @@ class WgslReflect {
   textures: Array<VariableInfo>;
   // All top-level sampler vars in the shader.
   samplers: Array<VariableInfo>;
+  // All top-level texel_buffer vars in the shader.
+  texelBuffers: Array<VariableInfo>;
   // All top-level type aliases in the shader.
   aliases: Array<AliasInfo>;
   // All top-level overrides in the shader.
@@ -124,7 +126,8 @@ enum ResourceType {
   Immediate, // Immediate buffer
   Texture, // Texture
   Sampler, // Sampler to sample a Texture
-  StorageTexture // StorageTexture
+  StorageTexture, // StorageTexture
+  TexelBuffer // texel_buffer
 }
 
 // Information about a resource variable. This will be a uniform buffer,
@@ -209,6 +212,12 @@ class ArrayInfo extends TypeInfo {
   count: number;
   // The stride, in bytes, of the array. This is the alignment of elements in the array data, including padding.
   stride: number;
+}
+
+// Information about a binding_array<T, N> of textures or samplers. The count is 0 for an unsized
+// binding array. A binding array variable is listed with the textures, samplers, or storage
+// textures of its element type.
+class BindingArrayInfo extends ArrayInfo {
 }
 
 // Information about template type declarations
@@ -304,6 +313,11 @@ class FunctionInfo {
   inUse: boolean;
   // All custom functions called directly by this function.
   calls: Set<FunctionInfo>;
+  // True if the function, or a function it calls, uses the bindless resource table
+  // (getResource or hasResource).
+  usesResourceTable: boolean;
+  // The resource types the function, or a function it calls, accesses in the resource table.
+  resourceTableTypes: Array<TypeInfo>;
   // The text of the comments documenting the declaration, without the comment markers, or null.
   comment: string | null;
 }

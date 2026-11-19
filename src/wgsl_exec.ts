@@ -48,6 +48,10 @@ export class WgslExec extends ExecInterface {
     reflection: Reflect;
     builtins: BuiltinFunctions;
     typeInfo: Record<string, TypeInfo>;
+    /// The entries of the bindless resource table (resource_table) that
+    /// getResource and hasResource access, set from config.resourceTable. Each
+    /// is a texture or sampler entry, like a bind group entry.
+    declare resourceTable: Array<unknown>;
 
     constructor(ast?: Node[], context?: ExecContext) {
         super();
@@ -127,6 +131,13 @@ export class WgslExec extends ExecInterface {
         this._execStatements(this.ast, this.context);
     }
 
+    // Binds the per-dispatch resources given in the config: immediate data and
+    // the bindless resource table.
+    _bindConfigResources(config: Object | undefined, context: ExecContext): void {
+        this._bindImmediates(config, context);
+        this.resourceTable = config?.["resourceTable"] ?? [];
+    }
+
     // Binds config.immediates, the data a pipeline sets with setImmediates, to the
     // module's var<immediate> variables. Each one reads it starting at byte 0.
     _bindImmediates(config: Object | undefined, context: ExecContext): void {
@@ -153,7 +164,7 @@ export class WgslExec extends ExecInterface {
         }
 
         this._execStatements(this.ast, context);
-        this._bindImmediates(config, context);
+        this._bindConfigResources(config, context);
 
         const f = context.getFunction(kernel);
         if (!f) {
@@ -2536,6 +2547,12 @@ export class WgslExec extends ExecInterface {
                 return this.builtins.BufferArrayView(node, context);
             case "bufferLength":
                 return this.builtins.BufferLength(node, context);
+
+            // Resource Table Built-in Functions
+            case "getResource":
+                return this.builtins.GetResource(node, context);
+            case "hasResource":
+                return this.builtins.HasResource(node, context);
 
             // Data Packing Built-in Functions
             case "pack4x8snorm":

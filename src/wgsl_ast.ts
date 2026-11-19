@@ -194,6 +194,8 @@ const BuiltinFunctionNames = new Set([
   "bufferView",
   "bufferArrayView",
   "bufferLength",
+  "getResource",
+  "hasResource",
   "pack4x8snorm",
   "pack4x8unorm",
   "pack4xI8",
@@ -1330,8 +1332,10 @@ export class CreateExpr extends Expression {
 export class CallExpr extends Expression {
   name: string;
   args: Expression[] | null;
-  // The explicit template type of bufferView<T>(...) and bufferArrayView<T>(...).
+  // The explicit template list of a builtin such as bufferView<T>(...) or
+  // getResource<T>(...), and its first type.
   templateType: Type | null = null;
+  templateArgs: Type[] | null = null;
   cachedReturnValue: unknown = null;
 
   constructor(name: string, args: Expression[] | null) {
@@ -1367,6 +1371,12 @@ export class CallExpr extends Expression {
       if (fn.node.returnType !== null) {
         type[0] = fn.node.returnType;
       }
+      return;
+    }
+
+    // getResource<T>(i) returns its template type.
+    if (this.name === "getResource" && this.templateType !== null) {
+      type[0] = this.templateType;
       return;
     }
 
@@ -1425,6 +1435,7 @@ export class CallExpr extends Expression {
     ["textureBarrier", Type.void],
     ["workgroupBarrier", Type.void],
     ["atomicStore", Type.void],
+    ["hasResource", Type.bool],
   ]);
 
   static _builtinSameAsArg = new Map<string, number>([

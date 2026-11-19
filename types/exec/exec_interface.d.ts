@@ -3,6 +3,7 @@ import { ExecContext } from "./exec_context.js";
 import { TypeInfo } from "../wgsl_reflect.js";
 import { Data } from "../wgsl_ast.js";
 export declare class ExecInterface {
+    resourceTable: Array<unknown>;
     evalExpression(node: Node, context: ExecContext): Data | null;
     getTypeInfo(type: Type | string): TypeInfo | null;
     getTypeAlign(type: TypeInfo): number;

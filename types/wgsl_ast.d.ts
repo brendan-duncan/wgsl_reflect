@@ -562,6 +562,7 @@ export declare class CallExpr extends Expression {
     name: string;
     args: Expression[] | null;
     templateType: Type | null;
+    templateArgs: Type[] | null;
     cachedReturnValue: unknown;
     constructor(name: string, args: Expression[] | null);
     get astNodeType(): string;

@@ -429,6 +429,13 @@ export class FunctionInfo {
   /// markers, or null if it has none.
   comment: string | null = null;
   calls: Set<FunctionInfo> = new Set();
+  /// True if the function, or a function it calls, uses the bindless resource
+  /// table (getResource or hasResource). The pipeline layout of an entry point
+  /// that uses it must set usesResourceTable.
+  usesResourceTable: boolean = false;
+  /// The resource types the function, or a function it calls, accesses in the
+  /// resource table with getResource<T> or hasResource<T>.
+  resourceTableTypes: TypeInfo[] = [];
 
   constructor(name: string, stage: string | null = null, attributes: Attribute[] | null) {
     this.name = name;

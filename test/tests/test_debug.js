@@ -817,6 +817,24 @@ export async function run() {
       test.equals(dbg.getReturnValue(), [0, 0.5, 0, 0.5], 1e-3);
     });
 
+    await test("resource_table: getResource in a fragment stage", function (test) {
+      const red = new Uint8Array([255, 0, 0, 255]);
+      const blue = new Uint8Array([0, 0, 255, 255]);
+      const descriptor = { format: "rgba8unorm", size: [1, 1, 1] };
+      const shader = `
+        enable chromium_experimental_resource_table;
+        @fragment
+        fn main(@location(0) index: u32) -> @location(0) vec4f {
+          let t = getResource<texture_2d<f32>>(index);
+          return textureLoad(t, vec2u(0), 0);
+        }`;
+      const dbg = new WgslDebug(shader);
+      const resourceTable = [{ texture: [red.buffer], descriptor }, { texture: [blue.buffer], descriptor }];
+      dbg.debugFragment("main", { 0: 1 }, {}, { resourceTable });
+      while (dbg.stepNext());
+      test.equals(dbg.getReturnValue(), [0, 0, 1, 1], 1e-3);
+    });
+
     await test("sampler address and filter modes", function (test) {
       const px = (r, g, b) => [r, g, b, 255];
       const mip0 = new Uint8Array([...px(255, 0, 0), ...px(0, 255, 0), ...px(0, 0, 255), ...px(255, 255, 255)]);

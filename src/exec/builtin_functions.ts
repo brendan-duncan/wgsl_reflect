@@ -2,6 +2,7 @@ import { CallExpr, Call, UnaryOperator, VariableExpr } from "../wgsl_ast.js";
 import { Data, TypedData, TextureData, SamplerData, ScalarData, VectorData, MatrixData, PointerData } from "../wgsl_ast.js";
 import { ExecContext } from "./exec_context.js";
 import { ExecInterface } from "./exec_interface.js";
+import { makeResourceValue, makeDefaultResource, resourceMatchesType } from "./resource_binding.js";
 import { ArrayInfo, BufferInfo, MemberInfo, StructInfo, TemplateInfo, TypeInfo } from "../reflect/info.js";
 
 // Map a cube-map direction to the face it hits and the 2d coordinate within
@@ -1971,6 +1972,44 @@ export class BuiltinFunctions {
     // bufferView<T>(p, offset) reinterprets the buffer p points to as a T starting
     // offset bytes in, and bufferArrayView<T>(p, offset, size) reinterprets size
     // bytes of it as a runtime-sized T. The result points into the same memory.
+    // Resource Table Built-in Functions
+
+    // The resource type T of getResource<T>(index) or hasResource<T>(index), and
+    // the resource table entry at index.
+    _resourceTableEntry(node: CallExpr | Call, context: ExecContext): { typeInfo: TypeInfo, entry: unknown } | null {
+        const templateType = node instanceof CallExpr ? node.templateType : null;
+        const typeInfo = templateType ? this.exec.getTypeInfo(templateType) : null;
+        if (typeInfo === null) {
+            console.error(`${node.name} requires a resource type. Line ${node.line}`);
+            return null;
+        }
+        const index = this._scalarArg(node, 0, context);
+        const table = this.exec.resourceTable ?? [];
+        const entry = index >= 0 && index < table.length ? table[index] : undefined;
+        return { typeInfo, entry };
+    }
+
+    GetResource(node: CallExpr | Call, context: ExecContext): Data | null {
+        // A default resource is returned if the index is out of bounds or the
+        // resource there isn't a T.
+        const r = this._resourceTableEntry(node, context);
+        if (r === null) {
+            return null;
+        }
+        if (resourceMatchesType(r.entry, r.typeInfo)) {
+            return makeResourceValue(r.typeInfo, r.entry) ?? makeDefaultResource(r.typeInfo);
+        }
+        return makeDefaultResource(r.typeInfo);
+    }
+
+    HasResource(node: CallExpr | Call, context: ExecContext): Data | null {
+        const r = this._resourceTableEntry(node, context);
+        if (r === null) {
+            return null;
+        }
+        return new ScalarData(resourceMatchesType(r.entry, r.typeInfo) ? 1 : 0, this.getTypeInfo("bool"));
+    }
+
     BufferView(node: CallExpr | Call, context: ExecContext): Data | null {
         return this._bufferView(node, context, false);
     }
