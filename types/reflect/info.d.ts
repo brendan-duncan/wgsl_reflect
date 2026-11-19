@@ -54,6 +54,14 @@ export declare class BufferInfo extends TypeInfo {
     get isRuntimeSized(): boolean;
     getTypeName(): string;
 }
+export declare class SubgroupMatrixInfo extends TypeInfo {
+    kind: string;
+    format: TypeInfo;
+    columns: number;
+    rows: number;
+    constructor(kind: string, format: TypeInfo, columns: number, rows: number, attributes: Attribute[] | null);
+    getTypeName(): string;
+}
 export declare class PointerInfo extends TypeInfo {
     format: TypeInfo;
     constructor(name: string, format: TypeInfo, attributes: Attribute[] | null);

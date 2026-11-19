@@ -162,6 +162,29 @@ export class BufferInfo extends TypeInfo {
   }
 }
 
+// subgroup_matrix_left<T, K, M>, subgroup_matrix_right<T, N, K>, or
+// subgroup_matrix_result<T, N, M> (chromium_experimental_subgroup_matrix): a
+// matrix of `columns` x `rows` elements of type T held cooperatively by a
+// subgroup. It is an opaque value with no memory layout.
+export class SubgroupMatrixInfo extends TypeInfo {
+  kind: string; // "left", "right", or "result"
+  format: TypeInfo;
+  columns: number;
+  rows: number;
+
+  constructor(kind: string, format: TypeInfo, columns: number, rows: number, attributes: Attribute[] | null) {
+    super(`subgroup_matrix_${kind}`, attributes);
+    this.kind = kind;
+    this.format = format;
+    this.columns = columns;
+    this.rows = rows;
+  }
+
+  getTypeName(): string {
+    return `${this.name}<${this.format.getTypeName()}, ${this.columns}, ${this.rows}>`;
+  }
+}
+
 export class PointerInfo extends TypeInfo {
   format: TypeInfo;
   constructor(name: string, format: TypeInfo, attributes: Attribute[] | null) {

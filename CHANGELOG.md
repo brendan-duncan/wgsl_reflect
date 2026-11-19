@@ -8,6 +8,7 @@
 - `texel_buffers`: `texel_buffer<F, A>` types (`Reflect.texelBuffers`) with `textureLoad`, `textureStore`, and `textureDimensions`.
 - `multisampled_array_textures`: `texture_multisampled_2d_array<T>`.
 - `resource_table` (bindless): `getResource<T>` and `hasResource<T>`, `FunctionInfo.usesResourceTable`, and `config.resourceTable` for execution.
+- `chromium_experimental_subgroup_matrix`: `subgroup_matrix_left/right/result` types (`SubgroupMatrixInfo`) and the `subgroupMatrix*` builtins.
 
 ### Fixed
 - `textureStore` on an array texture wrote to the mip level given by `array_index` instead of that layer.

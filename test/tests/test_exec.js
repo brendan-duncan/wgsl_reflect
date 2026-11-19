@@ -2081,5 +2081,46 @@ export async function run() {
             wgsl.dispatchWorkgroups("main", 1, { 0: { 0: out.buffer } }, { resourceTable });
             test.equals(Array.from(out), [0.25, 0.5, 1, 0, 1, 0, 0, 0, 0, 0.75, 2]);
         });
+
+        await test("subgroup_matrix: load, multiply, and store", async function (test) {
+            const shader = `
+                enable chromium_experimental_subgroup_matrix;
+                @group(0) @binding(0) var<storage, read_write> buf: array<f32>;
+                @compute @workgroup_size(1) fn main() {
+                    let l = subgroupMatrixLoad<subgroup_matrix_left<f32, 2, 2>>(&buf, 0, false, 2);
+                    let r = subgroupMatrixLoad<subgroup_matrix_right<f32, 2, 2>, row_major>(&buf, 4, 2);
+                    var acc = subgroup_matrix_result<f32, 2, 2>(1.0);
+                    acc = subgroupMatrixMultiplyAccumulate(l, r, acc);
+                    subgroupMatrixStore<row_major>(&buf, 8, acc, 2);
+                    subgroupMatrixStore(&buf, 12, acc, true, 2);
+                    let product = subgroupMatrixMultiply<f32>(l, r);
+                    subgroupMatrixStore(&buf, 16, subgroupMatrixScalarSubtract(product, 1.0), false, 2);
+                    let doubled = subgroupMatrixScalarMultiply(subgroupMatrixScalarAdd(l, 1.0), 2.0);
+                    subgroupMatrixStore(&buf, 20, doubled, false, 2);
+                }`;
+            const buf = new Float32Array(24);
+            buf.set([1, 2, 3, 4, 5, 6, 7, 8]);
+            const wgsl = _newWgslExec(shader);
+            wgsl.dispatchWorkgroups("main", 1, { 0: { 0: buf } });
+            // l = [[1, 2], [3, 4]], r = [[5, 6], [7, 8]], l * r = [[19, 22], [43, 50]].
+            test.equals(Array.from(buf.slice(8)), [20, 23, 44, 51, 20, 44, 23, 51, 18, 21, 42, 49, 4, 6, 8, 10]);
+        });
+
+        await test("subgroup_matrix: packed u8 elements and integer results", async function (test) {
+            const shader = `
+                enable chromium_experimental_subgroup_matrix;
+                @group(0) @binding(0) var<storage, read> a: array<u32>;
+                @group(0) @binding(1) var<storage, read_write> out: array<u32>;
+                @compute @workgroup_size(1) fn main() {
+                    let l = subgroupMatrixLoad<subgroup_matrix_left<u8, 4, 1>>(&a, 0, false, 4);
+                    let r = subgroupMatrixLoad<subgroup_matrix_right<u8, 1, 4>>(&a, 0, false, 1);
+                    subgroupMatrixStore(&out, 0, subgroupMatrixMultiply<u32>(l, r), false, 1);
+                }`;
+            const a = new Uint32Array([0x04030201]);
+            const out = new Uint32Array(1);
+            const wgsl = _newWgslExec(shader);
+            wgsl.dispatchWorkgroups("main", 1, { 0: { 0: a, 1: out } });
+            test.equals(out[0], 1 * 1 + 2 * 2 + 3 * 3 + 4 * 4);
+        });
     }, true);
 }

@@ -4,10 +4,10 @@
 import { TokenTypes } from "../wgsl_scanner.js";
 import { Type, Struct, Alias, Override, Var, Node, Function, VariableExpr, CreateExpr,
     Let, Const, Expression, CallExpr, Call, Argument, Member, Attribute, ArrayType, SamplerType,
-    TemplateType, PointerType, BufferType, BindingArrayType } from "../wgsl_ast.js";
+    TemplateType, PointerType, BufferType, BindingArrayType, SubgroupMatrixType } from "../wgsl_ast.js";
 import { _BlockStart, _BlockEnd } from "../wgsl_ast.js";
 import { FunctionInfo, VariableInfo, AliasInfo, OverrideInfo, PointerInfo,
-  StructInfo, TypeInfo, MemberInfo, ArrayInfo, TemplateInfo, BufferInfo, BindingArrayInfo, OutputInfo,
+  StructInfo, TypeInfo, MemberInfo, ArrayInfo, TemplateInfo, BufferInfo, BindingArrayInfo, SubgroupMatrixInfo, OutputInfo,
   InputInfo, ArgumentInfo, ResourceType, EntryFunctions } from "./info.js";
 import { isArray } from "../utils/cast.js";
 import { constExprValue, workgroupSizeOf } from "../utils/const_expr.js";
@@ -835,6 +835,13 @@ export class Reflect {
       const info = new PointerInfo(type.name, t, attributes);
       this._types.set(type, info);
       this._updateTypeInfo(info);
+      return info;
+    }
+
+    if (type instanceof SubgroupMatrixType) {
+      const info = new SubgroupMatrixInfo(type.kind, this.getTypeInfo(type.format, null),
+          type.columns, type.rows, attributes);
+      this._types.set(type, info);
       return info;
     }
 

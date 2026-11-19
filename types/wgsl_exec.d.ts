@@ -67,6 +67,7 @@ export declare class WgslExec extends ExecInterface {
     _makeCwiseData(values: number[], typeInfo: TypeInfo): Data;
     _evalBinaryOp(node: BinaryOperator, context: ExecContext): Data | null;
     _evalBinaryOpValue(node: BinaryOperator, context: ExecContext): Data | null;
+    _createSubgroupMatrix(node: CreateExpr, context: ExecContext): Data | null;
     _evalCall(node: CallExpr, context: ExecContext): Data | null;
     _evalCallValue(node: CallExpr, context: ExecContext): Data | null;
     _callBuiltinFunction(node: CallExpr | Call, context: ExecContext): Data | null;

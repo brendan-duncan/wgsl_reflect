@@ -1,5 +1,5 @@
 import { WgslExec } from "./wgsl_exec.js";
-import { TypeInfo, PointerInfo, TemplateInfo, ArrayInfo, StructInfo } from "./reflect/info.js";
+import { TypeInfo, PointerInfo, TemplateInfo, ArrayInfo, StructInfo, SubgroupMatrixInfo } from "./reflect/info.js";
 import { ExecContext } from "./exec/exec_context.js";
 import { ExecInterface } from "./exec/exec_interface.js";
 import { setTexturePixel, getTexturePixel } from "./utils/texture_sample.js";
@@ -196,6 +196,13 @@ const BuiltinFunctionNames = new Set([
   "bufferLength",
   "getResource",
   "hasResource",
+  "subgroupMatrixLoad",
+  "subgroupMatrixStore",
+  "subgroupMatrixMultiply",
+  "subgroupMatrixMultiplyAccumulate",
+  "subgroupMatrixScalarAdd",
+  "subgroupMatrixScalarSubtract",
+  "subgroupMatrixScalarMultiply",
   "pack4x8snorm",
   "pack4x8unorm",
   "pack4xI8",
@@ -654,6 +661,10 @@ export class Assign extends Statement {
 export class Call extends Statement {
   name: string;
   args: Expression[];
+  // The explicit template list of a builtin such as subgroupMatrixStore<M>(...),
+  // and its first type.
+  templateType: Type | null = null;
+  templateArgs: Type[] | null = null;
 
   constructor(name: string, args: Expression[]) {
     super();
@@ -1207,6 +1218,37 @@ export class ArrayType extends Type {
 }
 
 /**
+ * subgroup_matrix_left<T, C, R>, subgroup_matrix_right<T, C, R>, or
+ * subgroup_matrix_result<T, C, R> (chromium_experimental_subgroup_matrix): a
+ * matrix of C columns and R rows of T, held cooperatively by a subgroup.
+ * @class SubgroupMatrixType
+ * @extends Type
+ * @category AST
+ */
+export class SubgroupMatrixType extends Type {
+  kind: string; // "left", "right", or "result"
+  format: Type;
+  columns: number;
+  rows: number;
+
+  constructor(kind: string, format: Type, columns: number, rows: number) {
+    super(`subgroup_matrix_${kind}`);
+    this.kind = kind;
+    this.format = format;
+    this.columns = columns;
+    this.rows = rows;
+  }
+
+  get astNodeType(): string {
+    return "subgroupMatrix";
+  }
+
+  getTypeName(): string {
+    return `${this.name}<${this.format.getTypeName()}, ${this.columns}, ${this.rows}>`;
+  }
+}
+
+/**
  * binding_array<T, N> or binding_array<T> (sized_binding_array): an array of
  * N textures or samplers bound to a single binding. The count is 0 for an
  * unsized binding array.
@@ -1374,8 +1416,8 @@ export class CallExpr extends Expression {
       return;
     }
 
-    // getResource<T>(i) returns its template type.
-    if (this.name === "getResource" && this.templateType !== null) {
+    // getResource<T>(i) and subgroupMatrixLoad<T>(...) return their template type.
+    if ((this.name === "getResource" || this.name === "subgroupMatrixLoad") && this.templateType !== null) {
       type[0] = this.templateType;
       return;
     }
@@ -1436,6 +1478,7 @@ export class CallExpr extends Expression {
     ["workgroupBarrier", Type.void],
     ["atomicStore", Type.void],
     ["hasResource", Type.bool],
+    ["subgroupMatrixStore", Type.void],
   ]);
 
   static _builtinSameAsArg = new Map<string, number>([
@@ -3504,5 +3547,50 @@ export class BindingArrayData extends Data {
 
   toString(): string {
     return `${this.typeInfo.getTypeName()}[${this.elements.length}]`;
+  }
+}
+
+// The value of a subgroup matrix. WgslExec runs one invocation at a time, so
+// each invocation holds the whole matrix rather than its share of it; the
+// subgroup matrix builtins are uniform across the subgroup, so every
+// invocation computes the same result. The elements are stored row-major.
+export class SubgroupMatrixData extends Data {
+  data: number[];
+
+  constructor(data: number[], typeInfo: TypeInfo) {
+    super(typeInfo, null);
+    this.data = data;
+  }
+
+  get columns(): number {
+    return (this.typeInfo as SubgroupMatrixInfo).columns;
+  }
+
+  get rows(): number {
+    return (this.typeInfo as SubgroupMatrixInfo).rows;
+  }
+
+  clone(): Data {
+    return new SubgroupMatrixData([...this.data], this.typeInfo);
+  }
+
+  getSubData(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null {
+    if (postfix) {
+      console.error(`getSubData: subgroup matrix elements can't be accessed directly`, postfix);
+      return null;
+    }
+    return this;
+  }
+
+  setDataValue(exec: ExecInterface, value: Data, postfix: Expression | null, context: ExecContext): void {
+    if (postfix || !(value instanceof SubgroupMatrixData) || value.data.length !== this.data.length) {
+      console.error(`setDataValue: Invalid subgroup matrix assignment`);
+      return;
+    }
+    this.data = [...value.data];
+  }
+
+  toString(): string {
+    return `${this.typeInfo.getTypeName()}(${this.data.join(", ")})`;
   }
 }

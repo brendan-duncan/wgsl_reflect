@@ -1,9 +1,12 @@
 import { CallExpr, Call, UnaryOperator, VariableExpr } from "../wgsl_ast.js";
-import { Data, TypedData, TextureData, SamplerData, ScalarData, VectorData, MatrixData, PointerData } from "../wgsl_ast.js";
+import { Data, TypedData, TextureData, SamplerData, ScalarData, VectorData, MatrixData, PointerData,
+    SubgroupMatrixData } from "../wgsl_ast.js";
 import { ExecContext } from "./exec_context.js";
 import { ExecInterface } from "./exec_interface.js";
 import { makeResourceValue, makeDefaultResource, resourceMatchesType } from "./resource_binding.js";
-import { ArrayInfo, BufferInfo, MemberInfo, StructInfo, TemplateInfo, TypeInfo } from "../reflect/info.js";
+import { ArrayInfo, BufferInfo, MemberInfo, StructInfo, TemplateInfo, TypeInfo, SubgroupMatrixInfo } from "../reflect/info.js";
+import { loadSubgroupMatrix, storeSubgroupMatrix, multiplySubgroupMatrices,
+    toSubgroupMatrixElement } from "./subgroup_matrix.js";
 
 // Map a cube-map direction to the face it hits and the 2d coordinate within
 // that face, using WebGPU's cube face order:
@@ -1972,13 +1975,151 @@ export class BuiltinFunctions {
     // bufferView<T>(p, offset) reinterprets the buffer p points to as a T starting
     // offset bytes in, and bufferArrayView<T>(p, offset, size) reinterprets size
     // bytes of it as a runtime-sized T. The result points into the same memory.
+    // Subgroup Matrix Built-in Functions (chromium_experimental_subgroup_matrix)
+
+    // The array a subgroupMatrixLoad or subgroupMatrixStore pointer argument
+    // points to.
+    _subgroupMatrixArray(node: CallExpr | Call, context: ExecContext): TypedData | null {
+        const p = this.exec.evalExpression(node.args[0], context);
+        const data = p instanceof PointerData ? p.reference : p;
+        if (!(data instanceof TypedData) || !(data.typeInfo instanceof ArrayInfo)) {
+            console.error(`${node.name} requires a pointer to an array. Line ${node.line}`);
+            return null;
+        }
+        return data;
+    }
+
+    // The majorness of a subgroupMatrixLoad or subgroupMatrixStore: either a
+    // template argument (subgroupMatrixLoad<T, column_major>), or the
+    // col_major argument of the deprecated overloads.
+    _isColumnMajor(majorness: unknown, colMajorArg: Data | null): boolean {
+        if (colMajorArg instanceof ScalarData) {
+            return colMajorArg.value !== 0;
+        }
+        const name = (majorness as { name?: string } | null)?.name ?? "";
+        return name.includes("col");
+    }
+
+    SubgroupMatrixLoad(node: CallExpr | Call, context: ExecContext): Data | null {
+        // subgroupMatrixLoad<T, Majorness>(p, offset, stride), or the deprecated
+        // subgroupMatrixLoad<T>(p, offset, col_major, stride).
+        const templateArgs = node.templateArgs;
+        const info = templateArgs ? this.exec.getTypeInfo(templateArgs[0]) : null;
+        if (!(info instanceof SubgroupMatrixInfo)) {
+            console.error(`subgroupMatrixLoad requires a subgroup matrix type. Line ${node.line}`);
+            return null;
+        }
+        const data = this._subgroupMatrixArray(node, context);
+        if (data === null) {
+            return null;
+        }
+        const deprecated = templateArgs.length < 2;
+        const offset = this._scalarArg(node, 1, context);
+        const colMajorArg = deprecated ? this.exec.evalExpression(node.args[2], context) : null;
+        const columnMajor = this._isColumnMajor(templateArgs[1] ?? null, colMajorArg);
+        const strideIndex = deprecated ? 3 : 2;
+        const stride = node.args.length > strideIndex ? this._scalarArg(node, strideIndex, context)
+            : (columnMajor ? info.rows : info.columns);
+        return new SubgroupMatrixData(loadSubgroupMatrix(data, info, offset, columnMajor, stride), info);
+    }
+
+    SubgroupMatrixStore(node: CallExpr | Call, context: ExecContext): Data | null {
+        // subgroupMatrixStore<Majorness>(p, offset, value, stride), or the
+        // deprecated subgroupMatrixStore(p, offset, value, col_major, stride).
+        const templateArgs = node.templateArgs;
+        const data = this._subgroupMatrixArray(node, context);
+        const value = this.exec.evalExpression(node.args[2], context);
+        if (data === null || !(value instanceof SubgroupMatrixData)) {
+            console.error(`Invalid arguments for subgroupMatrixStore. Line ${node.line}`);
+            return null;
+        }
+        const info = value.typeInfo as SubgroupMatrixInfo;
+        const deprecated = templateArgs === null;
+        const offset = this._scalarArg(node, 1, context);
+        const colMajorArg = deprecated ? this.exec.evalExpression(node.args[3], context) : null;
+        const columnMajor = this._isColumnMajor(templateArgs?.[0] ?? null, colMajorArg);
+        const strideIndex = deprecated ? 4 : 3;
+        const stride = node.args.length > strideIndex ? this._scalarArg(node, strideIndex, context)
+            : (columnMajor ? info.rows : info.columns);
+        storeSubgroupMatrix(data, info, value.data, offset, columnMajor, stride);
+        return null;
+    }
+
+    // The subgroup matrix arguments of a multiply, checking that the left
+    // matrix's columns match the right matrix's rows.
+    _subgroupMatrixOperands(node: CallExpr | Call, context: ExecContext)
+        : { left: SubgroupMatrixData, right: SubgroupMatrixData } | null {
+        const left = this.exec.evalExpression(node.args[0], context);
+        const right = this.exec.evalExpression(node.args[1], context);
+        if (!(left instanceof SubgroupMatrixData) || !(right instanceof SubgroupMatrixData) ||
+            left.columns !== right.rows) {
+            console.error(`Invalid subgroup matrix arguments for ${node.name}. Line ${node.line}`);
+            return null;
+        }
+        return { left, right };
+    }
+
+    SubgroupMatrixMultiply(node: CallExpr | Call, context: ExecContext): Data | null {
+        // subgroupMatrixMultiply<TR>(left, right) -> subgroup_matrix_result<TR, N, M>
+        const operands = this._subgroupMatrixOperands(node, context);
+        if (operands === null) {
+            return null;
+        }
+        const { left, right } = operands;
+        const templateType = node.templateType;
+        const leftInfo = left.typeInfo as SubgroupMatrixInfo;
+        const format = templateType ? this.exec.getTypeInfo(templateType) : leftInfo.format;
+        const resultInfo = new SubgroupMatrixInfo("result", format ?? leftInfo.format, right.columns, left.rows, null);
+        const values = multiplySubgroupMatrices(left.data, leftInfo, right.data,
+            right.typeInfo as SubgroupMatrixInfo, resultInfo, null);
+        return new SubgroupMatrixData(values, resultInfo);
+    }
+
+    SubgroupMatrixMultiplyAccumulate(node: CallExpr | Call, context: ExecContext): Data | null {
+        // subgroupMatrixMultiplyAccumulate(left, right, acc) -> left * right + acc
+        const operands = this._subgroupMatrixOperands(node, context);
+        const acc = this.exec.evalExpression(node.args[2], context);
+        if (operands === null || !(acc instanceof SubgroupMatrixData) ||
+            acc.columns !== operands.right.columns || acc.rows !== operands.left.rows) {
+            console.error(`Invalid arguments for subgroupMatrixMultiplyAccumulate. Line ${node.line}`);
+            return null;
+        }
+        const { left, right } = operands;
+        const resultInfo = acc.typeInfo as SubgroupMatrixInfo;
+        const values = multiplySubgroupMatrices(left.data, left.typeInfo as SubgroupMatrixInfo, right.data,
+            right.typeInfo as SubgroupMatrixInfo, resultInfo, acc.data);
+        return new SubgroupMatrixData(values, resultInfo);
+    }
+
+    _subgroupMatrixScalarOp(node: CallExpr | Call, context: ExecContext, op: (a: number, b: number) => number): Data | null {
+        const m = this.exec.evalExpression(node.args[0], context);
+        const s = this.exec.evalExpression(node.args[1], context);
+        if (!(m instanceof SubgroupMatrixData) || !(s instanceof ScalarData)) {
+            console.error(`Invalid arguments for ${node.name}. Line ${node.line}`);
+            return null;
+        }
+        const type = (m.typeInfo as SubgroupMatrixInfo).format.name;
+        return new SubgroupMatrixData(m.data.map((v) => toSubgroupMatrixElement(type, op(v, s.value))), m.typeInfo);
+    }
+
+    SubgroupMatrixScalarAdd(node: CallExpr | Call, context: ExecContext): Data | null {
+        return this._subgroupMatrixScalarOp(node, context, (a, b) => a + b);
+    }
+
+    SubgroupMatrixScalarSubtract(node: CallExpr | Call, context: ExecContext): Data | null {
+        return this._subgroupMatrixScalarOp(node, context, (a, b) => a - b);
+    }
+
+    SubgroupMatrixScalarMultiply(node: CallExpr | Call, context: ExecContext): Data | null {
+        return this._subgroupMatrixScalarOp(node, context, (a, b) => a * b);
+    }
+
     // Resource Table Built-in Functions
 
     // The resource type T of getResource<T>(index) or hasResource<T>(index), and
     // the resource table entry at index.
     _resourceTableEntry(node: CallExpr | Call, context: ExecContext): { typeInfo: TypeInfo, entry: unknown } | null {
-        const templateType = node instanceof CallExpr ? node.templateType : null;
-        const typeInfo = templateType ? this.exec.getTypeInfo(templateType) : null;
+        const typeInfo = node.templateType ? this.exec.getTypeInfo(node.templateType) : null;
         if (typeInfo === null) {
             console.error(`${node.name} requires a resource type. Line ${node.line}`);
             return null;

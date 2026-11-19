@@ -1822,5 +1822,21 @@ export async function run() {
       test.equals(reflect.getFunctionInfo("other").resourceTableTypes.length, 0);
       test.equals(main.resources.length, 0);
     });
+
+    await test("subgroup_matrix types", function (test) {
+      const reflect = new WgslReflect(`
+        enable chromium_experimental_subgroup_matrix;
+        const N = 8;
+        fn f(a: subgroup_matrix_left<f16, N, 4>, b: subgroup_matrix_right<i8, 8, N>) -> subgroup_matrix_result<f32, 8, 4> {
+          return subgroup_matrix_result<f32, 8, 4>();
+        }`);
+      const fn = reflect.getFunctionInfo("f");
+      test.equals(fn.arguments.map((a) => a.type.getTypeName()),
+          ["subgroup_matrix_left<f16, 8, 4>", "subgroup_matrix_right<i8, 8, 8>"]);
+      test.equals(fn.arguments[0].type.kind, "left");
+      test.equals(fn.arguments[0].type.columns, 8);
+      test.equals(fn.arguments[0].type.rows, 4);
+      test.equals(fn.returnType.getTypeName(), "subgroup_matrix_result<f32, 8, 4>");
+    });
   });
 }

@@ -852,13 +852,24 @@ export class WgslScanner {
         }
       }
       if (lexeme == ">" && (nextLexeme == ">" || nextLexeme == "=")) {
+        // Look back for the '<' this '>' closes, skipping any template that was
+        // already closed, as in subgroup_matrix_left<f32, 8, 8>>.
         let foundLessThan = false;
         let ti = this._tokens.length - 1;
-        for (let count = 0; count < 5 && ti >= 0; ++count, --ti) {
-          if (TokenTypes.assignment_operators.includes(this._tokens[ti].type)) {
+        let depth = 0;
+        for (let count = 0; count < 16 && ti >= 0; ++count, --ti) {
+          const type = this._tokens[ti].type;
+          if (TokenTypes.assignment_operators.includes(type) || type === TokenTypes.tokens.semicolon ||
+              type === TokenTypes.tokens.brace_left || type === TokenTypes.tokens.brace_right) {
             break;
           }
-          if (this._tokens[ti].type === TokenTypes.tokens.less_than) {
+          if (type === TokenTypes.tokens.greater_than) {
+            depth++;
+          } else if (type === TokenTypes.tokens.less_than) {
+            if (depth > 0) {
+              depth--;
+              continue;
+            }
             if (ti > 0 && this._tokens[ti - 1].isArrayOrTemplateType()) {
               foundLessThan = true;
             }

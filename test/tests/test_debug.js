@@ -416,6 +416,23 @@ export async function run() {
       test.equals(buffer, [48]);
     });
 
+    await test("subgroup matrix multiply when stepping", async function (test) {
+      const shader = `
+          enable chromium_experimental_subgroup_matrix;
+          @group(0) @binding(0) var<storage, read_write> buf: array<f32>;
+          @compute @workgroup_size(1)
+          fn main() {
+              let l = subgroupMatrixLoad<subgroup_matrix_left<f32, 2, 1>>(&buf, 0, false, 2);
+              let r = subgroupMatrixLoad<subgroup_matrix_right<f32, 1, 2>>(&buf, 2, false, 1);
+              subgroupMatrixStore(&buf, 4, subgroupMatrixMultiply<f32>(l, r), false, 1);
+          }`;
+      const buf = new Float32Array([2, 3, 4, 5, 0]);
+      const dbg = new WgslDebug(shader);
+      dbg.debugWorkgroup("main", [0, 0, 0], 1, { 0: { 0: buf } });
+      while (dbg.stepNext());
+      test.equals(buf[4], 2 * 4 + 3 * 5);
+    });
+
     await test("dispatch function call", async function (test) {
       const shader = `
           fn scale(x: f32, y: f32) -> f32 {

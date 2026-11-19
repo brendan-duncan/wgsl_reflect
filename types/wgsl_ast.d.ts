@@ -224,6 +224,8 @@ export declare class Assign extends Statement {
 export declare class Call extends Statement {
     name: string;
     args: Expression[];
+    templateType: Type | null;
+    templateArgs: Type[] | null;
     constructor(name: string, args: Expression[]);
     get astNodeType(): string;
     isBuiltin(): boolean;
@@ -494,6 +496,23 @@ export declare class ArrayType extends Type {
     constructor(name: string, attributes: Attribute[] | null, format: Type | null, count: number);
     get astNodeType(): string;
     get isArray(): boolean;
+}
+/**
+ * subgroup_matrix_left<T, C, R>, subgroup_matrix_right<T, C, R>, or
+ * subgroup_matrix_result<T, C, R> (chromium_experimental_subgroup_matrix): a
+ * matrix of C columns and R rows of T, held cooperatively by a subgroup.
+ * @class SubgroupMatrixType
+ * @extends Type
+ * @category AST
+ */
+export declare class SubgroupMatrixType extends Type {
+    kind: string;
+    format: Type;
+    columns: number;
+    rows: number;
+    constructor(kind: string, format: Type, columns: number, rows: number);
+    get astNodeType(): string;
+    getTypeName(): string;
 }
 /**
  * binding_array<T, N> or binding_array<T> (sized_binding_array): an array of
@@ -877,5 +896,15 @@ export declare class BindingArrayData extends Data {
     constructor(elements: Array<Data | null>, typeInfo: TypeInfo);
     clone(): Data;
     getSubData(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null;
+    toString(): string;
+}
+export declare class SubgroupMatrixData extends Data {
+    data: number[];
+    constructor(data: number[], typeInfo: TypeInfo);
+    get columns(): number;
+    get rows(): number;
+    clone(): Data;
+    getSubData(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null;
+    setDataValue(exec: ExecInterface, value: Data, postfix: Expression | null, context: ExecContext): void;
     toString(): string;
 }

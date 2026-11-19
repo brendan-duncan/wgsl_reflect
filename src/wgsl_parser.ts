@@ -96,7 +96,7 @@ export class WgslParser {
             node.returnType = this._forwardType(node.returnType);
           } else if (node instanceof AST.Argument) {
             node.type = this._forwardType(node.type);
-          } else if (node instanceof AST.CallExpr && node.templateArgs !== null) {
+          } else if ((node instanceof AST.CallExpr || node instanceof AST.Call) && node.templateArgs !== null) {
             node.templateArgs = node.templateArgs.map((t) => this._forwardType(t));
             node.templateType = node.templateArgs[0];
           }
@@ -901,14 +901,22 @@ export class WgslParser {
       TokenTypes.tokens.ident,
       "Expected function name."
     );
+    const templateArgs = this._template_builtin_args(name.lexeme);
     const args = this._argument_expression_list();
 
-    if (args === null) {
+    // A call that's followed by more of an expression, as in
+    // bufferView<T>(&b, 0).n = 1, is the start of an assignment instead.
+    if (args === null || !this._check([TokenTypes.tokens.semicolon, TokenTypes.tokens.paren_right])) {
       this._current = savedPos;
       return null;
     }
 
-    return this._updateNode(new AST.Call(name.lexeme, args), line);
+    const call = this._updateNode(new AST.Call(name.lexeme, args), line);
+    if (templateArgs !== null) {
+      call.templateArgs = templateArgs;
+      call.templateType = templateArgs[0];
+    }
+    return call;
   }
 
   _loop_statement(): AST.Loop | null {
@@ -1529,18 +1537,21 @@ export class WgslParser {
       const name = this._previous().toString();
       // Builtins called with an explicit template list, such as bufferView<T>(...)
       // or getResource<T>(...).
-      if (WgslParser._templateBuiltins.has(name) && this._check(TokenTypes.tokens.less_than)) {
-        this._advance();
-        const templateArgs: AST.Type[] = [];
-        do {
-          templateArgs.push(this._type_decl());
-        } while (this._match(TokenTypes.tokens.comma));
-        this._consume(TokenTypes.tokens.greater_than, "Expected '>'.");
+      const templateArgs = this._template_builtin_args(name);
+      if (templateArgs !== null) {
         const args = this._argument_expression_list();
         const call = this._updateNode(new AST.CallExpr(name, args));
         call.templateType = templateArgs[0];
         call.templateArgs = templateArgs;
         return call;
+      }
+      // A constructor of a predeclared template type that is an identifier
+      // rather than a keyword, such as subgroup_matrix_result<f32, 8, 8>().
+      if (name.startsWith("subgroup_matrix_") && this._check(TokenTypes.tokens.less_than)) {
+        this._current--;
+        const type = this._type_decl();
+        const args = this._argument_expression_list();
+        return this._updateNode(new AST.CreateExpr(type, args));
       }
       if (this._check(TokenTypes.tokens.paren_left)) {
         const args = this._argument_expression_list();
@@ -1604,6 +1615,21 @@ export class WgslParser {
     const type = this._type_decl();
     const args = this._argument_expression_list();
     return this._updateNode(new AST.CreateExpr(type, args));
+  }
+
+  // The template list of a builtin that takes one, such as bufferView<T>(...)
+  // or getResource<T>(...), or null if there isn't one.
+  _template_builtin_args(name: string): AST.Type[] | null {
+    if (!WgslParser._templateBuiltins.has(name) || !this._check(TokenTypes.tokens.less_than)) {
+      return null;
+    }
+    this._advance();
+    const templateArgs: AST.Type[] = [];
+    do {
+      templateArgs.push(this._type_decl());
+    } while (this._match(TokenTypes.tokens.comma));
+    this._consume(TokenTypes.tokens.greater_than, "Expected '>'.");
+    return templateArgs;
   }
 
   _argument_expression_list(): AST.Expression[] | null {
@@ -2029,6 +2055,9 @@ export class WgslParser {
       if (typeName === "binding_array" && this._check(TokenTypes.tokens.less_than)) {
         return this._binding_array_type();
       }
+      if (typeName.startsWith("subgroup_matrix_") && this._check(TokenTypes.tokens.less_than)) {
+        return this._subgroup_matrix_type(typeName.substring("subgroup_matrix_".length));
+      }
 
       const t = this._getType(typeName);
       // Don't "forward declare" built-in types
@@ -2162,6 +2191,24 @@ export class WgslParser {
     }
     this._consume(TokenTypes.tokens.greater_than, "Expected '>' for binding_array.");
     return arrayType;
+  }
+
+  _subgroup_matrix_type(kind: string): AST.SubgroupMatrixType {
+    // subgroup_matrix_kind less_than type_decl comma columns comma rows greater_than
+    this._consume(TokenTypes.tokens.less_than, "Expected '<' for subgroup matrix.");
+    const format = this._type_decl();
+    const dims: number[] = [];
+    for (let i = 0; i < 2; ++i) {
+      this._consume(TokenTypes.tokens.comma, "Expected ',' for subgroup matrix.");
+      const dimNode = this._shift_expression();
+      try {
+        dims.push(parseInt(dimNode.constEvaluate(this._exec).toString()));
+      } catch (e) {
+        throw this._error(this._previous(), "Subgroup matrix dimensions must be constant.");
+      }
+    }
+    this._consume(TokenTypes.tokens.greater_than, "Expected '>' for subgroup matrix.");
+    return this._updateNode(new AST.SubgroupMatrixType(kind, format, dims[0], dims[1]));
   }
 
   _texture_sampler_types(): AST.SamplerType | null {

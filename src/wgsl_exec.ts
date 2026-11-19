@@ -3,11 +3,12 @@ import { Node, Type, TemplateType, Return, Break, Continue, Let, Var, Const,
     Call, Diagnostic, Enable, Requires, Alias, BinaryOperator, LiteralExpr, Expression,
     VariableExpr, CallExpr, CreateExpr, ConstExpr, BitcastExpr, UnaryOperator,
     ArrayIndex, StringExpr, Function, Switch, SwitchCase, Case, Default, DefaultSelector,
-    Argument, PointerType, BufferType, BindingArrayType } from "./wgsl_ast.js";
+    Argument, PointerType, BufferType, BindingArrayType, SubgroupMatrixType } from "./wgsl_ast.js";
 import { Data, TypedData, ScalarData, VectorData, MatrixData, PointerData, VoidData, ControlData,
-    BindingArrayData } from "./wgsl_ast.js";
+    BindingArrayData, SubgroupMatrixData } from "./wgsl_ast.js";
 import { Reflect } from "./reflect/reflect.js";
-import { TypeInfo, StructInfo, ArrayInfo, TemplateInfo, BufferInfo } from "./reflect/info.js";
+import { TypeInfo, StructInfo, ArrayInfo, TemplateInfo, BufferInfo, SubgroupMatrixInfo } from "./reflect/info.js";
+import { toSubgroupMatrixElement } from "./exec/subgroup_matrix.js";
 import { ExecContext, FunctionRef } from "./exec/exec_context.js";
 import { ExecInterface } from "./exec/exec_interface.js";
 import { BuiltinFunctions } from "./exec/builtin_functions.js";
@@ -1082,6 +1083,8 @@ export class WgslExec extends ExecInterface {
                 v.data.set(value.data);
             } else if (v instanceof MatrixData && value instanceof MatrixData) {
                 v.data.set(value.data);
+            } else if (v instanceof SubgroupMatrixData && value instanceof SubgroupMatrixData) {
+                v.setDataValue(this, value, null, context);
             } else {
                 console.error(`Invalid assignment to ${name}. Line ${node.line}`);
             }
@@ -1255,7 +1258,7 @@ export class WgslExec extends ExecInterface {
                 value = new BindingArrayData([], this.getTypeInfo(node.type));
             } else if (WgslExec._defaultableTypes.has(typeName) ||
                 node.type instanceof ArrayType || node.type instanceof Struct || node.type instanceof TemplateType ||
-                node.type instanceof BufferType) {
+                node.type instanceof BufferType || node.type instanceof SubgroupMatrixType) {
                 const defType = new CreateExpr(node.type, []);
                 value = this._evalCreate(defType, context);
             }
@@ -1468,6 +1471,10 @@ export class WgslExec extends ExecInterface {
         if (node instanceof CreateExpr) {
             if (node.type === null) {
                 return VoidData.void;
+            }
+
+            if (node.type instanceof SubgroupMatrixType) {
+                return this._createSubgroupMatrix(node, context);
             }
 
             const typeName = node.type.getTypeName();
@@ -2278,6 +2285,25 @@ export class WgslExec extends ExecInterface {
         return null;
     }
 
+    // subgroup_matrix_*<T, C, R>() is a zero matrix, and
+    // subgroup_matrix_*<T, C, R>(v) has every element set to v.
+    _createSubgroupMatrix(node: CreateExpr, context: ExecContext): Data | null {
+        const typeInfo = this.getTypeInfo(node.type);
+        if (!(typeInfo instanceof SubgroupMatrixInfo)) {
+            return null;
+        }
+        let value = 0;
+        if (node.args && node.args.length > 0) {
+            const v = this.evalExpression(node.args[0], context);
+            if (!(v instanceof ScalarData)) {
+                console.error(`Invalid subgroup matrix constructor argument. Line ${node.line}`);
+                return null;
+            }
+            value = toSubgroupMatrixElement(typeInfo.format.name, v.value);
+        }
+        return new SubgroupMatrixData(new Array(typeInfo.columns * typeInfo.rows).fill(value), typeInfo);
+    }
+
     _evalCall(node: CallExpr, context: ExecContext): Data | null {
         // The postfix is applied to the call's result: e.g. the ".rgb" of
         // `textureSample(t, s, uv).rgb`. This covers every result path,
@@ -2547,6 +2573,22 @@ export class WgslExec extends ExecInterface {
                 return this.builtins.BufferArrayView(node, context);
             case "bufferLength":
                 return this.builtins.BufferLength(node, context);
+
+            // Subgroup Matrix Built-in Functions
+            case "subgroupMatrixLoad":
+                return this.builtins.SubgroupMatrixLoad(node, context);
+            case "subgroupMatrixStore":
+                return this.builtins.SubgroupMatrixStore(node, context);
+            case "subgroupMatrixMultiply":
+                return this.builtins.SubgroupMatrixMultiply(node, context);
+            case "subgroupMatrixMultiplyAccumulate":
+                return this.builtins.SubgroupMatrixMultiplyAccumulate(node, context);
+            case "subgroupMatrixScalarAdd":
+                return this.builtins.SubgroupMatrixScalarAdd(node, context);
+            case "subgroupMatrixScalarSubtract":
+                return this.builtins.SubgroupMatrixScalarSubtract(node, context);
+            case "subgroupMatrixScalarMultiply":
+                return this.builtins.SubgroupMatrixScalarMultiply(node, context);
 
             // Resource Table Built-in Functions
             case "getResource":
