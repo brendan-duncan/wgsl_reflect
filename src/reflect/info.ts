@@ -130,6 +130,20 @@ export class ArrayInfo extends TypeInfo {
   }
 }
 
+// binding_array<T, N> (sized_binding_array): N textures or samplers bound to a
+// single binding. The count is 0 for an unsized binding array. It is an opaque
+// resource, so it has no size or stride.
+export class BindingArrayInfo extends ArrayInfo {
+  constructor(attributes: Attribute[] | null) {
+    super("binding_array", attributes);
+  }
+
+  getTypeName(): string {
+    const format = this.format?.getTypeName() ?? "";
+    return this.count > 0 ? `binding_array<${format}, ${this.count}>` : `binding_array<${format}>`;
+  }
+}
+
 // buffer<N> or buffer (buffer_view): N bytes of opaque storage that is accessed
 // by reinterpreting it with bufferView or bufferArrayView. The size of a
 // runtime-sized buffer is 0.
@@ -224,6 +238,7 @@ export enum ResourceType {
   Texture,
   Sampler,
   StorageTexture,
+  TexelBuffer,
 }
 
 export class VariableInfo {

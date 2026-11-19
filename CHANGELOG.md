@@ -4,8 +4,13 @@
 
 ### Added
 - Comments are attached to AST nodes (`leadingComments`, `trailingComments`) and reflection info (`comment`) ([#101](https://github.com/brendan-duncan/wgsl_reflect/issues/101)).
+- `sized_binding_array`: `binding_array<T, N>` of textures and samplers, bound with an array of entries.
+- `texel_buffers`: `texel_buffer<F, A>` types (`Reflect.texelBuffers`) with `textureLoad`, `textureStore`, and `textureDimensions`.
+- `multisampled_array_textures`: `texture_multisampled_2d_array<T>`.
 
 ### Fixed
+- `textureStore` on an array texture wrote to the mip level given by `array_index` instead of that layer.
+- `textureLoad` failed on 1d textures and returned a `vec4f` for depth and integer textures.
 - `@size`/`@align` on a struct-typed member were ignored when its struct was nested in another struct ([#102](https://github.com/brendan-duncan/wgsl_reflect/issues/102)).
 
 ## 1.7.0

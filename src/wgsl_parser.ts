@@ -57,6 +57,8 @@ export class WgslParser {
               const count = constant.constEvaluate(this._exec);
               if (arrayType instanceof AST.BufferType) {
                 arrayType.size = parseInt(count.toString());
+              } else if (arrayType instanceof AST.BindingArrayType) {
+                arrayType.count = parseInt(count.toString());
               } else {
                 arrayType.count = count;
               }
@@ -2002,6 +2004,12 @@ export class WgslParser {
       if (typeName === "buffer") {
         return this._buffer_type();
       }
+      if (typeName === "texel_buffer" && this._check(TokenTypes.tokens.less_than)) {
+        return this._texel_buffer_type();
+      }
+      if (typeName === "binding_array" && this._check(TokenTypes.tokens.less_than)) {
+        return this._binding_array_type();
+      }
 
       const t = this._getType(typeName);
       // Don't "forward declare" built-in types
@@ -2107,6 +2115,34 @@ export class WgslParser {
       this._consume(TokenTypes.tokens.greater_than, "Expected '>' for buffer.");
     }
     return bufferType;
+  }
+
+  _texel_buffer_type(): AST.SamplerType {
+    // texel_buffer less_than texel_format comma access_mode greater_than
+    this._consume(TokenTypes.tokens.less_than, "Expected '<' for texel_buffer.");
+    const format = this._consume(TokenTypes.texel_format, "Invalid texel format.").toString();
+    this._consume(TokenTypes.tokens.comma, "Expected ',' after texel format.");
+    const access = this._consume(TokenTypes.access_mode, "Expected access mode for texel_buffer.").toString();
+    this._consume(TokenTypes.tokens.greater_than, "Expected '>' for texel_buffer.");
+    return this._updateNode(new AST.SamplerType("texel_buffer", format, access));
+  }
+
+  _binding_array_type(): AST.BindingArrayType {
+    // binding_array less_than type_decl (comma element_count_expression)? greater_than
+    this._consume(TokenTypes.tokens.less_than, "Expected '<' for binding_array.");
+    const format = this._type_decl();
+    const arrayType = this._updateNode(new AST.BindingArrayType(null, format, 0));
+    if (this._match(TokenTypes.tokens.comma)) {
+      const countNode = this._shift_expression();
+      try {
+        arrayType.count = parseInt(countNode.constEvaluate(this._exec).toString());
+      } catch (e) {
+        // The count may be a const declared after it's used.
+        this._deferArrayCountEval.push({ arrayType, countNode });
+      }
+    }
+    this._consume(TokenTypes.tokens.greater_than, "Expected '>' for binding_array.");
+    return arrayType;
   }
 
   _texture_sampler_types(): AST.SamplerType | null {

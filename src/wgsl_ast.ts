@@ -1205,6 +1205,24 @@ export class ArrayType extends Type {
 }
 
 /**
+ * binding_array<T, N> or binding_array<T> (sized_binding_array): an array of
+ * N textures or samplers bound to a single binding. The count is 0 for an
+ * unsized binding array.
+ * @class BindingArrayType
+ * @extends ArrayType
+ * @category AST
+ */
+export class BindingArrayType extends ArrayType {
+  constructor(attributes: Attribute[] | null, format: Type | null, count: number) {
+    super("binding_array", attributes, format, count);
+  }
+
+  get astNodeType(): string {
+    return "bindingArray";
+  }
+}
+
+/**
  * @class SamplerType
  * @extends Type
  * @category AST
@@ -3434,5 +3452,46 @@ export class TextureData extends Data {
     const height = this.height;
     const imageData = this._mipBytes(mipLevel);
     setTexturePixel(imageData, x, y, z, mipLevel, height, bytesPerRow, texelByteSize, this.format, value);
+  }
+}
+
+// The value of a binding_array<T, N> variable: the resources bound to each of
+// its elements. An element that wasn't bound is null.
+export class BindingArrayData extends Data {
+  elements: Array<Data | null>;
+
+  constructor(elements: Array<Data | null>, typeInfo: TypeInfo) {
+    super(typeInfo, null);
+    this.elements = elements;
+  }
+
+  clone(): Data {
+    return new BindingArrayData(this.elements, this.typeInfo);
+  }
+
+  getSubData(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null {
+    if (!postfix) {
+      return this;
+    }
+    if (!(postfix instanceof ArrayIndex)) {
+      console.error(`getSubData: binding_array only supports indexing`, postfix);
+      return null;
+    }
+    const index = exec.evalExpression(postfix.index, context);
+    if (!(index instanceof ScalarData)) {
+      console.error(`getSubData: Invalid binding_array index`);
+      return null;
+    }
+    const i = Math.floor(index.value);
+    const element = this.elements[i] ?? null;
+    if (element === null) {
+      console.error(`getSubData: binding_array element ${i} is not bound`);
+      return null;
+    }
+    return element.getSubData(exec, postfix.postfix, context);
+  }
+
+  toString(): string {
+    return `${this.typeInfo.getTypeName()}[${this.elements.length}]`;
   }
 }

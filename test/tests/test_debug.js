@@ -790,6 +790,33 @@ export async function run() {
       test.equals(dbg.getReturnValue(), [1, 0, 0, 1], 1e-3); // nearest -> texel (0,0)
     });
 
+    await test("binding_array and texel_buffer bindings", function (test) {
+      const red = new Uint8Array([255, 0, 0, 255]);
+      const green = new Uint8Array([0, 255, 0, 255]);
+      const descriptor = { format: "rgba8unorm", size: [1, 1, 1] };
+      const scale = new Float32Array([0.5]);
+      const bg = {
+        0: {
+          0: [{ texture: [red.buffer], descriptor }, { texture: [green.buffer], descriptor }],
+          1: [{ sampler: { magFilter: "nearest" } }],
+          2: { texelBuffer: scale },
+        },
+      };
+      const shader = `
+        requires sized_binding_array, texel_buffers;
+        @group(0) @binding(0) var textures: binding_array<texture_2d<f32>, 2>;
+        @group(0) @binding(1) var samplers: binding_array<sampler, 1>;
+        @group(0) @binding(2) var scale: texel_buffer<r32float, read>;
+        @fragment
+        fn main(@location(0) index: u32) -> @location(0) vec4f {
+          return textureSampleLevel(textures[index], samplers[0], vec2f(0.5), 0.0) * textureLoad(scale, 0u).r;
+        }`;
+      const dbg = new WgslDebug(shader);
+      dbg.debugFragment("main", { 0: 1 }, bg);
+      while (dbg.stepNext());
+      test.equals(dbg.getReturnValue(), [0, 0.5, 0, 0.5], 1e-3);
+    });
+
     await test("sampler address and filter modes", function (test) {
       const px = (r, g, b) => [r, g, b, 255];
       const mip0 = new Uint8Array([...px(255, 0, 0), ...px(0, 255, 0), ...px(0, 0, 255), ...px(255, 255, 255)]);

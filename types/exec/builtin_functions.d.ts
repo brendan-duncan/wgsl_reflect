@@ -106,6 +106,10 @@ export declare class BuiltinFunctions {
     TextureNumSamples(node: CallExpr | Call, context: ExecContext): Data | null;
     _resolveTexture(arg: CallExpr | Call | any, context: ExecContext): TextureData | null;
     _resolveSampler(arg: CallExpr | Call | any, context: ExecContext): SamplerData | null;
+    _textureArg(node: CallExpr | Call, context: ExecContext): TextureData | null;
+    _texelCoords(value: Data | null): number[] | null;
+    _scalarArg(node: CallExpr | Call, index: number, context: ExecContext): number;
+    _loadResultType(texture: TextureData): TypeInfo | null;
     _wrap(coord: number, size: number, mode: string): number;
     _texel(texture: TextureData, x: number, y: number, layer: number, level: number, addrU: string, addrV: string): number[];
     _filterSlice(texture: TextureData, u: number, v: number, layer: number, level: number, sampler: SamplerData | null): number[];

@@ -4,10 +4,10 @@
 import { TokenTypes } from "../wgsl_scanner.js";
 import { Type, Struct, Alias, Override, Var, Node, Function, VariableExpr, CreateExpr,
     Let, Const, Expression, CallExpr, Call, Argument, Member, Attribute, ArrayType, SamplerType,
-    TemplateType, PointerType, BufferType } from "../wgsl_ast.js";
+    TemplateType, PointerType, BufferType, BindingArrayType } from "../wgsl_ast.js";
 import { _BlockStart, _BlockEnd } from "../wgsl_ast.js";
 import { FunctionInfo, VariableInfo, AliasInfo, OverrideInfo, PointerInfo,
-  StructInfo, TypeInfo, MemberInfo, ArrayInfo, TemplateInfo, BufferInfo, OutputInfo,
+  StructInfo, TypeInfo, MemberInfo, ArrayInfo, TemplateInfo, BufferInfo, BindingArrayInfo, OutputInfo,
   InputInfo, ArgumentInfo, ResourceType, EntryFunctions } from "./info.js";
 import { isArray } from "../utils/cast.js";
 import { constExprValue, workgroupSizeOf } from "../utils/const_expr.js";
@@ -43,6 +43,8 @@ export class Reflect {
   textures: VariableInfo[] = [];
   // All top-level sampler vars in the shader.
   samplers: VariableInfo[] = [];
+  /// All top-level texel_buffer vars in the shader.
+  texelBuffers: VariableInfo[] = [];
   /// All top-level type aliases in the shader.
   aliases: AliasInfo[] = [];
   /// All top-level overrides in the shader.
@@ -70,6 +72,9 @@ export class Reflect {
   }
 
   _isStorageTexture(type: TypeInfo): boolean {
+    if (type instanceof BindingArrayInfo) {
+      return type.format ? this._isStorageTexture(type.format) : false;
+    }
     return (
       type.name == "texture_storage_1d" ||
       type.name == "texture_storage_2d" ||
@@ -164,13 +169,27 @@ export class Reflect {
         continue;
       }
 
+      if (this._isTexelBufferVar(node)) {
+        const v = node as Var;
+        const g = this._getAttributeNum(v.attributes, "group", 0);
+        const b = this._getAttributeNum(v.attributes, "binding", 0);
+        const type = this.getTypeInfo(v.type!, v.attributes);
+        const bufferType = type instanceof BindingArrayInfo ? type.format : type;
+        const access = (bufferType as TemplateInfo).access || "read";
+        const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, ResourceType.TexelBuffer, access);
+        varInfo.comment = this._getComment(v);
+        this.texelBuffers.push(varInfo);
+        continue;
+      }
+
       if (this._isTextureVar(node)) {
         const v = node as Var;
         const g = this._getAttributeNum(v.attributes, "group", 0);
         const b = this._getAttributeNum(v.attributes, "binding", 0);
         const type = this.getTypeInfo(v.type!, v.attributes);
         const isStorageTexture = this._isStorageTexture(type);
-        const access = isStorageTexture ? (type as TemplateInfo).access : v.access;
+        const textureType = type instanceof BindingArrayInfo ? type.format : type;
+        const access = isStorageTexture ? (textureType as TemplateInfo).access : v.access;
         const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, 
             isStorageTexture ? ResourceType.StorageTexture : ResourceType.Texture, access || v.access);
         varInfo.comment = this._getComment(v);
@@ -394,6 +413,11 @@ export class Reflect {
         return s;
       }
     }
+    for (const t of this.texelBuffers) {
+      if (t.group == group && t.binding == binding) {
+        return t;
+      }
+    }
     return null;
   }
 
@@ -416,6 +440,11 @@ export class Reflect {
     for (const s of this.samplers) {
       if (s.name == name) {
         return s;
+      }
+    }
+    for (const t of this.texelBuffers) {
+      if (t.name == name) {
+        return t;
       }
     }
     return null;
@@ -567,6 +596,12 @@ export class Reflect {
     }
 
     for (const t of this.samplers) {
+      _makeRoom(t.group, t.binding);
+      const group = groups[t.group];
+      group[t.binding] = t;
+    }
+
+    for (const t of this.texelBuffers) {
       _makeRoom(t.group, t.binding);
       const group = groups[t.group];
       group[t.binding] = t;
@@ -752,6 +787,14 @@ export class Reflect {
       return info;
     }
 
+    if (type instanceof BindingArrayType) {
+      const info = new BindingArrayInfo(attributes);
+      info.format = type.format ? this.getTypeInfo(type.format, null) : null;
+      info.count = type.count;
+      this._types.set(type, info);
+      return info;
+    }
+
     if (type instanceof ArrayType) {
       const a = type as ArrayType;
       const t = a.format ? this.getTypeInfo(a.format!, a.attributes) : null;
@@ -894,6 +937,11 @@ export class Reflect {
       }
     }
 
+    // A binding array is an opaque resource with no memory layout.
+    if (type instanceof BindingArrayInfo) {
+      return null;
+    }
+
     // A buffer can't be a struct member or array element, so its alignment
     // only matters as a variable's.
     if (type instanceof BufferInfo) {
@@ -1014,20 +1062,31 @@ export class Reflect {
     return node instanceof Var && node.storage == "storage";
   }
 
+  // The name of a variable's resource type: the element type of a
+  // binding_array, otherwise the type itself.
+  _resourceTypeName(type: Type | null): string | null {
+    if (type instanceof BindingArrayType) {
+      return type.format?.name ?? null;
+    }
+    return type?.name ?? null;
+  }
+
   _isTextureVar(node: Node): boolean {
     return (
       node instanceof Var &&
-      node.type !== null &&
-      Reflect._textureTypes.indexOf(node.type.name) != -1
+      Reflect._textureTypes.indexOf(this._resourceTypeName(node.type)) != -1
     );
   }
 
   _isSamplerVar(node: Node): boolean {
     return (
       node instanceof Var &&
-      node.type !== null &&
-      Reflect._samplerTypes.indexOf(node.type.name) != -1
+      Reflect._samplerTypes.indexOf(this._resourceTypeName(node.type)) != -1
     );
+  }
+
+  _isTexelBufferVar(node: Node): boolean {
+    return node instanceof Var && this._resourceTypeName(node.type) === "texel_buffer";
   }
 
   _getAttribute(node: Node, name: string): Attribute | null {

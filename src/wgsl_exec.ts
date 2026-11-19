@@ -3,13 +3,15 @@ import { Node, Type, TemplateType, Return, Break, Continue, Let, Var, Const,
     Call, Diagnostic, Enable, Requires, Alias, BinaryOperator, LiteralExpr, Expression,
     VariableExpr, CallExpr, CreateExpr, ConstExpr, BitcastExpr, UnaryOperator,
     ArrayIndex, StringExpr, Function, Switch, SwitchCase, Case, Default, DefaultSelector,
-    Argument, PointerType, BufferType } from "./wgsl_ast.js";
-import { Data, TypedData, TextureData, SamplerData, ScalarData, VectorData, MatrixData, PointerData, VoidData, ControlData } from "./wgsl_ast.js";
+    Argument, PointerType, BufferType, BindingArrayType } from "./wgsl_ast.js";
+import { Data, TypedData, ScalarData, VectorData, MatrixData, PointerData, VoidData, ControlData,
+    BindingArrayData } from "./wgsl_ast.js";
 import { Reflect } from "./reflect/reflect.js";
 import { TypeInfo, StructInfo, ArrayInfo, TemplateInfo, BufferInfo } from "./reflect/info.js";
 import { ExecContext, FunctionRef } from "./exec/exec_context.js";
 import { ExecInterface } from "./exec/exec_interface.js";
 import { BuiltinFunctions } from "./exec/builtin_functions.js";
+import { makeResourceValue, makeBufferValue } from "./exec/resource_binding.js";
 import { isArray, castScalar, castVector } from "./utils/cast.js";
 import { matrixMultiply, matrixVectorMultiply, vectorMatrixMultiply, MatrixTypeSize, VectorTypeSize } from "./utils/matrix.js";
 
@@ -210,21 +212,10 @@ export class WgslExec extends ExecInterface {
                             }
 
                             if (found) {
-                                if (entry.texture !== undefined && entry.descriptor !== undefined) {
-                                    // Texture
-                                    const textureData = new TextureData(entry.texture, this.getTypeInfo(node.type), entry.descriptor,
-                                            entry.view ?? null);
-                                    v.value = textureData;
-                                } else if (entry.sampler !== undefined) {
-                                    // Sampler descriptor (same form WgslDebug accepts)
-                                    v.value = new SamplerData(entry.sampler, this.getTypeInfo(node.type));
-                                } else if (entry.uniform !== undefined) {
-                                    // Uniform buffer
-                                    v.value = new TypedData(entry.uniform, this.getTypeInfo(node.type));
-                                } else {
-                                    // Storage buffer
-                                    v.value = new TypedData(entry, this.getTypeInfo(node.type));
-                                }
+                                // A texture, sampler, texel buffer, or binding_array of
+                                // them; otherwise a uniform or storage buffer.
+                                const typeInfo = this.getTypeInfo(node.type);
+                                v.value = makeResourceValue(typeInfo, entry) ?? makeBufferValue(typeInfo, entry);
                             }
                         }
                     }
@@ -1248,7 +1239,10 @@ export class WgslExec extends ExecInterface {
             }
 
             const typeName = node.type.name;
-            if (WgslExec._defaultableTypes.has(typeName) ||
+            if (node.type instanceof BindingArrayType) {
+                // Filled in when its bind group entry is bound.
+                value = new BindingArrayData([], this.getTypeInfo(node.type));
+            } else if (WgslExec._defaultableTypes.has(typeName) ||
                 node.type instanceof ArrayType || node.type instanceof Struct || node.type instanceof TemplateType ||
                 node.type instanceof BufferType) {
                 const defType = new CreateExpr(node.type, []);

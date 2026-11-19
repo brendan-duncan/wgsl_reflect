@@ -45,6 +45,10 @@ export declare class ArrayInfo extends TypeInfo {
     get isArray(): boolean;
     getTypeName(): string;
 }
+export declare class BindingArrayInfo extends ArrayInfo {
+    constructor(attributes: Attribute[] | null);
+    getTypeName(): string;
+}
 export declare class BufferInfo extends TypeInfo {
     constructor(size: number, attributes: Attribute[] | null);
     get isRuntimeSized(): boolean;
@@ -69,7 +73,8 @@ export declare enum ResourceType {
     Immediate = 2,
     Texture = 3,
     Sampler = 4,
-    StorageTexture = 5
+    StorageTexture = 5,
+    TexelBuffer = 6
 }
 export declare class VariableInfo {
     attributes: Attribute[] | null;

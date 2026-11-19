@@ -496,6 +496,18 @@ export declare class ArrayType extends Type {
     get isArray(): boolean;
 }
 /**
+ * binding_array<T, N> or binding_array<T> (sized_binding_array): an array of
+ * N textures or samplers bound to a single binding. The count is 0 for an
+ * unsized binding array.
+ * @class BindingArrayType
+ * @extends ArrayType
+ * @category AST
+ */
+export declare class BindingArrayType extends ArrayType {
+    constructor(attributes: Attribute[] | null, format: Type | null, count: number);
+    get astNodeType(): string;
+}
+/**
  * @class SamplerType
  * @extends Type
  * @category AST
@@ -858,4 +870,11 @@ export declare class TextureData extends Data {
     _mipBytes(mipLevel: number): Uint8Array;
     getPixel(x: number, y: number, z?: number, mipLevel?: number): number[] | null;
     setPixel(x: number, y: number, z: number, mipLevel: number, value: number[]): void;
+}
+export declare class BindingArrayData extends Data {
+    elements: Array<Data | null>;
+    constructor(elements: Array<Data | null>, typeInfo: TypeInfo);
+    clone(): Data;
+    getSubData(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null;
+    toString(): string;
 }

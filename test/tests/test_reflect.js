@@ -1747,5 +1747,57 @@ export async function run() {
       // promotes it to an array; _parseString takes [0].
       test.equals(persp.interpolation, "perspective");
     });
+
+    await test("sized_binding_array", function (test) {
+      const reflect = new WgslReflect(`
+        requires sized_binding_array;
+        @group(0) @binding(0) var textures: binding_array<texture_2d<f32>, N>;
+        @group(0) @binding(1) var samplers: binding_array<sampler, 2>;
+        @group(0) @binding(2) var images: binding_array<texture_storage_2d<rgba8unorm, write>, 3>;
+        const N = 4;
+        @fragment fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+          return textureSample(textures[1], samplers[0], uv);
+        }`);
+      test.equals(reflect.textures.length, 1);
+      test.equals(reflect.textures[0].type.getTypeName(), "binding_array<texture_2d<f32>, 4>");
+      test.equals(reflect.textures[0].count, 4);
+      test.equals(reflect.textures[0].format.name, "texture_2d");
+      test.equals(reflect.textures[0].size, 0);
+      test.equals(reflect.samplers.length, 1);
+      test.equals(reflect.samplers[0].count, 2);
+      test.equals(reflect.storage.length, 1);
+      test.equals(reflect.storage[0].resourceType, ResourceType.StorageTexture);
+      test.equals(reflect.storage[0].access, "write");
+      test.equals(reflect.entry.fragment[0].resources.map((r) => r.name), ["textures", "samplers"]);
+      test.equals(reflect.textures[0].relations.map((r) => r.name), ["samplers"]);
+    });
+
+    await test("texel_buffers", function (test) {
+      const reflect = new WgslReflect(`
+        requires texel_buffers;
+        @group(0) @binding(0) var src: texel_buffer<rgba8unorm, read>;
+        @group(0) @binding(1) var dst: texel_buffer<r32uint, read_write>;
+        @compute @workgroup_size(1) fn main() {
+          textureStore(dst, 0u, vec4u(u32(textureLoad(src, 0u).x)));
+        }`);
+      test.equals(reflect.texelBuffers.length, 2);
+      test.equals(reflect.texelBuffers[0].resourceType, ResourceType.TexelBuffer);
+      test.equals(reflect.texelBuffers[0].access, "read");
+      test.equals(reflect.texelBuffers[0].format.name, "rgba8unorm");
+      test.equals(reflect.texelBuffers[1].access, "read_write");
+      test.equals(reflect.entry.compute[0].resources.map((r) => r.name), ["dst", "src"]);
+      test.equals(reflect.getBindGroups()[0].map((r) => r.name), ["src", "dst"]);
+      test.equals(reflect.findResource(0, 1).name, "dst");
+    });
+
+    await test("multisampled_array_textures", function (test) {
+      const reflect = new WgslReflect(`
+        requires multisampled_array_textures;
+        @group(0) @binding(0) var t: texture_multisampled_2d_array<f32>;
+        @compute @workgroup_size(1) fn main() { let v = textureLoad(t, vec2u(0), 1u, 0u); }`);
+      test.equals(reflect.textures.length, 1);
+      test.equals(reflect.textures[0].type.getTypeName(), "texture_multisampled_2d_array<f32>");
+      test.equals(reflect.entry.compute[0].resources.length, 1);
+    });
   });
 }

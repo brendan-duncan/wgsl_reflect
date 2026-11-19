@@ -18,6 +18,7 @@ export declare class Reflect {
     immediates: VariableInfo[];
     textures: VariableInfo[];
     samplers: VariableInfo[];
+    texelBuffers: VariableInfo[];
     aliases: AliasInfo[];
     overrides: OverrideInfo[];
     structs: StructInfo[];
@@ -58,8 +59,10 @@ export declare class Reflect {
     _isUniformVar(node: Node): boolean;
     _isImmediateVar(node: Node): boolean;
     _isStorageVar(node: Node): boolean;
+    _resourceTypeName(type: Type | null): string | null;
     _isTextureVar(node: Node): boolean;
     _isSamplerVar(node: Node): boolean;
+    _isTexelBufferVar(node: Node): boolean;
     _getAttribute(node: Node, name: string): Attribute | null;
     _getAttributeNum(attributes: Attribute[] | null, name: string, defaultValue: number): number;
     _roundUp(k: number, n: number): number;
