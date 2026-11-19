@@ -262,6 +262,8 @@ export enum ResourceType {
   Sampler,
   StorageTexture,
   TexelBuffer,
+  InputAttachment,
+  PixelLocal,
 }
 
 export class VariableInfo {

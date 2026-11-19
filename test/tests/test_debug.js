@@ -852,6 +852,35 @@ export async function run() {
       test.equals(dbg.getReturnValue(), [0, 0, 1, 1], 1e-3);
     });
 
+    await test("pixel_local, framebuffer_fetch, and input_attachments", function (test) {
+      const shader = `
+        enable chromium_experimental_pixel_local;
+        enable chromium_experimental_framebuffer_fetch;
+        enable chromium_internal_input_attachments;
+        struct PLS { count: u32, sum: f32 }
+        var<pixel_local> pls: PLS;
+        @group(0) @binding(0) @input_attachment_index(0) var ia: input_attachment<f32>;
+        @fragment
+        fn main(@builtin(position) p: vec4f, @color(0) dst: vec4f) -> @location(0) vec4f {
+          let a = inputAttachmentLoad(ia);
+          pls.count += 1u;
+          pls.sum += a.r;
+          return dst * 0.5 + a;
+        }`;
+      // A 2x1 r32float input attachment; the fragment at x = 1 reads 0.75.
+      const attachment = new Float32Array([0.25, 0.75]);
+      const bg = { 0: { 0: { texture: attachment.buffer, descriptor: { size: [2, 1, 1], format: "r32float" } } } };
+      const pixelLocal = new ArrayBuffer(8);
+      new Uint32Array(pixelLocal, 0, 1)[0] = 3;
+      new Float32Array(pixelLocal, 4, 1)[0] = 1;
+      const dbg = new WgslDebug(shader);
+      dbg.debugFragment("main", { position: [1.5, 0.5, 0, 1], color0: [1, 1, 1, 1] }, bg, { pixelLocal });
+      while (dbg.stepNext());
+      test.equals(dbg.getReturnValue(), [1.25, 0.5, 0.5, 1.5], 1e-6);
+      test.equals(new Uint32Array(pixelLocal, 0, 1)[0], 4);
+      test.equals(new Float32Array(pixelLocal, 4, 1)[0], 1.75);
+    });
+
     await test("sampler address and filter modes", function (test) {
       const px = (r, g, b) => [r, g, b, 255];
       const mip0 = new Uint8Array([...px(255, 0, 0), ...px(0, 255, 0), ...px(0, 0, 255), ...px(255, 255, 255)]);

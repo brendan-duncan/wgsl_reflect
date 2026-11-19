@@ -9,6 +9,9 @@
 - `multisampled_array_textures`: `texture_multisampled_2d_array<T>`.
 - `resource_table` (bindless): `getResource<T>` and `hasResource<T>`, `FunctionInfo.usesResourceTable`, and `config.resourceTable` for execution.
 - `chromium_experimental_subgroup_matrix`: `subgroup_matrix_left/right/result` types (`SubgroupMatrixInfo`) and the `subgroupMatrix*` builtins.
+- `chromium_experimental_pixel_local`: `var<pixel_local>` (`Reflect.pixelLocal`), bound with `config.pixelLocal` when debugging.
+- `chromium_experimental_framebuffer_fetch`: `@color(N)` fragment inputs, given to the debugger as `color<N>`.
+- `chromium_internal_input_attachments`: `input_attachment<T>` (`Reflect.inputAttachments`) and `inputAttachmentLoad`.
 
 ### Fixed
 - `textureStore` on an array texture wrote to the mip level given by `array_index` instead of that layer.

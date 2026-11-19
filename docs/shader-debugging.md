@@ -88,7 +88,7 @@ debugWorkgroup(kernel, dispatchId, dispatchCount, bindGroups, config?)
 | `dispatchId`    | The `global_invocation_id` `[x, y, z]` of the invocation to debug. |
 | `dispatchCount` | Workgroup grid size — a number or `[x, y, z]` array. |
 | `bindGroups`    | Bound resources, in the same format as [`WgslExec`](./shader-execution.md#bind-group-format). |
-| `config`        | Optional; may carry `constants` for override constants. |
+| `config`        | Optional; may carry `constants` for override constants, `immediates`, and `resourceTable` (see [`WgslExec`](./shader-execution.md#bindless-resource-table)). |
 
 Only the invocation matching `dispatchId` is executed; the rest of the grid is
 skipped. After the call, drive execution with the stepping API.
@@ -119,6 +119,12 @@ keyed by pipeline semantic rather than by argument name:
 - **Builtins** by name — `{ vertex_index: 3, instance_index: 0 }` for vertex, or
   `{ position: [x, y, z, w], front_facing: 1 }` for fragment.
 - **`@location(n)`** attributes by index — `{ 0: [x, y, z], 1: [u, v] }`.
+- **`@color(n)`** framebuffer fetch inputs (`chromium_experimental_framebuffer_fetch`)
+  as `color<n>` — `{ color0: [r, g, b, a] }`, the current value of color
+  attachment `n`.
+
+The fragment `position` is also where `inputAttachmentLoad` reads its input
+attachment, which is bound like a texture.
 
 Scalars are numbers; vectors are arrays. The keys are the same whether the entry
 point declares its inputs as separate arguments or grouped together in an input
@@ -138,7 +144,7 @@ debugVertex(entry, inputs, bindGroups, config?)
 | `entry`      | Name of the `@vertex` entry function. |
 | `inputs`     | Per-vertex [stage inputs](#stage-inputs) (vertex/instance builtins and `@location` attributes). |
 | `bindGroups` | Bound resources, in the same format as [`WgslExec`](./shader-execution.md#bind-group-format). |
-| `config`     | Optional; may carry `constants` for override constants. |
+| `config`     | Optional; may carry `constants` for override constants, `immediates`, `resourceTable` (see [`WgslExec`](./shader-execution.md#bindless-resource-table)), and, for a fragment, `pixelLocal`. |
 
 It returns `true` on success. Drive execution with the stepping API just like a
 compute invocation, and read the stage output with
@@ -181,6 +187,10 @@ and `front_facing`) and drive it with the stepping API. Because it runs a single
 invocation, quad-derivative operations behave as if the quad were uniform —
 `dpdx`/`dpdy`/`fwidth` evaluate to zero and `textureSample` uses the base mip
 (LOD 0). This is exact for shaders that don't use derivatives.
+
+A shader using pixel local storage (`chromium_experimental_pixel_local`) reads
+and writes its `var<pixel_local>` in `config.pixelLocal`, an `ArrayBuffer` or
+`TypedArray` with the layout of the variable's struct; it's updated in place.
 
 ```javascript
 const shader = `

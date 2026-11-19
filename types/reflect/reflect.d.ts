@@ -19,6 +19,8 @@ export declare class Reflect {
     textures: VariableInfo[];
     samplers: VariableInfo[];
     texelBuffers: VariableInfo[];
+    inputAttachments: VariableInfo[];
+    pixelLocal: VariableInfo[];
     aliases: AliasInfo[];
     overrides: OverrideInfo[];
     structs: StructInfo[];

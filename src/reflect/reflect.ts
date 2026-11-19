@@ -45,6 +45,12 @@ export class Reflect {
   samplers: VariableInfo[] = [];
   /// All top-level texel_buffer vars in the shader.
   texelBuffers: VariableInfo[] = [];
+  /// All top-level input_attachment vars in the shader
+  /// (chromium_internal_input_attachments).
+  inputAttachments: VariableInfo[] = [];
+  /// All top-level var<pixel_local> vars in the shader
+  /// (chromium_experimental_pixel_local).
+  pixelLocal: VariableInfo[] = [];
   /// All top-level type aliases in the shader.
   aliases: AliasInfo[] = [];
   /// All top-level overrides in the shader.
@@ -166,6 +172,24 @@ export class Reflect {
           varInfo.access = "read";
         }
         this.storage.push(varInfo);
+        continue;
+      }
+
+      if (node instanceof Var && node.storage === "pixel_local") {
+        const type = this.getTypeInfo(node.type!, node.attributes);
+        const varInfo = new VariableInfo(node.name, type, -1, -1, node.attributes, ResourceType.PixelLocal, "read_write");
+        varInfo.comment = this._getComment(node);
+        this.pixelLocal.push(varInfo);
+        continue;
+      }
+
+      if (node instanceof Var && this._resourceTypeName(node.type) === "input_attachment") {
+        const g = this._getAttributeNum(node.attributes, "group", 0);
+        const b = this._getAttributeNum(node.attributes, "binding", 0);
+        const type = this.getTypeInfo(node.type!, node.attributes);
+        const varInfo = new VariableInfo(node.name, type, g, b, node.attributes, ResourceType.InputAttachment, "read");
+        varInfo.comment = this._getComment(node);
+        this.inputAttachments.push(varInfo);
         continue;
       }
 
@@ -469,6 +493,11 @@ export class Reflect {
         return t;
       }
     }
+    for (const t of this.inputAttachments) {
+      if (t.group == group && t.binding == binding) {
+        return t;
+      }
+    }
     return null;
   }
 
@@ -494,6 +523,16 @@ export class Reflect {
       }
     }
     for (const t of this.texelBuffers) {
+      if (t.name == name) {
+        return t;
+      }
+    }
+    for (const t of this.inputAttachments) {
+      if (t.name == name) {
+        return t;
+      }
+    }
+    for (const t of this.pixelLocal) {
       if (t.name == name) {
         return t;
       }
@@ -658,6 +697,12 @@ export class Reflect {
       group[t.binding] = t;
     }
 
+    for (const t of this.inputAttachments) {
+      _makeRoom(t.group, t.binding);
+      const group = groups[t.group];
+      group[t.binding] = t;
+    }
+
     return groups;
   }
 
@@ -752,9 +797,12 @@ export class Reflect {
   }
 
   _getInputInfo(node: Member | Argument): InputInfo | null {
+    // @color(N) (chromium_experimental_framebuffer_fetch) reads the value of
+    // color attachment N.
     const location =
       this._getAttribute(node, "location") ||
-      this._getAttribute(node, "builtin");
+      this._getAttribute(node, "builtin") ||
+      this._getAttribute(node, "color");
     if (location !== null) {
       const interpolation = this._getAttribute(node, "interpolate");
       const type = this.getTypeInfo(node.type, node.attributes);

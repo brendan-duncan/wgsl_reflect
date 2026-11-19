@@ -1907,7 +1907,13 @@ export class WgslParser {
     let storage: string = "";
     let access: string = "";
     if (this._match(TokenTypes.tokens.less_than)) {
-      storage = this._consume(TokenTypes.storage_class, "Expected storage_class.").toString();
+      // pixel_local (chromium_experimental_pixel_local) is an identifier rather
+      // than a keyword.
+      if (this._check(TokenTypes.tokens.ident) && this._peek().lexeme === "pixel_local") {
+        storage = this._advance().toString();
+      } else {
+        storage = this._consume(TokenTypes.storage_class, "Expected storage_class.").toString();
+      }
       if (this._match(TokenTypes.tokens.comma)) {
         access = this._consume(TokenTypes.access_mode, "Expected access_mode.").toString();
       }
@@ -2057,6 +2063,13 @@ export class WgslParser {
       }
       if (typeName.startsWith("subgroup_matrix_") && this._check(TokenTypes.tokens.less_than)) {
         return this._subgroup_matrix_type(typeName.substring("subgroup_matrix_".length));
+      }
+      if (typeName === "input_attachment" && this._check(TokenTypes.tokens.less_than)) {
+        // input_attachment less_than type_decl greater_than
+        this._advance();
+        const format = this._type_decl();
+        this._consume(TokenTypes.tokens.greater_than, "Expected '>' for input_attachment.");
+        return this._updateNode(new AST.SamplerType("input_attachment", format, null));
       }
 
       const t = this._getType(typeName);

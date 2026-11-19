@@ -57,6 +57,7 @@ export declare class WgslDebug {
     debugFragment(entry: string, inputs: StageInputs, bindGroups: Record<string, Record<string, BindGroupEntry>>, config?: Record<string, unknown>): boolean;
     _debugStage(entry: string, stage: string, inputs: StageInputs, bindGroups: Record<string, Record<string, BindGroupEntry>>, config?: Record<string, unknown>): boolean;
     _bindStageInputs(fn: FunctionRef, inputs: StageInputs, context: ExecContext): void;
+    _inputKey(attributes: AST.Attribute[] | null): string | null;
     _inputSemantic(attributes: AST.Attribute[] | null): {
         builtin: string | null;
         location: string | null;

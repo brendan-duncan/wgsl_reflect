@@ -86,6 +86,10 @@ class WgslReflect {
   samplers: Array<VariableInfo>;
   // All top-level texel_buffer vars in the shader.
   texelBuffers: Array<VariableInfo>;
+  // All top-level input_attachment vars in the shader.
+  inputAttachments: Array<VariableInfo>;
+  // All top-level var<pixel_local> vars in the shader.
+  pixelLocal: Array<VariableInfo>;
   // All top-level type aliases in the shader.
   aliases: Array<AliasInfo>;
   // All top-level overrides in the shader.
@@ -127,7 +131,9 @@ enum ResourceType {
   Texture, // Texture
   Sampler, // Sampler to sample a Texture
   StorageTexture, // StorageTexture
-  TexelBuffer // texel_buffer
+  TexelBuffer, // texel_buffer
+  InputAttachment, // input_attachment
+  PixelLocal // var<pixel_local>, which has no group or binding
 }
 
 // Information about a resource variable. This will be a uniform buffer,
@@ -218,6 +224,17 @@ class ArrayInfo extends TypeInfo {
 // binding array. A binding array variable is listed with the textures, samplers, or storage
 // textures of its element type.
 class BindingArrayInfo extends ArrayInfo {
+}
+
+// Information about a subgroup_matrix_left, subgroup_matrix_right, or subgroup_matrix_result type.
+class SubgroupMatrixInfo extends TypeInfo {
+  // "left", "right", or "result".
+  kind: string;
+  // The element type.
+  format: TypeInfo;
+  // The number of columns and rows.
+  columns: number;
+  rows: number;
 }
 
 // Information about template type declarations
@@ -328,7 +345,7 @@ class InputInfo {
   name: string;
   // The type of the input variable.
   type: TypeInfo | null;
-  // The location type of the input.
+  // The location type of the input: "location", "builtin", or "color" for a @color(N) framebuffer fetch input.
   locationType: string;
   // The location index or built-in location name.
   location: number | string;

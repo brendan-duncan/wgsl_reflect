@@ -82,7 +82,9 @@ export declare enum ResourceType {
     Texture = 3,
     Sampler = 4,
     StorageTexture = 5,
-    TexelBuffer = 6
+    TexelBuffer = 6,
+    InputAttachment = 7,
+    PixelLocal = 8
 }
 export declare class VariableInfo {
     attributes: Attribute[] | null;

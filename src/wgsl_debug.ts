@@ -512,13 +512,21 @@ export class WgslDebug {
     // it as a local variable. Builtin/location arguments are taken directly from
     // `inputs`; a struct argument is assembled member-by-member from inputs.
     _bindStageInputs(fn: FunctionRef, inputs: StageInputs, context: ExecContext): void {
+        // The fragment position, for builtins that read at it, such as
+        // inputAttachmentLoad.
+        if (inputs["position"] !== undefined) {
+            const position = this._makeStageValue(this._exec.getTypeInfo("vec4f"), inputs["position"]);
+            if (position !== null) {
+                context.setVariable("@position", position);
+            }
+        }
+
         for (const arg of fn.node.args) {
             const typeInfo = this._exec.getTypeInfo(arg.type);
-            const { builtin, location } = this._inputSemantic(arg.attributes);
+            const key = this._inputKey(arg.attributes);
             let value: Data | null = null;
 
-            if (builtin !== null || location !== null) {
-                const key = (builtin !== null ? builtin : location) as string;
+            if (key !== null) {
                 const raw = inputs[key];
                 // A missing input still binds a zero-initialized value of the
                 // declared type; leaving the variable unbound would let null
@@ -535,6 +543,20 @@ export class WgslDebug {
     }
 
     // Extract the @builtin(name) / @location(n) semantic from an attribute list.
+    // The key of a stage input in the inputs given to debugVertex or
+    // debugFragment: the builtin name, the @location index, or "color<N>" for
+    // a @color(N) framebuffer fetch input. Null for an argument that isn't a
+    // stage input.
+    _inputKey(attributes: AST.Attribute[] | null): string | null {
+        for (const attr of attributes ?? []) {
+            if (attr.name === "color") {
+                return `color${attr.value}`;
+            }
+        }
+        const { builtin, location } = this._inputSemantic(attributes);
+        return builtin ?? location;
+    }
+
     _inputSemantic(attributes: AST.Attribute[] | null): { builtin: string | null, location: string | null } {
         let builtin: string | null = null;
         let location: string | null = null;
@@ -597,8 +619,7 @@ export class WgslDebug {
     _makeStructInput(typeInfo: StructInfo, inputs: StageInputs, context: ExecContext): Data {
         const data = new TypedData(new ArrayBuffer(typeInfo.size), typeInfo);
         for (const m of typeInfo.members) {
-            const { builtin, location } = this._inputSemantic(m.attributes);
-            const key = builtin !== null ? builtin : location;
+            const key = this._inputKey(m.attributes);
             if (key === null) {
                 continue;
             }

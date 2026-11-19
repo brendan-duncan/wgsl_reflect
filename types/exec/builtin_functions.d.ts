@@ -152,6 +152,7 @@ export declare class BuiltinFunctions {
     AtomicStoreMin(node: CallExpr | Call, context: ExecContext): Data | null;
     AtomicStoreMax(node: CallExpr | Call, context: ExecContext): Data | null;
     _atomicStoreMinMax(node: CallExpr | Call, context: ExecContext, max: boolean): void;
+    InputAttachmentLoad(node: CallExpr | Call, context: ExecContext): Data | null;
     _subgroupMatrixArray(node: CallExpr | Call, context: ExecContext): TypedData | null;
     _isColumnMajor(majorness: unknown, colMajorArg: Data | null): boolean;
     SubgroupMatrixLoad(node: CallExpr | Call, context: ExecContext): Data | null;

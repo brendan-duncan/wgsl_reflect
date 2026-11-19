@@ -1838,5 +1838,33 @@ export async function run() {
       test.equals(fn.arguments[0].type.rows, 4);
       test.equals(fn.returnType.getTypeName(), "subgroup_matrix_result<f32, 8, 4>");
     });
+
+    await test("pixel_local, framebuffer_fetch, and input_attachments", function (test) {
+      const reflect = new WgslReflect(`
+        enable chromium_experimental_pixel_local;
+        enable chromium_experimental_framebuffer_fetch;
+        enable chromium_internal_input_attachments;
+        struct PLS { count: u32, sum: f32 }
+        var<pixel_local> pls: PLS;
+        @group(0) @binding(3) @input_attachment_index(1) var ia: input_attachment<f32>;
+        struct In { @location(0) uv: vec2f, @color(1) previous: vec4f }
+        @fragment fn main(@color(0) dst: vec4f, input: In) -> @location(0) vec4f {
+          pls.count += 1u;
+          return dst + input.previous + inputAttachmentLoad(ia);
+        }`);
+      test.equals(reflect.pixelLocal.length, 1);
+      test.equals(reflect.pixelLocal[0].name, "pls");
+      test.equals(reflect.pixelLocal[0].resourceType, ResourceType.PixelLocal);
+      test.equals(reflect.pixelLocal[0].type.name, "PLS");
+      test.equals(reflect.pixelLocal[0].size, 8);
+      test.equals(reflect.inputAttachments.length, 1);
+      test.equals(reflect.inputAttachments[0].resourceType, ResourceType.InputAttachment);
+      test.equals(reflect.inputAttachments[0].type.getTypeName(), "input_attachment<f32>");
+      test.equals(reflect.findResource(0, 3).name, "ia");
+      const fn = reflect.entry.fragment[0];
+      test.equals(fn.inputs.map((i) => `${i.name}:${i.locationType}:${i.location}`),
+          ["dst:color:0", "uv:location:0", "previous:color:1"]);
+      test.equals(fn.resources.map((r) => r.name).sort(), ["ia", "pls"]);
+    });
   });
 }

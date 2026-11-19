@@ -196,6 +196,7 @@ const BuiltinFunctionNames = new Set([
   "bufferLength",
   "getResource",
   "hasResource",
+  "inputAttachmentLoad",
   "subgroupMatrixLoad",
   "subgroupMatrixStore",
   "subgroupMatrixMultiply",

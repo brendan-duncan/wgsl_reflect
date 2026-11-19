@@ -1975,6 +1975,26 @@ export class BuiltinFunctions {
     // bufferView<T>(p, offset) reinterprets the buffer p points to as a T starting
     // offset bytes in, and bufferArrayView<T>(p, offset, size) reinterprets size
     // bytes of it as a runtime-sized T. The result points into the same memory.
+    // Input Attachment Built-in Functions (chromium_internal_input_attachments)
+
+    InputAttachmentLoad(node: CallExpr | Call, context: ExecContext): Data | null {
+        // inputAttachmentLoad(ia) reads the input attachment at the fragment's
+        // position, which WgslDebug stores as "@position".
+        const texture = this._textureArg(node, context);
+        if (texture === null) {
+            return null;
+        }
+        const position = context.getVariableValue("@position");
+        const x = position instanceof VectorData ? Math.floor(position.data[0]) : 0;
+        const y = position instanceof VectorData ? Math.floor(position.data[1]) : 0;
+        const texel = texture.getPixel(x, y, 0, 0);
+        if (texel === null) {
+            console.error(`Invalid input attachment format for inputAttachmentLoad. Line ${node.line}`);
+            return null;
+        }
+        return new VectorData(texel, this._loadResultType(texture));
+    }
+
     // Subgroup Matrix Built-in Functions (chromium_experimental_subgroup_matrix)
 
     // The array a subgroupMatrixLoad or subgroupMatrixStore pointer argument

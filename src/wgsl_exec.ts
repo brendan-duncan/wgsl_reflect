@@ -136,7 +136,26 @@ export class WgslExec extends ExecInterface {
     // the bindless resource table.
     _bindConfigResources(config: Object | undefined, context: ExecContext): void {
         this._bindImmediates(config, context);
+        this._bindPixelLocal(config, context);
         this.resourceTable = config?.["resourceTable"] ?? [];
+    }
+
+    // Binds config.pixelLocal, the pixel local storage of the fragment being
+    // shaded, to the module's var<pixel_local> variable. It's read and written
+    // in place.
+    _bindPixelLocal(config: Object | undefined, context: ExecContext): void {
+        const data = config?.["pixelLocal"];
+        if (!data) {
+            return;
+        }
+        const buffer: ArrayBuffer = ArrayBuffer.isView(data) ? data.buffer : data;
+        const offset = ArrayBuffer.isView(data) ? data.byteOffset : 0;
+        for (const info of this.reflection.pixelLocal) {
+            const v = context.getVariable(info.name);
+            if (v !== null) {
+                v.value = new TypedData(buffer, info.type, offset);
+            }
+        }
     }
 
     // Binds config.immediates, the data a pipeline sets with setImmediates, to the
@@ -2589,6 +2608,10 @@ export class WgslExec extends ExecInterface {
                 return this.builtins.SubgroupMatrixScalarSubtract(node, context);
             case "subgroupMatrixScalarMultiply":
                 return this.builtins.SubgroupMatrixScalarMultiply(node, context);
+
+            // Input Attachment Built-in Functions
+            case "inputAttachmentLoad":
+                return this.builtins.InputAttachmentLoad(node, context);
 
             // Resource Table Built-in Functions
             case "getResource":
