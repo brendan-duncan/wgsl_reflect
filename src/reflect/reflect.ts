@@ -4,10 +4,10 @@
 import { TokenTypes } from "../wgsl_scanner.js";
 import { Type, Struct, Alias, Override, Var, Node, Function, VariableExpr, CreateExpr,
     Let, Const, Expression, CallExpr, Call, Argument, Member, Attribute, ArrayType, SamplerType,
-    TemplateType, PointerType, BufferType } from "../wgsl_ast.js";
+    TemplateType, PointerType, BufferType, BindingArrayType, SubgroupMatrixType } from "../wgsl_ast.js";
 import { _BlockStart, _BlockEnd } from "../wgsl_ast.js";
 import { FunctionInfo, VariableInfo, AliasInfo, OverrideInfo, PointerInfo,
-  StructInfo, TypeInfo, MemberInfo, ArrayInfo, TemplateInfo, BufferInfo, OutputInfo,
+  StructInfo, TypeInfo, MemberInfo, ArrayInfo, TemplateInfo, BufferInfo, BindingArrayInfo, SubgroupMatrixInfo, OutputInfo,
   InputInfo, ArgumentInfo, ResourceType, EntryFunctions } from "./info.js";
 import { isArray } from "../utils/cast.js";
 import { constExprValue, workgroupSizeOf } from "../utils/const_expr.js";
@@ -43,6 +43,14 @@ export class Reflect {
   textures: VariableInfo[] = [];
   // All top-level sampler vars in the shader.
   samplers: VariableInfo[] = [];
+  /// All top-level texel_buffer vars in the shader.
+  texelBuffers: VariableInfo[] = [];
+  /// All top-level input_attachment vars in the shader
+  /// (chromium_internal_input_attachments).
+  inputAttachments: VariableInfo[] = [];
+  /// All top-level var<pixel_local> vars in the shader
+  /// (chromium_experimental_pixel_local).
+  pixelLocal: VariableInfo[] = [];
   /// All top-level type aliases in the shader.
   aliases: AliasInfo[] = [];
   /// All top-level overrides in the shader.
@@ -70,6 +78,9 @@ export class Reflect {
   }
 
   _isStorageTexture(type: TypeInfo): boolean {
+    if (type instanceof BindingArrayInfo) {
+      return type.format ? this._isStorageTexture(type.format) : false;
+    }
     return (
       type.name == "texture_storage_1d" ||
       type.name == "texture_storage_2d" ||
@@ -164,13 +175,45 @@ export class Reflect {
         continue;
       }
 
+      if (node instanceof Var && node.storage === "pixel_local") {
+        const type = this.getTypeInfo(node.type!, node.attributes);
+        const varInfo = new VariableInfo(node.name, type, -1, -1, node.attributes, ResourceType.PixelLocal, "read_write");
+        varInfo.comment = this._getComment(node);
+        this.pixelLocal.push(varInfo);
+        continue;
+      }
+
+      if (node instanceof Var && this._resourceTypeName(node.type) === "input_attachment") {
+        const g = this._getAttributeNum(node.attributes, "group", 0);
+        const b = this._getAttributeNum(node.attributes, "binding", 0);
+        const type = this.getTypeInfo(node.type!, node.attributes);
+        const varInfo = new VariableInfo(node.name, type, g, b, node.attributes, ResourceType.InputAttachment, "read");
+        varInfo.comment = this._getComment(node);
+        this.inputAttachments.push(varInfo);
+        continue;
+      }
+
+      if (this._isTexelBufferVar(node)) {
+        const v = node as Var;
+        const g = this._getAttributeNum(v.attributes, "group", 0);
+        const b = this._getAttributeNum(v.attributes, "binding", 0);
+        const type = this.getTypeInfo(v.type!, v.attributes);
+        const bufferType = type instanceof BindingArrayInfo ? type.format : type;
+        const access = (bufferType as TemplateInfo).access || "read";
+        const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, ResourceType.TexelBuffer, access);
+        varInfo.comment = this._getComment(v);
+        this.texelBuffers.push(varInfo);
+        continue;
+      }
+
       if (this._isTextureVar(node)) {
         const v = node as Var;
         const g = this._getAttributeNum(v.attributes, "group", 0);
         const b = this._getAttributeNum(v.attributes, "binding", 0);
         const type = this.getTypeInfo(v.type!, v.attributes);
         const isStorageTexture = this._isStorageTexture(type);
-        const access = isStorageTexture ? (type as TemplateInfo).access : v.access;
+        const textureType = type instanceof BindingArrayInfo ? type.format : type;
+        const access = isStorageTexture ? (textureType as TemplateInfo).access : v.access;
         const varInfo = new VariableInfo(v.name, type, g, b, v.attributes, 
             isStorageTexture ? ResourceType.StorageTexture : ResourceType.Texture, access || v.access);
         varInfo.comment = this._getComment(v);
@@ -240,6 +283,8 @@ export class Reflect {
         this._addCalls(fn.node, fn.info.calls);
       }
     }
+
+    this._findResourceTableUsage();
 
     for (const fn of this._functions.values()) {
       fn.node.search((node) => {
@@ -331,6 +376,55 @@ export class Reflect {
     }
   }
 
+  // Find the functions that use the resource table, directly or through a
+  // function they call, and the resource types they access in it.
+  _findResourceTableUsage(): void {
+    const direct = new Map<FunctionInfo, TypeInfo[]>();
+    for (const fn of this._functions.values()) {
+      if (!fn.info) {
+        continue;
+      }
+      const types: TypeInfo[] = [];
+      let uses = false;
+      fn.node.search((node) => {
+        if (node instanceof CallExpr && (node.name === "getResource" || node.name === "hasResource")) {
+          uses = true;
+          if (node.templateType) {
+            types.push(this.getTypeInfo(node.templateType, null));
+          }
+        }
+      });
+      if (uses) {
+        direct.set(fn.info, types);
+      }
+    }
+
+    for (const info of this.functions) {
+      const seen = new Set<FunctionInfo>();
+      const types = new Map<string, TypeInfo>();
+      const visit = (f: FunctionInfo) => {
+        if (seen.has(f)) {
+          return;
+        }
+        seen.add(f);
+        const d = direct.get(f);
+        if (d) {
+          info.usesResourceTable = true;
+          for (const t of d) {
+            if (!types.has(t.getTypeName())) {
+              types.set(t.getTypeName(), t);
+            }
+          }
+        }
+        for (const c of f.calls) {
+          visit(c);
+        }
+      };
+      visit(info);
+      info.resourceTableTypes = [...types.values()];
+    }
+  }
+
   _addCalls(fn: Function, calls: Set<FunctionInfo>, ) {
     for (const call of fn.calls) {
       const info = this._functions.get(call.name)?.info;
@@ -394,6 +488,16 @@ export class Reflect {
         return s;
       }
     }
+    for (const t of this.texelBuffers) {
+      if (t.group == group && t.binding == binding) {
+        return t;
+      }
+    }
+    for (const t of this.inputAttachments) {
+      if (t.group == group && t.binding == binding) {
+        return t;
+      }
+    }
     return null;
   }
 
@@ -416,6 +520,21 @@ export class Reflect {
     for (const s of this.samplers) {
       if (s.name == name) {
         return s;
+      }
+    }
+    for (const t of this.texelBuffers) {
+      if (t.name == name) {
+        return t;
+      }
+    }
+    for (const t of this.inputAttachments) {
+      if (t.name == name) {
+        return t;
+      }
+    }
+    for (const t of this.pixelLocal) {
+      if (t.name == name) {
+        return t;
       }
     }
     return null;
@@ -572,6 +691,18 @@ export class Reflect {
       group[t.binding] = t;
     }
 
+    for (const t of this.texelBuffers) {
+      _makeRoom(t.group, t.binding);
+      const group = groups[t.group];
+      group[t.binding] = t;
+    }
+
+    for (const t of this.inputAttachments) {
+      _makeRoom(t.group, t.binding);
+      const group = groups[t.group];
+      group[t.binding] = t;
+    }
+
     return groups;
   }
 
@@ -666,9 +797,12 @@ export class Reflect {
   }
 
   _getInputInfo(node: Member | Argument): InputInfo | null {
+    // @color(N) (chromium_experimental_framebuffer_fetch) reads the value of
+    // color attachment N.
     const location =
       this._getAttribute(node, "location") ||
-      this._getAttribute(node, "builtin");
+      this._getAttribute(node, "builtin") ||
+      this._getAttribute(node, "color");
     if (location !== null) {
       const interpolation = this._getAttribute(node, "interpolate");
       const type = this.getTypeInfo(node.type, node.attributes);
@@ -749,6 +883,21 @@ export class Reflect {
       const info = new PointerInfo(type.name, t, attributes);
       this._types.set(type, info);
       this._updateTypeInfo(info);
+      return info;
+    }
+
+    if (type instanceof SubgroupMatrixType) {
+      const info = new SubgroupMatrixInfo(type.kind, this.getTypeInfo(type.format, null),
+          type.columns, type.rows, attributes);
+      this._types.set(type, info);
+      return info;
+    }
+
+    if (type instanceof BindingArrayType) {
+      const info = new BindingArrayInfo(attributes);
+      info.format = type.format ? this.getTypeInfo(type.format, null) : null;
+      info.count = type.count;
+      this._types.set(type, info);
       return info;
     }
 
@@ -894,6 +1043,11 @@ export class Reflect {
       }
     }
 
+    // A binding array is an opaque resource with no memory layout.
+    if (type instanceof BindingArrayInfo) {
+      return null;
+    }
+
     // A buffer can't be a struct member or array element, so its alignment
     // only matters as a variable's.
     if (type instanceof BufferInfo) {
@@ -1014,20 +1168,31 @@ export class Reflect {
     return node instanceof Var && node.storage == "storage";
   }
 
+  // The name of a variable's resource type: the element type of a
+  // binding_array, otherwise the type itself.
+  _resourceTypeName(type: Type | null): string | null {
+    if (type instanceof BindingArrayType) {
+      return type.format?.name ?? null;
+    }
+    return type?.name ?? null;
+  }
+
   _isTextureVar(node: Node): boolean {
     return (
       node instanceof Var &&
-      node.type !== null &&
-      Reflect._textureTypes.indexOf(node.type.name) != -1
+      Reflect._textureTypes.indexOf(this._resourceTypeName(node.type)) != -1
     );
   }
 
   _isSamplerVar(node: Node): boolean {
     return (
       node instanceof Var &&
-      node.type !== null &&
-      Reflect._samplerTypes.indexOf(node.type.name) != -1
+      Reflect._samplerTypes.indexOf(this._resourceTypeName(node.type)) != -1
     );
+  }
+
+  _isTexelBufferVar(node: Node): boolean {
+    return node instanceof Var && this._resourceTypeName(node.type) === "texel_buffer";
   }
 
   _getAttribute(node: Node, name: string): Attribute | null {

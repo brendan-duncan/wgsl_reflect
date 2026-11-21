@@ -416,6 +416,23 @@ export async function run() {
       test.equals(buffer, [48]);
     });
 
+    await test("subgroup matrix multiply when stepping", async function (test) {
+      const shader = `
+          enable chromium_experimental_subgroup_matrix;
+          @group(0) @binding(0) var<storage, read_write> buf: array<f32>;
+          @compute @workgroup_size(1)
+          fn main() {
+              let l = subgroupMatrixLoad<subgroup_matrix_left<f32, 2, 1>>(&buf, 0, false, 2);
+              let r = subgroupMatrixLoad<subgroup_matrix_right<f32, 1, 2>>(&buf, 2, false, 1);
+              subgroupMatrixStore(&buf, 4, subgroupMatrixMultiply<f32>(l, r), false, 1);
+          }`;
+      const buf = new Float32Array([2, 3, 4, 5, 0]);
+      const dbg = new WgslDebug(shader);
+      dbg.debugWorkgroup("main", [0, 0, 0], 1, { 0: { 0: buf } });
+      while (dbg.stepNext());
+      test.equals(buf[4], 2 * 4 + 3 * 5);
+    });
+
     await test("dispatch function call", async function (test) {
       const shader = `
           fn scale(x: f32, y: f32) -> f32 {
@@ -788,6 +805,80 @@ export async function run() {
       dbg.debugFragment("main", { 0: [0.25, 0.25] }, bg);
       while (dbg.stepNext());
       test.equals(dbg.getReturnValue(), [1, 0, 0, 1], 1e-3); // nearest -> texel (0,0)
+    });
+
+    await test("binding_array and texel_buffer bindings", function (test) {
+      const red = new Uint8Array([255, 0, 0, 255]);
+      const green = new Uint8Array([0, 255, 0, 255]);
+      const descriptor = { format: "rgba8unorm", size: [1, 1, 1] };
+      const scale = new Float32Array([0.5]);
+      const bg = {
+        0: {
+          0: [{ texture: [red.buffer], descriptor }, { texture: [green.buffer], descriptor }],
+          1: [{ sampler: { magFilter: "nearest" } }],
+          2: { texelBuffer: scale },
+        },
+      };
+      const shader = `
+        requires sized_binding_array, texel_buffers;
+        @group(0) @binding(0) var textures: binding_array<texture_2d<f32>, 2>;
+        @group(0) @binding(1) var samplers: binding_array<sampler, 1>;
+        @group(0) @binding(2) var scale: texel_buffer<r32float, read>;
+        @fragment
+        fn main(@location(0) index: u32) -> @location(0) vec4f {
+          return textureSampleLevel(textures[index], samplers[0], vec2f(0.5), 0.0) * textureLoad(scale, 0u).r;
+        }`;
+      const dbg = new WgslDebug(shader);
+      dbg.debugFragment("main", { 0: 1 }, bg);
+      while (dbg.stepNext());
+      test.equals(dbg.getReturnValue(), [0, 0.5, 0, 0.5], 1e-3);
+    });
+
+    await test("resource_table: getResource in a fragment stage", function (test) {
+      const red = new Uint8Array([255, 0, 0, 255]);
+      const blue = new Uint8Array([0, 0, 255, 255]);
+      const descriptor = { format: "rgba8unorm", size: [1, 1, 1] };
+      const shader = `
+        enable chromium_experimental_resource_table;
+        @fragment
+        fn main(@location(0) index: u32) -> @location(0) vec4f {
+          let t = getResource<texture_2d<f32>>(index);
+          return textureLoad(t, vec2u(0), 0);
+        }`;
+      const dbg = new WgslDebug(shader);
+      const resourceTable = [{ texture: [red.buffer], descriptor }, { texture: [blue.buffer], descriptor }];
+      dbg.debugFragment("main", { 0: 1 }, {}, { resourceTable });
+      while (dbg.stepNext());
+      test.equals(dbg.getReturnValue(), [0, 0, 1, 1], 1e-3);
+    });
+
+    await test("pixel_local, framebuffer_fetch, and input_attachments", function (test) {
+      const shader = `
+        enable chromium_experimental_pixel_local;
+        enable chromium_experimental_framebuffer_fetch;
+        enable chromium_internal_input_attachments;
+        struct PLS { count: u32, sum: f32 }
+        var<pixel_local> pls: PLS;
+        @group(0) @binding(0) @input_attachment_index(0) var ia: input_attachment<f32>;
+        @fragment
+        fn main(@builtin(position) p: vec4f, @color(0) dst: vec4f) -> @location(0) vec4f {
+          let a = inputAttachmentLoad(ia);
+          pls.count += 1u;
+          pls.sum += a.r;
+          return dst * 0.5 + a;
+        }`;
+      // A 2x1 r32float input attachment; the fragment at x = 1 reads 0.75.
+      const attachment = new Float32Array([0.25, 0.75]);
+      const bg = { 0: { 0: { texture: attachment.buffer, descriptor: { size: [2, 1, 1], format: "r32float" } } } };
+      const pixelLocal = new ArrayBuffer(8);
+      new Uint32Array(pixelLocal, 0, 1)[0] = 3;
+      new Float32Array(pixelLocal, 4, 1)[0] = 1;
+      const dbg = new WgslDebug(shader);
+      dbg.debugFragment("main", { position: [1.5, 0.5, 0, 1], color0: [1, 1, 1, 1] }, bg, { pixelLocal });
+      while (dbg.stepNext());
+      test.equals(dbg.getReturnValue(), [1.25, 0.5, 0.5, 1.5], 1e-6);
+      test.equals(new Uint32Array(pixelLocal, 0, 1)[0], 4);
+      test.equals(new Float32Array(pixelLocal, 4, 1)[0], 1.75);
     });
 
     await test("sampler address and filter modes", function (test) {

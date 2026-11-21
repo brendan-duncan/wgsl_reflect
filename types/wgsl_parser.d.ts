@@ -3,6 +3,7 @@ import * as AST from "./wgsl_ast.js";
 import { WgslExec } from "./wgsl_exec.js";
 import { ParseContext } from "./ast/parse_context.js";
 export declare class WgslParser {
+    static readonly _templateBuiltins: Set<string>;
     _tokens: Token[];
     _current: number;
     _currentLine: number;
@@ -72,6 +73,7 @@ export declare class WgslParser {
     _getType(name: string): AST.Type;
     _validateTypeRange(value: number, type: AST.Type): void;
     _primary_expression(): AST.Expression;
+    _template_builtin_args(name: string): AST.Type[] | null;
     _argument_expression_list(): AST.Expression[] | null;
     _optional_paren_expression(): AST.Expression;
     _paren_expression(): AST.Expression;
@@ -89,6 +91,9 @@ export declare class WgslParser {
     _type_alias(): AST.Alias;
     _type_decl(): AST.Type | null;
     _buffer_type(): AST.BufferType;
+    _texel_buffer_type(): AST.SamplerType;
+    _binding_array_type(): AST.BindingArrayType;
+    _subgroup_matrix_type(kind: string): AST.SubgroupMatrixType;
     _texture_sampler_types(): AST.SamplerType | null;
     _setTypeAttributes(type: AST.Type | null, attributes: AST.Attribute[] | null): void;
     _attribute(): AST.Attribute[] | null;

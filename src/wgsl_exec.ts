@@ -3,13 +3,16 @@ import { Node, Type, TemplateType, Return, Break, Continue, Let, Var, Const,
     Call, Diagnostic, Enable, Requires, Alias, BinaryOperator, LiteralExpr, Expression,
     VariableExpr, CallExpr, CreateExpr, ConstExpr, BitcastExpr, UnaryOperator,
     ArrayIndex, StringExpr, Function, Switch, SwitchCase, Case, Default, DefaultSelector,
-    Argument, PointerType, BufferType } from "./wgsl_ast.js";
-import { Data, TypedData, TextureData, SamplerData, ScalarData, VectorData, MatrixData, PointerData, VoidData, ControlData } from "./wgsl_ast.js";
+    Argument, PointerType, BufferType, BindingArrayType, SubgroupMatrixType } from "./wgsl_ast.js";
+import { Data, TypedData, ScalarData, VectorData, MatrixData, PointerData, VoidData, ControlData,
+    BindingArrayData, SubgroupMatrixData } from "./wgsl_ast.js";
 import { Reflect } from "./reflect/reflect.js";
-import { TypeInfo, StructInfo, ArrayInfo, TemplateInfo, BufferInfo } from "./reflect/info.js";
+import { TypeInfo, StructInfo, ArrayInfo, TemplateInfo, BufferInfo, SubgroupMatrixInfo } from "./reflect/info.js";
+import { toSubgroupMatrixElement } from "./exec/subgroup_matrix.js";
 import { ExecContext, FunctionRef } from "./exec/exec_context.js";
 import { ExecInterface } from "./exec/exec_interface.js";
 import { BuiltinFunctions } from "./exec/builtin_functions.js";
+import { makeResourceValue, makeBufferValue } from "./exec/resource_binding.js";
 import { isArray, castScalar, castVector } from "./utils/cast.js";
 import { matrixMultiply, matrixVectorMultiply, vectorMatrixMultiply, MatrixTypeSize, VectorTypeSize } from "./utils/matrix.js";
 
@@ -46,6 +49,10 @@ export class WgslExec extends ExecInterface {
     reflection: Reflect;
     builtins: BuiltinFunctions;
     typeInfo: Record<string, TypeInfo>;
+    /// The entries of the bindless resource table (resource_table) that
+    /// getResource and hasResource access, set from config.resourceTable. Each
+    /// is a texture or sampler entry, like a bind group entry.
+    declare resourceTable: Array<unknown>;
 
     constructor(ast?: Node[], context?: ExecContext) {
         super();
@@ -125,6 +132,32 @@ export class WgslExec extends ExecInterface {
         this._execStatements(this.ast, this.context);
     }
 
+    // Binds the per-dispatch resources given in the config: immediate data and
+    // the bindless resource table.
+    _bindConfigResources(config: Object | undefined, context: ExecContext): void {
+        this._bindImmediates(config, context);
+        this._bindPixelLocal(config, context);
+        this.resourceTable = config?.["resourceTable"] ?? [];
+    }
+
+    // Binds config.pixelLocal, the pixel local storage of the fragment being
+    // shaded, to the module's var<pixel_local> variable. It's read and written
+    // in place.
+    _bindPixelLocal(config: Object | undefined, context: ExecContext): void {
+        const data = config?.["pixelLocal"];
+        if (!data) {
+            return;
+        }
+        const buffer: ArrayBuffer = ArrayBuffer.isView(data) ? data.buffer : data;
+        const offset = ArrayBuffer.isView(data) ? data.byteOffset : 0;
+        for (const info of this.reflection.pixelLocal) {
+            const v = context.getVariable(info.name);
+            if (v !== null) {
+                v.value = new TypedData(buffer, info.type, offset);
+            }
+        }
+    }
+
     // Binds config.immediates, the data a pipeline sets with setImmediates, to the
     // module's var<immediate> variables. Each one reads it starting at byte 0.
     _bindImmediates(config: Object | undefined, context: ExecContext): void {
@@ -151,7 +184,7 @@ export class WgslExec extends ExecInterface {
         }
 
         this._execStatements(this.ast, context);
-        this._bindImmediates(config, context);
+        this._bindConfigResources(config, context);
 
         const f = context.getFunction(kernel);
         if (!f) {
@@ -210,21 +243,10 @@ export class WgslExec extends ExecInterface {
                             }
 
                             if (found) {
-                                if (entry.texture !== undefined && entry.descriptor !== undefined) {
-                                    // Texture
-                                    const textureData = new TextureData(entry.texture, this.getTypeInfo(node.type), entry.descriptor,
-                                            entry.view ?? null);
-                                    v.value = textureData;
-                                } else if (entry.sampler !== undefined) {
-                                    // Sampler descriptor (same form WgslDebug accepts)
-                                    v.value = new SamplerData(entry.sampler, this.getTypeInfo(node.type));
-                                } else if (entry.uniform !== undefined) {
-                                    // Uniform buffer
-                                    v.value = new TypedData(entry.uniform, this.getTypeInfo(node.type));
-                                } else {
-                                    // Storage buffer
-                                    v.value = new TypedData(entry, this.getTypeInfo(node.type));
-                                }
+                                // A texture, sampler, texel buffer, or binding_array of
+                                // them; otherwise a uniform or storage buffer.
+                                const typeInfo = this.getTypeInfo(node.type);
+                                v.value = makeResourceValue(typeInfo, entry) ?? makeBufferValue(typeInfo, entry);
                             }
                         }
                     }
@@ -1080,6 +1102,8 @@ export class WgslExec extends ExecInterface {
                 v.data.set(value.data);
             } else if (v instanceof MatrixData && value instanceof MatrixData) {
                 v.data.set(value.data);
+            } else if (v instanceof SubgroupMatrixData && value instanceof SubgroupMatrixData) {
+                v.setDataValue(this, value, null, context);
             } else {
                 console.error(`Invalid assignment to ${name}. Line ${node.line}`);
             }
@@ -1248,9 +1272,12 @@ export class WgslExec extends ExecInterface {
             }
 
             const typeName = node.type.name;
-            if (WgslExec._defaultableTypes.has(typeName) ||
+            if (node.type instanceof BindingArrayType) {
+                // Filled in when its bind group entry is bound.
+                value = new BindingArrayData([], this.getTypeInfo(node.type));
+            } else if (WgslExec._defaultableTypes.has(typeName) ||
                 node.type instanceof ArrayType || node.type instanceof Struct || node.type instanceof TemplateType ||
-                node.type instanceof BufferType) {
+                node.type instanceof BufferType || node.type instanceof SubgroupMatrixType) {
                 const defType = new CreateExpr(node.type, []);
                 value = this._evalCreate(defType, context);
             }
@@ -1463,6 +1490,10 @@ export class WgslExec extends ExecInterface {
         if (node instanceof CreateExpr) {
             if (node.type === null) {
                 return VoidData.void;
+            }
+
+            if (node.type instanceof SubgroupMatrixType) {
+                return this._createSubgroupMatrix(node, context);
             }
 
             const typeName = node.type.getTypeName();
@@ -2273,6 +2304,25 @@ export class WgslExec extends ExecInterface {
         return null;
     }
 
+    // subgroup_matrix_*<T, C, R>() is a zero matrix, and
+    // subgroup_matrix_*<T, C, R>(v) has every element set to v.
+    _createSubgroupMatrix(node: CreateExpr, context: ExecContext): Data | null {
+        const typeInfo = this.getTypeInfo(node.type);
+        if (!(typeInfo instanceof SubgroupMatrixInfo)) {
+            return null;
+        }
+        let value = 0;
+        if (node.args && node.args.length > 0) {
+            const v = this.evalExpression(node.args[0], context);
+            if (!(v instanceof ScalarData)) {
+                console.error(`Invalid subgroup matrix constructor argument. Line ${node.line}`);
+                return null;
+            }
+            value = toSubgroupMatrixElement(typeInfo.format.name, v.value);
+        }
+        return new SubgroupMatrixData(new Array(typeInfo.columns * typeInfo.rows).fill(value), typeInfo);
+    }
+
     _evalCall(node: CallExpr, context: ExecContext): Data | null {
         // The postfix is applied to the call's result: e.g. the ".rgb" of
         // `textureSample(t, s, uv).rgb`. This covers every result path,
@@ -2542,6 +2592,32 @@ export class WgslExec extends ExecInterface {
                 return this.builtins.BufferArrayView(node, context);
             case "bufferLength":
                 return this.builtins.BufferLength(node, context);
+
+            // Subgroup Matrix Built-in Functions
+            case "subgroupMatrixLoad":
+                return this.builtins.SubgroupMatrixLoad(node, context);
+            case "subgroupMatrixStore":
+                return this.builtins.SubgroupMatrixStore(node, context);
+            case "subgroupMatrixMultiply":
+                return this.builtins.SubgroupMatrixMultiply(node, context);
+            case "subgroupMatrixMultiplyAccumulate":
+                return this.builtins.SubgroupMatrixMultiplyAccumulate(node, context);
+            case "subgroupMatrixScalarAdd":
+                return this.builtins.SubgroupMatrixScalarAdd(node, context);
+            case "subgroupMatrixScalarSubtract":
+                return this.builtins.SubgroupMatrixScalarSubtract(node, context);
+            case "subgroupMatrixScalarMultiply":
+                return this.builtins.SubgroupMatrixScalarMultiply(node, context);
+
+            // Input Attachment Built-in Functions
+            case "inputAttachmentLoad":
+                return this.builtins.InputAttachmentLoad(node, context);
+
+            // Resource Table Built-in Functions
+            case "getResource":
+                return this.builtins.GetResource(node, context);
+            case "hasResource":
+                return this.builtins.HasResource(node, context);
 
             // Data Packing Built-in Functions
             case "pack4x8snorm":

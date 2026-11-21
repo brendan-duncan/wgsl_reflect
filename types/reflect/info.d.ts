@@ -45,9 +45,21 @@ export declare class ArrayInfo extends TypeInfo {
     get isArray(): boolean;
     getTypeName(): string;
 }
+export declare class BindingArrayInfo extends ArrayInfo {
+    constructor(attributes: Attribute[] | null);
+    getTypeName(): string;
+}
 export declare class BufferInfo extends TypeInfo {
     constructor(size: number, attributes: Attribute[] | null);
     get isRuntimeSized(): boolean;
+    getTypeName(): string;
+}
+export declare class SubgroupMatrixInfo extends TypeInfo {
+    kind: string;
+    format: TypeInfo;
+    columns: number;
+    rows: number;
+    constructor(kind: string, format: TypeInfo, columns: number, rows: number, attributes: Attribute[] | null);
     getTypeName(): string;
 }
 export declare class PointerInfo extends TypeInfo {
@@ -69,7 +81,10 @@ export declare enum ResourceType {
     Immediate = 2,
     Texture = 3,
     Sampler = 4,
-    StorageTexture = 5
+    StorageTexture = 5,
+    TexelBuffer = 6,
+    InputAttachment = 7,
+    PixelLocal = 8
 }
 export declare class VariableInfo {
     attributes: Attribute[] | null;
@@ -144,6 +159,8 @@ export declare class FunctionInfo {
     inUse: boolean;
     comment: string | null;
     calls: Set<FunctionInfo>;
+    usesResourceTable: boolean;
+    resourceTableTypes: TypeInfo[];
     constructor(name: string, stage: string | null, attributes: Attribute[] | null);
 }
 export declare class EntryFunctions {

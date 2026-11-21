@@ -1,5 +1,5 @@
 import { CallExpr, Call } from "../wgsl_ast.js";
-import { Data, TypedData, TextureData, SamplerData } from "../wgsl_ast.js";
+import { Data, TypedData, TextureData, SamplerData, SubgroupMatrixData } from "../wgsl_ast.js";
 import { ExecContext } from "./exec_context.js";
 import { ExecInterface } from "./exec_interface.js";
 import { TypeInfo } from "../reflect/info.js";
@@ -106,6 +106,10 @@ export declare class BuiltinFunctions {
     TextureNumSamples(node: CallExpr | Call, context: ExecContext): Data | null;
     _resolveTexture(arg: CallExpr | Call | any, context: ExecContext): TextureData | null;
     _resolveSampler(arg: CallExpr | Call | any, context: ExecContext): SamplerData | null;
+    _textureArg(node: CallExpr | Call, context: ExecContext): TextureData | null;
+    _texelCoords(value: Data | null): number[] | null;
+    _scalarArg(node: CallExpr | Call, index: number, context: ExecContext): number;
+    _loadResultType(texture: TextureData): TypeInfo | null;
     _wrap(coord: number, size: number, mode: string): number;
     _texel(texture: TextureData, x: number, y: number, layer: number, level: number, addrU: string, addrV: string): number[];
     _filterSlice(texture: TextureData, u: number, v: number, layer: number, level: number, sampler: SamplerData | null): number[];
@@ -148,6 +152,27 @@ export declare class BuiltinFunctions {
     AtomicStoreMin(node: CallExpr | Call, context: ExecContext): Data | null;
     AtomicStoreMax(node: CallExpr | Call, context: ExecContext): Data | null;
     _atomicStoreMinMax(node: CallExpr | Call, context: ExecContext, max: boolean): void;
+    InputAttachmentLoad(node: CallExpr | Call, context: ExecContext): Data | null;
+    _subgroupMatrixArray(node: CallExpr | Call, context: ExecContext): TypedData | null;
+    _isColumnMajor(majorness: unknown, colMajorArg: Data | null): boolean;
+    SubgroupMatrixLoad(node: CallExpr | Call, context: ExecContext): Data | null;
+    SubgroupMatrixStore(node: CallExpr | Call, context: ExecContext): Data | null;
+    _subgroupMatrixOperands(node: CallExpr | Call, context: ExecContext): {
+        left: SubgroupMatrixData;
+        right: SubgroupMatrixData;
+    } | null;
+    SubgroupMatrixMultiply(node: CallExpr | Call, context: ExecContext): Data | null;
+    SubgroupMatrixMultiplyAccumulate(node: CallExpr | Call, context: ExecContext): Data | null;
+    _subgroupMatrixScalarOp(node: CallExpr | Call, context: ExecContext, op: (a: number, b: number) => number): Data | null;
+    SubgroupMatrixScalarAdd(node: CallExpr | Call, context: ExecContext): Data | null;
+    SubgroupMatrixScalarSubtract(node: CallExpr | Call, context: ExecContext): Data | null;
+    SubgroupMatrixScalarMultiply(node: CallExpr | Call, context: ExecContext): Data | null;
+    _resourceTableEntry(node: CallExpr | Call, context: ExecContext): {
+        typeInfo: TypeInfo;
+        entry: unknown;
+    } | null;
+    GetResource(node: CallExpr | Call, context: ExecContext): Data | null;
+    HasResource(node: CallExpr | Call, context: ExecContext): Data | null;
     BufferView(node: CallExpr | Call, context: ExecContext): Data | null;
     BufferArrayView(node: CallExpr | Call, context: ExecContext): Data | null;
     BufferLength(node: CallExpr | Call, context: ExecContext): Data | null;

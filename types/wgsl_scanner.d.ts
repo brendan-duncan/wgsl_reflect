@@ -62,6 +62,7 @@ export declare class TokenTypes {
         texture_cube: TokenType;
         texture_cube_array: TokenType;
         texture_multisampled_2d: TokenType;
+        texture_multisampled_2d_array: TokenType;
         texture_storage_1d: TokenType;
         texture_storage_2d: TokenType;
         texture_storage_2d_array: TokenType;
@@ -283,6 +284,7 @@ export declare class TokenTypes {
     static readonly literal_or_ident: TokenType[];
     static readonly element_count_expression: TokenType[];
     static readonly template_types: TokenType[];
+    static readonly template_idents: Set<string>;
     static readonly attribute_name: TokenType[];
     static readonly assignment_operators: TokenType[];
     static readonly increment_operators: TokenType[];

@@ -15,9 +15,12 @@ export declare class WgslExec extends ExecInterface {
     reflection: Reflect;
     builtins: BuiltinFunctions;
     typeInfo: Record<string, TypeInfo>;
+    resourceTable: Array<unknown>;
     constructor(ast?: Node[], context?: ExecContext);
     getVariableValue(name: string): number | number[] | null;
     execute(config?: Object): void;
+    _bindConfigResources(config: Object | undefined, context: ExecContext): void;
+    _bindPixelLocal(config: Object | undefined, context: ExecContext): void;
     _bindImmediates(config: Object | undefined, context: ExecContext): void;
     dispatchWorkgroups(kernel: string, dispatchCount: number | number[], bindGroups: Object, config?: Object): void;
     static readonly _breakObj: ControlData;
@@ -65,6 +68,7 @@ export declare class WgslExec extends ExecInterface {
     _makeCwiseData(values: number[], typeInfo: TypeInfo): Data;
     _evalBinaryOp(node: BinaryOperator, context: ExecContext): Data | null;
     _evalBinaryOpValue(node: BinaryOperator, context: ExecContext): Data | null;
+    _createSubgroupMatrix(node: CreateExpr, context: ExecContext): Data | null;
     _evalCall(node: CallExpr, context: ExecContext): Data | null;
     _evalCallValue(node: CallExpr, context: ExecContext): Data | null;
     _callBuiltinFunction(node: CallExpr | Call, context: ExecContext): Data | null;

@@ -130,6 +130,20 @@ export class ArrayInfo extends TypeInfo {
   }
 }
 
+// binding_array<T, N> (sized_binding_array): N textures or samplers bound to a
+// single binding. The count is 0 for an unsized binding array. It is an opaque
+// resource, so it has no size or stride.
+export class BindingArrayInfo extends ArrayInfo {
+  constructor(attributes: Attribute[] | null) {
+    super("binding_array", attributes);
+  }
+
+  getTypeName(): string {
+    const format = this.format?.getTypeName() ?? "";
+    return this.count > 0 ? `binding_array<${format}, ${this.count}>` : `binding_array<${format}>`;
+  }
+}
+
 // buffer<N> or buffer (buffer_view): N bytes of opaque storage that is accessed
 // by reinterpreting it with bufferView or bufferArrayView. The size of a
 // runtime-sized buffer is 0.
@@ -145,6 +159,29 @@ export class BufferInfo extends TypeInfo {
 
   getTypeName(): string {
     return this.size > 0 ? `buffer<${this.size}>` : "buffer";
+  }
+}
+
+// subgroup_matrix_left<T, K, M>, subgroup_matrix_right<T, N, K>, or
+// subgroup_matrix_result<T, N, M> (chromium_experimental_subgroup_matrix): a
+// matrix of `columns` x `rows` elements of type T held cooperatively by a
+// subgroup. It is an opaque value with no memory layout.
+export class SubgroupMatrixInfo extends TypeInfo {
+  kind: string; // "left", "right", or "result"
+  format: TypeInfo;
+  columns: number;
+  rows: number;
+
+  constructor(kind: string, format: TypeInfo, columns: number, rows: number, attributes: Attribute[] | null) {
+    super(`subgroup_matrix_${kind}`, attributes);
+    this.kind = kind;
+    this.format = format;
+    this.columns = columns;
+    this.rows = rows;
+  }
+
+  getTypeName(): string {
+    return `${this.name}<${this.format.getTypeName()}, ${this.columns}, ${this.rows}>`;
   }
 }
 
@@ -224,6 +261,9 @@ export enum ResourceType {
   Texture,
   Sampler,
   StorageTexture,
+  TexelBuffer,
+  InputAttachment,
+  PixelLocal,
 }
 
 export class VariableInfo {
@@ -414,6 +454,13 @@ export class FunctionInfo {
   /// markers, or null if it has none.
   comment: string | null = null;
   calls: Set<FunctionInfo> = new Set();
+  /// True if the function, or a function it calls, uses the bindless resource
+  /// table (getResource or hasResource). The pipeline layout of an entry point
+  /// that uses it must set usesResourceTable.
+  usesResourceTable: boolean = false;
+  /// The resource types the function, or a function it calls, accesses in the
+  /// resource table with getResource<T> or hasResource<T>.
+  resourceTableTypes: TypeInfo[] = [];
 
   constructor(name: string, stage: string | null = null, attributes: Attribute[] | null) {
     this.name = name;

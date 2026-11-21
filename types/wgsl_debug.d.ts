@@ -16,7 +16,9 @@ interface BindingEntry {
     uniform?: ArrayBuffer;
     sampler?: Record<string, unknown>;
     view?: unknown;
+    texelBuffer?: ArrayBuffer | ArrayBufferView;
 }
+type BindGroupEntry = BindingEntry | BindingEntry[];
 type StageInputs = Record<string, number | number[] | Float32Array | Uint32Array | Int32Array>;
 export declare class WgslDebug {
     private _code;
@@ -49,12 +51,13 @@ export declare class WgslDebug {
     run(): void;
     pause(): void;
     _setOverrides(constants: Record<string, unknown>, context: ExecContext): void;
-    debugWorkgroup(kernel: string, dispatchId: number[], dispatchCount: number | number[], bindGroups: Record<string, Record<string, BindingEntry>>, config?: Record<string, unknown>): boolean;
-    _bindResources(bindGroups: Record<string, Record<string, BindingEntry>>, refl: FunctionInfo, context: ExecContext): void;
-    debugVertex(entry: string, inputs: StageInputs, bindGroups: Record<string, Record<string, BindingEntry>>, config?: Record<string, unknown>): boolean;
-    debugFragment(entry: string, inputs: StageInputs, bindGroups: Record<string, Record<string, BindingEntry>>, config?: Record<string, unknown>): boolean;
-    _debugStage(entry: string, stage: string, inputs: StageInputs, bindGroups: Record<string, Record<string, BindingEntry>>, config?: Record<string, unknown>): boolean;
+    debugWorkgroup(kernel: string, dispatchId: number[], dispatchCount: number | number[], bindGroups: Record<string, Record<string, BindGroupEntry>>, config?: Record<string, unknown>): boolean;
+    _bindResources(bindGroups: Record<string, Record<string, BindGroupEntry>>, refl: FunctionInfo, context: ExecContext): void;
+    debugVertex(entry: string, inputs: StageInputs, bindGroups: Record<string, Record<string, BindGroupEntry>>, config?: Record<string, unknown>): boolean;
+    debugFragment(entry: string, inputs: StageInputs, bindGroups: Record<string, Record<string, BindGroupEntry>>, config?: Record<string, unknown>): boolean;
+    _debugStage(entry: string, stage: string, inputs: StageInputs, bindGroups: Record<string, Record<string, BindGroupEntry>>, config?: Record<string, unknown>): boolean;
     _bindStageInputs(fn: FunctionRef, inputs: StageInputs, context: ExecContext): void;
+    _inputKey(attributes: AST.Attribute[] | null): string | null;
     _inputSemantic(attributes: AST.Attribute[] | null): {
         builtin: string | null;
         location: string | null;

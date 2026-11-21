@@ -1945,5 +1945,182 @@ export async function run() {
             wgsl.dispatchWorkgroups("main", 1, bg);
             test.equals(Array.from(dataBuffer), [7, 0, 7, 3, 42, 1]);
         });
+
+        await test("texel_buffers: textureLoad, textureStore, textureDimensions", async function (test) {
+            const shader = `
+                requires texel_buffers;
+                @group(0) @binding(0) var src: texel_buffer<rgba8unorm, read>;
+                @group(0) @binding(1) var dst: texel_buffer<r32uint, read_write>;
+                @group(0) @binding(2) var<storage, read_write> out: array<u32>;
+                @compute @workgroup_size(1) fn main() {
+                    let n = textureDimensions(src);
+                    out[0] = n;
+                    for (var i = 0u; i < n; i++) {
+                        let c = textureLoad(src, i);
+                        textureStore(dst, i, vec4u(u32(c.r * 255.0) + u32(c.g * 255.0), 0, 0, 1));
+                    }
+                    out[1] = textureLoad(dst, 2u).r;
+                }`;
+            const src = new Uint8Array([1, 2, 0, 255, 10, 20, 0, 255, 100, 50, 0, 255]);
+            const dst = new Uint32Array(3);
+            const out = new Uint32Array(2);
+            const wgsl = _newWgslExec(shader);
+            wgsl.dispatchWorkgroups("main", 1, { 0: { 0: src, 1: { texelBuffer: dst }, 2: out.buffer } });
+            test.equals(Array.from(dst), [3, 30, 150]);
+            test.equals(Array.from(out), [3, 150]);
+        });
+
+        await test("sized_binding_array: dynamically indexed textures and samplers", async function (test) {
+            const shader = `
+                requires sized_binding_array;
+                @group(0) @binding(0) var textures: binding_array<texture_2d<f32>, 2>;
+                @group(0) @binding(1) var samplers: binding_array<sampler, 2>;
+                @group(0) @binding(2) var images: binding_array<texture_storage_2d<r32float, write>, 2>;
+                @group(0) @binding(3) var<storage, read_write> out: array<f32>;
+                @compute @workgroup_size(1) fn main() {
+                    for (var i = 0; i < 2; i++) {
+                        out[i] = textureLoad(textures[i], vec2u(0), 0).r;
+                        out[2 + i] = textureSampleLevel(textures[i], samplers[i], vec2f(0.5), 0.0).r;
+                        out[4 + i] = f32(textureDimensions(textures[i]).x);
+                        textureStore(images[i], vec2u(0), vec4f(f32(i) + 0.5));
+                    }
+                }`;
+            const descriptor = { size: [1, 1, 1], format: "r32float" };
+            const wide = { size: [2, 1, 1], format: "r32float" };
+            const t0 = new Float32Array([0.25]);
+            const t1 = new Float32Array([0.75, 0.75]);
+            const i0 = new Float32Array(1);
+            const i1 = new Float32Array(1);
+            const out = new Float32Array(6);
+            const nearest = { magFilter: "nearest", minFilter: "nearest" };
+            const bg = { 0: {
+                0: [{ texture: [t0.buffer], descriptor }, { texture: [t1.buffer], descriptor: wide }],
+                1: [{ sampler: nearest }, { sampler: nearest }],
+                2: [{ texture: [i0.buffer], descriptor }, { texture: [i1.buffer], descriptor }],
+                3: out.buffer,
+            } };
+            const wgsl = _newWgslExec(shader);
+            wgsl.dispatchWorkgroups("main", 1, bg);
+            test.equals(Array.from(out), [0.25, 0.75, 0.25, 0.75, 1, 2]);
+            test.equals([i0[0], i1[0]], [0.5, 1.5]);
+        });
+
+        await test("multisampled_array_textures: textureLoad", async function (test) {
+            const shader = `
+                requires multisampled_array_textures;
+                @group(0) @binding(0) var t: texture_multisampled_2d_array<f32>;
+                @group(0) @binding(1) var<storage, read_write> out: array<f32>;
+                @compute @workgroup_size(1) fn main() {
+                    out[0] = textureLoad(t, vec2u(1, 0), 1u, 0u).r;
+                    out[1] = f32(textureNumLayers(t));
+                    out[2] = f32(textureNumSamples(t));
+                }`;
+            // Two 2x1 layers, one sample per texel is modeled.
+            const data = new Float32Array([1, 2, 3, 4]);
+            const descriptor = { size: [2, 1, 2], format: "r32float", sampleCount: 4 };
+            const out = new Float32Array(3);
+            const wgsl = _newWgslExec(shader);
+            wgsl.dispatchWorkgroups("main", 1, { 0: { 0: { texture: [data.buffer], descriptor }, 1: out.buffer } });
+            test.equals(Array.from(out), [4, 2, 4]);
+        });
+
+        await test("textureLoad and textureStore on 1d and array storage textures", async function (test) {
+            const shader = `
+                @group(0) @binding(0) var line: texture_1d<f32>;
+                @group(0) @binding(1) var layers: texture_storage_2d_array<r32float, read_write>;
+                @group(0) @binding(2) var<storage, read_write> out: array<f32>;
+                @compute @workgroup_size(1) fn main() {
+                    out[0] = textureLoad(line, 2, 0).r;
+                    textureStore(layers, vec2u(0), 1, vec4f(9.0));
+                    out[1] = textureLoad(layers, vec2u(0), 1).r;
+                }`;
+            const line = new Float32Array([5, 6, 7]);
+            const layers = new Float32Array(2);
+            const out = new Float32Array(2);
+            const wgsl = _newWgslExec(shader);
+            wgsl.dispatchWorkgroups("main", 1, { 0: {
+                0: { texture: line.buffer, descriptor: { size: [3, 1, 1], format: "r32float", dimension: "1d" } },
+                1: { texture: [layers.buffer], descriptor: { size: [1, 1, 2], format: "r32float" } },
+                2: out.buffer,
+            } });
+            test.equals(Array.from(out), [7, 9]);
+            test.equals(Array.from(layers), [0, 9]);
+        });
+
+        await test("resource_table: getResource and hasResource", async function (test) {
+            const shader = `
+                enable chromium_experimental_resource_table;
+                @group(0) @binding(0) var<storage, read_write> out: array<f32>;
+                fn load(i: u32) -> f32 {
+                    return textureLoad(getResource<texture_2d<f32>>(i), vec2u(0), 0).r;
+                }
+                @compute @workgroup_size(1) fn main() {
+                    out[0] = load(0u);
+                    out[1] = load(1u);
+                    out[2] = f32(hasResource<texture_2d<f32>>(0u));
+                    out[3] = f32(hasResource<texture_2d<u32>>(0u));
+                    out[4] = f32(hasResource<sampler>(2u));
+                    out[5] = f32(hasResource<sampler_comparison>(2u));
+                    out[6] = f32(hasResource<texture_2d<f32>>(10u));
+                    // A mismatched or out of bounds resource reads as zero.
+                    out[7] = f32(textureLoad(getResource<texture_2d<u32>>(0u), vec2u(0), 0).r);
+                    out[8] = load(10u);
+                    out[9] = textureSampleLevel(getResource<texture_2d<f32>>(1u), getResource<sampler>(2u), vec2f(0.75, 0.5), 0.0).r;
+                    out[10] = f32(textureDimensions(getResource<texture_2d<f32>>(1u)).x);
+                }`;
+            const descriptor = { size: [1, 1, 1], format: "r32float" };
+            const t0 = new Float32Array([0.25]);
+            const t1 = new Float32Array([0.5, 0.75]);
+            const out = new Float32Array(11);
+            const resourceTable = [
+                { texture: [t0.buffer], descriptor },
+                { texture: [t1.buffer], descriptor: { size: [2, 1, 1], format: "r32float" } },
+                { sampler: { magFilter: "nearest", minFilter: "nearest" } },
+            ];
+            const wgsl = _newWgslExec(shader);
+            wgsl.dispatchWorkgroups("main", 1, { 0: { 0: out.buffer } }, { resourceTable });
+            test.equals(Array.from(out), [0.25, 0.5, 1, 0, 1, 0, 0, 0, 0, 0.75, 2]);
+        });
+
+        await test("subgroup_matrix: load, multiply, and store", async function (test) {
+            const shader = `
+                enable chromium_experimental_subgroup_matrix;
+                @group(0) @binding(0) var<storage, read_write> buf: array<f32>;
+                @compute @workgroup_size(1) fn main() {
+                    let l = subgroupMatrixLoad<subgroup_matrix_left<f32, 2, 2>>(&buf, 0, false, 2);
+                    let r = subgroupMatrixLoad<subgroup_matrix_right<f32, 2, 2>, row_major>(&buf, 4, 2);
+                    var acc = subgroup_matrix_result<f32, 2, 2>(1.0);
+                    acc = subgroupMatrixMultiplyAccumulate(l, r, acc);
+                    subgroupMatrixStore<row_major>(&buf, 8, acc, 2);
+                    subgroupMatrixStore(&buf, 12, acc, true, 2);
+                    let product = subgroupMatrixMultiply<f32>(l, r);
+                    subgroupMatrixStore(&buf, 16, subgroupMatrixScalarSubtract(product, 1.0), false, 2);
+                    let doubled = subgroupMatrixScalarMultiply(subgroupMatrixScalarAdd(l, 1.0), 2.0);
+                    subgroupMatrixStore(&buf, 20, doubled, false, 2);
+                }`;
+            const buf = new Float32Array(24);
+            buf.set([1, 2, 3, 4, 5, 6, 7, 8]);
+            const wgsl = _newWgslExec(shader);
+            wgsl.dispatchWorkgroups("main", 1, { 0: { 0: buf } });
+            // l = [[1, 2], [3, 4]], r = [[5, 6], [7, 8]], l * r = [[19, 22], [43, 50]].
+            test.equals(Array.from(buf.slice(8)), [20, 23, 44, 51, 20, 44, 23, 51, 18, 21, 42, 49, 4, 6, 8, 10]);
+        });
+
+        await test("subgroup_matrix: packed u8 elements and integer results", async function (test) {
+            const shader = `
+                enable chromium_experimental_subgroup_matrix;
+                @group(0) @binding(0) var<storage, read> a: array<u32>;
+                @group(0) @binding(1) var<storage, read_write> out: array<u32>;
+                @compute @workgroup_size(1) fn main() {
+                    let l = subgroupMatrixLoad<subgroup_matrix_left<u8, 4, 1>>(&a, 0, false, 4);
+                    let r = subgroupMatrixLoad<subgroup_matrix_right<u8, 1, 4>>(&a, 0, false, 1);
+                    subgroupMatrixStore(&out, 0, subgroupMatrixMultiply<u32>(l, r), false, 1);
+                }`;
+            const a = new Uint32Array([0x04030201]);
+            const out = new Uint32Array(1);
+            const wgsl = _newWgslExec(shader);
+            wgsl.dispatchWorkgroups("main", 1, { 0: { 0: a, 1: out } });
+            test.equals(out[0], 1 * 1 + 2 * 2 + 3 * 3 + 4 * 4);
+        });
     }, true);
 }

@@ -6,7 +6,8 @@ import { Command, StatementCommand, CallExprCommand, GotoCommand, BlockCommand,
         ContinueTargetCommand, ContinueCommand, BreakCommand, BreakTargetCommand } from "./exec/command.js";
 import { StackFrame } from "./exec/stack_frame.js";
 import { ExecStack } from "./exec/exec_stack.js";
-import { ScalarData, VectorData, MatrixData, TextureData, SamplerData, TypedData, VoidData, ArrayType, LiteralExpr, Data } from "./wgsl_ast.js";
+import { ScalarData, VectorData, MatrixData, TypedData, VoidData, ArrayType, LiteralExpr, Data } from "./wgsl_ast.js";
+import { makeResourceValue } from "./exec/resource_binding.js";
 import { StructInfo, TypeInfo, FunctionInfo } from "./reflect/info.js";
 import { VectorTypeSize } from "./utils/matrix.js";
 
@@ -42,7 +43,12 @@ interface BindingEntry {
     // A GPUSamplerDescriptor (compareFunction, magFilter, addressMode*, ...).
     sampler?: Record<string, unknown>;
     view?: unknown;
+    // The data of a texel_buffer.
+    texelBuffer?: ArrayBuffer | ArrayBufferView;
 }
+
+// A binding_array is bound with an array of entries, one per element.
+type BindGroupEntry = BindingEntry | BindingEntry[];
 
 // Per-invocation inputs to a render-stage entry point, keyed by pipeline
 // semantic: builtins by name ("vertex_index") and @location(n) attributes by
@@ -285,7 +291,7 @@ export class WgslDebug {
     }
 
     debugWorkgroup(kernel: string, dispatchId: number[], 
-        dispatchCount: number | number[], bindGroups: Record<string, Record<string, BindingEntry>>, config?: Record<string, unknown>): boolean {
+        dispatchCount: number | number[], bindGroups: Record<string, Record<string, BindGroupEntry>>, config?: Record<string, unknown>): boolean {
 
         this._execStack = new ExecStack();
 
@@ -337,7 +343,7 @@ export class WgslDebug {
         context.setVariable("@num_workgroups", new VectorData(dispatchCount, vec3u));
 
         this._bindResources(bindGroups, kernelRefl, context);
-        this._exec._bindImmediates(config, context);
+        this._exec._bindConfigResources(config, context);
 
         const workgroupId = new VectorData([0, 0, 0], vec3u);
         const workgroupIndex = new ScalarData(0, this._exec.typeInfo["u32"]);
@@ -366,12 +372,12 @@ export class WgslDebug {
     // Bind pipeline resources (uniforms, storage buffers, textures) onto the
     // execution context. Shared by debugWorkgroup and debugVertex: resource
     // binding is identical across shader stages, only the stage inputs differ.
-    _bindResources(bindGroups: Record<string, Record<string, BindingEntry>>,
+    _bindResources(bindGroups: Record<string, Record<string, BindGroupEntry>>,
         refl: FunctionInfo, context: ExecContext): void {
 
         for (const set in bindGroups) {
             for (const binding in bindGroups[set]) {
-                const entry = bindGroups[set][binding];
+                const entry = bindGroups[set][binding] as BindingEntry;
 
                 context.variables.forEach((v) => {
                     const node = v.node;
@@ -395,16 +401,10 @@ export class WgslDebug {
                             }
                             if (found) {
                                 const typeInfo = this._exec.getTypeInfo(node.type);
-                                if (entry.texture !== undefined && entry.descriptor !== undefined) {
-                                    // `texture` may be one buffer or an array of per-mip
-                                    // buffers (index = mip level), matching the exec path.
-                                    const mips = Array.isArray(entry.texture)
-                                        ? entry.texture as unknown as ArrayBuffer[]
-                                        : [entry.texture as unknown as ArrayBuffer];
-                                    v.value = new TextureData(mips, typeInfo, entry.descriptor as unknown,
-                                        entry.view as unknown);
-                                } else if (entry.sampler !== undefined) {
-                                    v.value = new SamplerData(entry.sampler as Record<string, unknown>, typeInfo);
+                                // A texture, sampler, texel buffer, or binding_array of them.
+                                const resource = makeResourceValue(typeInfo, entry);
+                                if (resource !== null) {
+                                    v.value = resource;
                                 } else if (entry.uniform !== undefined) {
                                     v.value = new TypedData(entry.uniform, typeInfo);
                                 } else {
@@ -437,7 +437,7 @@ export class WgslDebug {
     // like a compute dispatch. The stage's output is available via returnValue /
     // getReturnValue() once the entry executes its `return`.
     debugVertex(entry: string, inputs: StageInputs,
-        bindGroups: Record<string, Record<string, BindingEntry>>, config?: Record<string, unknown>): boolean {
+        bindGroups: Record<string, Record<string, BindGroupEntry>>, config?: Record<string, unknown>): boolean {
         return this._debugStage(entry, "vertex", inputs, bindGroups, config);
     }
 
@@ -456,7 +456,7 @@ export class WgslDebug {
     // Use debugFragmentQuad to debug shaders whose output depends on
     // derivatives or mip selection.
     debugFragment(entry: string, inputs: StageInputs,
-        bindGroups: Record<string, Record<string, BindingEntry>>, config?: Record<string, unknown>): boolean {
+        bindGroups: Record<string, Record<string, BindGroupEntry>>, config?: Record<string, unknown>): boolean {
         return this._debugStage(entry, "fragment", inputs, bindGroups, config);
     }
 
@@ -464,7 +464,7 @@ export class WgslDebug {
     // resources and stage inputs, and seed the exec stack. `stage` is the
     // reflected entry-point stage ("vertex" | "fragment") this call expects.
     _debugStage(entry: string, stage: string, inputs: StageInputs,
-        bindGroups: Record<string, Record<string, BindingEntry>>, config?: Record<string, unknown>): boolean {
+        bindGroups: Record<string, Record<string, BindGroupEntry>>, config?: Record<string, unknown>): boolean {
 
         this._execStack = new ExecStack();
         this._returnValue = null;
@@ -500,7 +500,7 @@ export class WgslDebug {
         }
 
         this._bindResources(bindGroups, entryRefl, context);
-        this._exec._bindImmediates(config, context);
+        this._exec._bindConfigResources(config, context);
         this._bindStageInputs(entryFn, inputs, context);
 
         const state = this._createState(entryFn.node.body, context);
@@ -512,13 +512,21 @@ export class WgslDebug {
     // it as a local variable. Builtin/location arguments are taken directly from
     // `inputs`; a struct argument is assembled member-by-member from inputs.
     _bindStageInputs(fn: FunctionRef, inputs: StageInputs, context: ExecContext): void {
+        // The fragment position, for builtins that read at it, such as
+        // inputAttachmentLoad.
+        if (inputs["position"] !== undefined) {
+            const position = this._makeStageValue(this._exec.getTypeInfo("vec4f"), inputs["position"]);
+            if (position !== null) {
+                context.setVariable("@position", position);
+            }
+        }
+
         for (const arg of fn.node.args) {
             const typeInfo = this._exec.getTypeInfo(arg.type);
-            const { builtin, location } = this._inputSemantic(arg.attributes);
+            const key = this._inputKey(arg.attributes);
             let value: Data | null = null;
 
-            if (builtin !== null || location !== null) {
-                const key = (builtin !== null ? builtin : location) as string;
+            if (key !== null) {
                 const raw = inputs[key];
                 // A missing input still binds a zero-initialized value of the
                 // declared type; leaving the variable unbound would let null
@@ -535,6 +543,20 @@ export class WgslDebug {
     }
 
     // Extract the @builtin(name) / @location(n) semantic from an attribute list.
+    // The key of a stage input in the inputs given to debugVertex or
+    // debugFragment: the builtin name, the @location index, or "color<N>" for
+    // a @color(N) framebuffer fetch input. Null for an argument that isn't a
+    // stage input.
+    _inputKey(attributes: AST.Attribute[] | null): string | null {
+        for (const attr of attributes ?? []) {
+            if (attr.name === "color") {
+                return `color${attr.value}`;
+            }
+        }
+        const { builtin, location } = this._inputSemantic(attributes);
+        return builtin ?? location;
+    }
+
     _inputSemantic(attributes: AST.Attribute[] | null): { builtin: string | null, location: string | null } {
         let builtin: string | null = null;
         let location: string | null = null;
@@ -597,8 +619,7 @@ export class WgslDebug {
     _makeStructInput(typeInfo: StructInfo, inputs: StageInputs, context: ExecContext): Data {
         const data = new TypedData(new ArrayBuffer(typeInfo.size), typeInfo);
         for (const m of typeInfo.members) {
-            const { builtin, location } = this._inputSemantic(m.attributes);
-            const key = builtin !== null ? builtin : location;
+            const key = this._inputKey(m.attributes);
             if (key === null) {
                 continue;
             }

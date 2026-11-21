@@ -1,8 +1,12 @@
 import { CallExpr, Call, UnaryOperator, VariableExpr } from "../wgsl_ast.js";
-import { Data, TypedData, TextureData, SamplerData, ScalarData, VectorData, MatrixData, PointerData } from "../wgsl_ast.js";
+import { Data, TypedData, TextureData, SamplerData, ScalarData, VectorData, MatrixData, PointerData,
+    SubgroupMatrixData } from "../wgsl_ast.js";
 import { ExecContext } from "./exec_context.js";
 import { ExecInterface } from "./exec_interface.js";
-import { ArrayInfo, BufferInfo, MemberInfo, StructInfo, TemplateInfo, TypeInfo } from "../reflect/info.js";
+import { makeResourceValue, makeDefaultResource, resourceMatchesType } from "./resource_binding.js";
+import { ArrayInfo, BufferInfo, MemberInfo, StructInfo, TemplateInfo, TypeInfo, SubgroupMatrixInfo } from "../reflect/info.js";
+import { loadSubgroupMatrix, storeSubgroupMatrix, multiplySubgroupMatrices,
+    toSubgroupMatrixElement } from "./subgroup_matrix.js";
 
 // Map a cube-map direction to the face it hits and the 2d coordinate within
 // that face, using WebGPU's cube face order:
@@ -1035,37 +1039,26 @@ export class BuiltinFunctions {
 
     // Texture Built-in Functions
     TextureDimensions(node: CallExpr | Call, context: ExecContext): Data | null {
-        const textureArg = node.args[0];
-        const level = node.args.length > 1 ? (this.exec.evalExpression(node.args[1], context) as ScalarData).value : 0;
-        if (textureArg instanceof VariableExpr) {
-            const textureName = (textureArg as VariableExpr).name;
-            const texture = context.getVariableValue(textureName);
-            if (texture instanceof TextureData) {
-                if (level < 0 || level >= texture.mipLevelCount) {
-                    console.error(`Invalid mip level for textureDimensions. Line ${node.line}`);
-                    return null;
-                }
-
-                const textureSize = texture.getMipLevelSize(level);
-
-                const dimension = texture.dimension;
-
-                if (dimension === "1d") {
-                    return new ScalarData(textureSize[0], this.getTypeInfo("u32"));
-                } else if (dimension === "3d") {
-                    return new VectorData(textureSize, this.getTypeInfo("vec3u"));
-                } else if (dimension === "2d") {
-                    return new VectorData(textureSize.slice(0, 2), this.getTypeInfo("vec2u"));
-                } else {
-                    console.error(`Invalid texture dimension ${dimension} not found. Line ${node.line}`);
-                    return null;
-                }
-            } else {
-                console.error(`Texture ${textureName} not found. Line ${node.line}`);
-                return null;
-            }
+        const texture = this._textureArg(node, context);
+        if (texture === null) {
+            return null;
         }
-        console.error(`Invalid texture argument for textureDimensions. Line ${node.line}`);
+        const level = node.args.length > 1 ? this._scalarArg(node, 1, context) : 0;
+        if (level < 0 || level >= texture.mipLevelCount) {
+            console.error(`Invalid mip level for textureDimensions. Line ${node.line}`);
+            return null;
+        }
+
+        const textureSize = texture.getMipLevelSize(level);
+        const dimension = texture.dimension;
+        if (dimension === "1d") {
+            return new ScalarData(textureSize[0], this.getTypeInfo("u32"));
+        } else if (dimension === "3d") {
+            return new VectorData(textureSize, this.getTypeInfo("vec3u"));
+        } else if (dimension === "2d") {
+            return new VectorData(textureSize.slice(0, 2), this.getTypeInfo("vec2u"));
+        }
+        console.error(`Invalid texture dimension ${dimension} not found. Line ${node.line}`);
         return null;
     }
 
@@ -1150,106 +1143,75 @@ export class BuiltinFunctions {
 
     TextureLoad(node: CallExpr | Call, context: ExecContext): Data | null {
         // https://www.w3.org/TR/WGSL/#textureload
-        const textureArg = node.args[0];
-        const uv = this.exec.evalExpression(node.args[1], context);
-
-        // A 3d texture's coordinate carries its own slice, so it is a vec3;
-        // every other loadable dimension uses a vec2 plus an optional layer.
-        if (!(uv instanceof VectorData) || (uv.data.length !== 2 && uv.data.length !== 3)) {
-            console.error(`Invalid UV argument for textureLoad. Line ${node.line}`);
+        //   sampled, depth:     (t, coords, [array_index], level)
+        //   multisampled:       (t, coords, [array_index], sample_index)
+        //   storage, external:  (t, coords, [array_index])
+        //   texel_buffer:       (t, coords)
+        // 1d textures and texel buffers take a scalar coordinate, 3d textures a
+        // vec3, and every other texture a vec2.
+        const texture = this._textureArg(node, context);
+        if (texture === null) {
+            return null;
+        }
+        const coords = this._texelCoords(this.exec.evalExpression(node.args[1], context));
+        if (coords === null) {
+            console.error(`Invalid coords argument for textureLoad. Line ${node.line}`);
             return null;
         }
 
-        if (textureArg instanceof VariableExpr) {
-            const textureName = (textureArg as VariableExpr).name;
-            const texture = context.getVariableValue(textureName);
-            if (texture instanceof TextureData) {
-                let zVal = 0;
-                let mipLevel = 0;
-                if (["texture_storage_2d_array", "texture_2d_array", "texture_depth_2d_array"].indexOf(texture.typeInfo.name) > -1) {
-                    zVal = (this.exec.evalExpression(node.args[2], context)as ScalarData).value;
-                }
-                if (["texture_1d", "texture_2d", "texture_depth_2d", "texture_3d"].indexOf(texture.typeInfo.name) > -1) {
-                    mipLevel = (this.exec.evalExpression(node.args[2], context)as ScalarData).value;
-                }
-                if (["texture_2d_array", "texture_depth_2d_array"].indexOf(texture.typeInfo.name) > -1) {
-                    mipLevel = (this.exec.evalExpression(node.args[3], context)as ScalarData).value;
-                }
-                if (texture.typeInfo.name.includes("_3d") && uv.data.length === 3) {
-                    zVal = uv.data[2];
-                }
-                const x = Math.floor(uv.data[0]);
-                const y = Math.floor(uv.data[1]);
-                const z = Math.floor(zVal);
-                const level = Math.floor(mipLevel)
-                if (x < 0 || x >= texture.width || y < 0 || y >= texture.height) {
-                    console.error(`Texture ${textureName} out of bounds. Line ${node.line}`);
-                    return null;
-                }
-
-                const texel = texture.getPixel(x, y, z, level);
-                if (texel === null) {
-                    console.error(`Invalid texture format for textureLoad. Line ${node.line}`);
-                    return null;
-                }
-
-                return new VectorData(texel, this.getTypeInfo("vec4f"));
-            } else {
-                console.error(`Texture ${textureName} not found. Line ${node.line}`);
-                return null;
-            }
+        const typeName = texture.typeInfo.name;
+        const isArray = typeName.includes("_array");
+        const hasLevel = !typeName.includes("multisampled") && !typeName.startsWith("texture_storage") &&
+            typeName !== "texture_external" && typeName !== "texel_buffer";
+        let [x, y, z] = coords;
+        let level = 0;
+        if (isArray) {
+            z = this._scalarArg(node, 2, context);
+        }
+        if (hasLevel) {
+            level = this._scalarArg(node, isArray ? 3 : 2, context);
         }
 
-        console.error(`Invalid texture argument for textureLoad. Line ${node.line}`);
-        return null;
+        const size = texture.getMipLevelSize(level);
+        if (x < 0 || x >= size[0] || y < 0 || y >= Math.max(1, size[1]) || z < 0 || z >= Math.max(1, size[2])) {
+            console.error(`Texture out of bounds for textureLoad. Line ${node.line}`);
+            return null;
+        }
+
+        const texel = texture.getPixel(x, y, z, level);
+        if (texel === null) {
+            console.error(`Invalid texture format for textureLoad. Line ${node.line}`);
+            return null;
+        }
+
+        if (typeName.startsWith("texture_depth")) {
+            return new ScalarData(texel[0], this.getTypeInfo("f32"));
+        }
+        return new VectorData(texel, this._loadResultType(texture));
     }
 
     TextureNumLayers(node: CallExpr | Call, context: ExecContext): Data | null {
-        const textureArg = node.args[0];
-        if (textureArg instanceof VariableExpr) {
-            const textureName = (textureArg as VariableExpr).name;
-            const texture = context.getVariableValue(textureName);
-            if (texture instanceof TextureData) {
-                return new ScalarData(texture.depthOrArrayLayers, this.getTypeInfo("u32"));
-            } else {
-                console.error(`Texture ${textureName} not found. Line ${node.line}`);
-                return null;
-            }
+        const texture = this._textureArg(node, context);
+        if (texture === null) {
+            return null;
         }
-        console.error(`Invalid texture argument for textureNumLayers. Line ${node.line}`);
-        return null;
+        return new ScalarData(texture.depthOrArrayLayers, this.getTypeInfo("u32"));
     }
 
     TextureNumLevels(node: CallExpr | Call, context: ExecContext): Data | null {
-        const textureArg = node.args[0];
-        if (textureArg instanceof VariableExpr) {
-            const textureName = (textureArg as VariableExpr).name;
-            const texture = context.getVariableValue(textureName);
-            if (texture instanceof TextureData) {
-                return new ScalarData(texture.mipLevelCount, this.getTypeInfo("u32"));
-            } else {
-                console.error(`Texture ${textureName} not found. Line ${node.line}`);
-                return null;
-            }
+        const texture = this._textureArg(node, context);
+        if (texture === null) {
+            return null;
         }
-        console.error(`Invalid texture argument for textureNumLevels. Line ${node.line}`);
-        return null;
+        return new ScalarData(texture.mipLevelCount, this.getTypeInfo("u32"));
     }
 
     TextureNumSamples(node: CallExpr | Call, context: ExecContext): Data | null {
-        const textureArg = node.args[0];
-        if (textureArg instanceof VariableExpr) {
-            const textureName = (textureArg as VariableExpr).name;
-            const texture = context.getVariableValue(textureName);
-            if (texture instanceof TextureData) {
-                return new ScalarData(texture.sampleCount, this.getTypeInfo("u32"));
-            } else {
-                console.error(`Texture ${textureName} not found. Line ${node.line}`);
-                return null;
-            }
+        const texture = this._textureArg(node, context);
+        if (texture === null) {
+            return null;
         }
-        console.error(`Invalid texture argument for textureNumSamples. Line ${node.line}`);
-        return null;
+        return new ScalarData(texture.sampleCount, this.getTypeInfo("u32"));
     }
 
     // --- Texture sampling -----------------------------------------------------
@@ -1269,9 +1231,10 @@ export class BuiltinFunctions {
     // Defaults (no sampler bound) are linear + clamp-to-edge. Anisotropy and
     // per-min/mag distinction are not modeled.
 
-    // Resolve a texture argument (a bare texture variable) to its TextureData.
+    // Resolve a texture argument to its TextureData: a texture variable, an
+    // element of a binding_array, or a getResource result.
     _resolveTexture(arg: CallExpr | Call | any, context: ExecContext): TextureData | null {
-        if (arg instanceof VariableExpr) {
+        if (arg instanceof VariableExpr && !arg.postfix) {
             const t = context.getVariableValue(arg.name);
             return t instanceof TextureData ? t : null;
         }
@@ -1279,13 +1242,55 @@ export class BuiltinFunctions {
         return t instanceof TextureData ? t : null;
     }
 
-    // Resolve a sampler argument (a bare sampler variable) to its SamplerData.
+    // Resolve a sampler argument to its SamplerData: a sampler variable, an
+    // element of a binding_array, or a getResource result.
     _resolveSampler(arg: CallExpr | Call | any, context: ExecContext): SamplerData | null {
-        if (arg instanceof VariableExpr) {
+        if (arg instanceof VariableExpr && !arg.postfix) {
             const s = context.getVariableValue(arg.name);
             return s instanceof SamplerData ? s : null;
         }
+        const s = this.exec.evalExpression(arg, context);
+        return s instanceof SamplerData ? s : null;
+    }
+
+    // The texture argument of a texture builtin, logging an error if it doesn't
+    // resolve to a texture.
+    _textureArg(node: CallExpr | Call, context: ExecContext): TextureData | null {
+        const texture = this._resolveTexture(node.args[0], context);
+        if (texture === null) {
+            console.error(`Invalid texture argument for ${node.name}. Line ${node.line}`);
+        }
+        return texture;
+    }
+
+    // The texel coordinate of a textureLoad or textureStore: a scalar for 1d
+    // textures and texel buffers, otherwise a vec2 or vec3.
+    _texelCoords(value: Data | null): number[] | null {
+        if (value instanceof ScalarData) {
+            return [Math.floor(value.value), 0, 0];
+        }
+        if (value instanceof VectorData && value.data.length >= 2) {
+            return [Math.floor(value.data[0]), Math.floor(value.data[1]), Math.floor(value.data[2] ?? 0)];
+        }
         return null;
+    }
+
+    _scalarArg(node: CallExpr | Call, index: number, context: ExecContext): number {
+        const value = this.exec.evalExpression(node.args[index], context);
+        return value instanceof ScalarData ? Math.floor(value.value) : 0;
+    }
+
+    // The vec4 type textureLoad returns for a texture: it follows the sampled
+    // type, or the channel type of a storage texture or texel buffer's format.
+    _loadResultType(texture: TextureData): TypeInfo | null {
+        const format = (texture.typeInfo as TemplateInfo).format?.name ?? "";
+        if (format === "u32" || format.endsWith("uint")) {
+            return this.getTypeInfo("vec4u");
+        }
+        if (format === "i32" || format.endsWith("sint")) {
+            return this.getTypeInfo("vec4i");
+        }
+        return this.getTypeInfo("vec4f");
     }
 
     // Address one axis: wrap an integer texel coordinate per the address mode.
@@ -1609,45 +1614,35 @@ export class BuiltinFunctions {
     }
 
     TextureStore(node: CallExpr | Call, context: ExecContext): Data | null {
-        const textureArg = node.args[0];
-        const uv = this.exec.evalExpression(node.args[1], context);
-        const index = (node.args.length === 4) ? (this.exec.evalExpression(node.args[2], context) as ScalarData).value : 0;
-        const value = (node.args.length === 4) ? (this.exec.evalExpression(node.args[3], context) as VectorData).data :
-            (this.exec.evalExpression(node.args[2], context) as VectorData).data;
-
-        if (value.length !== 4) {
+        // textureStore(t, coords, [array_index], value). 1d storage textures
+        // and texel buffers take a scalar coordinate, 3d a vec3, others a vec2.
+        const texture = this._textureArg(node, context);
+        if (texture === null) {
+            return null;
+        }
+        const coords = this._texelCoords(this.exec.evalExpression(node.args[1], context));
+        if (coords === null) {
+            console.error(`Invalid coords argument for textureStore. Line ${node.line}`);
+            return null;
+        }
+        const isArray = texture.typeInfo.name.includes("_array");
+        const valueArg = this.exec.evalExpression(node.args[isArray ? 3 : 2], context);
+        if (!(valueArg instanceof VectorData) || valueArg.data.length !== 4) {
             console.error(`Invalid value argument for textureStore. Line ${node.line}`);
             return null;
         }
 
-        // TODO: non-vec2 UVs, for non-2D textures
-        if (!(uv instanceof VectorData) || uv.data.length !== 2) {
-            console.error(`Invalid UV argument for textureStore. Line ${node.line}`);
+        let [x, y, z] = coords;
+        if (isArray) {
+            z = this._scalarArg(node, 2, context);
+        }
+        const size = texture.getMipLevelSize(0);
+        if (x < 0 || x >= size[0] || y < 0 || y >= Math.max(1, size[1]) || z < 0 || z >= Math.max(1, size[2])) {
+            console.error(`Texture out of bounds for textureStore. Line ${node.line}`);
             return null;
         }
 
-        if (textureArg instanceof VariableExpr) {
-            const textureName = (textureArg as VariableExpr).name;
-            const texture = context.getVariableValue(textureName);
-            if (texture instanceof TextureData) {
-                const textureSize = texture.getMipLevelSize(0);
-                const x = Math.floor(uv.data[0]);
-                const y = Math.floor(uv.data[1]);
-                if (x < 0 || x >= textureSize[0] || y < 0 || y >= textureSize[1]) {
-                    console.error(`Texture ${textureName} out of bounds. Line ${node.line}`);
-                    return null;
-                }
-
-                texture.setPixel(x, y, 0, index, Array.from(value));
-
-                return null;
-            } else {
-                console.error(`Texture ${textureName} not found. Line ${node.line}`);
-                return null;
-            }
-        }
-
-        console.error(`Invalid texture argument for textureStore. Line ${node.line}`);
+        texture.setPixel(x, y, z, 0, Array.from(valueArg.data));
         return null;
     }
 
@@ -1980,6 +1975,202 @@ export class BuiltinFunctions {
     // bufferView<T>(p, offset) reinterprets the buffer p points to as a T starting
     // offset bytes in, and bufferArrayView<T>(p, offset, size) reinterprets size
     // bytes of it as a runtime-sized T. The result points into the same memory.
+    // Input Attachment Built-in Functions (chromium_internal_input_attachments)
+
+    InputAttachmentLoad(node: CallExpr | Call, context: ExecContext): Data | null {
+        // inputAttachmentLoad(ia) reads the input attachment at the fragment's
+        // position, which WgslDebug stores as "@position".
+        const texture = this._textureArg(node, context);
+        if (texture === null) {
+            return null;
+        }
+        const position = context.getVariableValue("@position");
+        const x = position instanceof VectorData ? Math.floor(position.data[0]) : 0;
+        const y = position instanceof VectorData ? Math.floor(position.data[1]) : 0;
+        const texel = texture.getPixel(x, y, 0, 0);
+        if (texel === null) {
+            console.error(`Invalid input attachment format for inputAttachmentLoad. Line ${node.line}`);
+            return null;
+        }
+        return new VectorData(texel, this._loadResultType(texture));
+    }
+
+    // Subgroup Matrix Built-in Functions (chromium_experimental_subgroup_matrix)
+
+    // The array a subgroupMatrixLoad or subgroupMatrixStore pointer argument
+    // points to.
+    _subgroupMatrixArray(node: CallExpr | Call, context: ExecContext): TypedData | null {
+        const p = this.exec.evalExpression(node.args[0], context);
+        const data = p instanceof PointerData ? p.reference : p;
+        if (!(data instanceof TypedData) || !(data.typeInfo instanceof ArrayInfo)) {
+            console.error(`${node.name} requires a pointer to an array. Line ${node.line}`);
+            return null;
+        }
+        return data;
+    }
+
+    // The majorness of a subgroupMatrixLoad or subgroupMatrixStore: either a
+    // template argument (subgroupMatrixLoad<T, column_major>), or the
+    // col_major argument of the deprecated overloads.
+    _isColumnMajor(majorness: unknown, colMajorArg: Data | null): boolean {
+        if (colMajorArg instanceof ScalarData) {
+            return colMajorArg.value !== 0;
+        }
+        const name = (majorness as { name?: string } | null)?.name ?? "";
+        return name.includes("col");
+    }
+
+    SubgroupMatrixLoad(node: CallExpr | Call, context: ExecContext): Data | null {
+        // subgroupMatrixLoad<T, Majorness>(p, offset, stride), or the deprecated
+        // subgroupMatrixLoad<T>(p, offset, col_major, stride).
+        const templateArgs = node.templateArgs;
+        const info = templateArgs ? this.exec.getTypeInfo(templateArgs[0]) : null;
+        if (!(info instanceof SubgroupMatrixInfo)) {
+            console.error(`subgroupMatrixLoad requires a subgroup matrix type. Line ${node.line}`);
+            return null;
+        }
+        const data = this._subgroupMatrixArray(node, context);
+        if (data === null) {
+            return null;
+        }
+        const deprecated = templateArgs.length < 2;
+        const offset = this._scalarArg(node, 1, context);
+        const colMajorArg = deprecated ? this.exec.evalExpression(node.args[2], context) : null;
+        const columnMajor = this._isColumnMajor(templateArgs[1] ?? null, colMajorArg);
+        const strideIndex = deprecated ? 3 : 2;
+        const stride = node.args.length > strideIndex ? this._scalarArg(node, strideIndex, context)
+            : (columnMajor ? info.rows : info.columns);
+        return new SubgroupMatrixData(loadSubgroupMatrix(data, info, offset, columnMajor, stride), info);
+    }
+
+    SubgroupMatrixStore(node: CallExpr | Call, context: ExecContext): Data | null {
+        // subgroupMatrixStore<Majorness>(p, offset, value, stride), or the
+        // deprecated subgroupMatrixStore(p, offset, value, col_major, stride).
+        const templateArgs = node.templateArgs;
+        const data = this._subgroupMatrixArray(node, context);
+        const value = this.exec.evalExpression(node.args[2], context);
+        if (data === null || !(value instanceof SubgroupMatrixData)) {
+            console.error(`Invalid arguments for subgroupMatrixStore. Line ${node.line}`);
+            return null;
+        }
+        const info = value.typeInfo as SubgroupMatrixInfo;
+        const deprecated = templateArgs === null;
+        const offset = this._scalarArg(node, 1, context);
+        const colMajorArg = deprecated ? this.exec.evalExpression(node.args[3], context) : null;
+        const columnMajor = this._isColumnMajor(templateArgs?.[0] ?? null, colMajorArg);
+        const strideIndex = deprecated ? 4 : 3;
+        const stride = node.args.length > strideIndex ? this._scalarArg(node, strideIndex, context)
+            : (columnMajor ? info.rows : info.columns);
+        storeSubgroupMatrix(data, info, value.data, offset, columnMajor, stride);
+        return null;
+    }
+
+    // The subgroup matrix arguments of a multiply, checking that the left
+    // matrix's columns match the right matrix's rows.
+    _subgroupMatrixOperands(node: CallExpr | Call, context: ExecContext)
+        : { left: SubgroupMatrixData, right: SubgroupMatrixData } | null {
+        const left = this.exec.evalExpression(node.args[0], context);
+        const right = this.exec.evalExpression(node.args[1], context);
+        if (!(left instanceof SubgroupMatrixData) || !(right instanceof SubgroupMatrixData) ||
+            left.columns !== right.rows) {
+            console.error(`Invalid subgroup matrix arguments for ${node.name}. Line ${node.line}`);
+            return null;
+        }
+        return { left, right };
+    }
+
+    SubgroupMatrixMultiply(node: CallExpr | Call, context: ExecContext): Data | null {
+        // subgroupMatrixMultiply<TR>(left, right) -> subgroup_matrix_result<TR, N, M>
+        const operands = this._subgroupMatrixOperands(node, context);
+        if (operands === null) {
+            return null;
+        }
+        const { left, right } = operands;
+        const templateType = node.templateType;
+        const leftInfo = left.typeInfo as SubgroupMatrixInfo;
+        const format = templateType ? this.exec.getTypeInfo(templateType) : leftInfo.format;
+        const resultInfo = new SubgroupMatrixInfo("result", format ?? leftInfo.format, right.columns, left.rows, null);
+        const values = multiplySubgroupMatrices(left.data, leftInfo, right.data,
+            right.typeInfo as SubgroupMatrixInfo, resultInfo, null);
+        return new SubgroupMatrixData(values, resultInfo);
+    }
+
+    SubgroupMatrixMultiplyAccumulate(node: CallExpr | Call, context: ExecContext): Data | null {
+        // subgroupMatrixMultiplyAccumulate(left, right, acc) -> left * right + acc
+        const operands = this._subgroupMatrixOperands(node, context);
+        const acc = this.exec.evalExpression(node.args[2], context);
+        if (operands === null || !(acc instanceof SubgroupMatrixData) ||
+            acc.columns !== operands.right.columns || acc.rows !== operands.left.rows) {
+            console.error(`Invalid arguments for subgroupMatrixMultiplyAccumulate. Line ${node.line}`);
+            return null;
+        }
+        const { left, right } = operands;
+        const resultInfo = acc.typeInfo as SubgroupMatrixInfo;
+        const values = multiplySubgroupMatrices(left.data, left.typeInfo as SubgroupMatrixInfo, right.data,
+            right.typeInfo as SubgroupMatrixInfo, resultInfo, acc.data);
+        return new SubgroupMatrixData(values, resultInfo);
+    }
+
+    _subgroupMatrixScalarOp(node: CallExpr | Call, context: ExecContext, op: (a: number, b: number) => number): Data | null {
+        const m = this.exec.evalExpression(node.args[0], context);
+        const s = this.exec.evalExpression(node.args[1], context);
+        if (!(m instanceof SubgroupMatrixData) || !(s instanceof ScalarData)) {
+            console.error(`Invalid arguments for ${node.name}. Line ${node.line}`);
+            return null;
+        }
+        const type = (m.typeInfo as SubgroupMatrixInfo).format.name;
+        return new SubgroupMatrixData(m.data.map((v) => toSubgroupMatrixElement(type, op(v, s.value))), m.typeInfo);
+    }
+
+    SubgroupMatrixScalarAdd(node: CallExpr | Call, context: ExecContext): Data | null {
+        return this._subgroupMatrixScalarOp(node, context, (a, b) => a + b);
+    }
+
+    SubgroupMatrixScalarSubtract(node: CallExpr | Call, context: ExecContext): Data | null {
+        return this._subgroupMatrixScalarOp(node, context, (a, b) => a - b);
+    }
+
+    SubgroupMatrixScalarMultiply(node: CallExpr | Call, context: ExecContext): Data | null {
+        return this._subgroupMatrixScalarOp(node, context, (a, b) => a * b);
+    }
+
+    // Resource Table Built-in Functions
+
+    // The resource type T of getResource<T>(index) or hasResource<T>(index), and
+    // the resource table entry at index.
+    _resourceTableEntry(node: CallExpr | Call, context: ExecContext): { typeInfo: TypeInfo, entry: unknown } | null {
+        const typeInfo = node.templateType ? this.exec.getTypeInfo(node.templateType) : null;
+        if (typeInfo === null) {
+            console.error(`${node.name} requires a resource type. Line ${node.line}`);
+            return null;
+        }
+        const index = this._scalarArg(node, 0, context);
+        const table = this.exec.resourceTable ?? [];
+        const entry = index >= 0 && index < table.length ? table[index] : undefined;
+        return { typeInfo, entry };
+    }
+
+    GetResource(node: CallExpr | Call, context: ExecContext): Data | null {
+        // A default resource is returned if the index is out of bounds or the
+        // resource there isn't a T.
+        const r = this._resourceTableEntry(node, context);
+        if (r === null) {
+            return null;
+        }
+        if (resourceMatchesType(r.entry, r.typeInfo)) {
+            return makeResourceValue(r.typeInfo, r.entry) ?? makeDefaultResource(r.typeInfo);
+        }
+        return makeDefaultResource(r.typeInfo);
+    }
+
+    HasResource(node: CallExpr | Call, context: ExecContext): Data | null {
+        const r = this._resourceTableEntry(node, context);
+        if (r === null) {
+            return null;
+        }
+        return new ScalarData(resourceMatchesType(r.entry, r.typeInfo) ? 1 : 0, this.getTypeInfo("bool"));
+    }
+
     BufferView(node: CallExpr | Call, context: ExecContext): Data | null {
         return this._bufferView(node, context, false);
     }

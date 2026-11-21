@@ -4,6 +4,10 @@ import { TypeInfo } from "../wgsl_reflect.js";
 import { Data } from "../wgsl_ast.js";
 
 export class ExecInterface {
+    /// The entries of the bindless resource table that getResource and
+    /// hasResource access.
+    resourceTable: Array<unknown> = [];
+
     evalExpression(node: Node, context: ExecContext): Data | null {
         return null;
     }

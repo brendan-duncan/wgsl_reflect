@@ -323,5 +323,19 @@ export async function run() {
       test.equals(tokens.length, 9);
       test.equals(tokens[6].type, TokenTypes.tokens.greater_than_equal);
     });
+
+    await test("getResource<texture_2d<f32>>(0)", function (test) {
+      const scanner = new WgslScanner("getResource<texture_2d<f32>>(0)");
+      const tokens = scanner.scanTokens();
+      test.equals(tokens.map((t) => t.lexeme).filter((l) => l !== ""),
+          ["getResource", "<", "texture_2d", "<", "f32", ">", ">", "(", "0", ")"]);
+    });
+
+    await test("nested template close after a template list", function (test) {
+      const lexemes = (s) => new WgslScanner(s).scanTokens().map((t) => t.lexeme).filter((l) => l !== "");
+      test.equals(lexemes("f<subgroup_matrix_left<f32, 8, 8>>(p)").slice(9, 11), [">", ">"]);
+      // A shift after a closed template is still a shift.
+      test.equals(lexemes("let a = vec2<u32>(1u) >> b;")[10], ">>");
+    });
   });
 }

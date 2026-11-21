@@ -224,6 +224,8 @@ export declare class Assign extends Statement {
 export declare class Call extends Statement {
     name: string;
     args: Expression[];
+    templateType: Type | null;
+    templateArgs: Type[] | null;
     constructor(name: string, args: Expression[]);
     get astNodeType(): string;
     isBuiltin(): boolean;
@@ -496,6 +498,35 @@ export declare class ArrayType extends Type {
     get isArray(): boolean;
 }
 /**
+ * subgroup_matrix_left<T, C, R>, subgroup_matrix_right<T, C, R>, or
+ * subgroup_matrix_result<T, C, R> (chromium_experimental_subgroup_matrix): a
+ * matrix of C columns and R rows of T, held cooperatively by a subgroup.
+ * @class SubgroupMatrixType
+ * @extends Type
+ * @category AST
+ */
+export declare class SubgroupMatrixType extends Type {
+    kind: string;
+    format: Type;
+    columns: number;
+    rows: number;
+    constructor(kind: string, format: Type, columns: number, rows: number);
+    get astNodeType(): string;
+    getTypeName(): string;
+}
+/**
+ * binding_array<T, N> or binding_array<T> (sized_binding_array): an array of
+ * N textures or samplers bound to a single binding. The count is 0 for an
+ * unsized binding array.
+ * @class BindingArrayType
+ * @extends ArrayType
+ * @category AST
+ */
+export declare class BindingArrayType extends ArrayType {
+    constructor(attributes: Attribute[] | null, format: Type | null, count: number);
+    get astNodeType(): string;
+}
+/**
  * @class SamplerType
  * @extends Type
  * @category AST
@@ -550,6 +581,7 @@ export declare class CallExpr extends Expression {
     name: string;
     args: Expression[] | null;
     templateType: Type | null;
+    templateArgs: Type[] | null;
     cachedReturnValue: unknown;
     constructor(name: string, args: Expression[] | null);
     get astNodeType(): string;
@@ -858,4 +890,21 @@ export declare class TextureData extends Data {
     _mipBytes(mipLevel: number): Uint8Array;
     getPixel(x: number, y: number, z?: number, mipLevel?: number): number[] | null;
     setPixel(x: number, y: number, z: number, mipLevel: number, value: number[]): void;
+}
+export declare class BindingArrayData extends Data {
+    elements: Array<Data | null>;
+    constructor(elements: Array<Data | null>, typeInfo: TypeInfo);
+    clone(): Data;
+    getSubData(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null;
+    toString(): string;
+}
+export declare class SubgroupMatrixData extends Data {
+    data: number[];
+    constructor(data: number[], typeInfo: TypeInfo);
+    get columns(): number;
+    get rows(): number;
+    clone(): Data;
+    getSubData(exec: ExecInterface, postfix: Expression | null, context: ExecContext): Data | null;
+    setDataValue(exec: ExecInterface, value: Data, postfix: Expression | null, context: ExecContext): void;
+    toString(): string;
 }

@@ -7,6 +7,17 @@ import { ParseContext } from "./ast/parse_context.js";
 
 /// Parse a sequence of tokens from the WgslScanner into an Abstract Syntax Tree (AST).
 export class WgslParser {
+  // Builtin functions that take an explicit template list.
+  static readonly _templateBuiltins = new Set([
+    "bufferView",
+    "bufferArrayView",
+    "getResource",
+    "hasResource",
+    "subgroupMatrixLoad",
+    "subgroupMatrixStore",
+    "subgroupMatrixMultiply",
+  ]);
+
   _tokens: Token[] = [];
   _current: number = 0;
   _currentLine: number = 1;
@@ -57,6 +68,8 @@ export class WgslParser {
               const count = constant.constEvaluate(this._exec);
               if (arrayType instanceof AST.BufferType) {
                 arrayType.size = parseInt(count.toString());
+              } else if (arrayType instanceof AST.BindingArrayType) {
+                arrayType.count = parseInt(count.toString());
               } else {
                 arrayType.count = count;
               }
@@ -83,6 +96,9 @@ export class WgslParser {
             node.returnType = this._forwardType(node.returnType);
           } else if (node instanceof AST.Argument) {
             node.type = this._forwardType(node.type);
+          } else if ((node instanceof AST.CallExpr || node instanceof AST.Call) && node.templateArgs !== null) {
+            node.templateArgs = node.templateArgs.map((t) => this._forwardType(t));
+            node.templateType = node.templateArgs[0];
           }
         });
       }
@@ -885,14 +901,22 @@ export class WgslParser {
       TokenTypes.tokens.ident,
       "Expected function name."
     );
+    const templateArgs = this._template_builtin_args(name.lexeme);
     const args = this._argument_expression_list();
 
-    if (args === null) {
+    // A call that's followed by more of an expression, as in
+    // bufferView<T>(&b, 0).n = 1, is the start of an assignment instead.
+    if (args === null || !this._check([TokenTypes.tokens.semicolon, TokenTypes.tokens.paren_right])) {
       this._current = savedPos;
       return null;
     }
 
-    return this._updateNode(new AST.Call(name.lexeme, args), line);
+    const call = this._updateNode(new AST.Call(name.lexeme, args), line);
+    if (templateArgs !== null) {
+      call.templateArgs = templateArgs;
+      call.templateType = templateArgs[0];
+    }
+    return call;
   }
 
   _loop_statement(): AST.Loop | null {
@@ -1511,15 +1535,23 @@ export class WgslParser {
     // ident argument_expression_list?
     if (this._match(TokenTypes.tokens.ident)) {
       const name = this._previous().toString();
-      // bufferView<T>(...), bufferArrayView<T>(...): builtins with an explicit template type.
-      if ((name === "bufferView" || name === "bufferArrayView") && this._check(TokenTypes.tokens.less_than)) {
-        this._advance();
-        const templateType = this._type_decl();
-        this._consume(TokenTypes.tokens.greater_than, "Expected '>'.");
+      // Builtins called with an explicit template list, such as bufferView<T>(...)
+      // or getResource<T>(...).
+      const templateArgs = this._template_builtin_args(name);
+      if (templateArgs !== null) {
         const args = this._argument_expression_list();
         const call = this._updateNode(new AST.CallExpr(name, args));
-        call.templateType = templateType;
+        call.templateType = templateArgs[0];
+        call.templateArgs = templateArgs;
         return call;
+      }
+      // A constructor of a predeclared template type that is an identifier
+      // rather than a keyword, such as subgroup_matrix_result<f32, 8, 8>().
+      if (name.startsWith("subgroup_matrix_") && this._check(TokenTypes.tokens.less_than)) {
+        this._current--;
+        const type = this._type_decl();
+        const args = this._argument_expression_list();
+        return this._updateNode(new AST.CreateExpr(type, args));
       }
       if (this._check(TokenTypes.tokens.paren_left)) {
         const args = this._argument_expression_list();
@@ -1583,6 +1615,21 @@ export class WgslParser {
     const type = this._type_decl();
     const args = this._argument_expression_list();
     return this._updateNode(new AST.CreateExpr(type, args));
+  }
+
+  // The template list of a builtin that takes one, such as bufferView<T>(...)
+  // or getResource<T>(...), or null if there isn't one.
+  _template_builtin_args(name: string): AST.Type[] | null {
+    if (!WgslParser._templateBuiltins.has(name) || !this._check(TokenTypes.tokens.less_than)) {
+      return null;
+    }
+    this._advance();
+    const templateArgs: AST.Type[] = [];
+    do {
+      templateArgs.push(this._type_decl());
+    } while (this._match(TokenTypes.tokens.comma));
+    this._consume(TokenTypes.tokens.greater_than, "Expected '>'.");
+    return templateArgs;
   }
 
   _argument_expression_list(): AST.Expression[] | null {
@@ -1860,7 +1907,13 @@ export class WgslParser {
     let storage: string = "";
     let access: string = "";
     if (this._match(TokenTypes.tokens.less_than)) {
-      storage = this._consume(TokenTypes.storage_class, "Expected storage_class.").toString();
+      // pixel_local (chromium_experimental_pixel_local) is an identifier rather
+      // than a keyword.
+      if (this._check(TokenTypes.tokens.ident) && this._peek().lexeme === "pixel_local") {
+        storage = this._advance().toString();
+      } else {
+        storage = this._consume(TokenTypes.storage_class, "Expected storage_class.").toString();
+      }
       if (this._match(TokenTypes.tokens.comma)) {
         access = this._consume(TokenTypes.access_mode, "Expected access_mode.").toString();
       }
@@ -2002,6 +2055,22 @@ export class WgslParser {
       if (typeName === "buffer") {
         return this._buffer_type();
       }
+      if (typeName === "texel_buffer" && this._check(TokenTypes.tokens.less_than)) {
+        return this._texel_buffer_type();
+      }
+      if (typeName === "binding_array" && this._check(TokenTypes.tokens.less_than)) {
+        return this._binding_array_type();
+      }
+      if (typeName.startsWith("subgroup_matrix_") && this._check(TokenTypes.tokens.less_than)) {
+        return this._subgroup_matrix_type(typeName.substring("subgroup_matrix_".length));
+      }
+      if (typeName === "input_attachment" && this._check(TokenTypes.tokens.less_than)) {
+        // input_attachment less_than type_decl greater_than
+        this._advance();
+        const format = this._type_decl();
+        this._consume(TokenTypes.tokens.greater_than, "Expected '>' for input_attachment.");
+        return this._updateNode(new AST.SamplerType("input_attachment", format, null));
+      }
 
       const t = this._getType(typeName);
       // Don't "forward declare" built-in types
@@ -2107,6 +2176,52 @@ export class WgslParser {
       this._consume(TokenTypes.tokens.greater_than, "Expected '>' for buffer.");
     }
     return bufferType;
+  }
+
+  _texel_buffer_type(): AST.SamplerType {
+    // texel_buffer less_than texel_format comma access_mode greater_than
+    this._consume(TokenTypes.tokens.less_than, "Expected '<' for texel_buffer.");
+    const format = this._consume(TokenTypes.texel_format, "Invalid texel format.").toString();
+    this._consume(TokenTypes.tokens.comma, "Expected ',' after texel format.");
+    const access = this._consume(TokenTypes.access_mode, "Expected access mode for texel_buffer.").toString();
+    this._consume(TokenTypes.tokens.greater_than, "Expected '>' for texel_buffer.");
+    return this._updateNode(new AST.SamplerType("texel_buffer", format, access));
+  }
+
+  _binding_array_type(): AST.BindingArrayType {
+    // binding_array less_than type_decl (comma element_count_expression)? greater_than
+    this._consume(TokenTypes.tokens.less_than, "Expected '<' for binding_array.");
+    const format = this._type_decl();
+    const arrayType = this._updateNode(new AST.BindingArrayType(null, format, 0));
+    if (this._match(TokenTypes.tokens.comma)) {
+      const countNode = this._shift_expression();
+      try {
+        arrayType.count = parseInt(countNode.constEvaluate(this._exec).toString());
+      } catch (e) {
+        // The count may be a const declared after it's used.
+        this._deferArrayCountEval.push({ arrayType, countNode });
+      }
+    }
+    this._consume(TokenTypes.tokens.greater_than, "Expected '>' for binding_array.");
+    return arrayType;
+  }
+
+  _subgroup_matrix_type(kind: string): AST.SubgroupMatrixType {
+    // subgroup_matrix_kind less_than type_decl comma columns comma rows greater_than
+    this._consume(TokenTypes.tokens.less_than, "Expected '<' for subgroup matrix.");
+    const format = this._type_decl();
+    const dims: number[] = [];
+    for (let i = 0; i < 2; ++i) {
+      this._consume(TokenTypes.tokens.comma, "Expected ',' for subgroup matrix.");
+      const dimNode = this._shift_expression();
+      try {
+        dims.push(parseInt(dimNode.constEvaluate(this._exec).toString()));
+      } catch (e) {
+        throw this._error(this._previous(), "Subgroup matrix dimensions must be constant.");
+      }
+    }
+    this._consume(TokenTypes.tokens.greater_than, "Expected '>' for subgroup matrix.");
+    return this._updateNode(new AST.SubgroupMatrixType(kind, format, dims[0], dims[1]));
   }
 
   _texture_sampler_types(): AST.SamplerType | null {

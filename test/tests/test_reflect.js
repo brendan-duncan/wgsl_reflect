@@ -1747,5 +1747,124 @@ export async function run() {
       // promotes it to an array; _parseString takes [0].
       test.equals(persp.interpolation, "perspective");
     });
+
+    await test("sized_binding_array", function (test) {
+      const reflect = new WgslReflect(`
+        requires sized_binding_array;
+        @group(0) @binding(0) var textures: binding_array<texture_2d<f32>, N>;
+        @group(0) @binding(1) var samplers: binding_array<sampler, 2>;
+        @group(0) @binding(2) var images: binding_array<texture_storage_2d<rgba8unorm, write>, 3>;
+        const N = 4;
+        @fragment fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+          return textureSample(textures[1], samplers[0], uv);
+        }`);
+      test.equals(reflect.textures.length, 1);
+      test.equals(reflect.textures[0].type.getTypeName(), "binding_array<texture_2d<f32>, 4>");
+      test.equals(reflect.textures[0].count, 4);
+      test.equals(reflect.textures[0].format.name, "texture_2d");
+      test.equals(reflect.textures[0].size, 0);
+      test.equals(reflect.samplers.length, 1);
+      test.equals(reflect.samplers[0].count, 2);
+      test.equals(reflect.storage.length, 1);
+      test.equals(reflect.storage[0].resourceType, ResourceType.StorageTexture);
+      test.equals(reflect.storage[0].access, "write");
+      test.equals(reflect.entry.fragment[0].resources.map((r) => r.name), ["textures", "samplers"]);
+      test.equals(reflect.textures[0].relations.map((r) => r.name), ["samplers"]);
+    });
+
+    await test("texel_buffers", function (test) {
+      const reflect = new WgslReflect(`
+        requires texel_buffers;
+        @group(0) @binding(0) var src: texel_buffer<rgba8unorm, read>;
+        @group(0) @binding(1) var dst: texel_buffer<r32uint, read_write>;
+        @compute @workgroup_size(1) fn main() {
+          textureStore(dst, 0u, vec4u(u32(textureLoad(src, 0u).x)));
+        }`);
+      test.equals(reflect.texelBuffers.length, 2);
+      test.equals(reflect.texelBuffers[0].resourceType, ResourceType.TexelBuffer);
+      test.equals(reflect.texelBuffers[0].access, "read");
+      test.equals(reflect.texelBuffers[0].format.name, "rgba8unorm");
+      test.equals(reflect.texelBuffers[1].access, "read_write");
+      test.equals(reflect.entry.compute[0].resources.map((r) => r.name), ["dst", "src"]);
+      test.equals(reflect.getBindGroups()[0].map((r) => r.name), ["src", "dst"]);
+      test.equals(reflect.findResource(0, 1).name, "dst");
+    });
+
+    await test("multisampled_array_textures", function (test) {
+      const reflect = new WgslReflect(`
+        requires multisampled_array_textures;
+        @group(0) @binding(0) var t: texture_multisampled_2d_array<f32>;
+        @compute @workgroup_size(1) fn main() { let v = textureLoad(t, vec2u(0), 1u, 0u); }`);
+      test.equals(reflect.textures.length, 1);
+      test.equals(reflect.textures[0].type.getTypeName(), "texture_multisampled_2d_array<f32>");
+      test.equals(reflect.entry.compute[0].resources.length, 1);
+    });
+
+    await test("resource_table", function (test) {
+      const reflect = new WgslReflect(`
+        enable chromium_experimental_resource_table;
+        fn shade(i: u32, uv: vec2f) -> vec4f {
+          return textureSample(getResource<texture_2d<f32>>(i), getResource<sampler>(0u), uv);
+        }
+        @fragment fn main(@location(0) uv: vec2f) -> @location(0) vec4f {
+          if (hasResource<texture_depth_2d>(2u)) {
+            return vec4f(0.0);
+          }
+          return shade(1u, uv);
+        }
+        @compute @workgroup_size(1) fn other() {}`);
+      const main = reflect.getFunctionInfo("main");
+      test.equals(main.usesResourceTable, true);
+      test.equals(main.resourceTableTypes.map((t) => t.getTypeName()),
+          ["texture_depth_2d", "texture_2d<f32>", "sampler"]);
+      test.equals(reflect.getFunctionInfo("shade").usesResourceTable, true);
+      test.equals(reflect.getFunctionInfo("other").usesResourceTable, false);
+      test.equals(reflect.getFunctionInfo("other").resourceTableTypes.length, 0);
+      test.equals(main.resources.length, 0);
+    });
+
+    await test("subgroup_matrix types", function (test) {
+      const reflect = new WgslReflect(`
+        enable chromium_experimental_subgroup_matrix;
+        const N = 8;
+        fn f(a: subgroup_matrix_left<f16, N, 4>, b: subgroup_matrix_right<i8, 8, N>) -> subgroup_matrix_result<f32, 8, 4> {
+          return subgroup_matrix_result<f32, 8, 4>();
+        }`);
+      const fn = reflect.getFunctionInfo("f");
+      test.equals(fn.arguments.map((a) => a.type.getTypeName()),
+          ["subgroup_matrix_left<f16, 8, 4>", "subgroup_matrix_right<i8, 8, 8>"]);
+      test.equals(fn.arguments[0].type.kind, "left");
+      test.equals(fn.arguments[0].type.columns, 8);
+      test.equals(fn.arguments[0].type.rows, 4);
+      test.equals(fn.returnType.getTypeName(), "subgroup_matrix_result<f32, 8, 4>");
+    });
+
+    await test("pixel_local, framebuffer_fetch, and input_attachments", function (test) {
+      const reflect = new WgslReflect(`
+        enable chromium_experimental_pixel_local;
+        enable chromium_experimental_framebuffer_fetch;
+        enable chromium_internal_input_attachments;
+        struct PLS { count: u32, sum: f32 }
+        var<pixel_local> pls: PLS;
+        @group(0) @binding(3) @input_attachment_index(1) var ia: input_attachment<f32>;
+        struct In { @location(0) uv: vec2f, @color(1) previous: vec4f }
+        @fragment fn main(@color(0) dst: vec4f, input: In) -> @location(0) vec4f {
+          pls.count += 1u;
+          return dst + input.previous + inputAttachmentLoad(ia);
+        }`);
+      test.equals(reflect.pixelLocal.length, 1);
+      test.equals(reflect.pixelLocal[0].name, "pls");
+      test.equals(reflect.pixelLocal[0].resourceType, ResourceType.PixelLocal);
+      test.equals(reflect.pixelLocal[0].type.name, "PLS");
+      test.equals(reflect.pixelLocal[0].size, 8);
+      test.equals(reflect.inputAttachments.length, 1);
+      test.equals(reflect.inputAttachments[0].resourceType, ResourceType.InputAttachment);
+      test.equals(reflect.inputAttachments[0].type.getTypeName(), "input_attachment<f32>");
+      test.equals(reflect.findResource(0, 3).name, "ia");
+      const fn = reflect.entry.fragment[0];
+      test.equals(fn.inputs.map((i) => `${i.name}:${i.locationType}:${i.location}`),
+          ["dst:color:0", "uv:location:0", "previous:color:1"]);
+      test.equals(fn.resources.map((r) => r.name).sort(), ["ia", "pls"]);
+    });
   });
 }
